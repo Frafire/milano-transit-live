@@ -1745,13 +1745,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function openRadio(F, tr) {
     radioTrain = { F, tr, no: trainNo(F, tr) };
-    radioWho.textContent = 'Treno ' + radioTrain.no;
+    radioWho.textContent = 'Treno ' + radioTrain.no; radioCmdHtml = '';
     radioEl.hidden = false;
     if (!radioMsgs.length) say('', 'Canale aperto. Tu sei il Posto Centrale.', 'sys');
     drawRadioLog(); drawRadioCmds();
   }
   document.getElementById('radioClose').onclick = () => { radioEl.hidden = true; };
-  let radioStopSel = 60, radioWhy = 'il treno davanti a te è in ritardo';
+  const RADIO_WHY = ['treno davanti in ritardo', 'regolarizzare l’intervallo', 'guasto più avanti', 'nessun motivo'];
+  const WHY_TXT = { 'treno davanti in ritardo': 'il treno davanti a te è in ritardo', 'regolarizzare l’intervallo': 'devo regolarizzare l’intervallo',
+                    'guasto più avanti': 'c’è un guasto più avanti', 'nessun motivo': 'per servizio' };
+  let radioStopSel = 60, radioWhy = RADIO_WHY[0], radioCmdHtml = '';
   function drawRadioCmds() {
     if (radioEl.hidden || !radioTrain) return;
     const { F, tr } = radioTrain, ns = nextStop(F, tr), pend = radioWatch.filter(w => w.tr === tr).length;
@@ -1759,8 +1762,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (ns) {
       h += `<div class="lbl">Sosta prolungata a ${cap(ns.name)}</div>
         <div class="row">${[30, 60, 90, 120].map(v => `<button data-rs="${v}" aria-pressed="${radioStopSel === v}">${v < 60 ? v + 's' : (v / 60) + (v % 60 ? '' : '') + ' min'}</button>`).join('').replace('1.5 min', '1:30')}</div>
-        <div class="row"><select id="radioWhy" aria-label="Motivo">${['il treno davanti a te è in ritardo', 'devo regolarizzare l’intervallo', 'attesa per un guasto più avanti', 'nessun motivo particolare'].map(w => `<option ${w === radioWhy ? 'selected' : ''}>${w}</option>`).join('')}</select>
-        <button id="radioSendStop">Trasmetti</button></div>`;
+        <div class="lbl">Motivo</div>
+        <div class="row">${RADIO_WHY.map((w, i) => `<button data-rw="${i}" aria-pressed="${w === radioWhy}">${w}</button>`).join('')}</div>
+        <div class="row"><button id="radioSendStop">Trasmetti</button></div>`;
     } else h += `<div class="lbl">Nessuna fermata davanti: il treno non è in servizio</div>`;
     if (pend) h += `<div class="row"><button id="radioCancel">Annulla le soste ordinate (${pend})</button></div>`;
     // departure platform at San Donato
@@ -1770,13 +1774,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // platform 2 and reversal, coming from Rogoredo
     const k2 = (tr.arr2 || []).findIndex(a => !a.done && state.t >= a.open && state.t <= a.close);
     if (k2 >= 0) h += `<div class="lbl">Arrivo a San Donato</div><div class="row"><button id="radioP2">Entra al binario 2 e inverti lì</button></div>`;
-    radioCmds.innerHTML = h;
+    if (h === radioCmdHtml) return;          // unchanged: keep the buttons as they are (nothing closes or flickers)
+    radioCmdHtml = h; radioCmds.innerHTML = h;
     radioCmds.querySelectorAll('[data-rs]').forEach(b => b.onclick = () => { radioStopSel = +b.dataset.rs; drawRadioCmds(); });
-    const why = document.getElementById('radioWhy'); if (why) why.onchange = () => { radioWhy = why.value; };
+    radioCmds.querySelectorAll('[data-rw]').forEach(b => b.onclick = () => { radioWhy = RADIO_WHY[+b.dataset.rw]; drawRadioCmds(); });
     const send = document.getElementById('radioSendStop');
     if (send) send.onclick = () => {
       const n = nextStop(F, tr); if (!n) return;
-      say('PC', `Treno ${radioTrain.no}, ${radioWhy}: fai una sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`, 'pc');
+      say('PC', `Treno ${radioTrain.no}, ${WHY_TXT[radioWhy]}: fai una sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`, 'pc');
       tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {}; tr.env.extra[n.key] = radioStopSel; relive(tr);
       radioWatch.push({ tr, F, key: n.key, name: n.name, dur: radioStopSel, said: 0 });
       driverSays(pick([`Ricevuto PC, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Avviso i passeggeri. Passo.`,
@@ -1829,16 +1834,30 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   function buildSignals(F) {
     if (!RT) RT = stretches(F);
     const half = F.engine.half + 2.5, out = [];
+    const pidOf = dir => { const xs = RT[dir]; return xs.length ? xs[0].tr.segs[xs[0].si][0] : null; };
+    const KXs = Math.cos(45.46 * Math.PI / 180);
+    // which side is "outside": away from the nearest point of the other track (+1 right of travel, -1 left)
+    function outward(pidOther, a, ux, uy) {
+      const P = F.paths[pidOther]; let best = null;
+      for (let i = 0; i < P.lat.length - 1; i++) {
+        const ax = P.lon[i] * KXs, ay = P.lat[i], bx = P.lon[i + 1] * KXs, by = P.lat[i + 1], px = a[1] * KXs, py = a[0];
+        const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, u = L2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2)) : 0;
+        const qx = ax + u * dx, qy = ay + u * dy, dd = (qx - px) ** 2 + (qy - py) ** 2;
+        if (!best || dd < best.dd) best = { dd, vx: qx - px, vy: qy - py };
+      }
+      return best && (best.vx * -uy + best.vy * ux) > 0 ? 1 : -1;
+    }
     ['N', 'S'].forEach(dir => {
       const xs = RT[dir]; if (!xs.length) return;
-      const pid = xs[0].tr.segs[xs[0].si][0];
+      const pid = pidOf(dir), other = pidOf(dir === 'N' ? 'S' : 'N');
       const stops = xs.map(x => ({ n: x.from, d: x.d0 })).concat([{ n: xs[xs.length - 1].to, d: xs[xs.length - 1].d1 }]);
       stops.forEach((st, j) => {
         [[+1, true], [-1, false]].forEach(([sgn, normal]) => {      // normal: the usual direction on this track
           const d = st.d + sgn * half, ahead = stops[j + sgn]; if (!ahead) return;
           const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);
           const kx = Math.cos(a[0] * Math.PI / 180), ux = (b[1] - a[1]) * kx, uy = b[0] - a[0], n = Math.hypot(ux, uy) || 1;
-          const off = 6 / 111000, pos = [a[0] - ux / n * off, a[1] + uy / n * off / kx];   // to the right of the train
+          const side = other != null ? outward(other, a, ux / n, uy / n) : 1;
+          const off = 7 / 111000 * side, pos = [a[0] - ux / n * off, a[1] + uy / n * off / kx];   // outside its own track
           const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL.stop}">` }) })
             .bindTooltip(`${cap(st.n)} · partenza ${normal ? '' : '(senso inverso) '}verso ${cap(ahead.n)}`, { className: 'st', direction: 'top' });
           out.push({ m, pid, from: Math.min(st.d, ahead.d), to: Math.max(st.d, ahead.d), normal, a: null });
