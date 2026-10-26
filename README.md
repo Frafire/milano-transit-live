@@ -57,6 +57,12 @@ With speed limits the live engine drives like the ATO: as fast as allowed, then 
 
 Click a metro train: the card shows its speed as the simulation calculates it, whether the doors are open or closed, and a short timetable (last stop, next two, destination). **Orario completo** shows every stop.
 
+## Station stop times and the timetable check
+
+`data/dwell_m3.json` sets how long trains stop: Duomo and Centrale 30–60 s, the busier stations (Rogoredo, Corvetto, Brenta, Lodi, Porta Romana, Crocetta, Missori, Montenapoleone, Turati, Repubblica, Zara, Maciachini) 15–25 s, the others 10–15 s; rush hours (7–9, 16–19) use the upper half of the range, a late train stops for the minimum. At intermediate stations the live engine leaves when the stop is over, not when the timetable says.
+
+`tests/timetable_check.js` (run by the build) drives the whole day with these stop times and the speed limits, and says whether the ATM timetable can be respected. `tools/fit_center_speeds.js` filled the unset limits between Porta Romana and Repubblica from measured run times.
+
 ## Changing how M3 runs
 
 The M3 operating rules live in [`data/operations_m3.json`](data/operations_m3.json): stop time at stations, unloading time at the terminus, platform wait, minimum turnaround, tail and depot speeds. Change a number (you can do it on github.com with the pencil icon), run `./build.sh` again and the whole day is re-planned. The build stops with an error if a change breaks a rule (two trains in a tail or on a depot track).

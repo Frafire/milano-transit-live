@@ -573,6 +573,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (F.net && F.ops && window.MTLEngine) {
       fleet.engine = { ops: { ...F.ops, train_half: F.half }, rev: F.reverse_s, net: F.net, S: F.section, half: F.half, pathEdges: F.path_edges, fileSpeeds: F.speeds || {} };
       fleet.engine.fileCuts = F.cuts || {};
+      if (F.dwell) {                 // real station stop times (dwell_m3.json): which station is the train at?
+        const KXm_ = 111320 * Math.cos(45.46 * Math.PI / 180), KYm_ = 110540, acc = {};
+        trips.forEach(tp => { if (routes[tp.r].id !== F.line) return; tp.st.forEach(x => { if (x < 0) return; const [n, la, lo] = D.stops[x]; (acc[n] = acc[n] || []).push([la, lo]); }); });
+        const st = Object.entries(acc).map(([n, l]) => ({ n, x: (l.reduce((a, q) => a + q[1], 0) / l.length - 9.19) * KXm_, y: (l.reduce((a, q) => a + q[0], 0) / l.length - 45.46) * KYm_ }));
+        const posOf = (pid, d) => { const q = trackAt(fleet, pid, d); return [(q[1] - 9.19) * KXm_, (q[0] - 45.46) * KYm_]; };
+        fleet.trains.forEach((tr, k) => { tr.env = { dwell: MTLEngine.makeDwell(F.dwell, st, posOf, 'T' + k) }; });
+      }
       fleet.engine.prof = F.path_edges ? MTLEngine.buildProfiles(F.path_edges, F.net.edges, fleet.engine.fileSpeeds, fleet.engine.ops, fleet.engine.fileCuts) : null;
       fleet.trains.forEach(tr => { tr.F = fleet; relive(tr); });
     }
@@ -617,15 +624,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function reliveFleet(F) {
     const R = sectionResources(F);
-    if (!R.length) { F.trains.forEach(tr => { const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev, null, F.engine.prof); tr.live = r.segs; tr.liveStarts = r.segs.map(x => x[3][0]); tr.liveLog = r.log; }); return; }
-    const r = MTLEngine.runBooked(F.trains.map(tr => tr.segs), F.engine.ops, F.engine.rev, R, F.engine.half, null, F.engine.prof);
+    if (!R.length) { F.trains.forEach(tr => { const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev, null, F.engine.prof, tr.env); tr.live = r.segs; tr.liveStarts = r.segs.map(x => x[3][0]); tr.liveLog = r.log; }); return; }
+    const r = MTLEngine.runBooked(F.trains.map(tr => tr.segs), F.engine.ops, F.engine.rev, R, F.engine.half, null, F.engine.prof, F.trains.map(tr => tr.env));
     F.trains.forEach((tr, k) => { tr.live = r.res[k].segs; tr.liveStarts = tr.live.map(x => x[3][0]); tr.liveLog = r.res[k].log; });
     F.holds = r.held;
   }
   function relive(tr) {
     const F = tr.F; if (!F || !F.engine) return;
     if (F.closed) return reliveFleet(F);
-    const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev, null, F.engine.prof);
+    const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev, null, F.engine.prof, tr.env);
     tr.live = r.segs; tr.liveStarts = r.segs.map(x => x[3][0]); tr.liveLog = r.log;
   }
   function trainState(F, tr, t) {

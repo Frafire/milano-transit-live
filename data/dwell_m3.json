@@ -1,0 +1,57 @@
+{
+  "_about": "Station stop times (seconds) for the live engine. Rush hours: the upper half of the range; otherwise the lower half; a train more than late_after_s late stops for the minimum. Terminus unloading follows the plan (operations_m3.json).",
+  "rush_hours": [
+    [
+      7,
+      9
+    ],
+    [
+      16,
+      19
+    ]
+  ],
+  "late_after_s": 30,
+  "classes": [
+    {
+      "name": "terminus",
+      "stations": [
+        "SAN DONATO",
+        "COMASINA"
+      ],
+      "min": 30,
+      "max": 45
+    },
+    {
+      "name": "busy",
+      "stations": [
+        "DUOMO M3",
+        "CENTRALE FS"
+      ],
+      "min": 30,
+      "max": 60
+    },
+    {
+      "name": "medium",
+      "stations": [
+        "ROGOREDO FS",
+        "CORVETTO",
+        "BRENTA",
+        "LODI T.I.B.B.",
+        "PORTA ROMANA",
+        "CROCETTA",
+        "MONTENAPOLEONE",
+        "MISSORI",
+        "TURATI",
+        "REPUBBLICA",
+        "ZARA",
+        "MACIACHINI"
+      ],
+      "min": 15,
+      "max": 25
+    }
+  ],
+  "default": {
+    "min": 10,
+    "max": 15
+  }
+}

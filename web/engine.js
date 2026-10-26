@@ -60,7 +60,8 @@
   }
 
   // simulate one train for the whole day; returns live segments + a log of arrivals (plan vs actual)
-  function runTrain(segs, ops, reverse, holds, profiles) {
+  // env.dwell(pid, d, tArrive, late, key): seconds to stand at this stop, or null to keep to the plan
+  function runTrain(segs, ops, reverse, holds, profiles, env) {
     holds = holds || {};
     const live = [], log = [];
     let t = -Infinity;
@@ -76,9 +77,12 @@
       let i = 0;
       while (i < pts.length - 1) {
         if (pds[i + 1] === pds[i]) {                    // standing: station stop, boarding, waiting
-          const planned = pts[i + 1] - pts[i];
+          const planned = pts[i + 1] - pts[i], hold = holds[si + ':' + (i + 1)] || 0;
+          // intermediate stations in service: the real stop time, then go (no waiting for the timetable)
+          const dw = env && env.dwell && status === 'service' && i > 0 ? env.dwell(pid, pds[i], t, t - pts[i], si + ':' + i) : null;
+          if (dw != null) { t = Math.max(t + dw, hold); out.ts.push(t); out.ds.push(pds[i + 1]); i++; continue; }
           const minWait = Math.min(planned, ops.station_stop_s >= 20 ? 20 : planned);
-          t = Math.max(pts[i + 1], t + minWait, holds[si + ':' + (i + 1)] || 0);
+          t = Math.max(pts[i + 1], t + minWait, hold);
           out.ts.push(t); out.ds.push(pds[i + 1]);
           i++;
           continue;
@@ -101,8 +105,31 @@
     return { segs: live, log };
   }
 
-  function runFleet(trains, ops, reverse, profiles) {
-    return trains.map(segs => runTrain(segs, ops, reverse, null, profiles));
+  function runFleet(trains, ops, reverse, profiles, envs) {
+    return trains.map((segs, k) => runTrain(segs, ops, reverse, null, profiles, envs && envs[k]));
+  }
+
+  // ---------------- station stop times ----------------
+  // cfg: data/dwell_m3.json. Same train, same stop, same day: always the same "random" number.
+  function hash(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return ((h >>> 0) % 100000) / 100000; }
+  function stopTime(cfg, station, t, late, seed) {
+    const cl = cfg.classes.find(c => c.stations.includes(station)) || cfg.default;
+    if (late > (cfg.late_after_s || 30)) return cl.min;
+    const h = (t / 3600) % 24, rush = cfg.rush_hours.some(([a, b]) => h >= a && h < b), mid = (cl.min + cl.max) / 2;
+    const [lo, hi] = rush ? [mid, cl.max] : [cl.min, mid];
+    return Math.round(lo + (hi - lo) * hash(seed));
+  }
+  // station at a point of a path: stations = [{ n, x, y }] in metres, posOf(pid, d) -> [x, y]
+  function makeDwell(cfg, stations, posOf, trainSeed) {
+    const cache = {};
+    return (pid, d, t, late, key) => {
+      const ck = pid + ':' + Math.round(d);
+      if (!(ck in cache)) { const [x, y] = posOf(pid, d); let best = null;
+        for (const s of stations) { const dd = Math.hypot(s.x - x, s.y - y); if (dd < 200 && (!best || dd < best.dd)) best = { dd, n: s.n }; }
+        cache[ck] = best ? best.n : null; }
+      const n = cache[ck]; if (!n) return null;
+      return stopTime(cfg, n, t, late, trainSeed + ':' + key + ':' + n);
+    };
   }
 
   // ---------------- speed limits ----------------
@@ -169,10 +196,10 @@
     for (let i = 1; i < pds.length; i++) { if (pds[i] >= a - half) break; if (pds[i] === pds[i - 1]) m = i; }
     return m >= 0 ? si + ':' + m : si + ':start';
   }
-  function runBooked(plans, ops, reverse, resources, half, base, profiles) {
+  function runBooked(plans, ops, reverse, resources, half, base, profiles, envs) {
     plans = plans.slice();
     const holds = plans.map(() => ({}));
-    const res = base ? base.slice() : plans.map(p => runTrain(p, ops, reverse, null, profiles));
+    const res = base ? base.slice() : plans.map((p, k) => runTrain(p, ops, reverse, null, profiles, envs && envs[k]));
     let guard = 0, held = 0;
     for (const R of resources) {
       for (;;) {
@@ -205,7 +232,7 @@
         const until = Math.min(p.exit + 2, 30 * 3600);
         if ((holds[x.k][key] || 0) >= until) break;           // cannot do better: give up rather than loop
         holds[x.k][key] = until; held++;
-        res[x.k] = runTrain(plans[x.k], ops, reverse, holds[x.k], profiles);
+        res[x.k] = runTrain(plans[x.k], ops, reverse, holds[x.k], profiles, envs && envs[x.k]);
       }
     }
     return { res, holds, held, plans };
@@ -313,6 +340,6 @@
     return { segs: out, kind, turned };
   }
 
-  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, DT };
+  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, stopTime, makeDwell, DT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

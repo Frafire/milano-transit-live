@@ -13,6 +13,6 @@
   "line_max_kmh": 80,
   "train_max_kmh": 90,
   "diverging_kmh": 15,
-  "acceleration_ms2": 1.0,
-  "braking_ms2": 1.0
+  "acceleration_ms2": 1.1,
+  "braking_ms2": 1.2
 }
