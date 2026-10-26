@@ -723,9 +723,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   function relive(tr) {
     const F = tr.F; if (!F || !F.engine) return;
     reliveFleet(F, F.closed ? null : tr);
+    if (F.ag && tr.agentK != null) F.ag.replan(tr.agentK);
   }
   function trainState(F, tr, t) {
-    if (F.emergency && t >= F.emergency.t0 && tr.agentK != null) return agentState(F, tr);
+    if (F.ag && state.engine && tr.agentK != null) return agentState(F, tr);
     const useLive = F.engine && state.engine && tr.live, SG = useLive ? tr.live : tr.segs;
     const st = useLive ? tr.liveStarts : tr.starts; let lo = 0, hi = st.length - 1;
     if (t < st[0]) { const s = SG[0]; return { pos: trackAt(F, s[0], s[4][0]), pid: s[0], d: s[4][0], status: 'parked', label: parkedLabel(F, tr.where[0]), trip: -1, seg: -1, store: s[5] }; }
@@ -1857,42 +1858,61 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       return pts.map((q, k) => ({ st: st[k], j: q.j, d: q.d }));
     };
   }
-  function emergencyAgents(F) {
+  // ---- one engine: the M3 trains are agents (web/agents.js) all the time; the day computed in advance (engine.js)
+  // only gives their starting positions when the page opens or the time jumps with nothing happened yet ----
+  function bookedPositions(F, t) {
+    return F.trains.map(tr => {
+      const live = tr.live || tr.segs, s = MTLEngine.stateAt(live, t), sg = live[Math.min(s.si, live.length - 1)];
+      if (s.si >= live.length) return { pid: sg[0], d: sg[4][sg[4].length - 1], v: 0, seg: s.si, status: 'parked' };
+      if (s.before) { const p = s.si > 0 ? live[s.si - 1] : sg; return { pid: p[0], d: s.si > 0 ? p[4][p[4].length - 1] : sg[4][0], v: 0, seg: s.si, before: true, startAt: sg[3][0] }; }
+      let leaveAt = null; const ts = sg[3], ds = sg[4];
+      for (let i = 0; i < ts.length - 1; i++) if (ts[i] <= t && ts[i + 1] > t && ds[i + 1] === ds[i]) leaveAt = ts[i + 1];
+      return { pid: sg[0], d: s.d, v: s.v, seg: s.si, leaveAt, status: sg[1] };
+    });
+  }
+  function makeAgents(F) {
     const E_ = F.engine, G = E_.G;
-    return MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      resources: E_.throatR, plans0: F.trains.map(tr => tr.segs), stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G),
+    F.trains.forEach((tr, k) => { tr.agentK = k; });
+    F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
+      resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G),
+      dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
+      initAt: t => bookedPositions(F, t),
       locks: cl => MTLEngine.blockResources(MTLEngine.turnLocks(G, cl), E_.pathEdges, E_.net.edges).map(r => Object.assign(r, { lock: true })) });
+    F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
+  }
+  // the closure that applies now, from the events of the time line
+  function closureNow(F) {
+    if (!F || !F.ag) return null;
+    const ev = F.ag.TL.events.filter(e => e.done && (e.kind === 'close' || e.kind === 'normal')).pop();
+    if (!ev || ev.kind !== 'close') return null;
+    return { label: ev.label, t0: ev.t, cl: ev.cl, reopened: F.ag.S.reopened != null, ag: F.ag };
   }
   function closeStretch(i) {
-    const F = m3fleet(); if (!F || F.emergency) return;
+    const F = m3fleet(); if (!F || !F.ag || closureNow(F)) return;
     const G = F.engine.G, [x, y, label] = CLOSURES[i], a = Math.min(G.names.indexOf(x), G.names.indexOf(y)), b = Math.max(G.names.indexOf(x), G.names.indexOf(y));
-    const t0 = state.t, ag = emergencyAgents(F);
-    const pos = F.trains.map(tr => { const st = trainState(F, tr, t0); return { pid: st.pid, d: st.d, v: st.v || 0, seg: st.seg, status: st.status }; });
-    F.trains.forEach((tr, k) => { tr.agentK = k; });
-    ag.close(t0, { a, b }, pos);
-    F.emergency = { ag, t0, cl: { a, b }, label, calls: {} };
-    window.activeClosure = { segment: label, active: true, a, b, since: t0 };
-    say('', `PC: tratta ${label} chiusa alle ${fmt(t0, true).join('')}. Il resto della linea va a navetta.`, 'sys');
+    F.ag.event({ kind: 'close', cl: { a, b }, label });
+    say('', `PC: tratta ${label} chiusa alle ${fmt(F.ag.S.t, true).join('')}. Il resto della linea va a navetta.`, 'sys');
     syncClosureUI();
   }
   function reopenStretch() {
-    const F = m3fleet(); if (!F || !F.emergency || !window.activeClosure || !window.activeClosure.active) return;
-    F.emergency.ag.reopen(state.t); window.activeClosure.active = false; window.activeClosure.reopenedAt = state.t;
-    say('', `PC: tratta ${F.emergency.label} riaperta. 20 km/h per 2 minuti, poi i treni riprendono l'orario.`, 'sys');
+    const F = m3fleet(), c = closureNow(F); if (!c || c.reopened) return;
+    F.ag.event({ kind: 'reopen' });
+    say('', `PC: tratta ${c.label} riaperta. 20 km/h per 2 minuti, poi i treni riprendono l'orario.`, 'sys');
     syncClosureUI();
   }
   function backToTimetable() {
-    const F = m3fleet(); if (!F || !F.emergency) return;
-    F.emergency = null; window.activeClosure = null; F.trains.forEach(tr => { delete tr.agentK; });
-    reliveFleet(F); syncClosureUI();
+    const F = m3fleet(); if (!F || !closureNow(F)) return;
+    F.ag.event({ kind: 'normal' }); syncClosureUI();
   }
   function syncClosureUI() {
-    const F = m3fleet(), em = F && F.emergency, open = !em || !window.activeClosure || !window.activeClosure.active;
+    const F = m3fleet(), em = closureNow(F), open = !em || em.reopened;
+    F && (F.emergency = em);
+    window.activeClosure = em ? { segment: em.label, active: !em.reopened, a: em.cl.a, b: em.cl.b, since: em.t0 } : null;
     clGrid.querySelectorAll('button').forEach((b, i) => { b.setAttribute('aria-pressed', !!(em && em.label === CLOSURES[i][2] && !open)); b.disabled = !!em; });
     reopenBtn.disabled = !em || open; normalBtn.disabled = !em || !open;
     if (!em) secNote.textContent = secNote.dataset.idle;
     else {
-      const c = {}; em.ag.agents().forEach(a => { const k = a.hidden ? 'deposito' : a.status === 'stopped' ? 'fermi' : a.mode === 'shuttle' ? (open ? 'in linea' : 'navette') : a.mode === 'static' ? 'trattenuti' : a.mode; c[k] = (c[k] || 0) + 1; });
+      const c = {}; em.ag.agents().forEach(a => { const k = a.hidden || a.status === 'parked' ? 'in deposito' : a.status === 'stopped' ? 'fermi' : a.mode === 'shuttle' ? (open ? 'in linea' : 'navette') : a.mode === 'static' ? 'trattenuti' : a.mode === 'plan' ? 'in orario' : a.mode; c[k] = (c[k] || 0) + 1; });
       secNote.textContent = (open ? `Tratta ${em.label} riaperta. ` : `Tratta ${em.label} chiusa dalle ${fmt(em.t0)}. `) + Object.entries(c).map(([k, v]) => `${v} ${k}`).join(', ') + '.';
     }
   }
@@ -1900,12 +1920,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   CLOSURES.forEach((c, i) => { const b = document.createElement('button'); b.textContent = c[2]; b.onclick = () => closeStretch(i); clGrid.appendChild(b); });
   reopenBtn.onclick = reopenStretch; normalBtn.onclick = backToTimetable;
   const AGLABEL = { service: 'In servizio', stopped: 'Fermo in stazione: tratta interrotta', held: 'Trattenuto: tratta chiusa', turnback: 'In manovra (cambio banco)', empty: 'Vuoto, senza passeggeri', depot: 'Rientrato in deposito', parked: 'In deposito' };
+  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC' };
   function agentState(F, tr) {
-    const em = F.emergency, s = em.ag.state(tr.agentK), G = F.engine.G;
-    if (s.hidden || s.status === 'parked') return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: 0, status: 'parked', label: AGLABEL[s.status] || 'In deposito', trip: -1, seg: -1 };
-    let label = AGLABEL[s.status] || s.status;
-    if (s.status === 'service') label = (s.mode === 'shuttle' && !s.timed ? 'Navetta' : 'In servizio') + (s.to != null ? ' per ' + cap(G.names[s.to]) : '') + (s.why === 'segnale' || (s.red && s.v === 0) ? ' · fermo al segnale' : s.why === 'intervallo' ? ' · attende l\'intervallo' : '');
-    return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: s.v, status: s.status === 'service' ? 'service' : s.status, label, trip: -1, seg: -1, agent: s };
+    const s = F.ag.state(tr.agentK), G = F.engine.G;
+    if (s.hidden || s.status === 'parked') return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: 0, status: 'parked', label: s.hidden ? AGLABEL.depot : parkedLabel(F, 'depot'), trip: -1, seg: s.seg, store: tr.segs[s.seg] && tr.segs[s.seg][5] };
+    const why = s.v === 0 ? (WHY[s.why] || (s.red ? WHY.segnale : '')) : '';
+    let label;
+    if (s.mode === 'plan') label = (STATUS[s.status] || s.status) + why;
+    else if (s.status === 'service') label = (s.mode === 'shuttle' && !s.timed ? 'Navetta' : 'In servizio') + (s.to != null ? ' per ' + cap(G.names[s.to]) : '') + why;
+    else label = (AGLABEL[s.status] || s.status) + why;
+    return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: s.v, status: s.status, label, trip: s.mode === 'plan' ? s.trip : -1, seg: s.mode === 'plan' ? s.seg : -1, agent: s };
   }
   // ================= RADIO TERRA-TRENO (M3) =================
   // The player is the Posto Centrale (PC). Orders: a longer stop at the next station, the departure platform at
@@ -1970,31 +1994,31 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   let radioStopSel = 60, radioWhy = RADIO_WHY[0], radioCmdHtml = '';
   // emergency orders (closure, reopening)
   function emergencyCmds(F, tr) {
-    const em = F.emergency, G = F.engine.G, a = em.ag.agents()[tr.agentK], s = em.ag.state(tr.agentK); let h = '';
+    const em = closureNow(F) || { label: '', ag: F.ag }, G = F.engine.G, a = F.ag.agents()[tr.agentK], s = F.ag.state(tr.agentK); let h = '';
     if (!a) return '';
     const closedTxt = `${em.label}`;
     if (window.activeClosure && window.activeClosure.active && (a.status === 'stopped' || a.red)) h += `<div class="row"><button id="emWhy">Spiega: guasto, tratta ${closedTxt} interrotta</button></div>`;
     if (a.status === 'stopped') {
-      const nx = em.ag.nextOf(tr.agentK);
+      const nx = F.ag.nextOf(tr.agentK);
       h += `<div class="lbl">Treno fermo per l'interruzione</div><div class="row">` + (nx != null ? `<button data-em="next">Prosegui vuoto fino a ${cap(G.names[nx])}</button>` : '') +
            (a.inside && a.inside.dir === 'S' && a.inside.end != null ? `<button data-em="depot">Rientro in deposito, vuoto</button>` : '') + `</div>`;
     }
-    if (em.ag.S.reopened != null && s.timed && a.status === 'service') {
+    if (F.ag.S.reopened != null && s.timed && a.status === 'service') {
       h += `<div class="lbl">Ritardo ${s.late != null ? (s.late >= 0 ? '+' : '') + Math.round(s.late / 60) + ' min' : ''}</div><div class="row"><button data-em="skip">Salta le prossime fermate</button><button data-em="limit">Limitazione corsa</button>` +
            (s.dir === 'S' ? `<button data-em="depot">Rientro in deposito</button>` : '') + `</div>`;
     }
     return h || `<div class="lbl">${s.mode === 'shuttle' && !s.timed ? 'Navetta, senza orario: parte col verde e con l\'intervallo' : 'Nessun ordine disponibile'}</div>`;
   }
   function bindEmergencyCmds(F, tr) {
-    const em = F.emergency, G = F.engine.G, no = radioTrain.no;
+    const em = closureNow(F) || { label: '', ag: F.ag }, G = F.engine.G, no = radioTrain.no;
     const why = document.getElementById('emWhy');
     if (why) why.onclick = () => { say('PC', `Treno ${no}, c'è un guasto alla linea: la tratta ${em.label} è interrotta. Resta in attesa di istruzioni. Passo.`, 'pc'); driverSays('Ricevuto PC, avviso i passeggeri e attendo. Passo.'); };
     radioCmds.querySelectorAll('[data-em]').forEach(b => b.onclick = () => {
-      const kind = b.dataset.em, a = em.ag.agents()[tr.agentK], nx = em.ag.nextOf(tr.agentK);
+      const kind = b.dataset.em, nx = F.ag.nextOf(tr.agentK);
       const TXT = { next: `Treno ${no}, prosegui senza passeggeri fino a ${nx != null ? cap(G.names[nx]) : 'la prossima stazione'}. Passo.`, depot: `Treno ${no}, rientra in deposito senza passeggeri. Passo.`,
         skip: `Treno ${no}, autorizzato il salto delle prossime fermate. Passo.`, limit: `Treno ${no}, limita la corsa alla prima stazione utile e inverti. Passo.` };
       say('PC', TXT[kind], 'pc');
-      const r = em.ag.order(tr.agentK, kind);
+      const r = F.ag.event({ kind: 'order', k: tr.agentK, what: kind });
       if (!r) { driverSays('Negativo PC, da qui non posso. Passo.'); return; }
       if (kind === 'next') { driverSays(pick(['Ricevuto, faccio scendere i passeggeri e proseguo vuoto. Passo.', 'Copiato PC, proseguo a vuoto. Passo.'])); }
       else if (kind === 'depot') driverSays('Ricevuto, rientro in deposito a vuoto. Passo.');
@@ -2005,7 +2029,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function drawRadioCmds() {
     if (radioEl.hidden || !radioTrain) return;
-    if (radioTrain.F.emergency && radioTrain.tr.agentK != null) {
+    if (radioTrain.F.ag && radioTrain.tr.agentK != null && radioTrain.F.ag.agents()[radioTrain.tr.agentK] && radioTrain.F.ag.agents()[radioTrain.tr.agentK].mode !== 'plan') {
       const h = emergencyCmds(radioTrain.F, radioTrain.tr);
       if (h === radioCmdHtml) return;
       radioCmdHtml = h; radioCmds.innerHTML = h; bindEmergencyCmds(radioTrain.F, radioTrain.tr); return;
@@ -2169,10 +2193,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     return ds[i + 1] === ds[i];
   }
   // emergency: what the drivers say on their own (stopped by the closure, red signal for 5 minutes, very late)
+  const CALLS = {};
   function emergencyCalls(F) {
-    const em = F.emergency, G = F.engine.G, R_ = em.ag.resources();
-    em.ag.agents().forEach((a, k) => {
-      const tr = F.trains[k], no = trainNo(F, tr), c = em.calls[k] = em.calls[k] || {};
+    const G = F.engine.G, ag = F.ag, R_ = ag.resources(), em = { ag };
+    ag.agents().forEach((a, k) => {
+      const tr = F.trains[k], no = trainNo(F, tr), c = CALLS[k] = CALLS[k] || {};
       const call = text => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + no, text, 'call'); };
       if (a.status === 'stopped' && !c.stopped) {
         c.stopped = true; const at = a.inside ? G.names[a.inside.stops[a.inside.q].st] : '';
@@ -2193,7 +2218,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function dcoTick() {
     const F = m3eng(); if (!F || !state.engine) return;
-    if (F.emergency) { emergencyCalls(F); return; }
+    if (F.ag) { emergencyCalls(F); return; }
     const AR = F.engine.throatR || [], BR = AR.filter(r => r.block), BL = F.engine.blocks || [], half = F.engine.half;
     const occ = F.trains.map(tr => trainState(F, tr, state.t));
     const inside = (R, k) => occ.some((q, j) => j !== k && q.status !== 'parked' && R.ranges[q.pid] && q.d >= R.ranges[q.pid][0] - half + R.pad && q.d <= R.ranges[q.pid][1] + half);
@@ -2415,10 +2440,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (state.t > +slider.max) state.t = +slider.min;
       slider.value = state.t;
     }
-    { const FE = m3fleet(); if (FE && FE.emergency) { const ag = FE.emergency.ag;
-        if (state.t < ag.S.t - 1) state.t = ag.S.t;                // no going back in time during an emergency
-        else ag.step(Math.min(state.t, ag.S.t + 600));
-        if (state.t > ag.S.t + 1) state.t = ag.S.t;
+    { const FE = m3fleet(); if (FE && FE.engine && state.engine) {
+        if (!FE.ag) makeAgents(FE);
+        FE.ag.seek(state.t, 600);                                   // back: from the last saved state; forward: drive
+        if (Math.abs(state.t - FE.ag.S.t) > 1) state.t = FE.ag.S.t;  // a big jump takes a few frames: the clock follows
         slider.value = state.t; } }
     const [hm, ss] = fmt(state.t, true);
     document.getElementById('clock').innerHTML = hm + '<span class="s">' + ss + (state.t >= 86400 ? ' +1' : '') + '</span>';

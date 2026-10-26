@@ -27,6 +27,20 @@ From Giovanni (source: Italian Wikipedia, "Metropolitana di Milano", signalling 
 - Other placed signals (terminal junctions, tails, depot) show the state of the track ahead of them, up to the next signal facing the same way or 300 m.
 - Via impedita: a train that should be moving by the timetable but is stopped at a red signal calls the DCO on the radio. It calls at once in the tunnel, 30 s past its departure at a platform, and after 45 s in tails and terminal junctions. For now nobody answers. The train moves again when the signal clears, and says so. About 50 calls on a normal weekday.
 
+## One engine (October 2026)
+
+The M3 trains on the page are always driven by `web/agents.js`. In normal service each train follows its own day from the timetable as a reference: it never leaves a station early, it uses the same station stop times and radio extras as before, and when late it drives as fast as allowed. The signal and spacing rules are the same as in a closure.
+
+The day computed in advance (`engine.js`, `m3_live.json`) is used only to place the trains when the page opens, or when the clock jumps while nothing has happened yet.
+
+**Time line:**
+- The state of all trains is saved every 10 minutes and before every event (closure, reopening, radio order).
+- Going back in time restores the last saved state and drives on from there. Later events are applied again when their time comes.
+- A new event drops what came after it (a new branch of the day).
+- Changes to a train's day by radio (platform, tail, test loop) are not undone by going back.
+
+**Test:** `tests/day_agents_check.js`. It drives the normal day with the agents, checks that no two trains are ever on the same track piece and that nobody gets stuck, compares punctuality with the computed day, and checks that going back in time gives the same positions again.
+
 ## Line closures: emergency mode (October 2026)
 
 Computing a new conflict-free day in advance after a closure ran into deadlocks. So closing a stretch switches every M3 train to `web/agents.js`: each train drives itself every half second and looks only at what is in front of it.

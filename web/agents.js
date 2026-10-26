@@ -1,9 +1,8 @@
-// Milano Transit Live — emergency mode: "almost sentient" trains (agents).
+// Milano Transit Live — the M3 trains as "almost sentient" agents: the one engine that moves them.
 //
-// In normal service the trains follow the booked plan (engine.js): the whole day is computed in advance.
-// When the PC closes a stretch of the line, a new conflict-free day computed in advance runs into deadlocks.
-// So the M3 trains switch to this mode: every train drives itself, half a second at a time, looking only at the
-// track in front of it:
+// Every train drives itself, half a second at a time, looking only at the track in front of it. In normal service
+// it follows its day from the timetable as a reference: it never leaves a station early, and when late it drives
+// as fast as allowed to catch up. The same rules hold in every situation:
 //  - it never passes a red signal: a block section, a terminal junction, a tail or a crossover held by another train;
 //  - it never runs into another train (it looks at the real track pieces, also when reversing over a crossover);
 //  - on the open parts of the line it runs as a shuttle (navetta), with no timetable: it leaves a station when the
@@ -12,12 +11,20 @@
 //  - trains caught between the two closed stations stop at the next station and wait for the PC (radio).
 // When the stretch reopens every train takes a timetable run again from the next station it stops at. Late, it
 // drives as fast as allowed to catch up; very late, the driver asks the PC what to do.
+//
+// Time line: the state of all trains is saved every 10 minutes and before every event (closure, reopening, radio
+// order). Going back in time restores the last saved state before that moment and drives on from there; the events
+// after it are applied again when their time comes (the same input gives the same result). The day computed in
+// advance by engine.js is only used to start quickly at any time when nothing has happened yet.
 (function (root) {
   const DT = 0.5, HEADWAY = 150, LOOK = 700, GAP = 15, CLAIM = 8;
 
   function create(o) {
-    // o: { G, ops, reverse, half, prof, pathEdges, netEdges, resources, locks(cl), plans0, stopsOf, zones }
+    // o: { G, ops, reverse, half, prof, pathEdges, netEdges, resources, locks(cl), planOf(k), stopsOf, zones,
+    //      dwell[k](pid, d, tArrive, late, key), extra(k, key), initAt(t) -> positions }
     const { G, ops, reverse, half, prof, pathEdges, netEdges, stopsOf } = o;
+    const planOf = k => o.planOf ? o.planOf(k) : o.plans0[k];
+    const nTrains = () => o.planOf ? o.count : o.plans0.length;
     const acc = ops.acceleration_ms2 || 1.1, brk = ops.braking_ms2 || 1.2, last = G.names.length - 1;
     const stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
     const opp = d => d === 'N' ? 'S' : 'N';
@@ -38,12 +45,12 @@
     // markers: { kind: 'boundary' | 'held' | 'stopped' | 'depot' | 'assign' }
     function legOfSeg(s, fromD) {
       const sts = stopsOf(s), stops = [];
-      sts.forEach(z => { if (fromD == null || z.d >= fromD - 0.5) stops.push({ d: z.d, st: z.st, dep: s[4][z.j + 1] === z.d ? s[3][z.j + 1] : s[3][z.j] }); });
+      sts.forEach(z => { if (fromD == null || z.d >= fromD - 0.5) stops.push({ d: z.d, st: z.st, j: z.j, arr: s[3][z.j], dep: s[4][z.j + 1] === z.d ? s[3][z.j + 1] : s[3][z.j] }); });
       return { pid: s[0], status: s[1], trip: s[2], stops, end: s[4][s[4].length - 1], start: fromD != null ? fromD : s[4][0], dir: sts.length > 1 ? runDir(sts) : null };
     }
     // the day of train m from run j: legs until a run leaves part P (cut at the boundary station)
     function legsFromPlan(m, j, P, fromD) {
-      const plan = o.plans0[m], legs = [];
+      const plan = planOf(m), legs = [];
       for (; j < plan.length; j++) {
         const s = plan[j], sts = stopsOf(s), leg = legOfSeg(s, fromD); fromD = null;
         if (!sts.length) { legs.push(leg); if (s[1] === 'to_depot') { legs.push({ kind: 'depot' }); return legs; } continue; }
@@ -116,15 +123,60 @@
       goInside(a); return a.legs.splice(0);
     }
 
+    // ---------- normal service: each train follows its own day ----------
+    function planLeg(k, si, fromD) {
+      const s = planOf(k)[si], leg = legOfSeg(s, fromD);
+      leg.si = si; leg.plan = true; leg.timed = true; leg.t0 = s[3][0];
+      return leg;
+    }
+    // pos[k]: { pid, d, v, seg, before, startAt, leaveAt, status } from the day computed in advance at time t
+    function start(t, pos) {
+      S.t = t; S.cl = null; S.lockCl = null; S.parts = [[0, last]]; S.reopened = null; S.lastDep = {}; S.log = [];
+      setResources(o.resources.slice()); claimed.clear(); usedRuns.clear();
+      S.agents = pos.map((p, k) => {
+        const plan = planOf(k), a = { k, pid: p.pid, d: p.d, v: 0, status: 'parked', legs: [], stopAt: null, wait: 0, mode: 'plan', si: p.seg, part: [0, last], red: null };
+        if (p.seg >= plan.length) { a.mode = 'static'; a.status = 'parked'; return a; }
+        if (p.before) {                                 // standing between two moves of its day
+          a.legs = [planLeg(k, p.seg)]; a.wait = p.startAt != null ? p.startAt : plan[p.seg][3][0];
+          a.status = p.seg === 0 || plan[p.seg - 1][1] === 'to_depot' ? 'parked' : plan[p.seg - 1][1];
+          return a;
+        }
+        const leg = planLeg(k, p.seg, p.d); a.legs = [leg]; a.v = p.v || 0; a.status = leg.status; a.trip = leg.trip;
+        const st = leg.stops[0];
+        if (st && Math.abs(st.d - p.d) < 1 && (p.v || 0) < 0.05) {   // standing at a station: leaves when the plan does
+          a.stopAt = st.st; a.at = st.st; a.arriveT = t; a.dwBase = Math.max(1, (p.leaveAt || t + 1) - t); a.v = 0; a.d = st.d;
+        }
+        return a;
+      });
+    }
+    // the next move of its day (it never starts before the plan, nor before the cab change if it is late)
+    function nextPlanLeg(a) {
+      const plan = planOf(a.k), prev = plan[a.si];
+      a.si++;
+      if (a.si >= plan.length) { a.mode = 'static'; a.status = prev && prev[1] === 'to_depot' ? 'parked' : 'held'; return; }
+      const s = plan[a.si], gap = prev ? s[3][0] - prev[3][prev[3].length - 1] : 0;
+      a.wait = Math.max(s[3][0], S.t + Math.min(Math.max(gap, 0), reverse));
+      if (prev && prev[1] === 'to_depot') a.status = 'parked';
+      a.legs = [planLeg(a.k, a.si)];
+    }
+    // stop time at a station of its day: like the day computed in advance (station times, radio extras)
+    function planDwell(a, leg, st) {
+      const k = a.k, key = leg.si + ':' + st.j;
+      a.arriveT = S.t; a.stopKey = key;
+      if (st.j === 0) { const planned = Math.max(0, st.dep - st.arr); a.dwBase = Math.min(planned, 20); return; }
+      const dw = o.dwell && o.dwell[k] ? o.dwell[k](leg.pid, st.d, S.t, S.t - st.arr, key) : null;
+      a.dwBase = dw != null ? dw : 20;
+    }
+
     // ---------- closing: every M3 train becomes an agent ----------
     // pos[k]: { pid, d, v, seg (index in its plan), status } where each train is at tc
     function close(tc, cl, pos) {
       S.t = tc; S.cl = cl; S.lastDep = {}; S.reopened = null;
       S.parts = []; if (cl.a > 0) S.parts.push([0, cl.a]); if (cl.b < last) S.parts.push([cl.b, last]);
-      setResources(o.resources.concat(o.locks ? o.locks(cl) : []));
+      S.lockCl = cl; setResources(o.resources.concat(o.locks ? o.locks(cl) : []));
       S.agents = pos.map((p, k) => {
         const a = { k, pid: p.pid, d: p.d, v: 0, status: p.status === 'parked' ? 'parked' : 'held', legs: [], stopAt: null, wait: 0, mode: 'static', part: null, red: null };
-        const plan = o.plans0[k];
+        const plan = planOf(k);
         if (p.seg < 0 || p.seg >= plan.length || p.status === 'parked') return a;
         const s = plan[p.seg], sts = stopsOf(s);
         a.v = Math.min(p.v || 0, 22);
@@ -262,7 +314,7 @@
     const usedRuns = new Set();
     function withTimetable(r, X, dir) {
       let best = null;
-      o.plans0.forEach((p, m) => p.forEach((z, j) => {
+      Array.from({ length: nTrains() }, (_, m) => planOf(m)).forEach((p, m) => p.forEach((z, j) => {
         if (usedRuns.has(m + ':' + j)) return;
         const zs = stopsOf(z); if (zs.length < 2 || runDir(zs) !== dir) return;
         const x = zs.findIndex(y => y.st === X); if (x < 0 || x === zs.length - 1) return;
@@ -302,6 +354,7 @@
       let leg = a.legs[0];
       while (leg && leg.kind) { a.legs.shift(); if (!marker(a, leg)) return; leg = a.legs[0]; }
       if (!leg) {
+        if (a.mode === 'plan') { nextPlanLeg(a); return; }
         if (a.mode === 'shuttle' && a.at != null) { a.legs.push(...nextShuttleLegs(a)); return; }
         if (a.mode === 'timetable') { assign(a); if (!a.legs.length) { a.mode = 'static'; a.status = 'held'; } }
         return;
@@ -323,16 +376,23 @@
         a.pid = leg.pid; a.d = leg.start != null ? leg.start : a.d; a.v = 0;
         if (rev) { a.wait = S.t + reverse; a.status = 'turnback'; return; }
       }
+      if (leg.plan && leg.stops.length && a.stopAt == null && Math.abs(leg.stops[0].d - a.d) < 1 && a.v === 0) {
+        // the move starts at a station (the first stop of a run): board there first
+        const st = leg.stops[0]; a.stopAt = st.st; a.at = st.st; planDwell(a, leg, st); a.dwellUntil = S.t + a.dwBase;
+      }
       a.status = leg.status; a.trip = leg.trip; a.frame = leg.frame || a.frame;
       a.viaB = !!leg.viaB;
       if (a.stopAt != null) {
         // standing at a stop: passengers, then the departure conditions
         const st = leg.stops[0];
-        if (S.t < a.dwellUntil) return;
+        const ex = a.stopKey && o.extra ? (o.extra(a.k, a.stopKey) || 0) : 0;      // longer stop ordered by radio
+        a.dwellUntil = (a.arriveT != null ? a.arriveT : S.t) + (a.dwBase || 0) + ex;
+        if (S.t < a.dwellUntil) { a.why = ex ? 'sosta' : null; return; }
         if (!st || leg.stops.length === 1 && st.d >= leg.end - 0.5) {      // last stop of the run: it ends here
           leg.stops.shift(); a.stopAt = null; a.legs.shift(); if (leg.arrive) { a.at = leg.arrive.at; a.arr = leg.arrive.dir; } return;
         }
-        if (leg.timed && st.dep && S.t < st.dep && S.t - a.dwellUntil < 60) { a.why = 'orario'; return; }   // early: waits a minute at most
+        if (leg.plan && st.dep && S.t < st.dep) { a.why = 'orario'; return; }                               // never early
+        if (leg.timed && !leg.plan && st.dep && S.t < st.dep && S.t - a.dwellUntil < 60) { a.why = 'orario'; return; }   // after reopening: a minute at most
         const key = st.st + ':' + (leg.dir || '');
         if (leg.shuttle && S.lastDep[key] != null && S.t - S.lastDep[key] < HEADWAY) { a.why = 'intervallo'; return; }
         const au = authority(a, leg);
@@ -355,7 +415,8 @@
             const st = leg.stops[0];
             if (leg.skipSet && leg.skipSet.has(st.st) && leg.stops.length > 1) { leg.stops.shift(); return; }
             a.stopAt = st.st; a.at = st.st;
-            a.dwellUntil = S.t + (leg.status !== 'service' ? 1 : Math.abs(st.d - leg.start) < 1 ? 30 : 20);
+            if (leg.plan) { planDwell(a, leg, st); a.dwellUntil = S.t + a.dwBase; }
+            else { a.arriveT = S.t; a.stopKey = null; a.dwBase = leg.status !== 'service' ? 1 : Math.abs(st.d - leg.start) < 1 ? 30 : 20; a.dwellUntil = S.t + a.dwBase; }
           } else { a.legs.shift(); if (leg.arrive) { a.at = leg.arrive.at; a.arr = leg.arrive.dir; } }
           a.red = null;
         } else if (au.why && !a.red) a.red = { since: S.t, why: au.why };
@@ -364,11 +425,60 @@
     }
     function step(t) {
       let guard = 0;
-      while (S.t + DT <= t && guard++ < 20000) {
+      while (S.t + DT <= t && guard++ < 40000) {
+        // events whose time has come (again, after going back in time)
+        for (const e of TL.events) if (!e.done && e.t <= S.t + DT) { e.done = true; apply(e); }
         S.t += DT; refresh();
         for (const a of S.agents) stepAgent(a);
+        if (Math.floor(S.t / SNAP) !== Math.floor((S.t - DT) / SNAP)) snapshot();
       }
       return S.t;
+    }
+
+    // ---------- time line: saved states and events ----------
+    const SNAP = 600, TL = { snaps: [], events: [] };
+    function snapshot() {
+      const snap = structuredClone({ t: S.t, agents: S.agents, lastDep: S.lastDep, cl: S.cl, lockCl: S.lockCl, parts: S.parts, reopened: S.reopened, log: S.log,
+        claims: R.map(r => r.claim), claimed: [...claimed], usedRuns: [...usedRuns] });
+      TL.snaps = TL.snaps.filter(x => x.t < S.t); TL.snaps.push(snap);
+      if (TL.snaps.length > 220) TL.snaps.splice(1, 1);
+    }
+    function restore(snap) {
+      const c = structuredClone(snap);
+      Object.assign(S, { t: c.t, agents: c.agents, lastDep: c.lastDep, cl: c.cl, lockCl: c.lockCl, parts: c.parts, reopened: c.reopened, log: c.log });
+      setResources(o.resources.concat(S.lockCl && o.locks ? o.locks(S.lockCl) : []));
+      c.claims.forEach((x, i) => { if (R[i]) R[i].claim = x; });
+      claimed.clear(); c.claimed.forEach(x => claimed.add(x)); usedRuns.clear(); c.usedRuns.forEach(x => usedRuns.add(x));
+      TL.events.forEach(e => { e.done = e.t <= S.t; });
+    }
+    const posNow = () => S.agents.map(a => ({ pid: a.pid, d: a.d, v: a.v, seg: a.mode === 'plan' ? a.si : (a.si != null ? a.si : -1),
+      status: a.hidden || a.status === 'parked' ? 'parked' : a.status, before: a.mode === 'plan' && S.t < a.wait }));
+    let lastResult = null;
+    function apply(e) {
+      if (e.kind === 'close') close(S.t, e.cl, posNow());
+      else if (e.kind === 'reopen') reopen(S.t);
+      else if (e.kind === 'order') lastResult = order(e.k, e.what);
+      else if (e.kind === 'normal') start(S.t, o.initAt(S.t));
+    }
+    // a new event now: what was planned after this moment is dropped (a new branch of the day)
+    function event(e) {
+      e.t = S.t;
+      TL.events = TL.events.filter(x => x.t < e.t || (x.t === e.t && x.done)); TL.snaps = TL.snaps.filter(x => x.t <= S.t);
+      snapshot(); TL.events.push(e); e.done = true; lastResult = null; apply(e);
+      return lastResult;
+    }
+    // go to time t: forward by driving; back by restoring the last saved state before t and driving from there.
+    // With nothing happened yet (no events), a big jump starts again from the day computed in advance (instant).
+    // maxDrive: at most this many seconds of driving now (the rest at the next call: the page stays responsive)
+    function seek(t, maxDrive) {
+      const evBefore = x => TL.events.some(e => e.t <= x);
+      if (t < S.t - 0.01 || (t - S.t > 900 && !TL.events.some(e => e.t > S.t && e.t <= t) && !evBefore(t))) {
+        const snap = [...TL.snaps].reverse().find(x => x.t <= t);
+        if (snap && (evBefore(t) || t - snap.t < 900)) restore(snap);
+        else if (!evBefore(t)) { start(t, o.initAt(t)); TL.snaps = TL.snaps.filter(x => x.t < t); TL.events.forEach(e => { e.done = e.t <= S.t; }); snapshot(); }
+        else if (snap) restore(snap);
+      }
+      return step(Math.min(t, S.t + (maxDrive || Infinity)));
     }
 
     // ---------- radio orders ----------
@@ -415,8 +525,8 @@
     const claimed = new Set();
     function reopen(t) {
       // the crossovers used for turning back stay protected (a train may still be turning there)
-      S.reopened = t; const oldCl = S.cl; S.cl = null; S.parts = [[0, last]];
-      setResources(o.resources.concat(oldCl && o.locks ? o.locks(oldCl) : [])); claimed.clear(); usedRuns.clear();
+      S.reopened = t; S.cl = null; S.parts = [[0, last]];
+      setResources(o.resources.concat(S.lockCl && o.locks ? o.locks(S.lockCl) : [])); claimed.clear(); usedRuns.clear();
       for (const a of S.agents) {
         if (a.hidden || a.status === 'parked') continue;
         a.slowUntil = t + 120;                        // 20 km/h for 2 minutes
@@ -506,10 +616,18 @@
       const a = S.agents[k]; if (!a) return null;
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
       return { pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, inside: a.inside, trip: a.trip,
+               seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait,
                dir: leg ? leg.dir : (a.inside ? a.inside.dir : null), to: leg && leg.arrive ? leg.arrive.at : null, timed: !!(leg && leg.timed), at: a.at };
     }
     const nextOf = k => { const a = S.agents[k]; return a && a.inside && a.inside.q + 1 < a.inside.stops.length ? a.inside.stops[a.inside.q + 1].st : null; };
-    return { S, close, step, order, reopen, state, nextOf, agents: () => S.agents, resources: () => R };
+    // a radio change to a train's day (platform, tail, test loop...): it takes it from where it is
+    function replan(k) {
+      const a = S.agents[k]; if (!a || a.mode !== 'plan') return;
+      const cur = a.legs[0];
+      if (cur && cur.si === a.si && !cur.kind) { const fresh = planLeg(k, a.si, a.d); if (S.t < a.wait) fresh.start = cur.start; else fresh.start = a.d;
+        if (a.stopAt != null && fresh.stops.length && Math.abs(fresh.stops[0].d - a.d) > 1) a.stopAt = null; a.legs = [fresh]; }
+    }
+    return { S, TL, start, close, step, seek, event, order, reopen, replan, state, nextOf, snapshot, agents: () => S.agents, resources: () => R };
   }
 
   const api = { create, HEADWAY, DT };
