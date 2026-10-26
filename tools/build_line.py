@@ -771,7 +771,7 @@ for pid in range(len(paths)):
             if k + 1 < len(st):
                 n = end_node(ei, dr); e2, d2 = st[k + 1]
                 if len(node_edges[n]) >= 3 and _ang(tangent(poly(ei, dr), False), tangent(poly(e2, d2), True)) > 6:
-                    div.append(round(d + L_, 1))
+                    div.append([round(d + L_, 1), n])
             d += L_
     PATH_EDGES.append({'e': spans, 'div': div})
 _rules = 'rules_%s.json' % LINE.lower()

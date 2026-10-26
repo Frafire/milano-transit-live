@@ -133,7 +133,8 @@
           out.push([x0, x1, v]);
         }
       });
-      pe.div.forEach(d => out.push([d - w, d + w, div]));
+      pe.div.forEach(x => { const d = Array.isArray(x) ? x[0] : x, j = Array.isArray(x) && speeds ? speeds['J' + x[1]] : null;
+        out.push([d - w, d + w, j != null ? j / 3.6 : div]); });
       return out.sort((x, y) => x[0] - y[0]);
     });
   }
@@ -246,25 +247,40 @@
     while (k < plan.length) {
       const s = plan[k], r = R[s[0]] || {}, cur = k === now.si && !now.before;
       const dNow = cur ? now.d : -Infinity;
+      // just past the Rogoredo crossover: stop and reverse there like the others
+      const nearStub = cur && r.sb && s[1] === 'service' && dNow >= r.sb[0] && dNow + now.v * now.v / (2 * b) <= r.sb[0] + S.stub + 40;
       // inside the closed section right now: stop on the line
-      if (cur && ((r.sb && dNow >= r.sb[0] && dNow <= r.sb[1]) || (r.nb && dNow >= r.nb[0] && dNow <= r.nb[1]))) {
+      if (!nearStub && cur && ((r.sb && dNow >= r.sb[0] && dNow <= r.sb[1]) || (r.nb && dNow >= r.nb[0] && dNow <= r.nb[1]))) {
         cut(s, tc, dNow, now.v, 'stopped'); kind = 'inside'; return { segs: out, kind, turned };
       }
       // coming from Comasina towards San Donato: passengers off at Rogoredo, reverse beyond the crossover
-      if (r.sb && s[1] === 'service' && dNow < r.sb[0] && s[4][s[4].length - 1] > r.sb[0]) {
+      if (nearStub || (r.sb && s[1] === 'service' && dNow < r.sb[0] && s[4][s[4].length - 1] > r.sb[0])) {
         const sb0 = r.sb[0];
-        let m = 0; while (m + 1 < s[4].length && s[4][m + 1] < sb0 - 0.5) m++;
-        out.push([s[0], s[1], s[2], s[3].slice(0, m + 1), s[4].slice(0, m + 1)]);
-        const t1 = s[3][m], d1 = s[4][m], dStub = sb0 + S.stub;
-        const tStub = t1 + 20 + (dStub - d1) / (20 / 3.6);
-        out.push([s[0], 'turnback', -1, [t1 + 20, tStub], [d1, dStub]]);
+        let dStub = sb0 + S.stub, tStub;
+        if (nearStub) {                                // already over the crossover: brake, then reverse from where it stops
+          const ts = [], ds = [];
+          for (let i = 0; i < s[3].length && s[3][i] < tc; i++) { ts.push(s[3][i]); ds.push(s[4][i]); }
+          const stopD = Math.max(dNow + now.v * now.v / (2 * b), ds[ds.length - 1]);
+          ts.push(tc + Math.max(4, now.v / b * 1.6)); ds.push(stopD);
+          out.push([s[0], s[1], s[2], ts, ds]);
+          tStub = ts[ts.length - 1];
+          if (stopD < dStub) { out.push([s[0], 'turnback', -1, [tStub + 10, tStub + 10 + (dStub - stopD) / (10 / 3.6)], [stopD, dStub]]); tStub += 10 + (dStub - stopD) / (10 / 3.6); }
+          else dStub = stopD;
+        } else {
+          let m = 0; while (m + 1 < s[4].length && s[4][m + 1] < sb0 - 0.5) m++;
+          out.push([s[0], s[1], s[2], s[3].slice(0, m + 1), s[4].slice(0, m + 1)]);
+          const t1 = s[3][m], d1 = s[4][m];
+          tStub = t1 + 20 + (dStub - d1) / (20 / 3.6);
+          out.push([s[0], 'turnback', -1, [t1 + 20, tStub], [d1, dStub]]);
+        }
+        const backBy = dStub - (sb0 + S.stub);      // stopped further than usual: start the reversal from there
         turned++;
         // its next run towards Comasina, started from Rogoredo instead of San Donato
         let j = k + 1; while (j < plan.length && plan[j][1] === 'turnback') j++;
         const o = plan[j], ro = o && R[o[0]], rv = o && S.rev[o[0]];
         const tRev = tStub + reverse;
         if (o && o[1] === 'service' && ro && ro.nb && rv) {
-          const [rp, off, d0] = rv;
+          const [rp, off, d0r] = rv, d0 = d0r - backBy;
           let q = 0; while (q < o[4].length && o[4][q] < ro.nb[1]) q++;
           const tArr = o[3][q], dR = Math.round((o[4][q] + off) * 10) / 10;
           const tAt = Math.min(tArr, tRev + 30 + (dR - d0) / (25 / 3.6));     // drive over normally, then wait on the platform
@@ -278,7 +294,7 @@
         }
         // nothing to run from here: go back empty to Comasina and stay there
         const anyRev = Object.values(S.rev)[0];
-        if (anyRev) { const [rp, , d0] = anyRev, L = pathLen(rp) - 60; out.push([rp, 'empty', -1, [tRev, tRev + (L - d0) / 12], [d0, L]]); }
+        if (anyRev) { const [rp, , d0r] = anyRev, d0 = d0r - backBy, L = pathLen(rp) - 60; out.push([rp, 'empty', -1, [tRev, tRev + (L - d0) / 12], [d0, L]]); }
         return { segs: out, kind, turned };
       }
       // San Donato side: a run that would go through the section does not leave

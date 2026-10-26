@@ -114,6 +114,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .orario td span.past { opacity: .35; }
 .orario td span.nx { color: #ff9416; font-weight: 700; }
 .spdbtns button { min-width: 44px; }
+.jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
 .hstop.live { cursor: pointer; border-color: #ff9416; }
@@ -345,7 +346,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="row spdbtns" id="spdBtns"></div>
     <div class="row"><button id="cutBtn" aria-pressed="false">✂ Cut a piece</button></div>
     <div id="spdPick" class="note picked">Click a track piece</div>
-    <p class="note">Fixed, not editable: 15 km/h over crossovers and on the diverging side of every junction (also when turning back), 15 km/h in the depot, 12.5 km/h in the tail tracks. Grey dashed pieces are fixed.</p>
+    <p class="note">Junctions (squares): the speed for trains taking the diverging side, 15 km/h unless you click one and give it another value. Fixed, not editable: 15 km/h over crossovers, in the depot and in the tail tracks (grey dashed). Going straight through a junction uses the limit of the track.</p>
   </section>
 
   <section data-panel="draw" hidden>
@@ -1358,6 +1359,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     speedLayer.clearLayers();
     const F = m3eng(); if (!F || !drawing || mode !== 'speed') return;
     const sp = allSpeeds(F), cu = allCuts(F), P = netPts(F), z = map.getZoom();
+    if (z >= 15) setTimeout(() => drawJunctions(F, sp), 0);
     F.engine.net.edges.forEach((e, i) => {
       if (e.fixed) { L.polyline(P[i], { color: '#9a9a9a', weight: 3, opacity: .95, dashArray: '4 4', interactive: false }).addTo(speedLayer); return; }
       const bd = MTLEngine.partBounds(e, cu), Lp = P[i].reduce((a, q, k) => k ? a + segLen(P[i][k - 1], q) : 0, 0), kk = Lp / (e.len || 1);
@@ -1374,6 +1376,27 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       (cu[e.key] || []).forEach(c => { const q = slicePoly(P[i], c * kk, c * kk + 1)[0];
         if (q) L.marker(q, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<div class="cutmark"></div>' }) }).addTo(speedLayer); });
     });
+  }
+  function junctions(F) {        // junction nodes where some route takes the diverging side
+    if (!F.engine.junc) {
+      const set = new Set(); F.engine.pathEdges.forEach(pe => pe && pe.div.forEach(x => Array.isArray(x) && set.add(x[1])));
+      // depot junctions are always 15 km/h: only show the ones on the line, platforms and tails
+      const onLine = n => F.engine.net.edges.some(e => (e.a === n || e.b === n) && !['yard', 'link'].includes(e.cat));
+      F.engine.junc = [...set].filter(onLine);
+    }
+    return F.engine.junc;
+  }
+  function drawJunctions(F, sp) {
+    const dv = F.engine.ops.diverging_kmh || 15;
+    junctions(F).forEach(n => { const ll = F.engine.net.nodes[String(n)]; if (!ll) return; const v = sp['J' + n] != null ? sp['J' + n] : dv;
+      L.marker(ll, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="jmark" style="--c:${SPCOL(v)}">${v}</div>` }) }).addTo(speedLayer); });
+  }
+  function snapJunction(latlng) {
+    const F = m3eng(); if (!F) return null;
+    const Pc = map.latLngToContainerPoint(latlng); let best = null;
+    junctions(F).forEach(n => { const ll = F.engine.net.nodes[String(n)]; if (!ll) return; const q = map.latLngToContainerPoint(ll), d = Math.hypot(q.x - Pc.x, q.y - Pc.y);
+      if (d < 11 && (!best || d < best.d)) best = { d, n }; });
+    return best;
   }
   function snapEdge(latlng) {
     const F = m3eng(); if (!F) return null;
@@ -1412,6 +1435,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (!drawing) return;
     if (mode === 'draw') { pts.push([+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)]); redrawCurrent(); return; }
     if (mode === 'speed') {
+      const jn = !cutMode && map.getZoom() >= 15 && snapJunction(e.latlng);
+      if (jn) {
+        if (spdPickV) ED.speeds['J' + jn.n] = spdPickV; else delete ED.speeds['J' + jn.n];
+        spdPick.textContent = `Junction: diverging side ${spdPickV ? spdPickV : (m3eng().engine.ops.diverging_kmh || 15)} km/h`;
+        persist(); drawSpeeds(); redrawSaved(); clearTimeout(speedTimer); speedTimer = setTimeout(applySpeeds, 300); return;
+      }
       const h = snapEdge(e.latlng);
       if (!h) { spdPick.textContent = 'No M3 track there. Zoom in and click right on a track.'; return; }
       const kind = { main: 'main line', siding: 'siding / platform', test: 'test loop', crossover: 'crossover', yard: 'depot track', link: 'depot access' }[h.e.cat] || h.e.cat;
