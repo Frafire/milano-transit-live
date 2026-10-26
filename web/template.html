@@ -133,6 +133,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .log .m { white-space: pre-wrap; }
 .radio .log .pc { color: #ffd23f; }
 .radio .log .call { color: #ff6b6b; }
+.radio .cmds button.send { background: #ffd23f; color: #1a1200; border-color: #ffd23f; font-weight: 700; }
+.radio .cmds button.send:hover { background: #ffe57a; }
 .radio.calling .rhd { animation: blink .5s steps(2) 6; background: #4a1a1a; }
 .radio .log .dr { color: #8dff9e; }
 .radio .log .sys { color: #6f8f77; }
@@ -146,7 +148,6 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .cmds button:disabled { opacity: .4; cursor: default; background: #0d1d12; color: #8dff9e; }
 .radiobtn { font-family: 'VT323', ui-monospace, monospace !important; font-size: 19px !important; background: #071109 !important; color: #8dff9e !important; border: 2px solid #3b5e45 !important; border-radius: 0 !important; }
 .sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
-.deppt { width: 14px; height: 14px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 3px solid #d60012; box-shadow: 0 0 0 2px #000; cursor: grab; }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
@@ -1075,7 +1076,90 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       body = nxt ? `<p class="sub" style="margin-top:10px">Next service: departs ${fmt(nxt[3][1])} towards <span class="cap">${trips[nxt[2]].h}</span></p>`
                  : `<p class="sub" style="margin-top:10px">No more passenger trips today.</p>`;
     }
-    body += platformPicker(F, tr, state.t);
+    const rt = realTrain(F, tr, state.t);
+    const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>'
+      : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
+    const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
+    const tiles = (F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div></div>`)
+      + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
+    body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
+    card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
+      <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + (st.trip >= 0 ? st.label : 'Not in passenger service')}</div></div></div>
+      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Close</button></div>${body}`;
+    card.hidden = false;
+    document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
+    document.getElementById('closeBtn').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
+    const ttBtn = document.getElementById('ttBtn'); if (ttBtn) ttBtn.onclick = () => { state.fullTT = !state.fullTT; renderCard(); };
+    const rOpen = document.getElementById('radioOpen'); if (rOpen) rOpen.onclick = () => openRadio(F, tr);
+    updateTiles();
+    card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
+    card.querySelectorAll('[data-arr2]').forEach(b => b.onclick = () => { orderP2(F, tr, +b.dataset.arr2); renderCard(); });
+    const nx = card.querySelector('li.next');
+    if (nx && !card.matches(':hover')) nx.scrollIntoView({ block: 'nearest' });
+  }
+  function stopList(tr, t) {
+    let rows = '', nextMarked = false;
+    for (let i = 0; i < tr.st.length; i++) {
+      if (tr.st[i] < 0) continue;
+      const past = tr.ts[i] < t - 5;
+      let cls = past ? 'past' : '';
+      if (!past && !nextMarked) { cls = 'next'; nextMarked = true; }
+      rows += `<li class="${cls}"><time>${fmt(tr.ts[i])}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
+    }
+    return rows;
+  }
+  // short timetable: last stop, next two, destination; the button shows every stop
+  function stopListShort(tr, t) {
+    const idx = []; for (let i = 0; i < tr.st.length; i++) if (tr.st[i] >= 0) idx.push(i);
+    let k = idx.findIndex(i => tr.ts[i] >= t - 5); if (k < 0) k = idx.length;
+    const row = (i, cls) => `<li class="${cls}"><time>${fmt(tr.ts[i])}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
+    let rows = '';
+    if (k > 0) rows += row(idx[k - 1], 'past');
+    for (let j = k; j < Math.min(k + 2, idx.length); j++) rows += row(idx[j], j === k ? 'next' : '');
+    const last = idx.length - 1;
+    if (last >= k + 2) {
+      const skipped = last - (k + 2);
+      if (skipped > 0) rows += `<li class="gap"><time></time><span>⋯ ${skipped} ${skipped === 1 ? 'fermata' : 'fermate'}</span></li>`;
+      rows += row(idx[last], 'dest');
+    }
+    return rows;
+  }
+  // doors: open while the train stands at a stop in service (a moment after stopping until just before leaving)
+  function doorsOpen(F, tr, t) {
+    const useLive = F.engine && state.engine && tr.live, SG = useLive ? tr.live : tr.segs;
+    for (let k = 0; k < SG.length; k++) {
+      const s = SG[k], ts = s[3], ds = s[4];
+      if (t < ts[0]) {               // between two segments: passengers getting off at the terminus
+        const p = SG[k - 1]; if (!p || p[1] !== 'service') return false;
+        const end = p[3][p[3].length - 1]; return t >= end + 2 && t <= Math.min(ts[0], end + 45) - 5;
+      }
+      if (t > ts[ts.length - 1]) continue;
+      if (s[1] !== 'service') return false;
+      let i = 0; while (i < ts.length - 2 && ts[i + 1] <= t) i++;
+      return ds[i + 1] === ds[i] && t >= ts[i] + 2 && t <= ts[i + 1] - 5;
+    }
+    return false;
+  }
+  function updateTiles() {
+    const sp = document.getElementById('spdTile'); if (!sp || typeof state.sel !== 'string' || state.sel[0] !== 'f') return;
+    const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F && F.trains[i]; if (!tr) return;
+    const st = trainState(F, tr, state.t), kmh = Math.round(Math.abs(st.v || 0) * 3.6), open = doorsOpen(F, tr, state.t);
+    if (sp.textContent !== String(kmh)) sp.textContent = kmh;
+    const dt = document.getElementById('doorTile'), txt = open ? 'PORTE APERTE' : 'PORTE CHIUSE';
+    if (dt.textContent !== txt) { dt.textContent = txt; dt.classList.toggle('open', open); }
+  }
+  function renderTrainCard() {
+    const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F.trains[i], st = trainState(F, tr, state.t);
+    let body = '', title = st.label;
+    if (st.trip >= 0) { const tp = trips[st.trip]; title = '→ <span class="cap">' + tp.h + '</span>';
+      body = `<ol class="stops">${state.fullTT ? stopList(tp, state.t) : stopListShort(tp, state.t)}</ol>
+        <div class="row"><button id="ttBtn" aria-pressed="${!!state.fullTT}">${state.fullTT ? 'Orario ridotto' : 'Orario completo'}</button></div>`; }
+    // next activity for trains not in service
+    if (st.trip < 0) {
+      const nxt = tr.segs.find(sg => sg[1] === 'service' && sg[3][sg[3].length - 1] > state.t);
+      body = nxt ? `<p class="sub" style="margin-top:10px">Next service: departs ${fmt(nxt[3][1])} towards <span class="cap">${trips[nxt[2]].h}</span></p>`
+                 : `<p class="sub" style="margin-top:10px">No more passenger trips today.</p>`;
+    }
     const rt = realTrain(F, tr, state.t);
     const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>'
       : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
@@ -1277,24 +1361,6 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     tr.starts = tr.segs.map(x => x[3][0]); relive(tr);
     loopMsg = laps + (laps === 1 ? ' lap' : ' laps') + ', back in the depot at ' + fmt(t) + '.';
   }
-  // which departure platform a train waiting in a San Donato tail will use; the user may change it
-  function platformPicker(F, tr, t) {
-    const ai = tr.alts.findIndex(a => t <= a.leave && a.leave - t < 20 * 60);
-    if (ai < 0) return '';
-    const alt = tr.alts[ai], plats = Object.keys(alt.opts).map(Number).sort();
-    const clash = p => {
-      const who = [];
-      F.trains.forEach(o => o !== tr && o.alts.forEach(b => { if (b.plat === p && b.from < alt.dep + 20 && b.dep + 20 > alt.from) who.push('train ' + o.n + ' (departs ' + fmt(b.dep) + ')'); }));
-      if (p === 2) F.trains.forEach(o => { if (o !== tr && o.p2 && o.p2.from < alt.dep + 20 && o.p2.dep + 20 > alt.from) who.push('train ' + o.n + ' (reversing on platform 2 until ' + fmt(o.p2.dep) + ')'); });
-      if (p === 1) F.pulls.forEach(([a, d]) => { if (a < alt.dep + 20 && d + 20 > alt.from) who.push('a train from the depot (departs ' + fmt(d) + ')'); });
-      return who;
-    };
-    const busy = clash(alt.plat);
-    return `<div class="picker"><div class="label">Departure platform for the ${fmt(alt.dep)} train</div>
-      <div class="row">${plats.map(p => `<button data-alt="${ai}" data-plat="${p}" aria-pressed="${alt.plat === p}">Platform ${p}</button>`).join('')}</div>
-      <div class="note">Chosen automatically. Leaves the tail at ${fmt(alt.leave)}, at the platform from ${fmt(alt.from)}.</div>
-      ${busy.length ? `<div class="warn">Platform ${alt.plat} is also used by ${busy.join(', ')}.</div>` : ''}</div>`;
-  }
   map.on('click', e => {
     if (drawing) return;
     const p = e.containerPoint; let best = null, bd = 18 * 18;
@@ -1325,8 +1391,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       ED.signals = [];
       localStorage.setItem('mtl-signals-cleared-v2', '1'); persist();
     }
-    // two Comasina signals placed twice by mistake (the originals stay): removed from the saved edits
-    const DUP = [[45.528362, 9.163617], [45.528319, 9.163539]];
+    // signals removed by Giovanni: two Comasina signals placed twice by mistake (the originals stay)
+    // and (Oct 2026) the San Donato tail pair, the one at the junction behind it, two doubled Comasina tail signals
+    const DUP = [[45.528362, 9.163617], [45.528319, 9.163539], [45.429519, 9.256856], [45.429549, 9.256824], [45.429937, 9.257116], [45.529856, 9.162909], [45.52988, 9.162823]];
     const n0 = ED.signals.length;
     ED.signals = ED.signals.filter(sg => !DUP.some(([la, lo]) => Math.abs(sg.lat - la) < 2e-6 && Math.abs(sg.lon - lo) < 2e-6));
     if (ED.signals.length !== n0) persist();
@@ -1818,7 +1885,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     radioTrain = { F, tr, no: trainNo(F, tr) };
     radioWho.textContent = 'Treno ' + radioTrain.no; radioCmdHtml = '';
     radioEl.hidden = false;
-    if (!radioMsgs.length) say('', 'Canale aperto. Tu sei il DCO (Posto Centrale).', 'sys');
+    if (!radioMsgs.length) say('', 'Canale aperto. Tu sei il Posto Centrale (PC).', 'sys');
     drawRadioLog(); drawRadioCmds();
   }
   document.getElementById('radioClose').onclick = () => { radioEl.hidden = true; };
@@ -1835,7 +1902,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         <div class="row">${[30, 60, 90, 120].map(v => `<button data-rs="${v}" aria-pressed="${radioStopSel === v}">${v < 60 ? v + 's' : (v / 60) + (v % 60 ? '' : '') + ' min'}</button>`).join('').replace('1.5 min', '1:30')}</div>
         <div class="lbl">Motivo</div>
         <div class="row">${RADIO_WHY.map((w, i) => `<button data-rw="${i}" aria-pressed="${w === radioWhy}">${w}</button>`).join('')}</div>
-        <div class="row"><button id="radioSendStop">Trasmetti</button></div>`;
+        <div class="row"><button id="radioSendStop" class="send">▶ Trasmetti</button></div>`;
     } else h += `<div class="lbl">Nessuna fermata davanti: il treno non è in servizio</div>`;
     if (pend) h += `<div class="row"><button id="radioCancel">Annulla le soste ordinate (${pend})</button></div>`;
     // departure platform at San Donato
@@ -1859,7 +1926,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       say('PC', `Treno ${radioTrain.no}, ${WHY_TXT[radioWhy]}: fai una sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`, 'pc');
       tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {}; tr.env.extra[n.key] = radioStopSel; relive(tr);
       radioWatch.push({ tr, F, key: n.key, name: n.name, dur: radioStopSel, said: 0 });
-      driverSays(pick([`Ricevuto PC, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Avviso i passeggeri. Passo.`,
+      const st0 = trainState(F, tr, state.t);
+      if (radioStopSel > 30 && st0.trip >= 0 && lastRuns(F).has(st0.trip)) driverSays(`Ricevuto, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Il collega non ha voglia di tornare a casa? Passo.`);
+      else driverSays(pick([`Ricevuto PC, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Avviso i passeggeri. Passo.`,
                        `Copiato, Posto Centrale. A ${cap(n.name)} tengo le porte aperte ${durTxt(radioStopSel)}. Passo e chiudo.`,
                        `Ricevuto. Fermata prolungata a ${cap(n.name)}, ${durTxt(radioStopSel)}. Passo.`]));
     };
@@ -1869,10 +1938,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       relive(tr); driverSays('Ricevuto PC, riprendo il servizio regolare. Passo.'); };
     radioCmds.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => {
       const a = tr.alts[+b.dataset.ai], pl = +b.dataset.rp;
-      say('PC', `Treno ${radioTrain.no}, a San Donato parti dal binario ${pl}. Passo.`, 'pc');
+      say('PC', `Treno ${radioTrain.no}, a San Donato si aspetti di partire dal binario ${pl}. Passo.`, 'pc');
       tr.segs.splice(a.i, a.n, ...JSON.parse(JSON.stringify(a.opts[String(pl)]))); tr.starts = tr.segs.map(x => x[3][0]); a.plat = pl;
       if (tr.env) tr.env.extra = {}; relive(tr);
-      driverSays(pick([`Ricevuto, partenza dal binario ${pl}. Passo.`, `Copiato PC, mi porto al binario ${pl}. Passo e chiudo.`]));
+      driverSays(`Ricevuto, ci aspettiamo di partire dal binario ${pl}. Passo.`);
+      closeAfter(F, tr, a.dep);
     });
     radioCmds.querySelectorAll('[data-rt]').forEach(b => b.onclick = () => {
       const c = tr.calts[+b.dataset.ci], t = +b.dataset.rt, nm = c.names[t];
@@ -1888,6 +1958,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       const w = tailWait(F, tr, t, c);
       applyAlt(tr, c.i, c.n, c.opts[String(t)]); c.tail = t; c.done = false;
+      closeAfter(F, tr, c.leave + 30);
       driverSays(w ? `Ricevuto, tronchetto ${nm}. Attendo in banchina che il treno ${trainNo(F, w)} lo liberi. Passo.`
                    : pick([`Ricevuto, a Comasina entro nel tronchetto ${nm}. Passo.`, `Copiato PC, tronchetto ${nm}. Passo e chiudo.`]));
     });
@@ -1895,6 +1966,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (p2) p2.onclick = () => {
       say('PC', `Treno ${radioTrain.no}, a San Donato entra al binario 2 e cambia banco lì. Passo.`, 'pc');
       const before = !!tr.p2; p2Msg = ''; orderP2(F, tr, k2); if (tr.env) tr.env.extra = {};
+      if (tr.p2 && !before) closeAfter(F, tr, tr.p2.dep);
       if (tr.p2 && !before) driverSays(pick(['Ricevuto PC, entro al binario 2 e cambio banco in stazione. Passo.', 'Copiato, binario 2 con inversione sul posto. Passo e chiudo.']));
       else driverSays('Negativo PC, ' + (p2Msg.replace(/^Order refused: /, '').replace('platform 2 is not free', 'il binario 2 non è libero').replace('is standing there', 'è fermo lì') || 'non posso eseguire') + ' Passo.');
     };
@@ -1946,6 +2018,24 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       for (const x of MTLEngine.occupancy(o.live, R, F.engine.half)) if (x.enter < c.arr && x.exit > c.arr - 30) return o; }
     return null;
   }
+  // every conversation ends when the train leaves: "Ripartito, passo. Buona giornata."
+  const BYE = 'Ripartito, passo. Buona giornata.', closing = [];
+  function closeAfter(F, tr, t) { const i = closing.findIndex(c => c.tr === tr); if (i >= 0) closing.splice(i, 1); closing.push({ F, tr, t }); }
+  function closingTick() {
+    for (let i = closing.length - 1; i >= 0; i--) { const c = closing[i];
+      if (state.t < c.t) continue;
+      const st = trainState(c.F, c.tr, state.t);
+      if (st.v > 0 || state.t > c.t + 1800) { if (st.v > 0) say('T' + trainNo(c.F, c.tr), BYE, 'dr'); closing.splice(i, 1); } }
+  }
+  // last passenger run of the evening in each direction (easter egg on the radio)
+  let LASTRUNS = null;
+  function lastRuns(F) {
+    if (LASTRUNS) return LASTRUNS;
+    const best = {};
+    F.trains.forEach(tr => tr.segs.forEach(sg => { if (sg[1] !== 'service' || sg[2] < 0) return; const tp = trips[sg[2]], a = D.stops[tp.st[0]], b = D.stops[tp.st[tp.st.length - 1]];
+      const dir = b[1] > a[1] ? 'N' : 'S'; if (!best[dir] || tp.start > trips[best[dir]].start) best[dir] = sg[2]; }));
+    return (LASTRUNS = new Set(Object.values(best)));
+  }
   // ---- via impedita: a train stopped in front of a red signal calls the DCO on the radio. No answer for now: the train
   // stays where it is until the signal clears by itself, then says it is moving again. Only when the train should be
   // moving by the timetable: in the tunnel it calls at once, at a platform after 30 s past its departure time. ----
@@ -1984,7 +2074,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         }
       }
       const w = redStops.get(tr);
-      if (!red) { if (w) { if (w.called) say('T' + trainNo(F, tr), `Qui ${trainNo(F, tr)}, il ${w.name} è a via libera, riparto. Passo.`, 'dr'); redStops.delete(tr); } return; }
+      if (!red) { if (w) { if (w.called) say('T' + trainNo(F, tr), `Qui ${trainNo(F, tr)}, ${w.name} a via libera. ${BYE}`, 'dr'); redStops.delete(tr); } return; }
       if (!w) {
         // at a platform = a timetable stop of the planned run, not just near a station
         const ps = tr.segs[o.seg], pds = ps && ps[0] === o.pid ? ps[4] : [];
@@ -1997,7 +2087,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         w.called = true; dcoCalls.push({ t: state.t, train: trainNo(F, tr), sig: w.name });
         if (radioEl.hidden) openRadio(F, tr);
         radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000);
-        say('T' + trainNo(F, tr), `DCO, qui treno ${trainNo(F, tr)}, sono fermo al ${w.name}, via impedita. Chiedo spiegazioni. Passo.`, 'call');
+        say('T' + trainNo(F, tr), `PC, qui treno ${trainNo(F, tr)}, sono fermo al ${w.name}, via impedita. Chiedo spiegazioni. Passo.`, 'call');
       }
     });
   }
@@ -2006,7 +2096,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     for (let i = radioWatch.length - 1; i >= 0; i--) {
       const w = radioWatch[i], st = trainState(w.F, w.tr, state.t), here = st.v === 0 && w.tr.segs[st.seg] && (st.seg + ':' ) && stationAt(w.F, st.pid, st.d) === w.name;
       if (w.said === 0 && here) { w.said = 1; if (radioTrain && radioTrain.tr === w.tr) { say('T' + radioTrain.no, `Fermo a ${cap(w.name)}, porte aperte, attendo ${durTxt(w.dur)}.`, 'dr'); } }
-      else if (w.said === 1 && !here) { if (radioTrain && radioTrain.tr === w.tr) say('T' + radioTrain.no, `Ripartito da ${cap(w.name)}. Passo.`, 'dr'); radioWatch.splice(i, 1); }
+      else if (w.said === 1 && !here) { if (radioTrain && radioTrain.tr === w.tr) say('T' + radioTrain.no, BYE, 'dr'); radioWatch.splice(i, 1); }
     }
     drawRadioCmds();
   }
@@ -2149,43 +2239,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[a]}">` })); }
     });
   }
-  // ---- depot exit signal at San Donato: a dot Giovanni drags where the real signal is ----
-  let depMarker = null;
-  function depotPids(F) { const set = new Set(); F.trains.forEach(tr => tr.segs.forEach(sg => { if (sg[1] === 'from_depot') set.add(sg[0]); })); return [...set]; }
-  function projectOn(F, pid, ll) {
-    const P = F.paths[pid], kx = Math.cos(45.46 * Math.PI / 180); let best = null;
-    for (let i = 0; i < P.lat.length - 1; i++) {
-      const ax = P.lon[i] * kx * 111320, ay = P.lat[i] * 110540, bx = P.lon[i + 1] * kx * 111320, by = P.lat[i + 1] * 110540, px = ll[1] * kx * 111320, py = ll[0] * 110540;
-      const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, u = L2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2)) : 0;
-      const dd = Math.hypot(px - ax - u * dx, py - ay - u * dy);
-      if (!best || dd < best.dd) best = { dd, d: P.d[i] + u * (P.d[i + 1] - P.d[i]) };
-    }
-    return best;
-  }
-  function applyDepotSignal(F, rerun) {
-    const R = (F.engine.throatR || []).find(r => r.name.startsWith('incrocio') && r.name.includes(F.home)); if (!R) return;
-    R.stopAt = {};
-    const at = ED.points && ED.points.sd_depot;
-    if (at) depotPids(F).forEach(pid => { const p_ = projectOn(F, pid, at); if (p_ && p_.dd < 40) R.stopAt[pid] = p_.d; });
-    if (rerun) reliveFleet(F);
-  }
-  function drawDepotMarker(F) {
-    if (depMarker) { map.removeLayer(depMarker); depMarker = null; }
-    if (!showSigs || isPlayer) return;
-    let at = ED.points && ED.points.sd_depot;
-    if (!at) {        // default: just before the junction on the first depot route
-      const R = (F.engine.throatR || []).find(r => r.name.includes(F.home)), pid = depotPids(F).find(p_ => R && R.ranges[p_]);
-      if (pid == null) return; at = trackAt(F, pid, R.ranges[pid][0] - F.engine.half - 10);
-    }
-    depMarker = L.marker(at, { draggable: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<div class="deppt"></div>' }) })
-      .bindTooltip('Segnale uscita deposito → San Donato: trascinalo dove sta davvero', { className: 'st', direction: 'top' }).addTo(map);
-    depMarker.on('dragend', () => { const q = depMarker.getLatLng(); ED.points = ED.points || {}; ED.points.sd_depot = [+q.lat.toFixed(6), +q.lng.toFixed(6)];
-      persist(); applyDepotSignal(F, true); });
-  }
   const sigsBtn = document.getElementById('sigsBtn');
   sigsBtn.setAttribute('aria-pressed', showSigs);
-  sigsBtn.onclick = () => { showSigs = !showSigs; sigsBtn.setAttribute('aria-pressed', showSigs); try { localStorage.setItem('mtl-sigs', showSigs ? '1' : '0'); } catch (e) {} updateSignals(); const F = m3eng(); if (F) drawDepotMarker(F); };
-  setTimeout(() => { const F = m3eng(); if (F) { if (ED.points && ED.points.sd_depot) applyDepotSignal(F, true); drawDepotMarker(F); } }, 0);
+  sigsBtn.onclick = () => { showSigs = !showSigs; sigsBtn.setAttribute('aria-pressed', showSigs); try { localStorage.setItem('mtl-sigs', showSigs ? '1' : '0'); } catch (e) {} updateSignals(); };
   map.on('zoomend', updateSignals);
 
   function renderPanel() {
@@ -2230,12 +2286,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); radioTick(); dcoTick(); updateSignals(); }
+    if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); radioTick(); dcoTick(); closingTick(); updateSignals(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
   }
-  window.mtl = { map, state, fleets, renderCard, trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls };
+  window.mtl = { map, state, fleets, renderCard, trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
 </script>

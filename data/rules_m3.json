@@ -209,57 +209,6 @@
   },
   {
    "line": "M3",
-   "w": 73,
-   "lat": 45.429519,
-   "lon": 9.256856,
-   "on_track": [
-    45.429521,
-    9.256853
-   ],
-   "offset_m": 0.3,
-   "side": "right",
-   "heading": 50,
-   "dir": 1,
-   "type": "entry",
-   "name": "",
-   "kind": "atp"
-  },
-  {
-   "line": "M3",
-   "w": 74,
-   "lat": 45.429549,
-   "lon": 9.256824,
-   "on_track": [
-    45.429552,
-    9.256821
-   ],
-   "offset_m": 0.4,
-   "side": "left",
-   "heading": 50,
-   "dir": -1,
-   "type": "entry",
-   "name": "",
-   "kind": "atp"
-  },
-  {
-   "line": "M3",
-   "w": 109,
-   "lat": 45.429937,
-   "lon": 9.257116,
-   "on_track": [
-    45.429945,
-    9.257109
-   ],
-   "offset_m": 1.1,
-   "side": "left",
-   "heading": 60,
-   "dir": -1,
-   "type": "entry",
-   "name": "",
-   "kind": "atp"
-  },
-  {
-   "line": "M3",
    "w": 87,
    "lat": 45.529811,
    "lon": 9.162866,
@@ -783,40 +732,6 @@
    "heading": 123,
    "dir": 1,
    "type": "entry",
-   "name": "",
-   "kind": "atp"
-  },
-  {
-   "line": "M3",
-   "w": 88,
-   "lat": 45.529856,
-   "lon": 9.162909,
-   "on_track": [
-    45.529855,
-    9.162908
-   ],
-   "offset_m": 0.1,
-   "side": "right",
-   "heading": 162,
-   "dir": -1,
-   "type": "block",
-   "name": "",
-   "kind": "atp"
-  },
-  {
-   "line": "M3",
-   "w": 87,
-   "lat": 45.52988,
-   "lon": 9.162823,
-   "on_track": [
-    45.529885,
-    9.162843
-   ],
-   "offset_m": 1.7,
-   "side": "right",
-   "heading": 162,
-   "dir": 1,
-   "type": "block",
    "name": "",
    "kind": "atp"
   },
