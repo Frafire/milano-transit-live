@@ -49,9 +49,13 @@ Signals and ZUB (station-to-station running) are on hold until the signals can b
 
 ## Speed limits (M3)
 
-Admin mode → Track editor → **Speed limits**. Pick a speed and click the M3 track pieces (from one junction to the next); trains use the new limit straight away. Fixed limits: 15 km/h over crossovers and on the diverging side of every junction (also when turning back), 15 km/h in the depot, 12.5 km/h in the tail tracks. Pieces not set yet use `line_max_kmh` (80). **Copy all** exports the limits with the other edits; they go into `data/rules_m3.json` under `speeds`.
+Admin mode → Track editor → **Speed limits**. Pick a speed and click the M3 track pieces (from one junction to the next); trains use the new limit straight away. Fixed limits: 15 km/h over crossovers and on the diverging side of every junction (also when turning back), 15 km/h in the depot, 12.5 km/h in the tail tracks. Pieces not set yet use `line_max_kmh` (80). To limit only part of a piece, press **✂ Cut a piece** and click where the limit changes (click a cut mark again to remove it). **Copy all** exports the limits and cuts with the other edits; they go into `data/rules_m3.json` under `speeds` and `cuts`.
 
 With speed limits the live engine drives like the ATO: as fast as allowed, then waits at the next stop. `tests/engine_test.js` reports how much time trains have in hand at stops, and warns when the limits make the timetable impossible.
+
+## Train card
+
+Click a metro train: the card shows its speed as the simulation calculates it, whether the doors are open or closed, and a short timetable (last stop, next two, destination). **Orario completo** shows every stop.
 
 ## Changing how M3 runs
 

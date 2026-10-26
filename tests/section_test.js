@@ -4,7 +4,7 @@ const E = require('../web/engine.js');
 const M = require(process.cwd() + '/m3.json');
 const S = M.section, half = M.half, ops = M.ops, rev = M.reverse_s;
 ops.train_half = half;
-const prof = E.buildProfiles(M.path_edges, M.net.edges, M.speeds, ops);
+const prof = E.buildProfiles(M.path_edges, M.net.edges, M.speeds, ops, M.cuts);
 const pathLen = pid => { const d = M.paths[pid].d; return d[d.length - 1]; };
 const fmt = s => String(Math.floor(s / 3600) % 24).padStart(2, '0') + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0');
 const lateness = res => { let w = 0, n = 0; res.forEach(r => r.log.forEach(e => { const l = e.actual - e.planned; if (l > 60) n++; w = Math.max(w, l); })); return [n, Math.round(w)]; };

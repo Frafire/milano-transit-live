@@ -3,7 +3,7 @@
 const E = require('../web/engine.js');
 const M = require(process.cwd() + '/m3.json');
 M.ops.train_half = M.half;
-const prof = E.buildProfiles(M.path_edges, M.net.edges, M.speeds, M.ops);
+const prof = E.buildProfiles(M.path_edges, M.net.edges, M.speeds, M.ops, M.cuts);
 const t0 = Date.now();
 const res = E.runFleet(M.trains, M.ops, M.reverse_s, prof);
 const ms = Date.now() - t0;

@@ -114,6 +114,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .orario td span.past { opacity: .35; }
 .orario td span.nx { color: #ff9416; font-weight: 700; }
 .spdbtns button { min-width: 44px; }
+.cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
 .hstop.live { cursor: pointer; border-color: #ff9416; }
 .board { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; background: #050607; border-radius: 6px; padding: 10px 12px; font-family: var(--display); }
@@ -149,6 +150,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .stops li { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line); text-transform: capitalize; }
 .stops li.past { color: var(--muted); opacity: .55; }
 .stops li.next { color: var(--signal); font-weight: 600; }
+.stops li.gap { color: var(--muted); font-style: italic; text-transform: none; }
+.stops li.dest { font-weight: 600; }
+.tiles { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 10px; }
+.tile { background: #07090b; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; display: flex; align-items: baseline; justify-content: center; gap: 6px; font-family: var(--display); }
+.tile.spd b { font: 700 28px/1 var(--display); color: #f2f2f2; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
+.tile.spd span { color: var(--muted); font-size: 13px; }
+.tile.door { align-items: center; font: 700 15px/1.2 var(--display); letter-spacing: .06em; color: #9aa3ab; }
+.tile.door.open { background: #ffb020; border-color: #ffb020; color: #1a1200; }
 .stops time { font-variant-numeric: tabular-nums; color: inherit; }
 .card .row { margin-top: 10px; }
 
@@ -332,8 +341,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   </section>
 
   <section data-panel="speed" hidden>
-    <p class="note">Pick a speed, then click the M3 track pieces (from one junction to the next) that have that limit. The trains use it straight away.</p>
+    <p class="note">Pick a speed, then click the M3 track pieces (from one junction to the next) that have that limit. The trains use it straight away. To give a limit to only part of a piece, press ✂ and click where the limit changes; click a white cut mark again to remove it.</p>
     <div class="row spdbtns" id="spdBtns"></div>
+    <div class="row"><button id="cutBtn" aria-pressed="false">✂ Cut a piece</button></div>
     <div id="spdPick" class="note picked">Click a track piece</div>
     <p class="note">Fixed, not editable: 15 km/h over crossovers and on the diverging side of every junction (also when turning back), 15 km/h in the depot, 12.5 km/h in the tail tracks. Grey dashed pieces are fixed.</p>
   </section>
@@ -552,7 +562,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     fleet.trains = F.trains.map((segs, i) => ({ n: i + 1, segs, starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: (F.alts || [])[i] || [], arr2: (F.arr2 || [])[i] || [], duties: (F.duties || [])[i] || null }));
     if (F.net && F.ops && window.MTLEngine) {
       fleet.engine = { ops: { ...F.ops, train_half: F.half }, rev: F.reverse_s, net: F.net, S: F.section, half: F.half, pathEdges: F.path_edges, fileSpeeds: F.speeds || {} };
-      fleet.engine.prof = F.path_edges ? MTLEngine.buildProfiles(F.path_edges, F.net.edges, fleet.engine.fileSpeeds, fleet.engine.ops) : null;
+      fleet.engine.fileCuts = F.cuts || {};
+      fleet.engine.prof = F.path_edges ? MTLEngine.buildProfiles(F.path_edges, F.net.edges, fleet.engine.fileSpeeds, fleet.engine.ops, fleet.engine.fileCuts) : null;
       fleet.trains.forEach(tr => { tr.F = fleet; relive(tr); });
     }
     fleets.push(fleet);
@@ -615,10 +626,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const s = SG[lo], ts = s[3], ds = s[4];
     if (t <= ts[ts.length - 1]) {
       let i = 0, j = ts.length - 2; while (i < j) { const m = (i + j + 1) >> 1; if (ts[m] <= t) i = m; else j = m - 1; }
-      const span = ts[i + 1] - ts[i], d = ds[i] + (ds[i + 1] - ds[i]) * (span > 0 ? (t - ts[i]) / span : 0);
+      const span = ts[i + 1] - ts[i], d = ds[i] + (ds[i + 1] - ds[i]) * (span > 0 ? (t - ts[i]) / span : 0), v = span > 0 ? (ds[i + 1] - ds[i]) / span : 0;
       let label = STATUS[s[1]] || s[1];
       if (s[1] === 'service' && i === 0 && ds[0] === ds[1]) label = 'Boarding, departs ' + fmt(ts[1]);
-      return { pos: trackAt(F, s[0], d), pid: s[0], d, status: s[1], label, trip: s[2], seg: lo };
+      return { pos: trackAt(F, s[0], d), pid: s[0], d, v, status: s[1], label, trip: s[2], seg: lo };
     }
     const next = SG[lo + 1];
     let status = 'hold', label;
@@ -920,10 +931,52 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     return rows;
   }
+  // short timetable: last stop, next two, destination; the button shows every stop
+  function stopListShort(tr, t) {
+    const idx = []; for (let i = 0; i < tr.st.length; i++) if (tr.st[i] >= 0) idx.push(i);
+    let k = idx.findIndex(i => tr.ts[i] >= t - 5); if (k < 0) k = idx.length;
+    const row = (i, cls) => `<li class="${cls}"><time>${fmt(tr.ts[i])}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
+    let rows = '';
+    if (k > 0) rows += row(idx[k - 1], 'past');
+    for (let j = k; j < Math.min(k + 2, idx.length); j++) rows += row(idx[j], j === k ? 'next' : '');
+    const last = idx.length - 1;
+    if (last >= k + 2) {
+      const skipped = last - (k + 2);
+      if (skipped > 0) rows += `<li class="gap"><time></time><span>⋯ ${skipped} ${skipped === 1 ? 'fermata' : 'fermate'}</span></li>`;
+      rows += row(idx[last], 'dest');
+    }
+    return rows;
+  }
+  // doors: open while the train stands at a stop in service (a moment after stopping until just before leaving)
+  function doorsOpen(F, tr, t) {
+    const useLive = F.engine && state.engine && tr.live, SG = useLive ? tr.live : tr.segs;
+    for (let k = 0; k < SG.length; k++) {
+      const s = SG[k], ts = s[3], ds = s[4];
+      if (t < ts[0]) {               // between two segments: passengers getting off at the terminus
+        const p = SG[k - 1]; if (!p || p[1] !== 'service') return false;
+        const end = p[3][p[3].length - 1]; return t >= end + 2 && t <= Math.min(ts[0], end + 45) - 5;
+      }
+      if (t > ts[ts.length - 1]) continue;
+      if (s[1] !== 'service') return false;
+      let i = 0; while (i < ts.length - 2 && ts[i + 1] <= t) i++;
+      return ds[i + 1] === ds[i] && t >= ts[i] + 2 && t <= ts[i + 1] - 5;
+    }
+    return false;
+  }
+  function updateTiles() {
+    const sp = document.getElementById('spdTile'); if (!sp || typeof state.sel !== 'string' || state.sel[0] !== 'f') return;
+    const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F && F.trains[i]; if (!tr) return;
+    const st = trainState(F, tr, state.t), kmh = Math.round(Math.abs(st.v || 0) * 3.6), open = doorsOpen(F, tr, state.t);
+    if (sp.textContent !== String(kmh)) sp.textContent = kmh;
+    const dt = document.getElementById('doorTile'), txt = open ? 'PORTE APERTE' : 'PORTE CHIUSE';
+    if (dt.textContent !== txt) { dt.textContent = txt; dt.classList.toggle('open', open); }
+  }
   function renderTrainCard() {
     const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F.trains[i], st = trainState(F, tr, state.t);
     let body = '', title = st.label;
-    if (st.trip >= 0) { const tp = trips[st.trip]; title = '→ <span class="cap">' + tp.h + '</span>'; body = `<ol class="stops">${stopList(tp, state.t)}</ol>`; }
+    if (st.trip >= 0) { const tp = trips[st.trip]; title = '→ <span class="cap">' + tp.h + '</span>';
+      body = `<ol class="stops">${state.fullTT ? stopList(tp, state.t) : stopListShort(tp, state.t)}</ol>
+        <div class="row"><button id="ttBtn" aria-pressed="${!!state.fullTT}">${state.fullTT ? 'Orario ridotto' : 'Orario completo'}</button></div>`; }
     // next activity for trains not in service
     if (st.trip < 0) {
       const nxt = tr.segs.find(sg => sg[1] === 'service' && sg[3][sg[3].length - 1] > state.t);
@@ -935,13 +988,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>'
       : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
     const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
-    body = kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
+    const tiles = F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div></div>`;
+    body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
       <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + (st.trip >= 0 ? st.label : 'Not in passenger service')}</div></div></div>
       <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Close</button></div>${body}`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
     document.getElementById('closeBtn').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
+    const ttBtn = document.getElementById('ttBtn'); if (ttBtn) ttBtn.onclick = () => { state.fullTT = !state.fullTT; renderCard(); };
+    updateTiles();
     card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
     card.querySelectorAll('[data-arr2]').forEach(b => b.onclick = () => { orderP2(F, tr, +b.dataset.arr2); renderCard(); });
     card.querySelectorAll('[data-plat]').forEach(b => b.onclick = () => {
@@ -1157,10 +1213,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const trkOther = document.getElementById('trkOther'), trkNote = document.getElementById('trkNote');
   const ptCount = document.getElementById('ptCount'), trkList = document.getElementById('trkList'), exportBox = document.getElementById('exportBox');
   const savedLayer = L.layerGroup().addTo(map), currentLayer = L.layerGroup().addTo(map);
-  let pts = [], ED = { tracks: [], marks: [], signals: [], speeds: {} };
+  let pts = [], ED = { tracks: [], marks: [], signals: [], speeds: {}, cuts: {} };
   try {
     const raw = JSON.parse(localStorage.getItem('mtl-edit') || 'null');
-    if (raw) ED = { tracks: raw.tracks || [], marks: raw.marks || [], signals: raw.signals || [], speeds: raw.speeds || {} };
+    if (raw) ED = { tracks: raw.tracks || [], marks: raw.marks || [], signals: raw.signals || [], speeds: raw.speeds || {}, cuts: raw.cuts || {} };
     else ED.tracks = JSON.parse(localStorage.getItem('mtl-tracks') || '[]');
   } catch (e) {}
   const persist = () => { try { localStorage.setItem('mtl-edit', JSON.stringify(ED)); } catch (e) {} };
@@ -1249,8 +1305,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       L.polyline(tk.points, { color: '#ff4fd8', weight: 4, dashArray: '5 4', interactive: false }).addTo(savedLayer);
       add('Drawn: ' + tk.name + ' · ' + tk.points.length + ' pts', () => { ED.tracks.splice(i, 1); persist(); redrawSaved(); });
     });
-    const nSp = Object.keys(ED.speeds || {}).length;
-    if (nSp) add(`Speed limits on ${nSp} track piece${nSp > 1 ? 's' : ''}`, () => { ED.speeds = {}; persist(); redrawSaved(); drawSpeeds(); applySpeeds(); });
+    const nSp = Object.keys(ED.speeds || {}).length, nCut = Object.values(ED.cuts || {}).reduce((a, c) => a + c.length, 0);
+    if (nSp || nCut) add(`Speed limits: ${nSp} set, ${nCut} cut${nCut === 1 ? '' : 's'}`, () => { ED.speeds = {}; ED.cuts = {}; persist(); redrawSaved(); drawSpeeds(); applySpeeds(); });
     if (!trkList.children.length) trkList.innerHTML = '<li class="note">Nothing saved yet</li>';
   }
   // ---- speed limits tool (M3) ----
@@ -1265,23 +1321,58 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const NETPTS = {};
   function netPts(F) { if (!NETPTS[F.line]) NETPTS[F.line] = F.engine.net.edges.map(e => decodeFlat(e.p)); return NETPTS[F.line]; }
   const allSpeeds = F => ({ ...F.engine.fileSpeeds, ...ED.speeds });
+  const allCuts = F => ({ ...(F.engine.fileCuts || {}), ...ED.cuts });
+  let cutMode = false;
+  document.getElementById('cutBtn').onclick = () => { cutMode = !cutMode; document.getElementById('cutBtn').setAttribute('aria-pressed', cutMode);
+    spdPick.textContent = cutMode ? 'Cut mode: click where the limit changes' : 'Click a track piece'; };
+  const KXm = 111320 * Math.cos(45.46 * Math.PI / 180), KYm = 110540;
+  const segLen = (a, b) => Math.hypot((b[1] - a[1]) * KXm, (b[0] - a[0]) * KYm);
+  function slicePoly(P, from, to) {       // part of a polyline between two distances (metres) from its start
+    const out = []; let acc = 0;
+    for (let i = 0; i < P.length - 1; i++) {
+      const L_ = segLen(P[i], P[i + 1]), s0 = acc, s1 = acc + L_;
+      const at = x => { const f = L_ ? (x - s0) / L_ : 0; return [P[i][0] + (P[i + 1][0] - P[i][0]) * f, P[i][1] + (P[i + 1][1] - P[i][1]) * f]; };
+      if (s1 >= from && s0 <= to) { if (!out.length) out.push(at(Math.max(from, s0))); out.push(at(Math.min(to, s1))); }
+      acc = s1; if (acc > to) break;
+    }
+    return out;
+  }
+  function distAlong(P, ll) {             // metres from the start of P to the point of P nearest to ll
+    let best = null, acc = 0;
+    for (let i = 0; i < P.length - 1; i++) {
+      const a = P[i], b = P[i + 1], L_ = segLen(a, b);
+      const vx = (b[1] - a[1]) * KXm, vy = (b[0] - a[0]) * KYm, px = (ll[1] - a[1]) * KXm, py = (ll[0] - a[0]) * KYm;
+      const u = L_ ? Math.max(0, Math.min(1, (px * vx + py * vy) / (L_ * L_))) : 0, dd = Math.hypot(px - u * vx, py - u * vy);
+      if (!best || dd < best.dd) best = { dd, s: acc + u * L_ };
+      acc += L_;
+    }
+    return best ? best.s : 0;
+  }
   let speedTimer = null;
   function applySpeeds() {        // new limits: rebuild the speed profiles and drive the day again
     const F = m3eng(); if (!F) return;
-    F.engine.prof = MTLEngine.buildProfiles(F.engine.pathEdges, F.engine.net.edges, allSpeeds(F), F.engine.ops);
+    F.engine.prof = MTLEngine.buildProfiles(F.engine.pathEdges, F.engine.net.edges, allSpeeds(F), F.engine.ops, allCuts(F));
     reliveFleet(F);
   }
   function drawSpeeds() {
     speedLayer.clearLayers();
     const F = m3eng(); if (!F || !drawing || mode !== 'speed') return;
-    const sp = allSpeeds(F), P = netPts(F), z = map.getZoom();
+    const sp = allSpeeds(F), cu = allCuts(F), P = netPts(F), z = map.getZoom();
     F.engine.net.edges.forEach((e, i) => {
-      const v = MTLEngine.edgeLimit(e, sp, F.engine.ops), set = !e.fixed && sp[e.key] != null;
-      L.polyline(P[i], { color: e.fixed ? '#9a9a9a' : SPCOL(v), weight: e.fixed ? 3 : (set ? 6 : 4), opacity: set || e.fixed ? .95 : .55, dashArray: e.fixed ? '4 4' : null, interactive: false }).addTo(speedLayer);
-      if (!e.fixed && z >= 14 && e.len > 60) {
-        const mid = P[i][Math.floor(P[i].length / 2)];
-        L.marker(mid, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="spdlab" style="--c:${SPCOL(v)}">${v}${set ? '' : '?'}</div>` }) }).addTo(speedLayer);
+      if (e.fixed) { L.polyline(P[i], { color: '#9a9a9a', weight: 3, opacity: .95, dashArray: '4 4', interactive: false }).addTo(speedLayer); return; }
+      const bd = MTLEngine.partBounds(e, cu), Lp = P[i].reduce((a, q, k) => k ? a + segLen(P[i][k - 1], q) : 0, 0), kk = Lp / (e.len || 1);
+      for (let j = 0; j < bd.length - 1; j++) {
+        const v = MTLEngine.partLimit(e, j, sp, cu), hasCut = cu[e.key] && cu[e.key].length;
+        const set = sp[hasCut ? e.key + '#' + j : e.key] != null || sp[e.key] != null;
+        const part = slicePoly(P[i], bd[j] * kk, bd[j + 1] * kk); if (part.length < 2) continue;
+        L.polyline(part, { color: SPCOL(v), weight: set ? 6 : 4, opacity: set ? .95 : .55, interactive: false }).addTo(speedLayer);
+        if (z >= 14 && (bd[j + 1] - bd[j]) > 60) {
+          const mid = slicePoly(P[i], (bd[j] + bd[j + 1]) / 2 * kk, (bd[j] + bd[j + 1]) / 2 * kk + 1)[0];
+          if (mid) L.marker(mid, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="spdlab" style="--c:${SPCOL(v)}">${v}${set ? '' : '?'}</div>` }) }).addTo(speedLayer);
+        }
       }
+      (cu[e.key] || []).forEach(c => { const q = slicePoly(P[i], c * kk, c * kk + 1)[0];
+        if (q) L.marker(q, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<div class="cutmark"></div>' }) }).addTo(speedLayer); });
     });
   }
   function snapEdge(latlng) {
@@ -1293,7 +1384,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const d = Math.hypot(Pc.x - A.x - u * dx, Pc.y - A.y - u * dy);
       if (d < 14 && (!best || d < best.d)) best = { d, i };
     } });
-    return best && { F, e: F.engine.net.edges[best.i] };
+    return best && { F, e: F.engine.net.edges[best.i], i: best.i };
   }
   function setMode(m) {
     mode = m;
@@ -1325,8 +1416,28 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (!h) { spdPick.textContent = 'No M3 track there. Zoom in and click right on a track.'; return; }
       const kind = { main: 'main line', siding: 'siding / platform', test: 'test loop', crossover: 'crossover', yard: 'depot track', link: 'depot access' }[h.e.cat] || h.e.cat;
       if (h.e.fixed) { spdPick.textContent = `${kind}, ${Math.round(h.e.len)} m: fixed at ${h.e.kmh} km/h`; return; }
-      if (spdPickV) ED.speeds[h.e.key] = spdPickV; else delete ED.speeds[h.e.key];
-      spdPick.textContent = `${kind}, ${Math.round(h.e.len)} m: ${spdPickV ? spdPickV + ' km/h' : 'back to default (' + h.e.kmh + ' km/h)'}`;
+      const P = netPts(h.F)[h.i], Lp = P.reduce((a, q, k) => k ? a + segLen(P[k - 1], q) : 0, 0);
+      const at = distAlong(P, [e.latlng.lat, e.latlng.lng]) * (h.e.len / (Lp || 1));        // metres from the piece's start
+      const cu = allCuts(h.F), cuts = (cu[h.e.key] || []).slice(), key = h.e.key;
+      const sp = allSpeeds(h.F), partOf = x => { let j = 0; while (j < cuts.length && x > cuts[j]) j++; return j; };
+      const mpp = 40075016 * Math.cos(45.46 * Math.PI / 180) / (256 * Math.pow(2, map.getZoom()));
+      if (cutMode) {
+        const near = cuts.findIndex(c => Math.abs(c - at) < 12 * mpp);
+        const before = cuts.map((_, j) => j).concat(cuts.length).map(j => MTLEngine.partLimit(h.e, j, sp, cu));   // limits per part now
+        if (near >= 0) { cuts.splice(near, 1); before.splice(near + 1, 1); }                                       // remove the cut: the parts join
+        else if (at > 5 && at < h.e.len - 5) { const j = partOf(at); cuts.splice(j, 0, Math.round(at * 10) / 10); before.splice(j, 0, before[j]); }
+        else { spdPick.textContent = 'Too close to the end of the piece'; return; }
+        Object.keys(ED.speeds).filter(k => k === key || k.startsWith(key + '#')).forEach(k => delete ED.speeds[k]);
+        if (cuts.length) { ED.cuts[key] = cuts; before.forEach((v, j) => { if (v !== h.e.kmh) ED.speeds[key + '#' + j] = v; }); }
+        else { delete ED.cuts[key]; if (before[0] !== h.e.kmh) ED.speeds[key] = before[0]; }
+        spdPick.textContent = `${kind}: ${cuts.length ? cuts.length + 1 + ' parts' : 'one piece again'}`;
+      } else {
+        const k = cuts.length ? key + '#' + partOf(at) : key;
+        if (spdPickV) ED.speeds[k] = spdPickV; else delete ED.speeds[k];
+        if (cuts.length) delete ED.speeds[key];
+        const bd = [0, ...cuts, h.e.len], j = partOf(at);
+        spdPick.textContent = `${kind}, ${Math.round(bd[j + 1] - bd[j])} m: ${spdPickV ? spdPickV + ' km/h' : 'back to default (' + h.e.kmh + ' km/h)'}`;
+      }
       persist(); drawSpeeds(); redrawSaved();
       clearTimeout(speedTimer); speedTimer = setTimeout(applySpeeds, 300);
       return;
@@ -1381,7 +1492,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     catch (e) { document.execCommand('copy'); ok(); }
   };
   redrawSaved(); setMode('mark');
-  if (Object.keys(ED.speeds).length) applySpeeds();
+  if (Object.keys(ED.speeds).length || Object.keys(ED.cuts).length) applySpeeds();
   const marksBtn = document.getElementById('marksBtn');
   let showMarks = true;
   try { showMarks = localStorage.getItem('mtl-show-marks') !== '0'; } catch (e) {}
@@ -1473,6 +1584,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     draw();
     if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); }
+    updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
   }

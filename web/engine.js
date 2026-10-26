@@ -106,14 +106,33 @@
   }
 
   // ---------------- speed limits ----------------
-  // limit of a track piece: fixed (depot, tails, crossovers) or Giovanni's value, else the line default
-  function edgeLimit(e, speeds, ops) { return e.fixed ? e.kmh : (speeds && speeds[e.key] != null ? speeds[e.key] : e.kmh); }
-  // per path: [[from, to, m/s]] from the track pieces it uses + 15 km/h on the diverging side of every junction
-  function buildProfiles(pathEdges, netEdges, speeds, ops) {
+  // A track piece (junction to junction) can be cut into parts; each part has its own limit.
+  // cuts[key] = sorted distances in metres from the piece's first node (a); part i limit = speeds[key + '#' + i],
+  // or speeds[key] for the whole piece, or the line default.
+  function partBounds(e, cuts) { const c = (cuts && cuts[e.key]) || []; return [0, ...c, e.len]; }
+  function partLimit(e, i, speeds, cuts) {
+    if (e.fixed) return e.kmh;
+    const c = cuts && cuts[e.key] && cuts[e.key].length;
+    const k = c ? e.key + '#' + i : e.key;
+    if (speeds && speeds[k] != null) return speeds[k];
+    if (speeds && speeds[e.key] != null) return speeds[e.key];
+    return e.kmh;
+  }
+  function edgeLimit(e, speeds) { return partLimit(e, 0, speeds, null); }
+  // per path: [[from, to, m/s]] from the track pieces (and their parts) + 15 km/h on the diverging side of junctions
+  function buildProfiles(pathEdges, netEdges, speeds, ops, cuts) {
     const div = (ops.diverging_kmh || 15) / 3.6, w = 25;
     return pathEdges.map(pe => {
       if (!pe || !pe.e.length) return null;
-      const out = pe.e.map(([ei, , a, b]) => [a, b, edgeLimit(netEdges[ei], speeds, ops) / 3.6]);
+      const out = [];
+      pe.e.forEach(([ei, dir, a, b]) => {
+        const e = netEdges[ei], bd = partBounds(e, cuts), k = (b - a) / (e.len || 1);
+        for (let i = 0; i < bd.length - 1; i++) {
+          const v = partLimit(e, i, speeds, cuts) / 3.6;
+          const x0 = dir > 0 ? a + bd[i] * k : b - bd[i + 1] * k, x1 = dir > 0 ? a + bd[i + 1] * k : b - bd[i] * k;
+          out.push([x0, x1, v]);
+        }
+      });
       pe.div.forEach(d => out.push([d - w, d + w, div]));
       return out.sort((x, y) => x[0] - y[0]);
     });
@@ -278,6 +297,6 @@
     return { segs: out, kind, turned };
   }
 
-  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, DT };
+  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, DT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);
