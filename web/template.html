@@ -346,6 +346,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="row spdbtns" id="spdBtns"></div>
     <div class="row"><button id="cutBtn" aria-pressed="false">✂ Cut a piece</button></div>
     <div id="spdPick" class="note picked">Click a track piece</div>
+    <div class="label" style="margin-top:6px">Measured run time</div>
+    <p class="note">From the moment the train starts to the moment it stops at the next station.</p>
+    <div class="row">
+      <select id="rtDir" aria-label="Direction"><option value="N">→ Comasina</option><option value="S">→ San Donato</option></select>
+      <select id="rtFrom" aria-label="From station"></select>
+    </div>
+    <div class="row"><input type="number" id="rtSec" min="10" max="600" placeholder="seconds" aria-label="Measured seconds" style="width:90px"><button id="rtGo">Calculate</button></div>
+    <div id="rtOut" class="note picked">Pick a stretch and type the seconds</div>
     <p class="note">Junctions (squares): the speed for trains taking the diverging side, 15 km/h unless you click one and give it another value. Fixed, not editable: 15 km/h over crossovers, in the depot and in the tail tracks (grey dashed). Going straight through a junction uses the limit of the track.</p>
   </section>
 
@@ -1391,6 +1399,40 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     junctions(F).forEach(n => { const ll = F.engine.net.nodes[String(n)]; if (!ll) return; const v = sp['J' + n] != null ? sp['J' + n] : dv;
       L.marker(ll, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="jmark" style="--c:${SPCOL(v)}">${v}</div>` }) }).addTo(speedLayer); });
   }
+  // ---- measured run times: average speed, the top speed it needs, and what the simulation does now ----
+  function stretches(F) {
+    const out = { N: [], S: [] };
+    for (const tr of F.trains) for (let si = 0; si < tr.segs.length; si++) {
+      const sg = tr.segs[si]; if (sg[1] !== 'service' || sg[2] < 0) continue;
+      const tp = trips[sg[2]], names = tp.st.filter(x => x >= 0).map(x => D.stops[x][0].toLowerCase().replace(/\b\w/g, c => c.toUpperCase()));
+      const dir = names[0].toUpperCase().startsWith('SAN DONATO') ? 'N' : 'S'; if (out[dir].length) continue;
+      const ds = sg[4], ts = sg[3], stops = [];
+      for (let i = 0; i < ds.length; i++) { if (i === 0 || ds[i] !== ds[i - 1]) stops.push({ d: ds[i], arr: ts[i], dep: ts[i] }); else stops[stops.length - 1].dep = ts[i]; }
+      if (stops.length !== names.length) continue;
+      for (let j = 0; j < names.length - 1; j++) out[dir].push({ from: names[j], to: names[j + 1], d0: stops[j].d, d1: stops[j + 1].d, plan: stops[j + 1].arr - stops[j].dep, tr, si });
+    }
+    return out;
+  }
+  let RT = null;
+  function fillStretches() {
+    const F = m3eng(); if (!F) return; RT = RT || stretches(F);
+    const dir = document.getElementById('rtDir').value;
+    document.getElementById('rtFrom').innerHTML = RT[dir].map((x, i) => `<option value="${i}">${x.from} → ${x.to}</option>`).join('');
+  }
+  document.getElementById('rtDir').onchange = fillStretches;
+  document.getElementById('rtGo').onclick = () => {
+    const F = m3eng(); if (!F) return; if (!RT) fillStretches();
+    const x = RT[document.getElementById('rtDir').value][+document.getElementById('rtFrom').value], T = +document.getElementById('rtSec').value;
+    if (!x || !(T > 0)) { document.getElementById('rtOut').textContent = 'Type the measured seconds'; return; }
+    const L = x.d1 - x.d0, a = F.engine.ops.acceleration_ms2, b = F.engine.ops.braking_ms2, c = 1 / (2 * a) + 1 / (2 * b), disc = T * T - 4 * c * L;
+    const peak = disc >= 0 ? (T - Math.sqrt(disc)) / (2 * c) * 3.6 : null;
+    // what the live engine does on this stretch now
+    let sim = null; const lv = x.tr.live && x.tr.live[x.si];
+    if (lv) { let t0 = null; for (let i = 1; i < lv[4].length; i++) { if (t0 === null && lv[4][i] > x.d0 + 0.05) t0 = lv[3][i - 1]; if (t0 !== null && lv[4][i] >= x.d1 - 0.05) { sim = lv[3][i] - t0; break; } } }
+    document.getElementById('rtOut').innerHTML = `${x.from} → ${x.to}: <b>${Math.round(L)} m</b> in ${T} s<br>Average speed <b>${(L / T * 3.6).toFixed(1)} km/h</b><br>` +
+      (peak ? `Top speed it needs (accelerating and braking at ${a} m/s²): <b>${Math.round(peak)} km/h</b>` : `Not possible in ${T} s with ${a} m/s²`) +
+      `<br>Simulation now: ${sim ? Math.round(sim) + ' s' : '–'} · timetable: ${Math.round(x.plan)} s`;
+  };
   function snapJunction(latlng) {
     const F = m3eng(); if (!F) return null;
     const Pc = map.latLngToContainerPoint(latlng); let best = null;
@@ -1413,7 +1455,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     mode = m;
     document.querySelectorAll('.drawer .tab').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
     document.querySelectorAll('.drawer [data-panel]').forEach(p => p.hidden = p.dataset.panel !== m);
-    redrawCurrent(); drawSpeeds();
+    redrawCurrent(); drawSpeeds(); if (m === 'speed') fillStretches();
   }
   map.on('zoomend', drawSpeeds);
   document.querySelectorAll('.drawer .tab').forEach(b => b.onclick = () => setMode(b.dataset.mode));
