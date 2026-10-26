@@ -373,6 +373,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <option value="entry">Entry / protection signal (protezione)</option>
       <option value="shunt">Shunting signal (manovra)</option>
       <option value="stop">Stopping point (fermata), e.g. on the test loop</option>
+      <option value="nose">Bandiera: arresto del muso (dove si ferma la testa del treno)</option>
     </select>
     <input type="text" id="sigName" placeholder="Name (optional), e.g. S12">
     <div class="row"><button id="sigSave">Place signal</button></div>
@@ -1331,7 +1332,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const bearing = (a, b) => (Math.atan2((b[1] - a[1]) * Math.cos(a[0] * Math.PI / 180), b[0] - a[0]) * 180 / Math.PI + 360) % 360;
   const arrowIcon = (deg, color) => L.divIcon({ className: '', iconSize: [0, 0],
     html: `<div class="arrow-ic" style="transform:translate(-50%,-50%) rotate(${deg}deg)"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="${color}" stroke="#000" stroke-width="1"/></svg></div>` });
-  const SIGCOL = { block: '#ff3b3b', departure: '#3bd16f', entry: '#ffcf3f', shunt: '#9fb7ff', stop: '#ffffff' };
+  const SIGCOL = { block: '#ff3b3b', departure: '#3bd16f', entry: '#ffcf3f', shunt: '#9fb7ff', stop: '#ffffff', nose: '#ff6fd8' };
   const sigIcon = (deg, type, name) => L.divIcon({ className: '', iconSize: [0, 0],
     html: `<div class="sig" style="position:relative"><div style="transform:rotate(${deg}deg)"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M11 2 L18 16 L11 12 L4 16 Z" fill="${SIGCOL[type] || '#fff'}" stroke="#000" stroke-width="1.5"/><circle cx="11" cy="19" r="2.5" fill="#000"/></svg></div>${name ? `<span>${name}</span>` : ''}</div>` });
 

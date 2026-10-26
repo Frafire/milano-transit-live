@@ -8,7 +8,7 @@ CFG = {
              SD_TAILS=[163, 116], COM_TAILS=[183, 179], SD_DEP={1: 143, 2: 120}, PLATS=[1, 2],
              SD_OUT_NODE=165, IN_VIA=[124, 153, 160], DEPOT_IN_VIA=[124, 153, 160], AFTER_ARR=160,
              PULL_OUT=300, PLAT_WAIT=120,
-             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, tail_at_signal=True, blocks=True, com_choice=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
+             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, tail_at_signal=True, nose_stop=True, blocks=True, com_choice=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
              labels=[('1', 78, 70, 'on'), ('2', 103, 85, 'on'), ('3', 79, 100, 'on')]),
   'M4': dict(tracks='osm_m4.txt', main='Linea M4', home='San Cristoforo', far='Linate Aeroporto',
              HOME_STOP=(45.44236, 9.12977), FAR_STOP=(45.46284, 9.27800),
@@ -380,6 +380,42 @@ def move(tl, pid, d0, d1, t0, v, status):
     t1 = t0 + abs(d1 - d0) / v
     tl.add(pid, status, [t0, t1], [d0, d1]); return t1
 
+# where the nose stops at a station (Giovanni): at a "nose" flag if one is placed there, otherwise almost touching the
+# station signal (an ATP signal just beyond the platform end, facing the train). Without either, the train stops
+# centred on the station point from the timetable.
+_STOPMARK = [sg for sg in _rules_.get('signals', []) if sg.get('line', LINE) == LINE and (sg.get('type') == 'nose' or sg.get('kind') == 'atp')]
+NOSE_GAP = 3.0                       # metres between the nose and the signal
+_marks_cache = {}
+def stop_marks(pid):
+    """Flags and signals that lie on this path and face its direction of travel: [(d, 'nose'|'atp')]."""
+    if pid in _marks_cache: return _marks_cache[pid]
+    p, c = paths[pid]; out = []
+    for sg in _STOPMARK:
+        x, y = xy(*sg['on_track']); best = None
+        for i in range(len(p) - 1):
+            (ax, ay), (bx, by) = p[i], p[i + 1]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+            if not L2: continue
+            u = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); e = math.hypot(x - ax - u * dx, y - ay - u * dy)
+            if e < 4 and (best is None or e < best[0]):
+                brg = math.degrees(math.atan2(dx, dy)) % 360
+                best = (e, c[i] + u * (c[i + 1] - c[i]), brg)
+        if best and abs((best[2] - sg.get('heading', best[2]) + 180) % 360 - 180) < 60:
+            out.append((best[1], 'nose' if sg.get('type') == 'nose' else 'atp'))
+    _marks_cache[pid] = sorted(out); return _marks_cache[pid]
+NOSE_LOG = {}
+def nose_stop(pid, d, name, lo, hi):
+    """Move a stop so the nose is at the flag / station signal. lo..hi: where the train's centre may be."""
+    m = stop_marks(pid)
+    flags = [x for x, k in m if k == 'nose' and abs(x - TRAIN_HALF - d) < 150]
+    if flags: nd = min(flags, key=lambda x: abs(x - TRAIN_HALF - d)) - TRAIN_HALF
+    else:
+        sigs = [x for x, k in m if k == 'atp' and d + TRAIN_HALF - 25 <= x <= d + TRAIN_HALF + 40]
+        if not sigs: return d
+        nd = min(sigs) - TRAIN_HALF - NOSE_GAP
+    nd = max(lo, min(hi, nd))
+    NOSE_LOG.setdefault(name, set()).add(round(nd - d))
+    return nd
+
 def service_leg(tl, start, via, end, trip, t_leave, plat_stop, end_stop, approach_status, t_plat_arr=None):
     """One leg from a reversal point through a full passenger trip to the next reversal point."""
     pid = leg_path(start, via, end); p, c = paths[pid]
@@ -393,7 +429,9 @@ def service_leg(tl, start, via, end, trip, t_leave, plat_stop, end_stop, approac
         if s == trip['ev'][0][1]: la, lo = plat_stop
         elif s == trip['ev'][-1][1]: la, lo = end_stop
         d, _ = project(p, c, la, lo, last_d, 3000)
-        d = max(d, last_d); ds.append(d); last_d = d
+        d = max(d, last_d)
+        if CFG.get('nose_stop'): d = nose_stop(pid, d, name, last_d, d_end)
+        ds.append(d); last_d = d
     t_dep = trip['ev'][0][0]
     if t_plat_arr is None:
         t_plat_arr = t_dep - 30
@@ -906,7 +944,9 @@ if CFG.get('blocks'):
             ds, st = sg[4], []
             for i in range(len(ds)):
                 if i == 0 or ds[i] != ds[i - 1]: st.append(ds[i])
-            if len(st) != len(names): continue
+            if len(st) != len(names):
+                if dr_ not in done: print('blocks: stops do not match', dr_, len(st), len(names), [round(x) for x in st][:6])
+                continue
             done.add(dr_)
             sig = [d + TRAIN_HALF + 2.5 for d in st]          # departure signal: just in front of the train's nose
             last = len(st) - 1
@@ -920,6 +960,7 @@ if CFG.get('blocks'):
                                    'parts': _parts(sg[0], a_, b_), 'signal_d': round(a_, 1), 'pid': sg[0], 'station': q == 0})
             BLOCKS.append({'name': '%s %s arrivo' % (dr_, names[last]), 'dir': dr_, 'parts': _parts(sg[0], st[last] - TRAIN_HALF - 2.5, sig[last])})
     print('block sections:', len(BLOCKS))
+if NOSE_LOG: print('nose stops (shift of the stop in m, by station):', {k: sorted(v) for k, v in sorted(NOSE_LOG.items())})
 PLATMAP = {'station': CFG['home'], 'plats': [[l[0], l[1]] for l in CFG.get('labels', [])], 'stop': list(SD_STOP)}
 # platform number labels at the home terminal
 PLAT_LABELS = []
