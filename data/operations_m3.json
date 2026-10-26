@@ -14,5 +14,8 @@
   "train_max_kmh": 90,
   "diverging_kmh": 15,
   "acceleration_ms2": 1.1,
-  "braking_ms2": 1.2
+  "braking_ms2": 1.2,
+  "curve_radius_m": 400,
+  "curve_minus_kmh": 10,
+  "ato_cruise_pct": 88
 }

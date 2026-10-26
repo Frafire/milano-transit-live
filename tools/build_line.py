@@ -36,7 +36,7 @@ TRAIN_HALF = CFG['half']
 # operating rules Giovanni can tune without touching code: data/operations_<line>.json
 OPS = {'station_stop_s': 30, 'terminus_unload_s': 45, 'platform_wait_min_s': 30, 'platform_wait_max_s': 120,
        'min_turnaround_min': 7, 'depot_rest_if_wait_over_min': 15, 'tail_speed_kmh': 12.5, 'depot_speed_kmh': 15,
-       'driver_walk_speed_ms': 1.4, 'cab_setup_s': 30, 'line_max_kmh': 80, 'train_max_kmh': 90, 'diverging_kmh': 15, 'acceleration_ms2': 1.0, 'braking_ms2': 1.0}
+       'driver_walk_speed_ms': 1.4, 'cab_setup_s': 30, 'line_max_kmh': 80, 'train_max_kmh': 90, 'diverging_kmh': 15, 'curve_radius_m': 400, 'curve_minus_kmh': 10, 'acceleration_ms2': 1.0, 'braking_ms2': 1.0}
 _ops = 'operations_%s.json' % LINE.lower()
 if os.path.exists(_ops):
     OPS.update({k: v for k, v in json.load(open(_ops)).items() if not k.startswith('_')})
@@ -773,7 +773,27 @@ for pid in range(len(paths)):
                 if len(node_edges[n]) >= 3 and _ang(tangent(poly(ei, dr), False), tangent(poly(e2, d2), True)) > 6:
                     div.append([round(d + L_, 1), n])
             d += L_
-    PATH_EDGES.append({'e': spans, 'div': div})
+    # curves: where the track turns tighter than ~curve_radius_m (heading measured over +-25 m)
+    curves = []
+    if st:
+        pp, cc = paths[pid]; L_ = cc[-1]
+        import bisect as _b
+        def _at(d):
+            d = max(0.0, min(L_, d)); i = max(0, min(len(cc) - 2, _b.bisect_right(cc, d) - 1)); f = (d - cc[i]) / ((cc[i + 1] - cc[i]) or 1)
+            return (pp[i][0] + (pp[i + 1][0] - pp[i][0]) * f, pp[i][1] + (pp[i + 1][1] - pp[i][1]) * f)
+        def _hd(d):
+            a, b = _at(d - 25), _at(d + 25); return math.atan2(b[1] - a[1], b[0] - a[0])
+        R = OPS.get('curve_radius_m', 400); x = 25.0; run = None
+        while x < L_ - 25:
+            dth = abs((_hd(x + 10) - _hd(x - 10) + math.pi) % (2 * math.pi) - math.pi)
+            tight = dth > 1e-6 and 20.0 / dth < R
+            if tight and run is None: run = x
+            if not tight and run is not None:
+                if x - run >= 20: curves.append([round(run - 10, 1), round(x + 10, 1)])
+                run = None
+            x += 5
+        if run is not None and x - run >= 20: curves.append([round(run - 10, 1), round(x + 10, 1)])
+    PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves})
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
     NET['signals'] = [{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'heading', 'dir', 'type', 'name')}
