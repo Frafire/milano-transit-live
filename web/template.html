@@ -115,6 +115,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .orario td span.nx { color: #ff9416; font-weight: 700; }
 .spdbtns button { min-width: 44px; }
 .platlab { transform: translate(-50%, -50%); font: 600 10px/1 var(--body); color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; white-space: nowrap; pointer-events: none; }
+.tbmark { display: inline-block; width: max-content; transform: translate(-50%, -50%); font: 800 12px/1 var(--body); color: #111; background: #ff9f1c; border: 2px solid #000; border-radius: 4px; padding: 3px 5px; white-space: nowrap; }
+.tbmark.tail { background: #c77dff; }
+.tbmark.link { background: #3bd16f; }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
@@ -1460,6 +1463,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         [pts[0], pts[pts.length - 1]].forEach(q => L.circleMarker(q, { radius: 3, color: '#000', weight: 1, fillColor: '#fff', fillOpacity: 1, interactive: false }).addTo(m3platLayer));
       });
     });
+    // turnback places: crossovers (X), dead-end tails along the line (coda), the M2-M3 link tunnel at Centrale
+    const E_ = F.engine.net.edges, deg = {};
+    E_.forEach(e => { deg[e.a] = (deg[e.a] || 0) + 1; deg[e.b] = (deg[e.b] || 0) + 1; });
+    const P_ = netPts(F), mark = (ll, cls, txt, tip) => L.marker(ll, { keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="tbmark ${cls}">${txt}</div>` }) }).bindTooltip(tip, { className: 'st', direction: 'top' }).addTo(m3platLayer);
+    E_.forEach((e, i) => {
+      const mid = P_[i][Math.floor(P_[i].length / 2)];
+      if (e.cat === 'crossover') mark(mid, '', 'X', 'Crossover (comunicazione): turning back possible');
+      else if (/Raccordo/i.test(e.nm || '')) { if (e.len > 150) mark(mid, 'link', 'M2', 'Raccordo M2–M3: link tunnel to the green line'); }
+      else if (e.cat === 'siding' && (deg[e.a] === 1 || deg[e.b] === 1) && !F.engine.net.tails?.includes(e.a)) mark(mid, 'tail', 'coda', 'Dead-end tail track (binario tronco)');
+    });
     m3platLayer.addTo(map);
   }
   const platBtn = document.getElementById('platBtn');
@@ -1695,7 +1708,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     document.getElementById('clock').innerHTML = hm + '<span class="s">' + ss + (state.t >= 86400 ? ' +1' : '') + '</span>';
     if (state.follow && state.sel != null) {
       const [la, lo] = typeof state.sel === 'string' ? (([fi, i]) => trainState(fleets[fi], fleets[fi].trains[i], state.t).pos)(state.sel.slice(1).split(':').map(Number)) : locate(trips[state.sel], state.t);
-      map.panTo([la, lo], { animate: false });
+      // whole pixels only: the map moves in whole pixels, so a fractional pan makes the trains shake against it
+      const P = map.latLngToContainerPoint([la, lo]), C = map.getSize().divideBy(2), dx = Math.round(P.x - C.x), dy = Math.round(P.y - C.y);
+      if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
     if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); }

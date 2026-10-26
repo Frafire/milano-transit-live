@@ -6,6 +6,8 @@ const { M, D } = L.load();
 const MEASURED = [['PORTA ROMANA', 'CROCETTA', 65], ['CROCETTA', 'MISSORI', 53], ['MISSORI', 'DUOMO M3', 55],
                   ['DUOMO M3', 'MONTENAPOLEONE', 65], ['MONTENAPOLEONE', 'TURATI', 58], ['TURATI', 'REPUBBLICA', 59]];
 const CHOICES = [40, 50, 55, 60, 70];
+// Giovanni: between Crocetta and Turati replace his own limits too (all parts, both tracks)
+const OVERRIDE = new Set(process.argv.slice(2).length ? process.argv.slice(2) : ['CROCETTA', 'MISSORI', 'DUOMO M3', 'MONTENAPOLEONE']);
 const rulesPath = '../data/rules_m3.json', rules = JSON.parse(fs.readFileSync(rulesPath));
 const speeds = rules.speeds, cuts = rules.cuts;
 const edges = M.net.edges;
@@ -37,7 +39,7 @@ for (const [A, B, T] of MEASURED) {
   for (const dir of ['N', 'S']) {                       // Giovanni measured towards Comasina; the other track is taken as similar
     const x = dir === 'N' ? st.N.find(y => y.from === A && y.to === B) : st.S.find(y => y.from === B && y.to === A);
     if (!x) { report.push(`${dir} ${A}–${B}: not found`); continue; }
-    const free = partsBetween(x.pid, x.d0, x.d1).filter(([k, j]) => !isSet(k, j));
+    const free = partsBetween(x.pid, x.d0, x.d1).filter(([k, j]) => OVERRIDE.has(A) || !isSet(k, j));
     const setAll = v => free.forEach(([k, j]) => { if (cuts[k] && cuts[k].length) speeds[k + '#' + j] = v; else speeds[k] = v; });
     let best = null;
     if (free.length) {
@@ -47,7 +49,7 @@ for (const [A, B, T] of MEASURED) {
     }
     const t = L.runTime(M, L.profiles(M, speeds, cuts), x.pid, x.d0, x.d1);
     report.push(`${dir === 'N' ? '→ Comasina ' : '→ San Donato'} ${x.from} → ${x.to}: measured ${T} s | ` +
-      (free.length ? `set ${best.v} km/h on ${free.length} unset part(s)` : 'all parts already set by you') + ` | simulated ${t.toFixed(0)} s`);
+      (free.length ? `${best.v} km/h on ${free.length} part(s)${OVERRIDE.has(A) ? ' (replacing yours)' : ''}` : 'all parts already set by you') + ` | simulated ${t.toFixed(0)} s`);
   }
 }
 fs.writeFileSync(rulesPath, JSON.stringify(rules, null, 1));

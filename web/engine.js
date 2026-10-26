@@ -31,7 +31,7 @@
     const vt = legs.map((g, k) => prof ? vmax : cruiseSpeed(g.d1 - g.d0, g.t1 - g.t0, k === 0 ? 1 / (2 * a) : 0, k === n - 1 ? 1 / (2 * b) : 0, vmax));
     let p0 = 0;
     const end = legs[n - 1].d1;
-    let d = legs[0].d0, v = 0, t = t0, k = 0, step = 0;
+    let d = legs[0].d0, v = 0, t = t0, k = 0, step = 0, wasChanging = true;
     const ts = [t], ds = [d];
     while (d < end - 0.01) {
       while (k < n - 1 && d >= legs[k].d1) k++;
@@ -48,10 +48,14 @@
           else vcap = Math.min(vcap, Math.sqrt(sg[2] * sg[2] + 2 * b * (sg[0] - d - half)));
         }
       }
+      const v0 = v;
       if (v < vcap) v = Math.min(vcap, v + a * DT); else v = Math.max(vcap, v - b * DT * 1.5);
       if (v < 0.3) v = 0.3;                          // creep the last centimetres
-      d = Math.min(end, d + v * DT); t += DT;
-      if (++step % SAMPLE === 0) { ts.push(t); ds.push(d); }
+      d = Math.min(end, d + v * DT); t += DT; step++;
+      // smooth playback: a point every step while speeding up or braking, every 4 s at steady speed
+      const changing = Math.abs(v - v0) > 1e-6;
+      if (changing !== wasChanging || (changing ? true : step % 8 === 0)) { ts.push(t); ds.push(d); }
+      wasChanging = changing;
       if (step > 200000) break;                      // safety
     }
     if (ts[ts.length - 1] !== t) { ts.push(t); ds.push(end); }

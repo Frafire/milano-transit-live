@@ -754,7 +754,7 @@ for ei, e in enumerate(edges):
     for n in (e['a'], e['b']):
         if n not in NET['nodes']: NET['nodes'][n] = [round(v, 6) for v in ll(*node_pos[n])]
     NET['edges'].append({'a': e['a'], 'b': e['b'], 'len': round(e['len'], 1), 'way': e['way'] if 'mid' not in e else -1,
-                         'cat': cat, 'kmh': _edge_kmh(e, cat), 'p': enc(e['pts'])})
+                         'cat': cat, 'kmh': _edge_kmh(e, cat), 'p': enc(e['pts']), 'nm': W[e['way']]['name'] if 'mid' not in e else ''})
 NET['nodes'] = {str(k): v for k, v in NET['nodes'].items()}
 for ei, e in enumerate(edges):
     ne = NET['edges'][ei]; ne['key'] = '%s-%s' % (e['a'], e['b'])
