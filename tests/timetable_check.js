@@ -24,7 +24,7 @@ for (const dir of ['N', 'S']) {
   const rr = runs.filter(r => r.dir === dir);
   console.log(`  ${dir === 'N' ? 'San Donato → Comasina' : 'Comasina → San Donato'}: timetable ${(avg(rr, r => r.planDur) / 60).toFixed(1)} min, simulated ${(avg(rr, r => r.liveDur) / 60).toFixed(1)} min on average`);
 }
-console.log(`  waits at the terminal junctions (one train at a time): ${booked.held}`);
+console.log(`  waits at signals (block sections and terminal junctions): ${booked.held}`);
 console.log(`  leaving the terminus late (>30 s): ${late('depLate', 30)} | arriving late (>1 min): ${late('arrLate', 60)}, (>3 min): ${late('arrLate', 180)}`);
 const w = worst('arrLate');
 console.log(`  worst arrival: ${w.arrLate > 0 ? '+' : ''}${Math.round(w.arrLate)} s (train ${w.k + 1}, due ${fmt(w.arrPlan)}) | runs arriving early: ${runs.filter(r => r.arrLate < -30).length}`);

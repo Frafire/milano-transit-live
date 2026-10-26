@@ -8,7 +8,7 @@ CFG = {
              SD_TAILS=[163, 116], COM_TAILS=[183, 179], SD_DEP={1: 143, 2: 120}, PLATS=[1, 2],
              SD_OUT_NODE=165, IN_VIA=[124, 153, 160], DEPOT_IN_VIA=[124, 153, 160], AFTER_ARR=160,
              PULL_OUT=300, PLAT_WAIT=120,
-             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
+             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, tail_at_signal=True, blocks=True, com_choice=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
              labels=[('1', 78, 70, 'on'), ('2', 103, 85, 'on'), ('3', 79, 100, 'on')]),
   'M4': dict(tracks='osm_m4.txt', main='Linea M4', home='San Cristoforo', far='Linate Aeroporto',
              HOME_STOP=(45.44236, 9.12977), FAR_STOP=(45.46284, 9.27800),
@@ -42,6 +42,7 @@ if os.path.exists(_ops):
     OPS.update({k: v for k, v in json.load(open(_ops)).items() if not k.startswith('_')})
     print('operating rules from', _ops)
 V_YARD = OPS['depot_speed_kmh'] / 3.6   # depot speed limit 15 km/h (confirmed by ATM staff; not on the test loop)
+EMPTY_MARGIN = int(os.environ.get("EMPTY_MARGIN", 600))
 V_EMPTY = 13.0    # m/s ~47 km/h empty run on the line
 PULL_OUT = CFG['PULL_OUT']   # depot -> platform (M3: 5 min; M4: 7-8 min, very slow)
 PLAT_WAIT = CFG['PLAT_WAIT'] # wait at platform before first departure (M3 2 min, M4 30 s)
@@ -218,21 +219,40 @@ for chain in trains:
         if after_break(chain, j + 1): continue
         turns.append(('COM' if a_['out'] else 'SD', a_, b_))
 TE, PLAT_OF, ENTRY, TAIL_OF, PLAT_ARR, PULL_PLAT, EARLY_TAIL = {}, {}, {}, {}, {}, {}, {}
+# where a train stops in a tail: by default at the very end; at Comasina the ATO stops it just behind the tail's
+# exit signal (Giovanni), to save distance. Value: distance from the tail end to the train's centre.
+TAIL_STOP = {}
+_rules_ = json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rules_%s.json' % LINE.lower()) else {}
+for _t in (COM_TAILS if CFG.get('tail_at_signal') else []):
+    _e = edges[node_edges[_t][0]]; _P = _e['pts'] if _e['b'] == _t else _e['pts'][::-1]; _P = _P[::-1]   # from the tail end
+    _best = None
+    for _sg in _rules_.get('signals', []):
+        if _sg.get('kind') != 'atp' or _sg['w'] != _e['way']: continue
+        _x, _y = xy(*_sg['on_track']); _acc = 0
+        for _i in range(len(_P) - 1):
+            (_ax, _ay), (_bx, _by) = _P[_i], _P[_i + 1]; _dx, _dy = _bx - _ax, _by - _ay; _L2 = _dx * _dx + _dy * _dy
+            _u = max(0, min(1, ((_x - _ax) * _dx + (_y - _ay) * _dy) / _L2)) if _L2 else 0
+            if math.hypot(_x - _ax - _u * _dx, _y - _ay - _u * _dy) < 4 and (_best is None or _acc + _u * math.sqrt(_L2) > _best):
+                _best = _acc + _u * math.sqrt(_L2)
+            _acc += math.sqrt(_L2)
+    if _best: TAIL_STOP[_t] = max(TRAIN_HALF, _best - TRAIN_HALF - 5)
+print('tail stop positions from signals (m from the end):', {k: round(v) for k, v in TAIL_STOP.items()})
+def tail_off(n): return TAIL_STOP.get(n, TRAIN_HALF)
 # running times measured on the real tracks
 def _stop_d(pid, stop):
     p, c = paths[pid]; d, _ = project(p, c, *stop, 0, None); return d, c[-1]
 T_IN, T_OUT = {}, {}
 for t in SD_TAILS:
     pid = make_path(('in', t), route_nodes(CFG['IN_VIA'][-2], t, via=CFG['IN_VIA'][-1:]))
-    d, L = _stop_d(pid, SD_STOP); T_IN[t] = (L - TRAIN_HALF - d) / V_TAIL
+    d, L = _stop_d(pid, SD_STOP); T_IN[t] = (L - tail_off(t) - d) / V_TAIL
     for pn in CFG['PLATS']:
         pid = leg_path(t, [SD_DEP[pn], SD_OUT_NODE], COM_TAILS[0]); d, L = _stop_d(pid, SD_STOP)
-        T_OUT[(t, pn)] = (d - TRAIN_HALF) / V_TAIL
+        T_OUT[(t, pn)] = (d - tail_off(t)) / V_TAIL
 for t in COM_TAILS:
     pid = leg_path(SD_TAILS[0], [SD_DEP[1], SD_OUT_NODE], t); d, L = _stop_d(pid, COM_STOP)
-    T_IN[t] = (L - TRAIN_HALF - d) / V_TAIL
+    T_IN[t] = (L - tail_off(t) - d) / V_TAIL
     pid = leg_path(t, CFG['IN_VIA'], SD_TAILS[0]); d, L = _stop_d(pid, COM_STOP)
-    T_OUT[(t, 0)] = (d - TRAIN_HALF) / V_TAIL
+    T_OUT[(t, 0)] = (d - tail_off(t)) / V_TAIL
 print('tail running times (s):', {k: round(v) for k, v in {**T_IN, **{str(k): v for k, v in T_OUT.items()}}.items()})
 
 INF = 10 ** 9
@@ -364,8 +384,8 @@ def service_leg(tl, start, via, end, trip, t_leave, plat_stop, end_stop, approac
     """One leg from a reversal point through a full passenger trip to the next reversal point."""
     pid = leg_path(start, via, end); p, c = paths[pid]
     L = c[-1]
-    d_start = TRAIN_HALF if len(node_edges[start]) == 1 else 0
-    d_end = L - TRAIN_HALF if len(node_edges[end]) == 1 else L
+    d_start = tail_off(start) if len(node_edges[start]) == 1 else 0
+    d_end = L - tail_off(end) if len(node_edges[end]) == 1 else L
     # project passenger stops
     ds, last_d = [], d_start
     for tt, s in trip['ev']:
@@ -465,8 +485,33 @@ def arrive_p2(tl, pd, nxt, ctail2):
     ARR2[tl.k].append({'i': pd['i'], 'n': len(tl.segs) - pd['i'], 'segs': tmp.segs + [appr, serv, tail_move],
                        'open': round(rog), 'close': round(tA - 40), 'from': round(tA), 'dep': nxt['dep'], 'arr': round(tA)})
 
+CALTS = collections.defaultdict(list)
+def tail_alternative(tl, cp, tr_in, end_in, via_in, t_leave_in, t_plat_in, go_depot):
+    """The same turnaround at Comasina through the other tail track (the player can choose it)."""
+    i0 = cp['seg0']; n = len(tl.segs) - i0
+    orig = [list(x) for x in tl.segs[i0:]]
+    opts = {str(cp['tail']): orig}
+    for t2 in COM_TAILS:
+        if t2 == cp['tail']: continue
+        tmp = TL(-1)
+        try:
+            pid2, d_arr2, _, _ = service_leg(tmp, cp['start'], cp['via'], t2, cp['tr'], cp['t_leave'], SD_STOP, COM_STOP, cp['status'], cp['t_plat'])
+            if cp['store'] is not None: tmp.segs[-2].append(cp['store'])
+            move(tmp, pid2, d_arr2, paths[pid2][1][-1] - tail_off(t2), cp['t_move'], V_TAIL, 'turnback')
+            pid3, d_arr3, d_end3, _ = service_leg(tmp, t2, via_in, end_in, tr_in, t_leave_in, COM_STOP, SD_STOP, 'turnback', t_plat_in)
+        except RuntimeError:
+            continue
+        last = orig[-1]                                   # the run after the arrival at San Donato keeps its times
+        tmp.segs.append([pid3, last[1], last[2], list(last[3]), [round(d_arr3, 1), round(d_end3, 1)], *last[5:]])
+        if len(tmp.segs) != n: continue
+        opts[str(t2)] = tmp.segs
+    if len(opts) > 1:
+        CALTS[tl.k].append({'i': i0, 'n': n, 'tail': cp['tail'], 'opts': opts, 'open': cp['tr']['dep'], 'close': round(cp['t_arr'] - 60),
+                            'arr': round(cp['t_move']), 'leave': round(t_leave_in), 'names': {str(t): j + 1 for j, t in enumerate(COM_TAILS)}})
+
 out = []
 pending = None
+com_pending = None
 for k, chain in enumerate(trains):
     tl = TL(k)
     sd_tail_i = k % 3; com_tail_i = k % 2; plat = 1 + (k % 2)
@@ -489,8 +534,10 @@ for k, chain in enumerate(trains):
                 d0 = TRAIN_HALF if len(node_edges[start]) == 1 else 0
                 run = max(PULL_OUT if LINE == 'M4' else 0, (d_pl - d0) / V_YARD)     # M3: at 15 km/h all the way
                 t_plat = PULL_PLAT[tr['ti']]; t_leave = t_plat - run
+                com_seg0 = len(tl.segs)
                 pid, d_arr, d_end, t_arr = service_leg(tl, start, via, ctail, tr, t_leave, SD_STOP, COM_STOP, 'from_depot', t_plat)
                 tl.segs[-2].append(start)
+                com_leg = dict(seg0=com_seg0, start=start, via=via, tr=tr, t_leave=t_leave, t_plat=t_plat, status='from_depot', store=start)
             else:
                 start = loc[1]; p_no = PLAT_OF.get(tr['ti'], 1)
                 via = [SD_DEP[p_no], SD_OUT_NODE]
@@ -498,10 +545,13 @@ for k, chain in enumerate(trains):
                 seg0 = len(tl.segs)
                 pid, d_arr, d_end, t_arr = service_leg(tl, start, via, ctail, tr, t_leave, SD_STOP, COM_STOP, 'turnback', t_plat)
                 platform_alternatives(tl, seg0, start, ctail, tr, t_leave, t_plat, p_no)
+                com_leg = dict(seg0=seg0, start=start, via=via, tr=tr, t_leave=t_leave, t_plat=t_plat, status='turnback', store=None)
             # terminus: passengers off, run into the tail
             ctail = TAIL_OF.get(tr['ti'], ctail)
-            pid = leg_path(start, via, ctail); d_end = paths[pid][1][-1] - TRAIN_HALF
+            pid = leg_path(start, via, ctail); d_end = paths[pid][1][-1] - tail_off(ctail)
             t_end = move(tl, pid, d_arr, d_end, ENTRY.get(tr['ti'], t_arr + DWELL_END), V_TAIL, 'turnback')
+            com_leg.update(tail=ctail, t_move=ENTRY.get(tr['ti'], t_arr + DWELL_END), t_arr=t_arr)
+            com_pending = None if RETIRE.get(tr['ti']) else com_leg
             if pending and loc[0] == 'sd':
                 arrive_p2(tl, pending, tr, ctail)
             pending = None
@@ -512,7 +562,7 @@ for k, chain in enumerate(trains):
                 else:                                          # not needed here: back to the depot empty
                     store = STORE_AFTER[tr['ti']]
                     pidE = leg_path(ctail, CFG['DEPOT_IN_VIA'], store); cE = paths[pidE][1]
-                    d0, d1 = TRAIN_HALF, cE[-1] - TRAIN_HALF
+                    d0, d1 = tail_off(ctail), cE[-1] - TRAIN_HALF
                     t0 = TE.get(('end', tr['ti']), t_end + REVERSE)
                     t1 = t0 + (d1 - d0 - 900) / V_EMPTY
                     tl.add(pidE, 'empty', [t0, t1, t1 + 900 / V_YARD], [d0, d1 - 900, d1]); tl.segs[-1].append(store)
@@ -523,11 +573,12 @@ for k, chain in enumerate(trains):
                 # early train: empty run from the depot to Comasina tail first
                 ctail, t_ready = EARLY_TAIL[tr['ti']]
                 pidE = leg_path(STORE_BEFORE.get(tr['ti'], loc[1]), [SD_DEP[1], SD_OUT_NODE], ctail); cE = paths[pidE][1]
-                LE = cE[-1]; d0, d1 = TRAIN_HALF, LE - TRAIN_HALF
-                t0 = t_ready - (d1 - d0) / V_EMPTY - 90
+                LE = cE[-1]; d0, d1 = TRAIN_HALF, LE - tail_off(ctail)
+                t0 = t_ready - (d1 - d0) / V_EMPTY - 90 - EMPTY_MARGIN    # leave early: on the way it may wait behind passenger trains
                 tl.add(pidE, 'empty', [t0, t0 + 90, t_ready], [d0, d0 + 200, d1]); tl.segs[-1].append(STORE_BEFORE.get(tr['ti'], loc[1]))
                 loc = ('com', ctail, t_ready)
             ctail = loc[1]
+            if loc[0] != 'com' or len(loc) < 3: com_pending = None
             go_depot = bool(DEPOT_AFTER.get(tr['ti']))
             if nxt is None and k in NIGHT_SD_END:
                 end = NIGHT_SD_END[k]; via = CFG['IN_VIA']; end_where = CFG['home']
@@ -549,6 +600,9 @@ for k, chain in enumerate(trains):
             else:
                 t_end = move(tl, pid, d_arr, d_end, ENTRY.get(tr['ti'], t_arr + DWELL_END), V_TAIL, 'turnback')
                 loc = ('sd', end, t_end)
+            if com_pending and CFG.get('com_choice'):
+                tail_alternative(tl, com_pending, tr, end, via, t_leave, t_plat, go_depot)
+            com_pending = None
     tl.start_where, tl.end_where = start_where, end_where
     out.append(tl)
 
@@ -761,6 +815,7 @@ if CFG.get('THROATS'):
     _dep = [ei for ei in range(len(edges)) if any({edges[ei]['a'], edges[ei]['b']} == set(pr) for pr in TH['home'].get('depot', []))]
     THROATS.append({'name': CFG['home'], 'edges': sorted(set(_throat(TH['home']['ends'], SD_TAILS, home_ex)) | set(_dep)), 'p1': [ei for ei in range(len(edges)) if {edges[ei]['a'], edges[ei]['b']} == set(TH['home']['p1'])]})
     THROATS.append({'name': CFG['far'], 'edges': _throat(TH['far']['ends'], COM_TAILS), 'p1': []})
+    THROATS[0]['tails'] = [node_edges[t][0] for t in SD_TAILS]; THROATS[1]['tails'] = [node_edges[t][0] for t in COM_TAILS]
     for t in THROATS: print('junction area', t['name'], '- track pieces:', len(t['edges']))
 # ---------------- network for the live engine (step 1) ----------------
 # every track piece between two junctions, with its category and speed limit, plus the signals
@@ -828,6 +883,43 @@ if os.path.exists(_rules):
     NET['signals'] = [{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'heading', 'dir', 'type', 'name')}
                       for sg in json.load(open(_rules)).get('signals', []) if sg.get('line') == LINE]
 print('network for the live engine:', len(NET['nodes']), 'nodes,', len(NET['edges']), 'track pieces,', len(NET['signals']), 'signals')
+# ---------------- block sections along the line (fixed block, one train per section) ----------------
+# A section runs from a station's departure signal (end of the platform, direction of travel) to the next station's.
+BLOCKS = []
+if CFG.get('blocks'):
+    def _parts(pid, x0, x1):
+        out_ = []
+        for ei, dr, a, b in PATH_EDGES[pid]['e']:
+            if b <= x0 or a >= x1: continue
+            k = edges[ei]['len'] / ((b - a) or 1)
+            lo, hi = max(a, x0), min(b, x1)
+            l0, l1 = ((lo - a) * k, (hi - a) * k) if dr > 0 else ((b - hi) * k, (b - lo) * k)
+            out_.append([ei, round(l0, 1), round(l1, 1)])
+        return out_
+    done = set()
+    for tl in out:
+        for sg in tl.segs:
+            if sg[1] != 'service' or sg[2] < 0: continue
+            names = [D['stops'][x][0] for x in D['trips'][sg[2]][5] if x >= 0]
+            dr_ = 'N' if names[0].upper().startswith(CFG['home'].upper()) else 'S'
+            if dr_ in done: continue
+            ds, st = sg[4], []
+            for i in range(len(ds)):
+                if i == 0 or ds[i] != ds[i - 1]: st.append(ds[i])
+            if len(st) != len(names): continue
+            done.add(dr_)
+            sig = [d + TRAIN_HALF + 2.5 for d in st]          # departure signal: just in front of the train's nose
+            last = len(st) - 1
+            for j in range(last):
+                end_ = sig[j + 1] if j + 1 < last else st[last] - TRAIN_HALF - 2.5   # the terminus platform is its own section
+                # long stretches have intermediate block signals (LZB fixed block): sections of at most ~500 m
+                n = max(1, math.ceil((end_ - sig[j]) / CFG.get('block_max_m', 500)))
+                for q in range(n):
+                    a_ = sig[j] + (end_ - sig[j]) * q / n; b_ = sig[j] + (end_ - sig[j]) * (q + 1) / n
+                    BLOCKS.append({'name': '%s %s → %s%s' % (dr_, names[j], names[j + 1], ' (%d/%d)' % (q + 1, n) if n > 1 else ''), 'dir': dr_,
+                                   'parts': _parts(sg[0], a_, b_), 'signal_d': round(a_, 1), 'pid': sg[0], 'station': q == 0})
+            BLOCKS.append({'name': '%s %s arrivo' % (dr_, names[last]), 'dir': dr_, 'parts': _parts(sg[0], st[last] - TRAIN_HALF - 2.5, sig[last])})
+    print('block sections:', len(BLOCKS))
 PLATMAP = {'station': CFG['home'], 'plats': [[l[0], l[1]] for l in CFG.get('labels', [])], 'stop': list(SD_STOP)}
 # platform number labels at the home terminal
 PLAT_LABELS = []
@@ -845,12 +937,13 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'where': [[tl.start_where, tl.end_where] for tl in out],
            'alts': [ALTS.get(tl.k, []) for tl in out],
            'arr2': [ARR2.get(tl.k, []) for tl in out],
+           'calts': [CALTS.get(tl.k, []) for tl in out],
            'pulls': [[PULL_PLAT[ti], dep] for ti, dep in ((tr['ti'], tr['dep']) for tr in pulls) if ti in PULL_PLAT],
            'labels': PLAT_LABELS,
            'platmap': PLATMAP,
            'boards': boards_out(),
            'stock': STOCK, 'duties': DUTIES, 'test': TEST,
-           'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
+           'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'blocks': BLOCKS, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))
 print(LINE.lower() + '.json written')

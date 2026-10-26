@@ -85,6 +85,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .mbtn[aria-pressed=false] { opacity: .35; }
 #lineSel { width: 100%; }
 .basemap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+#surfBtn { grid-column: 1 / -1; text-align: left; }
+#surfBtn[aria-pressed=true] { border-color: var(--signal); }
 #rail { grid-column: 1 / -1; text-align: left; display: flex; justify-content: space-between; }
 #rail::after { content: "Off"; color: var(--muted); }
 #rail[aria-pressed=true] { background: var(--panel-solid); color: var(--fg); border-color: var(--signal); }
@@ -293,6 +295,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <button class="bm" data-b="hyb" aria-pressed="true">Hybrid</button>
       <button class="bm" data-b="osm" aria-pressed="false" title="OpenStreetMap">OSM</button>
       <button id="rail" aria-pressed="false">Rail tracks overlay</button>
+      <button id="surfBtn" aria-pressed="false" title="Calcolo e movimento di tram e bus">Tram e bus</button>
     </div>
     <p class="note" id="mapNote" hidden></p>
   </div>
@@ -413,6 +416,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 <script src="engine.js"></script>
 <script id="payload" type="application/octet-stream">__DATA__</script>
 <script id="m3payload" type="application/octet-stream">__M3__</script>
+<script id="livepayload" type="application/octet-stream">__LIVE__</script>
 <script>
 (async function () {
   // ---------- load data ----------
@@ -428,6 +432,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       FLEETDATA = JSON.parse(await new Response(new Blob([bin2]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
     }
   } catch (e) { console.warn('Fleet data not loaded', e); }
+  let LIVE0 = null;      // the normal day already driven at build time (M3)
+  try {
+    const b3 = document.getElementById('livepayload').textContent.trim();
+    if (b3 && b3[0] !== '_') {
+      const bin3 = Uint8Array.from(atob(b3), c => c.charCodeAt(0));
+      LIVE0 = JSON.parse(await new Response(new Blob([bin3]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+    }
+  } catch (e) { console.warn('Precomputed day not loaded', e); }
   document.getElementById('loading').remove();
 
   const MODE_COLOR = { 0: '#ff8a1f', 3: '#33c3d6' };
@@ -450,7 +462,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (ts[0] < 10800) for (let i = 0; i < n; i++) ts[i] += 86400;
     return { r: t[0], s: t[1], h: D.heads[t[2]], ts, ds, st: t[5], start: ts[0], end: ts[n - 1] };
   });
-  const tripOrder = trips.map((_, i) => i).sort((a, b) => trips[a].start - trips[b].start);
+  // surface transit (tram and bus): OFF by default to keep the simulation light and focused on the trains.
+  // Turned on with the "Tram e bus" switch (stored in this browser, the page reloads).
+  let SURFACE = false;
+  try { SURFACE = localStorage.getItem('mtl-surface') === '1'; } catch (e) {}
+  const tripOrder = trips.map((_, i) => i).filter(i => SURFACE || routes[trips[i].r].t === 1).sort((a, b) => trips[a].start - trips[b].start);
   const DAYS = ['', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
   let dayPick = 1;
   try { dayPick = +(localStorage.getItem('mtl-day') || (((new Date().getDay() + 6) % 7) + 1)); } catch (e) {}
@@ -548,6 +564,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   map.on('zoomend', syncPlat);
   (FLEETDATA ? FLEETDATA.fleets : []).forEach(F => {
     const li = routes.findIndex(r => r.id === F.line); if (li < 0) return;
+    if (F.mode === 'bus' && !SURFACE) return;
     const look = F.mode === 'bus' ? { ...LOOK.BUS, cars: (F.size || 12) >= 18 ? 2 : 1, size: F.size || 12 } : (LOOK[F.line] || LOOK.M3);
     const g = L.layerGroup();
     const TS = {
@@ -602,7 +619,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       paths: F.paths.map(p => { const pts = decodeFlat(p.p); return { lat: pts.map(x => x[0]), lon: pts.map(x => x[1]), d: p.d }; }) };
     fleet.stops = busStops; fleet.display = !!F.display; fleet.heads = F.heads || [];
     fleet.stock = F.stock || []; fleet.test = F.test || null; fleet.platmap = F.platmap || null;
-    fleet.trains = F.trains.map((segs, i) => ({ n: i + 1, segs, starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: (F.alts || [])[i] || [], arr2: (F.arr2 || [])[i] || [], duties: (F.duties || [])[i] || null }));
+    fleet.trains = F.trains.map((segs, i) => ({ n: i + 1, segs, starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: (F.alts || [])[i] || [], arr2: (F.arr2 || [])[i] || [], calts: (F.calts || [])[i] || [], duties: (F.duties || [])[i] || null }));
     if (F.net && F.ops && window.MTLEngine) {
       fleet.engine = { ops: { ...F.ops, train_half: F.half }, rev: F.reverse_s, net: F.net, S: F.section, half: F.half, pathEdges: F.path_edges, fileSpeeds: F.speeds || {} };
       fleet.engine.fileCuts = F.cuts || {};
@@ -615,9 +632,17 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         fleet.engine.stations = st;
       }
       fleet.engine.prof = F.path_edges ? MTLEngine.buildProfiles(F.path_edges, F.net.edges, fleet.engine.fileSpeeds, fleet.engine.ops, fleet.engine.fileCuts) : null;
-      fleet.engine.throatR = MTLEngine.throatResources(F.throats, F.path_edges);
+      fleet.engine.throatR = MTLEngine.throatResources(F.throats, F.path_edges)
+        .concat(MTLEngine.blockResources(F.blocks, F.path_edges, F.net.edges));
+      fleet.engine.blocks = F.blocks || [];
       fleet.trains.forEach(tr => { tr.F = fleet; });
-      reliveFleet(fleet);
+      if (LIVE0 && LIVE0.trains.length === fleet.trains.length) {      // fast start: the day was driven at build time
+        const dec = a => { let p = 0; return a.map(x => (p += x) / 10); };
+        const segs = l => l.map(g => [g[0], g[1], g[2], dec(g[3]), dec(g[4]), ...g.slice(5)]);
+        fleet.trains.forEach((tr, k) => { const L0 = LIVE0.trains[k]; tr.live = segs(L0.segs); tr.liveStarts = tr.live.map(x => x[3][0]);
+          tr.liveLog = L0.log.map(([seg, planned, actual]) => ({ seg, planned, actual })); });
+        fleet.book = { holds: LIVE0.holds, plans: LIVE0.plans.map(segs) }; fleet.holds = LIVE0.held;
+      } else reliveFleet(fleet);
     }
     fleets.push(fleet);
   });
@@ -732,7 +757,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 
   const sel = document.getElementById('lineSel');
   const groups = { 1: 'Metro', 0: 'Tram', 3: 'Bus' };
-  [1, 0, 3].forEach(m => {
+  (SURFACE ? [1, 0, 3] : [1]).forEach(m => {
     const og = document.createElement('optgroup'); og.label = groups[m];
     routes.map((r, i) => [r, i]).filter(([r]) => r.t === m)
       .sort((a, b) => a[0].n.localeCompare(b[0].n, 'it', { numeric: true }))
@@ -774,6 +799,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     refreshLayers();
   });
   refreshLayers();
+  const surfBtn = document.getElementById('surfBtn');
+  surfBtn.setAttribute('aria-pressed', SURFACE); surfBtn.textContent = 'Tram e bus: ' + (SURFACE ? 'ON' : 'OFF');
+  surfBtn.onclick = () => { try { localStorage.setItem('mtl-surface', SURFACE ? '0' : '1'); } catch (e) {} location.reload(); };
+  if (!SURFACE) document.querySelectorAll('.mode[data-m="0"], .mode[data-m="3"]').forEach(b => { b.disabled = true; b.setAttribute('aria-pressed', 'false'); b.title = 'Tram e bus spenti (interruttore nella sezione Map)'; });
 
   // ---------- clock controls ----------
   const playBtn = document.getElementById('play');
@@ -872,8 +901,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     fleets.forEach((F, fi) => { if (visible(F.li)) drawFleet(F, fi, s, z, t); });
     document.getElementById('c1').textContent = counts[1];
-    document.getElementById('c0').textContent = counts[0];
-    document.getElementById('c3').textContent = counts[3];
+    document.getElementById('c0').textContent = SURFACE ? counts[0] : 'off';
+    document.getElementById('c3').textContent = SURFACE ? counts[3] : 'off';
   }
 
   // lateness: 0 for now (the timetable is perfect); the fault game will change it
@@ -1293,6 +1322,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       ED.signals = [];
       localStorage.setItem('mtl-signals-cleared-v2', '1'); persist();
     }
+    // two Comasina signals placed twice by mistake (the originals stay): removed from the saved edits
+    const DUP = [[45.528362, 9.163617], [45.528319, 9.163539]];
+    const n0 = ED.signals.length;
+    ED.signals = ED.signals.filter(sg => !DUP.some(([la, lo]) => Math.abs(sg.lat - la) < 2e-6 && Math.abs(sg.lon - lo) < 2e-6));
+    if (ED.signals.length !== n0) persist();
   } catch (e) {}
   const bearing = (a, b) => (Math.atan2((b[1] - a[1]) * Math.cos(a[0] * Math.PI / 180), b[0] - a[0]) * 180 / Math.PI + 360) % 360;
   const arrowIcon = (deg, color) => L.divIcon({ className: '', iconSize: [0, 0],
@@ -1506,6 +1540,26 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         [pts[0], pts[pts.length - 1]].forEach(q => L.circleMarker(q, { radius: 3, color: '#000', weight: 1, fillColor: '#fff', fillOpacity: 1, interactive: false }).addTo(m3platLayer));
       });
     });
+    // terminal platforms with no train stop on the main path (San Donato binario 3): same extent as the drawn ones
+    const pm = F.platmap;
+    if (pm) {
+      const kx = 111320 * Math.cos(45.46 * Math.PI / 180), ky = 110540, m = (p, q) => Math.hypot((p[1] - q[1]) * kx, (p[0] - q[0]) * ky);
+      const ends = [];
+      m3platLayer.eachLayer(l => { if (l.getLatLngs && l.options.weight === 12) { const ll = l.getLatLngs().map(x => [x.lat, x.lng]);
+        if (m(ll[0], pm.stop) < 250) ends.push(ll); } });
+      const dense = pts => { const o = []; for (let i = 0; i < pts.length - 1; i++) { const n = Math.max(1, Math.ceil(m(pts[i], pts[i + 1]) / 2));
+        for (let j = 0; j < n; j++) o.push([pts[i][0] + (pts[i + 1][0] - pts[i][0]) * j / n, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * j / n]); }
+        o.push(pts[pts.length - 1]); return o; };
+      if (ends.length) pm.plats.forEach(([no, w]) => {
+        const tk = ALLTRACKS.find(x => x.line === F.line && x.w === w); if (!tk) return;
+        const P = dense(tk.pts), near = q => P.reduce((bi, x, i) => m(x, q) < m(P[bi], q) ? i : bi, 0);
+        if (ends.some(e => e.some(q => m(P[near(q)], q) < 2.5))) return;           // already drawn
+        const ref = ends[0], i0 = near(ref[0]), i1 = near(ref[ref.length - 1]);
+        const seg = P.slice(Math.min(i0, i1), Math.max(i0, i1) + 1); if (seg.length < 5) return;
+        L.polyline(seg, { color: '#e8e4d8', weight: 12, opacity: .45, lineCap: 'butt', interactive: false }).bindTooltip(pm.station + ' · binario ' + no, { className: 'st', sticky: true }).addTo(m3platLayer);
+        [seg[0], seg[seg.length - 1]].forEach(q => L.circleMarker(q, { radius: 3, color: '#000', weight: 1, fillColor: '#fff', fillOpacity: 1, interactive: false }).addTo(m3platLayer));
+      });
+    }
     // turnback places: crossovers (X), dead-end tails along the line (coda), the M2-M3 link tunnel at Centrale
     const E_ = F.engine.net.edges, deg = {};
     E_.forEach(e => { deg[e.a] = (deg[e.a] || 0) + 1; deg[e.b] = (deg[e.b] || 0) + 1; });
@@ -1662,7 +1716,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     catch (e) { document.execCommand('copy'); ok(); }
   };
   redrawSaved(); setMode('mark');
-  if (Object.keys(ED.speeds).length || Object.keys(ED.cuts).length) applySpeeds();
+  {
+    const F = m3eng(), same = (a, b) => { const k1 = Object.keys(a).sort(), k2 = Object.keys(b).sort(); return k1.length === k2.length && k1.every((k, i) => k === k2[i] && JSON.stringify(a[k]) === JSON.stringify(b[k])); };
+    const sp = F ? { ...F.engine.fileSpeeds, ...ED.speeds } : {}, cu = F ? { ...F.engine.fileCuts, ...ED.cuts } : {};
+    if (F && (!same(sp, F.engine.fileSpeeds) || !same(cu, F.engine.fileCuts))) applySpeeds();   // only if they differ
+  }
   const marksBtn = document.getElementById('marksBtn');
   let showMarks = true;
   try { showMarks = localStorage.getItem('mtl-show-marks') !== '0'; } catch (e) {}
@@ -1781,6 +1839,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const ai = tr.alts.findIndex(a => state.t <= a.leave && a.leave - state.t < 20 * 60);
     if (ai >= 0) { const a = tr.alts[ai];
       h += `<div class="lbl">Partenza da San Donato delle ${fmt(a.dep)}</div><div class="row">${Object.keys(a.opts).map(Number).sort().map(p => `<button data-rp="${p}" data-ai="${ai}" ${a.plat === p ? 'disabled' : ''}>Binario ${p}</button>`).join('')}</div>`; }
+    // which tail at Comasina
+    const ci = (tr.calts || []).findIndex(c => !c.done && state.t >= c.open && state.t <= c.close);
+    if (ci >= 0) { const c = tr.calts[ci];
+      h += `<div class="lbl">Tronchetto a Comasina</div><div class="row">${Object.keys(c.opts).map(Number).sort((a, b) => c.names[a] - c.names[b]).map(t => `<button data-rt="${t}" data-ci="${ci}" ${c.tail === t ? 'disabled' : ''}>Tronchetto ${c.names[t]}</button>`).join('')}</div>`; }
     // platform 2 and reversal, coming from Rogoredo
     const k2 = (tr.arr2 || []).findIndex(a => !a.done && state.t >= a.open && state.t <= a.close);
     if (k2 >= 0) h += `<div class="lbl">Arrivo a San Donato</div><div class="row"><button id="radioP2">Entra al binario 2 e inverti lì</button></div>`;
@@ -1809,6 +1871,23 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (tr.env) tr.env.extra = {}; relive(tr);
       driverSays(pick([`Ricevuto, partenza dal binario ${pl}. Passo.`, `Copiato PC, mi porto al binario ${pl}. Passo e chiudo.`]));
     });
+    radioCmds.querySelectorAll('[data-rt]').forEach(b => b.onclick = () => {
+      const c = tr.calts[+b.dataset.ci], t = +b.dataset.rt, nm = c.names[t];
+      say('PC', `Treno ${radioTrain.no}, a Comasina vai nel tronchetto ${nm}. Passo.`, 'pc');
+      const plan = tailChain(F, tr, c, t) || (!tailBusy(F, tr, t, c) ? [{ tr, c, to: t }] : null);
+      if (!plan) { driverSays(`Negativo PC, il tronchetto ${nm} resta occupato troppo a lungo. Resto sul programmato. Passo.`); return; }
+      if (plan.length > 1) {
+        plan.forEach(p => { applyAlt(p.tr, p.c.i, p.c.n, p.c.opts[String(p.to)], true); p.c.tail = p.to; });
+        reliveFleet(F, null);
+        const others = [...new Set(plan.slice(1).map(p => trainNo(F, p.tr)))];
+        driverSays(`Ricevuto, a Comasina entro nel tronchetto ${nm}. ` + (others.length === 1 ? `Il treno ${others[0]} cambia tronchetto.` : `Cambiano tronchetto anche i treni ${others.join(', ')}.`) + ' Passo.');
+        return;
+      }
+      const w = tailWait(F, tr, t, c);
+      applyAlt(tr, c.i, c.n, c.opts[String(t)]); c.tail = t; c.done = false;
+      driverSays(w ? `Ricevuto, tronchetto ${nm}. Attendo in banchina che il treno ${trainNo(F, w)} lo liberi. Passo.`
+                   : pick([`Ricevuto, a Comasina entro nel tronchetto ${nm}. Passo.`, `Copiato PC, tronchetto ${nm}. Passo e chiudo.`]));
+    });
     const p2 = document.getElementById('radioP2');
     if (p2) p2.onclick = () => {
       say('PC', `Treno ${radioTrain.no}, a San Donato entra al binario 2 e cambia banco lì. Passo.`, 'pc');
@@ -1816,6 +1895,53 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (tr.p2 && !before) driverSays(pick(['Ricevuto PC, entro al binario 2 e cambio banco in stazione. Passo.', 'Copiato, binario 2 con inversione sul posto. Passo e chiudo.']));
       else driverSays('Negativo PC, ' + (p2Msg.replace(/^Order refused: /, '').replace('platform 2 is not free', 'il binario 2 non è libero').replace('is standing there', 'è fermo lì') || 'non posso eseguire') + ' Passo.');
     };
+  }
+  // replace segments i..i+n-1 of a train's plan, keeping its other choices (platform, platform 2, tail) in step
+  function applyAlt(tr, i, n, segs, noRelive) {
+    const add = JSON.parse(JSON.stringify(segs)), end = i + n, delta = add.length - n;
+    tr.segs.splice(i, n, ...add); tr.starts = tr.segs.map(x => x[3][0]);
+    const fix = list => (list || []).forEach(a => { if (a.i >= end) a.i += delta; else if (a.i + (a.n || 1) > i && a.i < end && a.i !== i) a.done = true; });
+    fix(tr.alts); fix(tr.arr2); fix(tr.calts);
+    tr.alts = (tr.alts || []).filter(a => !a.done);
+    if (tr.env && tr.env.extra) Object.keys(tr.env.extra).forEach(k => { if (+k.split(':')[0] >= i) delete tr.env.extra[k]; });
+    if (!noRelive) relive(tr);
+  }
+  // Comasina tail order: putting this train in tail t can push the trains behind it to the other tail, one after
+  // the other, until the alternation finds a gap again. Returns the list of changes, or null if a tail stays blocked.
+  function tailChain(F, tr, c, t) {
+    const PAD = 60, all = [];
+    F.trains.forEach(o => (o.calts || []).forEach(x => { if (!x.done) all.push({ tr: o, c: x, to: x.tail }); }));
+    all.sort((a, b) => a.c.arr - b.c.arr);
+    const me = all.find(a => a.c === c); if (!me) return null; me.to = t;
+    const clash = (a, b) => a.to === b.to && a.c.arr < b.c.leave + PAD && b.c.arr < a.c.leave + PAD;
+    // trains already ahead in that tail: fine if they leave soon after this one arrives (it waits on the platform)
+    for (const a of all) if (a !== me && a.c.arr < c.arr && clash(a, me) && a.c.leave > c.arr + 240) return null;
+    const changed = [me]; let reach = c.leave;
+    for (const a of all) {
+      if (a === me || a.c.arr <= c.arr) continue;
+      if (a.c.arr > reach + PAD) break;
+      const bad = to => all.some(b => b !== a && b.c.arr <= a.c.arr && (b === me || b.c.arr < a.c.arr) && b.to === to && b.c.arr < a.c.leave + PAD && a.c.arr < b.c.leave + PAD && b.c.leave > a.c.arr + 240);
+      if (!bad(a.to)) continue;
+      const other = Object.keys(a.c.opts).map(Number).find(x => x !== a.to);
+      if (other == null || bad(other) || state.t > a.c.close) return null;
+      a.to = other; changed.push(a); reach = Math.max(reach, a.c.leave);
+      if (changed.length > 60) return null;
+    }
+    return changed;
+  }
+  // is that Comasina tail used by another train while this one would be there?
+  function tailBusy(F, tr, t, c, also) {
+    const nm = 'tronchetto ' + c.names[t] + ' ' + F.far, R = (F.engine.throatR || []).find(r => r.name === nm); if (!R) return null;
+    for (const o of F.trains) { if (o === tr || o === also || !o.live) continue;
+      for (const x of MTLEngine.occupancy(o.live, R, F.engine.half)) if (x.enter < c.leave + 60 && x.exit > c.leave - 120) return o; }
+    return null;
+  }
+  // a train that leaves that tail soon after this one arrives: possible, this one waits for it on the platform
+  function tailWait(F, tr, t, c) {
+    const nm = 'tronchetto ' + c.names[t] + ' ' + F.far, R = (F.engine.throatR || []).find(r => r.name === nm); if (!R) return null;
+    for (const o of F.trains) { if (o === tr || !o.live) continue;
+      for (const x of MTLEngine.occupancy(o.live, R, F.engine.half)) if (x.enter < c.arr && x.exit > c.arr - 30) return o; }
+    return null;
   }
   // the driver reports when the ordered stop starts and ends
   function radioTick() {
@@ -1857,22 +1983,27 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       return best && (best.vx * -uy + best.vy * ux) > 0 ? 1 : -1;
     }
+    const place = (pid, other, d, sgn, tip, blockIdx) => {
+      const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);
+      const kx = Math.cos(a[0] * Math.PI / 180), ux = (b[1] - a[1]) * kx, uy = b[0] - a[0], n = Math.hypot(ux, uy) || 1;
+      const side = other != null ? outward(other, a, ux / n, uy / n) : 1;
+      const off = 7 / 111000 * side, pos = [a[0] - ux / n * off, a[1] + uy / n * off / kx];
+      const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL.stop}">` }) })
+        .bindTooltip(tip, { className: 'st', direction: 'top' });
+      out.push({ m, block: blockIdx, a: null });
+    };
+    // block signals, usual direction: one at the start of every block section (stations and in between)
+    (F.engine.blocks || []).forEach((bl, bi) => {
+      if (bl.pid == null) return;
+      const other = pidOf(bl.dir === 'N' ? 'S' : 'N');
+      place(bl.pid, other, bl.signal_d, +1, (bl.station ? 'Partenza · ' : 'Blocco · ') + cap(bl.name.slice(2)), bi);
+    });
+    // wrong-way signals at the platform ends (the line is banalizzata): placeholders, always red
     ['N', 'S'].forEach(dir => {
       const xs = RT[dir]; if (!xs.length) return;
       const pid = pidOf(dir), other = pidOf(dir === 'N' ? 'S' : 'N');
       const stops = xs.map(x => ({ n: x.from, d: x.d0 })).concat([{ n: xs[xs.length - 1].to, d: xs[xs.length - 1].d1 }]);
-      stops.forEach((st, j) => {
-        [[+1, true], [-1, false]].forEach(([sgn, normal]) => {      // normal: the usual direction on this track
-          const d = st.d + sgn * half, ahead = stops[j + sgn]; if (!ahead) return;
-          const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);
-          const kx = Math.cos(a[0] * Math.PI / 180), ux = (b[1] - a[1]) * kx, uy = b[0] - a[0], n = Math.hypot(ux, uy) || 1;
-          const side = other != null ? outward(other, a, ux / n, uy / n) : 1;
-          const off = 7 / 111000 * side, pos = [a[0] - ux / n * off, a[1] + uy / n * off / kx];   // outside its own track
-          const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL.stop}">` }) })
-            .bindTooltip(`${cap(st.n)} · partenza ${normal ? '' : '(senso inverso) '}verso ${cap(ahead.n)}`, { className: 'st', direction: 'top' });
-          out.push({ m, pid, from: Math.min(st.d, ahead.d), to: Math.max(st.d, ahead.d), normal, a: null });
-        });
-      });
+      stops.forEach((st, j) => { if (j > 0) place(pid, other, st.d - half, -1, `${cap(st.n)} · partenza senso inverso verso ${cap(stops[j - 1].n)}`, -1); });
     });
     return out;
   }
@@ -1882,9 +2013,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); return; }
     if (!SIGS) { SIGS = buildSignals(F); SIGS.forEach(sg => sg.m.addTo(sigLayer)); }
     if (!map.hasLayer(sigLayer)) sigLayer.addTo(map);
+    const BR = (F.engine.throatR || []).filter(r => r.block), half = F.engine.half;
     const occ = F.trains.map(tr => trainState(F, tr, state.t));
     SIGS.forEach(sg => {
-      const busy = !sg.normal || occ.some(o => o.pid === sg.pid && o.d > sg.from + 1 && o.d < sg.to - 1);
+      let busy = true;
+      if (sg.block >= 0) { const R = BR[sg.block]; busy = occ.some(o => { const r = R && R.ranges[o.pid]; return r && o.d >= r[0] - half + R.pad && o.d <= r[1] + half; }); }
       const a = busy ? 'stop' : 'go';
       if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[a]}">` })); }
     });
@@ -1975,7 +2108,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
   }
-  window.mtl = { map, state, fleets, renderCard, trainState, trainOnPlatform, relive };
+  window.mtl = { map, state, fleets, renderCard, trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain };
   requestAnimationFrame(frame);
 })();
 </script>

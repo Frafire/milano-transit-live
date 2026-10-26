@@ -13,6 +13,7 @@ assert 'unpkg' not in t and 'src="engine.js"' not in t
 d = base64.b64encode(open('data.json.gz', 'rb').read()).decode()
 fleets = [json.load(open(f)) for f in ('m1.json', 'm3.json', 'm4.json', 'b130.json', 'b64.json')]
 m = base64.b64encode(gzip.compress(json.dumps({'fleets': fleets}, separators=(',', ':')).encode(), 9)).decode()
+live = base64.b64encode(gzip.compress(open('m3_live.json', 'rb').read(), 9)).decode() if os.path.exists('m3_live.json') else ''
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
-open(OUT, 'w').write(t.replace('__DATA__', d).replace('__M3__', m))
+open(OUT, 'w').write(t.replace('__DATA__', d).replace('__M3__', m).replace('__LIVE__', live))
 print('written', OUT, round(os.path.getsize(OUT) / 1e6, 1), 'MB')

@@ -193,6 +193,7 @@
     segs.forEach((s, si) => {
       const r = res.ranges[s[0]]; if (!r) return;
       const [a, b] = r, ts = s[3], ds = s[4];
+      if (ds[ds.length - 1] < a - half + pad || ds[0] > b + half) return;     // this segment never reaches the section
       let enter = null;
       for (let i = 0; i < ts.length; i++) {
         const inside = ds[i] >= a - half + pad && ds[i] <= b + half;
@@ -216,7 +217,7 @@
     return m >= 0 ? si + ':' + m : si + ':start';
   }
   // keep: { holds, plans } of an earlier booked run, to continue from it after a small change (only new conflicts)
-  function runBooked(plans, ops, reverse, resources, half, base, profiles, envs, keep) {
+  function runBooked(plans, ops, reverse, resources, half, base, profiles, envs, keep, log) {
     plans = keep ? keep.plans.slice() : plans.slice();
     const holds = keep ? keep.holds.map(h => ({ ...h })) : plans.map(() => ({}));
     const res = base ? base.slice() : plans.map((p, k) => runTrain(p, ops, reverse, null, profiles, envs && envs[k]));
@@ -224,32 +225,41 @@
     const occ = resources.map(R => res.map(r => occupancy(r.segs, R, half)));
     const skip = new Set();
     let guard = 0, held = 0;
+    // earliest conflict in one resource (cached; recomputed only when a train using it was driven again)
+    const conflictOf = ri => {
+      const iv = [];
+      occ[ri].forEach((list, k) => { for (const x of list) iv.push({ enter: x.enter, exit: x.exit, si: x.si, open: x.open, k }); });
+      iv.sort((x, y) => x.enter - y.enter);
+      let prev = null;
+      for (const x of iv) {
+        if (prev && x.k !== prev.k && x.enter < prev.exit - 0.5 && !skip.has(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter))) return { x, p: prev };
+        if (!prev || x.exit > prev.exit) prev = x;
+      }
+      return null;
+    };
+    const cache = resources.map((_, ri) => conflictOf(ri));
     for (;;) {
-      if (++guard > 4000) break;
-      // the earliest conflict over all resources
+      if (++guard > 6000) break;
       let best = null;
-      resources.forEach((R, ri) => {
-        const iv = [];
-        occ[ri].forEach((list, k) => list.forEach(x => iv.push({ ...x, k })));
-        iv.sort((x, y) => x.enter - y.enter);
-        let prev = null;
-        for (const x of iv) {
-          if (prev && x.k !== prev.k && x.enter < prev.exit - 0.5 && !skip.has(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter))) {
-            if (!best || x.enter < best.x.enter) best = { R, ri, x, p: prev };
-            break;
-          }
-          if (!prev || x.exit > prev.exit) prev = x;
-        }
-      });
+      cache.forEach((c, ri) => { if (c && (!best || c.x.enter < best.x.enter)) best = { R: resources[ri], ri, x: c.x, p: c.p }; });
       if (!best) break;
       let { R, ri, x, p } = best;
       // the junction tends to empty the tail first: a train leaving the tail goes before one about to enter it
       if (R.prefer && R.prefer(plans, x, p)) [x, p] = [p, x];
+
       const a = R.ranges[plans[x.k][x.si][0]][0] + (R.pad || 0);
       let key = holdKey(plans[x.k], x.si, a, half);
-      const sg = plans[x.k][x.si], stopD = (R.stopAt && R.stopAt[sg[0]] != null) ? R.stopAt[sg[0]] : a - half - 10;
+      const sg = plans[x.k][x.si];
+      let stopD = (R.stopAt && R.stopAt[sg[0]] != null) ? R.stopAt[sg[0]] : a - half - 10;
+      // never wait inside another section (e.g. in the junction waiting for platform 1): wait before it instead
+      for (let n = 0; n < 4; n++) {
+        const inside = resources.find(Q => Q !== R && Q.noWait && Q.ranges[sg[0]] && stopD >= Q.ranges[sg[0]][0] - half && stopD <= Q.ranges[sg[0]][1] + half && Q.ranges[sg[0]][0] < a);
+        if (!inside) break;
+        stopD = (inside.stopAt && inside.stopAt[sg[0]] != null) ? inside.stopAt[sg[0]] : inside.ranges[sg[0]][0] - half - 10;
+      }
+      if (stopD <= sg[4][0] + 1) key = x.si + ':start';       // the wait happens before this movement even starts
       const lastStop = key.endsWith(':start') ? null : sg[4][+key.split(':')[1]];
-      if ((lastStop === null || stopD - lastStop > 400) && stopD > sg[4][0] + 1) {
+      if ((lastStop === null || stopD - lastStop > 400 || lastStop > stopD) && stopD > sg[4][0] + 1) {
         // no station just before: stop at the entrance (signal) and wait there
         const ts = sg[3], ds = sg[4]; let i = 0; while (i < ds.length - 1 && ds[i + 1] <= stopD) i++;
         if (i < ds.length - 1 && ds[i + 1] > ds[i]) {
@@ -262,10 +272,15 @@
         }
       }
       const until = Math.min(p.exit + 2, 30 * 3600);
-      if ((holds[x.k][key] || 0) >= until) { skip.add(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter)); continue; }   // cannot do better here
+      if ((holds[x.k][key] || 0) >= until) { skip.add(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter)); cache[ri] = conflictOf(ri); continue; }   // cannot do better here
       holds[x.k][key] = until; held++;
+      if (log) log.push({ train: x.k, seg: x.si, status: plans[x.k][x.si][1], res: R.name, from: x.enter, until, by: p.k, byStatus: plans[p.k][p.si][1] });
       res[x.k] = runTrain(plans[x.k], ops, reverse, holds[x.k], profiles, envs && envs[x.k], res[x.k], x.si);
-      resources.forEach((R2, r2) => { occ[r2][x.k] = occupancy(res[x.k].segs, R2, half); });
+      resources.forEach((R2, r2) => {
+        const before = occ[r2][x.k], after = occupancy(res[x.k].segs, R2, half);
+        occ[r2][x.k] = after;
+        if (before.length || after.length) cache[r2] = conflictOf(r2);
+      });
     }
     return { res, holds, held, plans };
   }
@@ -283,18 +298,43 @@
         return R;
       };
       if (th.edges.length) {
-        const R = make('incrocio ' + th.name, th.edges, 10);
+        const R = make('incrocio ' + th.name, th.edges, 10); R.noWait = true;     // nobody waits inside a junction
         // tail exit first: x (later) is leaving a tail (starts at the very beginning of its path) and p is going into one
+        // Who goes first when one train wants to leave a tail (x) and another to go into one (p)? Normally first come,
+        // first served: the tail train waits and two trains end up in the tails. The tail train goes first only if
+        // waiting would make it leave late (Giovanni).
         R.prefer = (plans, x, p) => {
           const sx = plans[x.k][x.si], sp = plans[p.k][p.si];
-          const exit = sx[1] === 'turnback' && sx[4][0] < 100, entry = sp[1] === 'turnback' && sp[4][0] >= 100;
-          return exit && entry && x.enter - p.enter < 60;
+          const exit = sx[1] === 'turnback' && sx[4][0] < 300, entry = sp[1] === 'turnback' && sp[4][0] >= 300;
+          if (!exit || !entry) return false;
+          const nx = plans[x.k][x.si + 1]; if (!nx || nx[1] !== 'service') return false;
+          const atPlatform = sx[3][sx[3].length - 1] + Math.max(0, p.exit + 2 - x.enter), dep = nx[3][1];
+          return atPlatform + 30 > dep;
         };
         out.push(R);
       }
       if (th.p1 && th.p1.length) out.push(make('binario 1 ' + th.name, th.p1, 10));
+      (th.tails || []).forEach((ei, i) => out.push(make('tronchetto ' + (i + 1) + ' ' + th.name, [ei], 10)));   // one train per tail
     });
     return out;
+  }
+
+  // ---------------- block sections along the line ----------------
+  // blocks: [{ name, parts: [[edge, from m, to m], ...] }] in metres along each track piece (from its node a)
+  function blockResources(blocks, pathEdges, netEdges) {
+    return (blocks || []).map(bl => {
+      const R = { name: 'blocco ' + bl.name, ranges: {}, pad: 3, block: true };
+      const byEdge = {}; bl.parts.forEach(([ei, l0, l1]) => (byEdge[ei] = byEdge[ei] || []).push([l0, l1]));
+      pathEdges.forEach((pe, pid) => {
+        if (!pe) return; let a = Infinity, b = -Infinity;
+        pe.e.forEach(([ei, dir, x0, x1]) => {
+          const ps = byEdge[ei]; if (!ps) return; const k = (x1 - x0) / (netEdges[ei].len || 1);
+          ps.forEach(([l0, l1]) => { const p0 = dir > 0 ? x0 + l0 * k : x1 - l1 * k, p1 = dir > 0 ? x0 + l1 * k : x1 - l0 * k; a = Math.min(a, p0); b = Math.max(b, p1); });
+        });
+        if (b - a > 20) R.ranges[pid] = [a, b];
+      });
+      return R;
+    });
   }
 
   // ---------------- closing San Donato - Rogoredo at time tc ----------------
@@ -399,6 +439,6 @@
     return { segs: out, kind, turned };
   }
 
-  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, stopTime, makeDwell, throatResources, DT };
+  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, stopTime, makeDwell, throatResources, blockResources, DT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

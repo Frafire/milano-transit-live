@@ -57,7 +57,7 @@ function runTime(M, prof, pid, d0, d1) {
 }
 // the whole day as the game runs it: speed limits, stop times, one train at a time in the terminal junctions
 function runDay(M, D, extra) {
-  const R = E.throatResources(M.throats, M.path_edges).concat(extra || []);
+  const R = E.throatResources(M.throats, M.path_edges).concat(E.blockResources(M.blocks, M.path_edges, M.net.edges), extra || []);
   return E.runBooked(M.trains, M.ops, M.reverse_s, R, M.half, null, profiles(M), envs(M, D));
 }
 module.exports = { runDay, E, load, profiles, posOf, stations, envs, stretches, runTime, KX, KY };
