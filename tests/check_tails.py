@@ -39,3 +39,4 @@ for t in range(3*3600, 27*3600, 10):
         inside=[k+1 for k,p in enumerate(ps) if p and dist_to(poly,p)<1.5]
         if len(inside)>1: bad.setdefault(n,[]).append(('%02d:%02d:%02d'%(t//3600%24,t//60%60,t%60),inside))
 print({n:len(v) for n,v in bad.items()} or 'no tail ever has two trains', {n:v[:4] for n,v in bad.items()})
+sys.exit(1 if bad else 0)

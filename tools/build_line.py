@@ -33,14 +33,22 @@ SD_STOP, COM_STOP = CFG['HOME_STOP'], CFG['FAR_STOP']
 SD_TAILS, COM_TAILS = CFG['SD_TAILS'], CFG['COM_TAILS']
 SD_DEP = CFG['SD_DEP']; SD_OUT_NODE = CFG['SD_OUT_NODE']
 TRAIN_HALF = CFG['half']
-V_YARD = 15 / 3.6   # depot speed limit 15 km/h (confirmed by ATM staff; not on the test loop)
+# operating rules Giovanni can tune without touching code: data/operations_<line>.json
+OPS = {'station_stop_s': 30, 'terminus_unload_s': 45, 'platform_wait_min_s': 30, 'platform_wait_max_s': 120,
+       'min_turnaround_min': 7, 'depot_rest_if_wait_over_min': 15, 'tail_speed_kmh': 12.5, 'depot_speed_kmh': 15,
+       'driver_walk_speed_ms': 1.4, 'cab_setup_s': 30}
+_ops = 'operations_%s.json' % LINE.lower()
+if os.path.exists(_ops):
+    OPS.update({k: v for k, v in json.load(open(_ops)).items() if not k.startswith('_')})
+    print('operating rules from', _ops)
+V_YARD = OPS['depot_speed_kmh'] / 3.6   # depot speed limit 15 km/h (confirmed by ATM staff; not on the test loop)
 V_EMPTY = 13.0    # m/s ~47 km/h empty run on the line
 PULL_OUT = CFG['PULL_OUT']   # depot -> platform (M3: 5 min; M4: 7-8 min, very slow)
 PLAT_WAIT = CFG['PLAT_WAIT'] # wait at platform before first departure (M3 2 min, M4 30 s)
-DWELL_END = 45    # passengers leave at the terminus (Giovanni: 30 s - 1 min)
+DWELL_END = OPS['terminus_unload_s']    # passengers leave at the terminus (Giovanni: 30 s - 1 min)
 TRAIN_LEN = 2 * CFG['half']
-REVERSE = round(TRAIN_LEN / 1.4) + 30   # driver walks the train (~1.4 m/s) and sets up the cab (>= 30 s)
-V_TAIL = 12.5 / 3.6                       # Giovanni: 10-15 km/h entering and leaving the dead-end tracks
+REVERSE = round(TRAIN_LEN / OPS['driver_walk_speed_ms']) + OPS['cab_setup_s']   # driver walks the train (~1.4 m/s) and sets up the cab (>= 30 s)
+V_TAIL = OPS['tail_speed_kmh'] / 3.6                       # Giovanni: 10-15 km/h entering and leaving the dead-end tracks
 LAYOVER_DEPOT = 25 * 60
 
 # depot storage tracks, nearest first
@@ -108,14 +116,14 @@ for ti, t in enumerate(D['trips']):
     for tt, s in zip(ts, t[5]):
         if s >= 0: last = s
         ev.append((tt, last))
-    ev = add_dwell(ev)
+    ev = add_dwell(ev, dwell=OPS['station_stop_s'])
     first = D['stops'][t[5][0]][0].upper(); out = first.startswith(CFG['home'].upper())
     trips.append(dict(ti=ti, dep=ts[0], arr=ts[-1], out=out, ev=ev))
 trips.sort(key=lambda x: x['dep'])
 
 # ---------------- chain trips into trains ----------------
-TURN = int(os.environ.get('TURN', 7 * 60))      # shortest possible turnaround: unload, into tail, change cab, to platform, board
-LAYOVER_DEPOT = int(os.environ.get('LAYOVER', 15 * 60))     # a train with more than this to wait at the home terminal rests in the depot
+TURN = int(os.environ.get('TURN', OPS['min_turnaround_min'] * 60))      # shortest possible turnaround: unload, into tail, change cab, to platform, board
+LAYOVER_DEPOT = int(os.environ.get('LAYOVER', OPS['depot_rest_if_wait_over_min'] * 60))     # a train with more than this to wait at the home terminal rests in the depot
 FAR_HORIZON = int(os.environ.get('FAR_HORIZON', 24 * 3600))   # look ahead to the end of the day: never send back a train that will be needed again
 far_deps = sorted([tr for tr in trips if not tr['out']], key=lambda x: x['dep'])
 far_arrs = sorted([tr['arr'] for tr in trips if tr['out']])
@@ -381,7 +389,7 @@ def service_leg(tl, start, via, end, trip, t_leave, plat_stop, end_stop, approac
     t_arr = trip['ev'][-1][0]
     return pid, ds[-1], d_end, t_arr
 
-DWELL_MIN, DWELL_MAX = 30, 120   # Giovanni: trains wait 30 s to 2 min at the departure platform
+DWELL_MIN, DWELL_MAX = OPS['platform_wait_min_s'], OPS['platform_wait_max_s']   # Giovanni: trains wait 30 s to 2 min at the departure platform
 def when_leave(t_in_tail, tr, d_pl):
     """Leave the tail so the train sits at the platform as long as possible (up to 2 min)
     without ever departing late; never less than 30 s if it can be helped."""

@@ -1,0 +1,13 @@
+{
+  "_about": "M3 operating rules. Change a number, run ./build.sh again, and the whole day is re-planned. Times in seconds unless the name says otherwise.",
+  "station_stop_s": 30,
+  "terminus_unload_s": 45,
+  "platform_wait_min_s": 30,
+  "platform_wait_max_s": 120,
+  "min_turnaround_min": 7,
+  "depot_rest_if_wait_over_min": 15,
+  "tail_speed_kmh": 12.5,
+  "depot_speed_kmh": 15,
+  "driver_walk_speed_ms": 1.4,
+  "cab_setup_s": 30
+}

@@ -45,3 +45,4 @@ for t in range(3*3600, 27*3600, 60):
         on=[k+1 for k,p in enumerate(ps) if any(on_edge(p,e) for e in eds)]
         if len(on)>1: bad[name]+=1; ex.setdefault(name,('%02d:%02d'%(t//3600%24,t//60%60),on))
 print('depot tracks checked:',len(tracks),'| tracks ever holding two trains:',len(bad), dict(list(ex.items())[:6]))
+sys.exit(1 if bad else 0)

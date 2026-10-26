@@ -391,11 +391,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   syncDay();
 
   // ---------- map ----------
-  const map = L.map('map', { zoomControl: false, preferCanvas: true, minZoom: 10, maxZoom: 19 }).setView([45.4642, 9.19], 12);
+  // the game stays over Lombardy: satellite tiles are only requested there (keeps us well inside Esri's free use)
+  const LOMBARDY = L.latLngBounds([44.68, 8.49], [46.64, 11.43]);
+  const map = L.map('map', { zoomControl: false, preferCanvas: true, minZoom: 10, maxZoom: 19, maxBounds: LOMBARDY.pad(0.05), maxBoundsViscosity: 1 }).setView([45.4642, 9.19], 12);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   const TT = ' · Timetable © Comune di Milano / AMAT (CC BY 4.0) · Metro tracks © OpenStreetMap contributors (ODbL)';
   const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
-  const esri = (svc, extra) => L.tileLayer(ESRI + svc + '/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18, ...extra });
+  const esri = (svc, extra) => L.tileLayer(ESRI + svc + '/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18, bounds: LOMBARDY, ...extra });
   const sat = esri('World_Imagery', { attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' + TT });
   const roads = esri('Reference/World_Transportation', { opacity: .9 });
   const places = esri('Reference/World_Boundaries_and_Places', { opacity: .9 });

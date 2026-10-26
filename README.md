@@ -37,6 +37,10 @@ Needs Python 3.10+ (no extra packages) and bash.
 | `tests/` | Checks run by the build |
 | `docs/` | The built game (served by GitHub Pages) and planning files |
 
+## Changing how M3 runs
+
+The M3 operating rules live in [`data/operations_m3.json`](data/operations_m3.json): stop time at stations, unloading time at the terminus, platform wait, minimum turnaround, tail and depot speeds. Change a number (you can do it on github.com with the pencil icon), run `./build.sh` again and the whole day is re-planned. The build stops with an error if a change breaks a rule (two trains in a tail or on a depot track).
+
 ## Adding track rules and signals
 
 In the game, Admin mode → Track editor. Mark tracks and place signals, then **Export** and paste the `MTL-EDIT {...}` text into an issue or into `data/rules_m3.json`, and rebuild.
