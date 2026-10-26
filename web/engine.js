@@ -25,7 +25,7 @@
   // prof: speed limits along this path, [[from d, to d, m/s], ...] sorted by from d. With limits the train runs like
   // the ATO does: as fast as allowed, then waits at the next stop. Without, it keeps to the planned running times.
   // slow: { until, ms } a speed restriction until a time (after a stretch reopens: 20 km/h for 2 minutes)
-  // zones: [[from d, to d, m/s]] extra limits on this run (an empty train passing a platform: 20 km/h)
+  // zones: [[from d, to d, m/s]] extra limits on this run (an empty train passing a platform: 40 km/h)
   function driveRun(pid, legs, t0, ops, out, prof, slow, zones) {
     const a = ops.acceleration_ms2, b = ops.braking_ms2, vmax = (prof ? (ops.train_max_kmh || 90) : ops.line_max_kmh) / 3.6;
     const half = ops.train_half || 0;
@@ -110,7 +110,7 @@
         while (j < pts.length - 1 && pds[j + 1] !== pds[j]) { legs.push({ d0: pds[j], d1: pds[j + 1], t0: pts[j], t1: pts[j + 1] }); j++; }
         const late = t - pts[i];
         const sub = { ts: [], ds: [] };
-        // an empty train (not in service) does not stop at stations but passes the platforms at 20 km/h
+        // an empty train (not in service) does not stop at stations but passes the platforms at 40 km/h
         const zones = status !== 'service' && env && env.platforms && env.platforms[pid] ? env.platforms[pid] : null;
         t = driveRun(pid, legs, t, ops, sub, profiles ? profiles[pid] : null, env && env.slow, zones);
         out.ts.push(...sub.ts.slice(1)); out.ds.push(...sub.ds.slice(1));
@@ -468,10 +468,10 @@
     }));
     return out;
   }
-  // platforms on each path, for an empty train passing them at 20 km/h: { pid: [[from d, to d, m/s]] }
+  // platforms on each path, for an empty train passing them at 40 km/h: { pid: [[from d, to d, m/s]] }
   function platformZones(G) {
     const out = {}; if (!G || !G.platforms) return out;
-    for (const [pid, z] of Object.entries(G.platforms)) out[pid] = z.map(([a, b, st]) => [a, b, 20 / 3.6, st]);
+    for (const [pid, z] of Object.entries(G.platforms)) out[pid] = z.map(([a, b, st]) => [a, b, 40 / 3.6, st]);
     return out;
   }
   const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, stopTime, makeDwell, throatResources, blockResources, DT, platformZones, turnLocks, partsOf, stopOf };

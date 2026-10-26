@@ -62,5 +62,5 @@ Computing a new conflict-free day in advance after a closure ran into deadlocks.
   - more than 10 minutes late, the driver asks the PC for skipped stops, a shortened run or the depot.
 - **"Torna all'orario":** puts every train back on its planned day.
 - **Red signals:** a train calls the PC only after 5 minutes held at the same signal.
-- **Empty trains** (not in service) pass the platforms at 20 km/h, in normal service too.
+- **Empty trains** (not in service) pass the platforms at 40 km/h, in normal service too.
 - **Test:** `tests/agents_check.js` (one closure, 08:00–10:00, in a few seconds).

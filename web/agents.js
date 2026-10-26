@@ -283,7 +283,7 @@
       const p = prof[a.pid];
       if (p) for (const sg of p) { if (sg[0] > a.d + half + 400) break; if (sg[1] < a.d - half) continue;
         v = Math.min(v, sg[0] <= a.d + half ? sg[2] : Math.sqrt(sg[2] * sg[2] + 2 * brk * (sg[0] - a.d - half))); }
-      // empty (no passengers), shunting, skipping stops: through the platforms at 20 km/h
+      // empty (no passengers), shunting, skipping stops: through the platforms at 40 km/h
       const z = o.zones && o.zones[a.pid];
       if (z && (leg.status !== 'service' || leg.skip)) for (const [z0, z1, zv] of z) {
         if (z1 < a.d - half || z0 > a.d + half + 300) continue;

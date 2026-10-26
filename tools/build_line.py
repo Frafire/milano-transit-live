@@ -1052,7 +1052,7 @@ if CFG.get('degraded'):
                 rec = best[2]; pp_, cc_ = paths[rec['pid']]
                 rec.update({'d_stop': round(dX, 1), 'd_end': round(cc_[-1] - TRAIN_HALF - 5, 1), 'name': nm})
                 RECOVERY['%d:%s' % (i, dr_)] = rec
-        # platforms on every path: an empty train passes them at 20 km/h (Giovanni)
+        # platforms on every path: an empty train passes them at 40 km/h (Giovanni)
         ZONES = {}
         plat_pts = [(at_d(pN, d), i) for i, d in enumerate(stopN)] + [(at_d(pS, d), len(names) - 1 - i) for i, d in enumerate(stopS_f)]
         for pid in range(len(paths)):
