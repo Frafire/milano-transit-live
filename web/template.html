@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Milano Transit Live</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Doto:wght@700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Doto:wght@700;900&family=VT323&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 /* Layout: full-bleed satellite map, one dark control console docked top-left like a depot control desk */
@@ -118,6 +118,30 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .tbmark { display: inline-block; width: max-content; transform: translate(-50%, -50%); font: 800 12px/1 var(--body); color: #111; background: #ff9f1c; border: 2px solid #000; border-radius: 4px; padding: 3px 5px; white-space: nowrap; }
 .tbmark.tail { background: #c77dff; }
 .tbmark.link { background: #3bd16f; }
+.radio { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 1200; width: min(460px, calc(100vw - 32px));
+  background: #071109; border: 4px solid #2a3a2e; box-shadow: 0 0 0 2px #000, 0 10px 30px rgba(0,0,0,.6); font: 18px/1.15 'VT323', ui-monospace, monospace; color: #8dff9e; image-rendering: pixelated; }
+.radio .rhd { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: #12241a; border-bottom: 3px solid #2a3a2e; text-transform: uppercase; letter-spacing: .06em; }
+.radio .rhd b { color: #ffd23f; font-weight: 400; }
+.radio .tx { width: 10px; height: 10px; background: #3b5e45; box-shadow: 0 0 0 2px #000; }
+.radio .tx.on { background: #ff3b3b; animation: blink .5s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { .radio .tx.on { animation: none; } }
+.radio .rx { margin-left: auto; background: none; border: 2px solid #3b5e45; color: #8dff9e; font: inherit; padding: 0 8px; cursor: pointer; }
+.radio .log { max-height: 20vh; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 2px, transparent 2px 4px); }
+.radio .log .m { white-space: pre-wrap; }
+.radio .log .pc { color: #ffd23f; }
+.radio .log .dr { color: #8dff9e; }
+.radio .log .sys { color: #6f8f77; }
+.radio .log time { color: #6f8f77; margin-right: 6px; }
+.radio .cmds { border-top: 3px solid #2a3a2e; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.radio .cmds .lbl { color: #6f8f77; text-transform: uppercase; font-size: 16px; }
+.radio .cmds .row { display: flex; flex-wrap: wrap; gap: 6px; }
+.radio .cmds button, .radio .cmds select { background: #0d1d12; color: #8dff9e; border: 2px solid #3b5e45; font: inherit; font-size: 18px; padding: 1px 8px; cursor: pointer; border-radius: 0; }
+.radio .cmds button:hover, .radio .cmds button:focus-visible { background: #8dff9e; color: #071109; outline: none; }
+.radio .cmds button[aria-pressed="true"] { background: #8dff9e; color: #071109; }
+.radio .cmds button:disabled { opacity: .4; cursor: default; background: #0d1d12; color: #8dff9e; }
+.radiobtn { font-family: 'VT323', ui-monospace, monospace !important; font-size: 19px !important; background: #071109 !important; color: #8dff9e !important; border: 2px solid #3b5e45 !important; border-radius: 0 !important; }
+.sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
@@ -273,7 +297,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   </div>
   <div class="admin-only">
     <div class="label" style="margin-bottom:6px">M3 trains</div>
-    <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button><button id="platBtn" aria-pressed="false">Platforms</button></div>
+    <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button><button id="platBtn" aria-pressed="false">Platforms</button><button id="sigsBtn" aria-pressed="false">Segnali</button></div>
     <p class="note">On: trains drive with acceleration and braking. Off: they follow the plan exactly.</p>
   </div>
   <div class="admin-only">
@@ -289,6 +313,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 
 <aside class="card" id="card" hidden aria-live="polite"></aside>
 
+<section class="radio" id="radio" hidden aria-label="Radio terra-treno">
+  <div class="rhd"><span class="tx" id="radioTx"></span><span>Radio terra-treno · <b id="radioWho">M3</b></span><button class="rx" id="radioClose" aria-label="Chiudi la radio">X</button></div>
+  <div class="log" id="radioLog" aria-live="polite"></div>
+  <div class="cmds" id="radioCmds"></div>
+</section>
 <aside class="drawer" id="drawer" hidden aria-label="Track editor">
   <h2>Track editor</h2>
   <div class="tabs" role="tablist">
@@ -582,6 +611,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         const st = Object.entries(acc).map(([n, l]) => ({ n, x: (l.reduce((a, q) => a + q[1], 0) / l.length - 9.19) * KXm_, y: (l.reduce((a, q) => a + q[0], 0) / l.length - 45.46) * KYm_ }));
         const posOf = (pid, d) => { const q = trackAt(fleet, pid, d); return [(q[1] - 9.19) * KXm_, (q[0] - 45.46) * KYm_]; };
         fleet.trains.forEach((tr, k) => { tr.env = { dwell: MTLEngine.makeDwell(F.dwell, st, posOf, 'T' + k) }; });
+        fleet.engine.stations = st;
       }
       fleet.engine.prof = F.path_edges ? MTLEngine.buildProfiles(F.path_edges, F.net.edges, fleet.engine.fileSpeeds, fleet.engine.ops, fleet.engine.fileCuts) : null;
       fleet.trains.forEach(tr => { tr.F = fleet; relive(tr); });
@@ -1008,7 +1038,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>'
       : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
     const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
-    const tiles = F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div></div>`;
+    const tiles = (F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div></div>`)
+      + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
     body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
       <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + (st.trip >= 0 ? st.label : 'Not in passenger service')}</div></div></div>
@@ -1017,6 +1048,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
     document.getElementById('closeBtn').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
     const ttBtn = document.getElementById('ttBtn'); if (ttBtn) ttBtn.onclick = () => { state.fullTT = !state.fullTT; renderCard(); };
+    const rOpen = document.getElementById('radioOpen'); if (rOpen) rOpen.onclick = () => openRadio(F, tr);
     updateTiles();
     card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
     card.querySelectorAll('[data-arr2]').forEach(b => b.onclick = () => { orderP2(F, tr, +b.dataset.arr2); renderCard(); });
@@ -1156,6 +1188,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     users.forEach(u => { setPlat(u.o, u.alt, 1); moved.push(trName(F, u.o, t) + ' (departs ' + fmt(u.alt.dep) + ')'); });
     const end = a.i + a.n, delta = a.segs.length - a.n;
     tr.segs.splice(a.i, a.n, ...JSON.parse(JSON.stringify(a.segs)));
+    if (tr.env) tr.env.extra = {};                 // the run is re-planned: earlier radio orders no longer apply
     tr.starts = tr.segs.map(x => x[3][0]); relive(tr);
     tr.alts = tr.alts.filter(x => x.i < a.i || x.i >= end); tr.alts.forEach(x => { if (x.i >= end) x.i += delta; });
     tr.arr2.forEach(x => { if (x !== a && x.i >= end) x.i += delta; if (x !== a && x.i >= a.i && x.i < end) x.done = true; });
@@ -1660,7 +1693,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         tr.plan0 = tr.segs; tr.alts0 = tr.alts; tr.arr20 = tr.arr2;
         const c = MTLEngine.closePlan(tr.segs, tr.live || tr.segs, tc, S, F.engine.ops, F.engine.rev, pathLen);
         tr.segs = c.segs; tr.starts = tr.segs.map(x => x[3][0]); tr.closeKind = c.kind; tr.closedAt = tc;
-        tr.alts = []; tr.arr2 = [];
+        tr.alts = []; tr.arr2 = []; if (tr.env) tr.env.extra = {};
       });
       F.closed = true; F.closedAt = tc;
     } else {           // reopen: back to the timetable (full recovery logic comes next)
@@ -1670,6 +1703,168 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     closeSecBtn.setAttribute('aria-pressed', F.closed); closeSecBtn.textContent = F.closed ? 'Riapri la tratta' : 'Chiudi la tratta';
     reliveFleet(F); sectionNote(F);
   };
+  // ================= RADIO TERRA-TRENO (M3) =================
+  // The player is the Posto Centrale (PC). Orders: a longer stop at the next station, the departure platform at
+  // San Donato, platform 2 and reversal there coming from Rogoredo. The driver answers in Italian.
+  const radioEl = document.getElementById('radio'), radioLog = document.getElementById('radioLog'), radioCmds = document.getElementById('radioCmds');
+  const radioTx = document.getElementById('radioTx'), radioWho = document.getElementById('radioWho');
+  let radioTrain = null; const radioMsgs = [], radioWatch = [];
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const durTxt = s => s === 30 ? '30 secondi' : s === 60 ? '1 minuto' : s === 90 ? '1 minuto e 30' : '2 minuti';
+  const cap = x => x.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  function trainNo(F, tr) { const rt = realTrain(F, tr, state.t); return rt && !rt.missing ? rt.n : tr.n; }
+  function stationAt(F, pid, d) {
+    const st = F.engine.stations; if (!st) return null;
+    const q = trackAt(F, pid, d), x = (q[1] - 9.19) * 111320 * Math.cos(45.46 * Math.PI / 180), y = (q[0] - 45.46) * 110540;
+    let best = null; st.forEach(s0 => { const dd = Math.hypot(s0.x - x, s0.y - y); if (dd < 200 && (!best || dd < best.dd)) best = { dd, n: s0.n }; });
+    return best && best.n;
+  }
+  // next station stop ahead of the train on its current run: { key, name, si }
+  function nextStop(F, tr) {
+    const st = trainState(F, tr, state.t); if (st.seg < 0 || st.trip < 0) return null;
+    const s0 = tr.segs[st.seg]; if (!s0 || s0[1] !== 'service') return null;
+    const pds = s0[4];
+    for (let i = 1; i < pds.length - 1; i++) if (pds[i] === pds[i + 1] && pds[i] > st.d + 3) {
+      const n = stationAt(F, s0[0], pds[i]); if (n) return { key: st.seg + ':' + i, name: n, si: st.seg, d: pds[i], pid: s0[0] };
+    }
+    return null;
+  }
+  function say(who, text, cls) {
+    radioMsgs.push({ t: state.t, who, text, cls });
+    if (radioMsgs.length > 80) radioMsgs.shift();
+    drawRadioLog();
+  }
+  function drawRadioLog() {
+    if (radioEl.hidden) return;
+    radioLog.innerHTML = radioMsgs.map(m => `<div class="m ${m.cls}"><time>${fmt(m.t, true).join('')}</time>${m.who ? m.who + ': ' : ''}${m.text}</div>`).join('');
+    radioLog.scrollTop = radioLog.scrollHeight;
+  }
+  function driverSays(text, delayMs = 1400) {
+    radioTx.classList.add('on');
+    setTimeout(() => { radioTx.classList.remove('on'); say('T' + radioTrain.no, text, 'dr'); drawRadioCmds(); }, delayMs);
+  }
+  function openRadio(F, tr) {
+    radioTrain = { F, tr, no: trainNo(F, tr) };
+    radioWho.textContent = 'Treno ' + radioTrain.no;
+    radioEl.hidden = false;
+    if (!radioMsgs.length) say('', 'Canale aperto. Tu sei il Posto Centrale.', 'sys');
+    drawRadioLog(); drawRadioCmds();
+  }
+  document.getElementById('radioClose').onclick = () => { radioEl.hidden = true; };
+  let radioStopSel = 60, radioWhy = 'il treno davanti a te è in ritardo';
+  function drawRadioCmds() {
+    if (radioEl.hidden || !radioTrain) return;
+    const { F, tr } = radioTrain, ns = nextStop(F, tr), pend = radioWatch.filter(w => w.tr === tr).length;
+    let h = '';
+    if (ns) {
+      h += `<div class="lbl">Sosta prolungata a ${cap(ns.name)}</div>
+        <div class="row">${[30, 60, 90, 120].map(v => `<button data-rs="${v}" aria-pressed="${radioStopSel === v}">${v < 60 ? v + 's' : (v / 60) + (v % 60 ? '' : '') + ' min'}</button>`).join('').replace('1.5 min', '1:30')}</div>
+        <div class="row"><select id="radioWhy" aria-label="Motivo">${['il treno davanti a te è in ritardo', 'devo regolarizzare l’intervallo', 'attesa per un guasto più avanti', 'nessun motivo particolare'].map(w => `<option ${w === radioWhy ? 'selected' : ''}>${w}</option>`).join('')}</select>
+        <button id="radioSendStop">Trasmetti</button></div>`;
+    } else h += `<div class="lbl">Nessuna fermata davanti: il treno non è in servizio</div>`;
+    if (pend) h += `<div class="row"><button id="radioCancel">Annulla le soste ordinate (${pend})</button></div>`;
+    // departure platform at San Donato
+    const ai = tr.alts.findIndex(a => state.t <= a.leave && a.leave - state.t < 20 * 60);
+    if (ai >= 0) { const a = tr.alts[ai];
+      h += `<div class="lbl">Partenza da San Donato delle ${fmt(a.dep)}</div><div class="row">${Object.keys(a.opts).map(Number).sort().map(p => `<button data-rp="${p}" data-ai="${ai}" ${a.plat === p ? 'disabled' : ''}>Binario ${p}</button>`).join('')}</div>`; }
+    // platform 2 and reversal, coming from Rogoredo
+    const k2 = (tr.arr2 || []).findIndex(a => !a.done && state.t >= a.open && state.t <= a.close);
+    if (k2 >= 0) h += `<div class="lbl">Arrivo a San Donato</div><div class="row"><button id="radioP2">Entra al binario 2 e inverti lì</button></div>`;
+    radioCmds.innerHTML = h;
+    radioCmds.querySelectorAll('[data-rs]').forEach(b => b.onclick = () => { radioStopSel = +b.dataset.rs; drawRadioCmds(); });
+    const why = document.getElementById('radioWhy'); if (why) why.onchange = () => { radioWhy = why.value; };
+    const send = document.getElementById('radioSendStop');
+    if (send) send.onclick = () => {
+      const n = nextStop(F, tr); if (!n) return;
+      say('PC', `Treno ${radioTrain.no}, ${radioWhy}: fai una sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`, 'pc');
+      tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {}; tr.env.extra[n.key] = radioStopSel; relive(tr);
+      radioWatch.push({ tr, F, key: n.key, name: n.name, dur: radioStopSel, said: 0 });
+      driverSays(pick([`Ricevuto PC, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Avviso i passeggeri. Passo.`,
+                       `Copiato, Posto Centrale. A ${cap(n.name)} tengo le porte aperte ${durTxt(radioStopSel)}. Passo e chiudo.`,
+                       `Ricevuto. Fermata prolungata a ${cap(n.name)}, ${durTxt(radioStopSel)}. Passo.`]));
+    };
+    const cancel = document.getElementById('radioCancel');
+    if (cancel) cancel.onclick = () => { say('PC', `Treno ${radioTrain.no}, annulla la sosta prolungata, servizio regolare. Passo.`, 'pc');
+      radioWatch.filter(w => w.tr === tr).forEach(w => { delete tr.env.extra[w.key]; radioWatch.splice(radioWatch.indexOf(w), 1); });
+      relive(tr); driverSays('Ricevuto PC, riprendo il servizio regolare. Passo.'); };
+    radioCmds.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => {
+      const a = tr.alts[+b.dataset.ai], pl = +b.dataset.rp;
+      say('PC', `Treno ${radioTrain.no}, a San Donato parti dal binario ${pl}. Passo.`, 'pc');
+      tr.segs.splice(a.i, a.n, ...JSON.parse(JSON.stringify(a.opts[String(pl)]))); tr.starts = tr.segs.map(x => x[3][0]); a.plat = pl;
+      if (tr.env) tr.env.extra = {}; relive(tr);
+      driverSays(pick([`Ricevuto, partenza dal binario ${pl}. Passo.`, `Copiato PC, mi porto al binario ${pl}. Passo e chiudo.`]));
+    });
+    const p2 = document.getElementById('radioP2');
+    if (p2) p2.onclick = () => {
+      say('PC', `Treno ${radioTrain.no}, a San Donato entra al binario 2 e cambia banco lì. Passo.`, 'pc');
+      const before = !!tr.p2; p2Msg = ''; orderP2(F, tr, k2); if (tr.env) tr.env.extra = {};
+      if (tr.p2 && !before) driverSays(pick(['Ricevuto PC, entro al binario 2 e cambio banco in stazione. Passo.', 'Copiato, binario 2 con inversione sul posto. Passo e chiudo.']));
+      else driverSays('Negativo PC, ' + (p2Msg.replace(/^Order refused: /, '').replace('platform 2 is not free', 'il binario 2 non è libero').replace('is standing there', 'è fermo lì') || 'non posso eseguire') + ' Passo.');
+    };
+  }
+  // the driver reports when the ordered stop starts and ends
+  function radioTick() {
+    for (let i = radioWatch.length - 1; i >= 0; i--) {
+      const w = radioWatch[i], st = trainState(w.F, w.tr, state.t), here = st.v === 0 && w.tr.segs[st.seg] && (st.seg + ':' ) && stationAt(w.F, st.pid, st.d) === w.name;
+      if (w.said === 0 && here) { w.said = 1; if (radioTrain && radioTrain.tr === w.tr) { say('T' + radioTrain.no, `Fermo a ${cap(w.name)}, porte aperte, attendo ${durTxt(w.dur)}.`, 'dr'); } }
+      else if (w.said === 1 && !here) { if (radioTrain && radioTrain.tr === w.tr) say('T' + radioTrain.no, `Ripartito da ${cap(w.name)}. Passo.`, 'dr'); radioWatch.splice(i, 1); }
+    }
+    drawRadioCmds();
+  }
+
+  // ================= STATION SIGNALS (placeholders, not controlling trains yet) =================
+  // M3 is "banalizzata": both tracks can be used both ways. At every station, on both tracks, a departure signal for
+  // each direction at the end of the platform: red + white when the line ahead (to the next station) is free, else red.
+  // Signals for running the wrong way are red.
+  const SIGMAP2 = ['..ggggggg..', '.gGkkkkkGg.', 'gGkkkkkkkGg', 'gGkkRRRkkGg', 'gGkRhRRRkGg', 'gGkRRRRRkGg', 'gGkRRRRRkGg', 'gGkkRRRkkGg', 'gGkkkkkkkGg',
+    'gGkkkkkkkGg', 'gGkkWWWkkGg', 'gGkWhWWWkGg', 'gGkWWWWWkGg', 'gGkWWWWWkGg', 'gGkkWWWkkGg', 'gGkkkkkkkGg', '.gGkkkkkGg.', '..ggggggg..'];
+  const SIGC2 = { stop: { R: '#d60012', W: '#3a3a3a', hR: '#ff3c4e', hW: '#3a3a3a' }, go: { R: '#d60012', W: '#ececec', hR: '#ff3c4e', hW: '#ffffff' } };
+  const SIGURL = {};
+  Object.keys(SIGC2).forEach(a => { const c = document.createElement('canvas'); c.width = 11; c.height = 18; const x = c.getContext('2d');
+    SIGMAP2.forEach((row, y) => [...row].forEach((ch, i) => { if (ch === '.') return;
+      x.fillStyle = ch === 'g' ? '#a0a0a0' : ch === 'G' ? '#dedede' : ch === 'k' ? '#101010' : ch === 'h' ? SIGC2[a][y < 9 ? 'hR' : 'hW'] : SIGC2[a][ch]; x.fillRect(i, y, 1, 1); }));
+    SIGURL[a] = c.toDataURL(); });
+  const sigLayer = L.layerGroup(); let showSigs = false, SIGS = null;
+  try { showSigs = localStorage.getItem('mtl-sigs') === '1'; } catch (e) {}
+  function buildSignals(F) {
+    if (!RT) RT = stretches(F);
+    const half = F.engine.half + 2.5, out = [];
+    ['N', 'S'].forEach(dir => {
+      const xs = RT[dir]; if (!xs.length) return;
+      const pid = xs[0].tr.segs[xs[0].si][0];
+      const stops = xs.map(x => ({ n: x.from, d: x.d0 })).concat([{ n: xs[xs.length - 1].to, d: xs[xs.length - 1].d1 }]);
+      stops.forEach((st, j) => {
+        [[+1, true], [-1, false]].forEach(([sgn, normal]) => {      // normal: the usual direction on this track
+          const d = st.d + sgn * half, ahead = stops[j + sgn]; if (!ahead) return;
+          const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);
+          const kx = Math.cos(a[0] * Math.PI / 180), ux = (b[1] - a[1]) * kx, uy = b[0] - a[0], n = Math.hypot(ux, uy) || 1;
+          const off = 6 / 111000, pos = [a[0] - ux / n * off, a[1] + uy / n * off / kx];   // to the right of the train
+          const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL.stop}">` }) })
+            .bindTooltip(`${cap(st.n)} · partenza ${normal ? '' : '(senso inverso) '}verso ${cap(ahead.n)}`, { className: 'st', direction: 'top' });
+          out.push({ m, pid, from: Math.min(st.d, ahead.d), to: Math.max(st.d, ahead.d), normal, a: null });
+        });
+      });
+    });
+    return out;
+  }
+  function updateSignals() {
+    const F = m3eng(); if (!F) return;
+    const show = showSigs && map.getZoom() >= 16;
+    if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); return; }
+    if (!SIGS) { SIGS = buildSignals(F); SIGS.forEach(sg => sg.m.addTo(sigLayer)); }
+    if (!map.hasLayer(sigLayer)) sigLayer.addTo(map);
+    const occ = F.trains.map(tr => trainState(F, tr, state.t));
+    SIGS.forEach(sg => {
+      const busy = !sg.normal || occ.some(o => o.pid === sg.pid && o.d > sg.from + 1 && o.d < sg.to - 1);
+      const a = busy ? 'stop' : 'go';
+      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[a]}">` })); }
+    });
+  }
+  const sigsBtn = document.getElementById('sigsBtn');
+  sigsBtn.setAttribute('aria-pressed', showSigs);
+  sigsBtn.onclick = () => { showSigs = !showSigs; sigsBtn.setAttribute('aria-pressed', showSigs); try { localStorage.setItem('mtl-sigs', showSigs ? '1' : '0'); } catch (e) {} updateSignals(); };
+  map.on('zoomend', updateSignals);
+
   function renderPanel() {
     if (!isPlayer) return;
     const fi = fleets.findIndex(f => f.line === 'M3'); if (fi < 0) return;
@@ -1712,7 +1907,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); }
+    if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); radioTick(); updateSignals(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);

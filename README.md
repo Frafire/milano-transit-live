@@ -63,6 +63,14 @@ Click a metro train: the card shows its speed as the simulation calculates it, w
 
 `tests/timetable_check.js` (run by the build) drives the whole day with these stop times and the speed limits, and says whether the ATM timetable can be respected. `tools/fit_center_speeds.js` filled the unset limits between Porta Romana and Repubblica from measured run times.
 
+## Radio terra-treno (M3)
+
+On an M3 train card, **📻 Radio al treno** opens a pixel-style radio. You are the Posto Centrale; everything is in Italian. Orders: a longer stop at the next station (30 s, 1 min, 1:30, 2 min, with a reason), the departure platform at San Donato, and platform 2 with reversal there coming from Rogoredo (refused if platform 2 is not free). The driver answers, then reports when he stops and when he leaves.
+
+## Station signals (placeholders)
+
+Admin → M3 trains → **Segnali** (zoom 17+): M3 is *banalizzata*, so every station has a departure signal at both ends of both tracks. For now they only show an aspect and do not control trains: red + white when the line to the next station is free in the usual direction, otherwise red; signals for running the wrong way stay red.
+
 ## Changing how M3 runs
 
 The M3 operating rules live in [`data/operations_m3.json`](data/operations_m3.json): stop time at stations, unloading time at the terminus, platform wait, minimum turnaround, tail and depot speeds. Change a number (you can do it on github.com with the pencil icon), run `./build.sh` again and the whole day is re-planned. The build stops with an error if a change breaks a rule (two trains in a tail or on a depot track).

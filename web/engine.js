@@ -84,10 +84,11 @@
           const planned = pts[i + 1] - pts[i], hold = holds[si + ':' + (i + 1)] || 0;
           // intermediate stations in service: the real stop time, then go (no waiting for the timetable)
           const dw = env && env.dwell && status === 'service' && i > 0 ? env.dwell(pid, pds[i], t, t - pts[i], si + ':' + i) : null;
+          const extra = env && env.extra ? (env.extra[si + ':' + i] || 0) : 0;      // longer stop ordered by radio
           // never before the timetable, unless the driver is ordered to leave early (env.early)
-          if (dw != null) { t = Math.max(t + dw, hold, env.early && env.early(si, i) ? 0 : pts[i + 1]); out.ts.push(t); out.ds.push(pds[i + 1]); i++; continue; }
+          if (dw != null) { t = Math.max(t + dw + extra, hold, env.early && env.early(si, i) ? 0 : pts[i + 1]); out.ts.push(t); out.ds.push(pds[i + 1]); i++; continue; }
           const minWait = Math.min(planned, ops.station_stop_s >= 20 ? 20 : planned);
-          t = Math.max(pts[i + 1], t + minWait, hold);
+          t = Math.max(pts[i + 1], t + minWait + extra, hold);
           out.ts.push(t); out.ds.push(pds[i + 1]);
           i++;
           continue;
