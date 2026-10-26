@@ -1,0 +1,1333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Milano Transit Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Doto:wght@700;900&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+/* Layout: full-bleed satellite map, one dark control console docked top-left like a depot control desk */
+:root {
+  --ink: #0f1419;
+  --panel: rgba(15, 20, 25, 0.88);
+  --panel-solid: #161c22;
+  --line: rgba(255, 255, 255, 0.12);
+  --fg: #eef2f5;
+  --muted: #9aa7b2;
+  --signal: #ffcf3f;      /* ATM yellow, used for the clock and active controls */
+  --tram: #ff8a1f;
+  --bus: #33c3d6;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; background: var(--ink); color: var(--fg); font: 14px/1.4 var(--body); }
+#map { position: fixed; inset: 0; background: var(--ink); }
+canvas.veh { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 450; }
+
+.console {
+  position: fixed; z-index: 1000;
+  top: calc(12px + env(safe-area-inset-top, 0px)); left: calc(12px + env(safe-area-inset-left, 0px));
+  width: 300px; max-width: calc(100vw - 24px);
+  background: var(--panel); backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-radius: 10px;
+  display: flex; flex-direction: column; gap: 12px; padding: 14px;
+  max-height: calc(100% - 24px); overflow: auto;
+}
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.brand h1 { margin: 0; font: 700 20px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.brand small { color: var(--muted); font-size: 12px; }
+.clock { font: 600 52px/1 var(--display); color: var(--signal); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.clock .s { font-size: 28px; color: var(--muted); }
+.day { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.roles { display: flex; gap: 2px; background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 2px; }
+.role { padding: 3px 8px; font-size: 12px; border: 0; }
+body.player .admin-only { display: none !important; }
+body:not(.player) .player-only { display: none !important; }
+.m3panel { display: flex; flex-direction: column; gap: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 11px; color: var(--muted); }
+.legend span { display: flex; align-items: center; gap: 4px; }
+.lg { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.lg.ok { background: #f5c400; } .lg.late { background: #e5383b; } .lg.early { background: #1f7a3a; }
+.m3list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; max-height: 260px; overflow: auto; }
+.m3list li { display: grid; grid-template-columns: 30px 1fr auto; gap: 6px; align-items: center; font-size: 12px; padding: 3px 4px; border-radius: 4px; cursor: pointer; }
+.m3list li:hover { background: var(--panel-solid); }
+.m3list .tn { font: 700 13px var(--display); text-align: center; border-radius: 4px; padding: 1px 0; color: #111; }
+.m3list .where { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.m3list .dl { font-variant-numeric: tabular-nums; font-weight: 600; }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 6px; }
+.dayb { padding: 4px 0; font: 600 12px var(--display); letter-spacing: .03em; }
+.dayb:disabled { opacity: .35; cursor: not-allowed; }
+button, select, input[type=text] {
+  font: 500 13px var(--body); color: var(--fg); background: var(--panel-solid);
+  border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer;
+}
+button:hover { border-color: rgba(255,255,255,.3); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--signal); outline-offset: 1px; }
+button[aria-pressed=true] { background: var(--signal); color: var(--ink); border-color: var(--signal); }
+#play { width: 44px; font-size: 15px; }
+input[type=range] { width: 100%; accent-color: var(--signal); }
+.label { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.mode { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 10px; text-align: left; }
+.mode .n { font: 600 24px/1 var(--display); font-variant-numeric: tabular-nums; }
+.mode .k { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.mode[aria-pressed=true] { background: var(--panel-solid); color: var(--fg); border-color: var(--signal); }
+.mode[aria-pressed=false] { opacity: .45; }
+.mode[aria-pressed=true] .k { color: var(--muted); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.metros { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.mbtn { font: 700 15px var(--display); padding: 6px 0; border-radius: 6px; border: 2px solid transparent; }
+.mbtn[aria-pressed=false] { opacity: .35; }
+#lineSel { width: 100%; }
+.basemap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+#rail { grid-column: 1 / -1; text-align: left; display: flex; justify-content: space-between; }
+#rail::after { content: "Off"; color: var(--muted); }
+#rail[aria-pressed=true] { background: var(--panel-solid); color: var(--fg); border-color: var(--signal); }
+#rail[aria-pressed=true]::after { content: "On"; color: var(--signal); }
+.note { font-size: 11px; color: var(--muted); }
+.collapse { display: none; }
+.hstop { width: 16px; height: 16px; border-radius: 50%; background: #ffd500; border: 2px solid #1a7f3c; color: #1a7f3c; font: 800 11px/12px var(--body); text-align: center; transform: translate(-50%, -50%); box-shadow: 0 0 0 1px rgba(0,0,0,.5); }
+.plat-label { background: #0b0b0b; color: #ffcf3f; font: 700 12px var(--display); letter-spacing: .03em; padding: 2px 6px; border-radius: 4px; white-space: nowrap; border: 1px solid #ffcf3f; transform: translate(-50%, -50%); width: max-content; }
+.plat-label.on { width: 16px; height: 16px; padding: 0; border-radius: 50%; display: grid; place-items: center; font: 800 11px var(--display); background: #ffcf3f; color: #111; border: 1.5px solid #111; transform: translate(-50%, -50%); }
+.atm { margin-top: 10px; }
+.atm-case { background: linear-gradient(180deg, #b4b9be, #8a9096 60%, #7a8086); border-radius: 9px; padding: 9px 9px 7px; box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -2px 0 rgba(0,0,0,.25), 0 3px 8px rgba(0,0,0,.5); }
+.atm-screen { position: relative; background: #0b0a08; border: 3px solid #4b5055; border-radius: 3px; padding: 8px 10px 6px; color: #ff9416; font-family: 'Doto', 'Courier New', monospace; font-weight: 900; text-shadow: 0 0 5px rgba(255,140,20,.65); overflow: hidden; }
+.atm-screen::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle, transparent 52%, rgba(0,0,0,.6) 62%); background-size: 3px 3px; }
+.atm-row { display: flex; align-items: center; gap: 12px; font-size: 26px; line-height: 1.15; letter-spacing: .05em; white-space: nowrap; }
+.atm-row .min { margin-left: auto; }
+.atm-row svg { width: 18px; height: 20px; flex: none; }
+.atm-date { font-size: 19px; margin-top: 4px; }
+.atm-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.atm-plate { background: #eceded; color: #1d1d1d; font: 600 12px var(--body); padding: 2px 8px; border-radius: 3px; }
+.atm-grille { width: 54px; height: 8px; background: repeating-linear-gradient(90deg, #5d6268 0 2px, transparent 2px 5px); border-radius: 2px; opacity: .8; }
+.orario { margin-top: 10px; }
+.orario h3 { font: 600 14px var(--display); margin: 8px 0 4px; color: var(--signal); }
+.orario table { border-collapse: collapse; width: 100%; font: 500 13px var(--body); font-variant-numeric: tabular-nums; }
+.orario td { padding: 2px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.orario td:first-child { font-weight: 700; width: 26px; color: var(--muted); }
+.orario td span { display: inline-block; margin-right: 7px; }
+.orario td span.past { opacity: .35; }
+.orario td span.nx { color: #ff9416; font-weight: 700; }
+.hstop.live { cursor: pointer; border-color: #ff9416; }
+.board { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; background: #050607; border-radius: 6px; padding: 10px 12px; font-family: var(--display); }
+.board .dname { color: var(--signal); font: 600 17px var(--display); letter-spacing: .02em; }
+.board ul { list-style: none; margin: 4px 0 0; padding: 0; }
+.board li { display: flex; justify-content: space-between; font: 500 16px var(--display); color: #f2f2f2; padding: 2px 0; font-variant-numeric: tabular-nums; }
+.board .arrivo { color: #7dff8a; }
+.pdiag { margin-top: 10px; }
+.pdiag ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pdiag li { display: grid; grid-template-columns: 22px 1fr; align-items: center; gap: 8px; }
+.pdiag .pno { width: 20px; height: 20px; border-radius: 50%; background: #ffcf3f; color: #111; font: 800 12px var(--display); display: grid; place-items: center; }
+.pdiag .prail { border-bottom: 3px solid #f5c400; padding: 2px 4px 3px; font-size: 12px; min-height: 18px; }
+.pdiag .ptrain { background: #f5c400; color: #111; font-weight: 700; padding: 0 5px; border-radius: 3px; }
+.pdiag .pempty { color: var(--muted); }
+.board .nonserv { color: #ff5a5a; font-weight: 600; }
+.stname { position: absolute; transform: translate(-50%, 12px); white-space: nowrap; font: 600 12px var(--display); letter-spacing: .02em; color: #fff; background: rgba(11,11,11,.85); border: 1px solid var(--c); border-radius: 4px; padding: 1px 6px; cursor: pointer; }
+.stname:hover { background: var(--c); color: #111; }
+.picker { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.picker .row { margin-top: 0; }
+.picker .warn { color: #ff9b6a; font-size: 12px; }
+
+.card {
+  position: fixed; z-index: 1000; right: calc(12px + env(safe-area-inset-right, 0px)); top: calc(12px + env(safe-area-inset-top, 0px));
+  width: 290px; max-width: calc(100vw - 24px); max-height: calc(100% - 24px); overflow: auto;
+  background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 10px; padding: 14px;
+}
+.card .hd { display: flex; gap: 10px; align-items: center; }
+.badge { font: 700 18px/1 var(--display); padding: 6px 9px; border-radius: 5px; min-width: 30px; text-align: center; color: #fff; }
+.card h2 { margin: 0; font: 600 18px/1.15 var(--display); text-wrap: balance; }
+.cap { text-transform: capitalize; }
+.card .sub { color: var(--muted); font-size: 12px; }
+.stops { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-direction: column; }
+.stops li { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line); text-transform: capitalize; }
+.stops li.past { color: var(--muted); opacity: .55; }
+.stops li.next { color: var(--signal); font-weight: 600; }
+.stops time { font-variant-numeric: tabular-nums; color: inherit; }
+.card .row { margin-top: 10px; }
+
+.loading { position: fixed; inset: 0; display: grid; place-items: center; z-index: 2000; background: var(--ink); font: 600 22px var(--display); letter-spacing: .05em; color: var(--signal); }
+.leaflet-container { font-family: var(--body); }
+.leaflet-control-attribution { background: rgba(15,20,25,.7) !important; color: var(--muted) !important; }
+.leaflet-control-attribution a { color: var(--fg) !important; }
+.leaflet-tooltip.st { background: var(--panel-solid); color: var(--fg); border: 1px solid var(--line); font: 500 12px var(--body); text-transform: capitalize; box-shadow: none; }
+.leaflet-tooltip.st::before { display: none; }
+
+@media (max-width: 640px) {
+  .console { width: auto; right: calc(12px + env(safe-area-inset-right, 0px)); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); max-height: 55%; gap: 10px; }
+  .clock { font-size: 40px; }
+  .card { top: calc(12px + env(safe-area-inset-top, 0px)); left: calc(12px + env(safe-area-inset-left, 0px)); width: auto; max-height: 40%; }
+}
+
+.drawer {
+  position: fixed; z-index: 1001; right: calc(12px + env(safe-area-inset-right, 0px)); bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  width: 320px; max-width: calc(100vw - 24px); max-height: calc(100% - 80px); overflow: auto;
+  background: var(--panel-solid); border: 1px solid var(--signal); border-radius: 10px; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.drawer h2 { margin: 0; font: 600 18px/1.1 var(--display); text-transform: uppercase; letter-spacing: .04em; }
+.drawer ol { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; display: flex; flex-direction: column; gap: 3px; }
+.drawer select, .drawer input[type=text] { width: 100%; box-sizing: border-box; cursor: auto; }
+.tracklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.tracklist li { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; border-top: 1px solid var(--line); }
+.tracklist li button { padding: 2px 8px; font-size: 12px; }
+.drawer textarea { width: 100%; box-sizing: border-box; height: 80px; font: 11px ui-monospace, Menlo, monospace; background: var(--ink); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; }
+.drawing #map { cursor: crosshair; }
+.drawing .leaflet-container { cursor: crosshair; }
+#drawBtn { width: 100%; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs .tab { flex: 1; font-size: 12px; padding: 6px 6px; }
+.drawer section { display: flex; flex-direction: column; gap: 8px; }
+.picked { color: var(--fg); background: var(--ink); border: 1px dashed var(--line); border-radius: 6px; padding: 6px 8px; }
+.sig { transform: translate(-50%, -50%); }
+.sig svg { display: block; }
+.sig span { position: absolute; left: 16px; top: -2px; font: 700 11px var(--display); color: #fff; background: #0b0b0b; padding: 0 4px; border-radius: 3px; white-space: nowrap; }
+.arrow-ic { transform: translate(-50%, -50%); }
+</style>
+</head>
+<body>
+<div id="map" role="application" aria-label="Map of Milan with moving vehicles"></div>
+<div class="loading" id="loading">Loading timetable…</div>
+
+<section class="console" aria-label="Simulation controls">
+  <div class="brand"><h1>Milano Transit Live</h1>
+    <div class="roles" role="group" aria-label="Mode"><button class="role" data-role="admin" aria-pressed="true">Admin</button><button class="role" data-role="player" aria-pressed="false">Player</button></div>
+  </div>
+  <div>
+    <div class="clock" id="clock">08:00<span class="s">:00</span></div>
+    <div class="days" role="group" aria-label="Day of the week">
+      <button class="dayb" data-d="1">Lun</button><button class="dayb" data-d="2">Mar</button><button class="dayb" data-d="3">Mer</button>
+      <button class="dayb" data-d="4">Gio</button><button class="dayb" data-d="5">Ven</button>
+      <button class="dayb" data-d="6" disabled title="Saturday timetable coming soon">Sab</button><button class="dayb" data-d="7" disabled title="Sunday timetable coming soon">Dom</button>
+    </div>
+    <div class="day" id="day"></div>
+  </div>
+  <div class="row">
+    <button id="play" aria-label="Pause">❚❚</button>
+    <button class="spd" data-s="1">1×</button>
+    <button class="spd" data-s="10">10×</button>
+    <button class="spd" data-s="60" aria-pressed="true">60×</button>
+    <button class="spd" data-s="300">300×</button>
+  </div>
+  <input type="range" id="slider" min="10800" max="97140" step="60" value="28800" aria-label="Time of day, service day 03:00 to 02:59">
+
+  <section class="player-only m3panel" aria-label="M3 control panel">
+    <div class="label">Pannello di controllo M3</div>
+    <div class="legend"><span><i class="lg ok"></i>in orario</span><span><i class="lg late"></i>+5 min o più</span><span><i class="lg early"></i>anticipo 3 min o più</span></div>
+    <ul class="m3list" id="m3list"></ul>
+    <div class="label" style="margin-top:4px">Chiusura tratte</div>
+    <p class="note">Closing a part of the line comes next, once the signals and block sections are placed.</p>
+  </section>
+
+  <div class="admin-only">
+    <div class="label" style="margin-bottom:6px">In service now</div>
+    <div class="modes">
+      <button class="mode" data-m="1" aria-pressed="true"><span class="n" id="c1">0</span><span class="k"><i class="dot" style="background:#fff"></i>Metro</span></button>
+      <button class="mode" data-m="0" aria-pressed="true"><span class="n" id="c0">0</span><span class="k"><i class="dot" style="background:var(--tram)"></i>Tram</span></button>
+      <button class="mode" data-m="3" aria-pressed="true"><span class="n" id="c3">0</span><span class="k"><i class="dot" style="background:var(--bus)"></i>Bus</span></button>
+    </div>
+  </div>
+
+  <div class="admin-only">
+    <div class="label" style="margin-bottom:6px">Metro lines</div>
+    <div class="metros" id="metros"></div>
+  </div>
+
+  <div class="admin-only">
+    <label class="label" for="lineSel" style="display:block;margin-bottom:6px">Show one line</label>
+    <select id="lineSel"><option value="">All lines</option></select>
+  </div>
+
+  <div>
+    <div class="label" style="margin-bottom:6px">Map</div>
+    <div class="basemap">
+      <button class="bm" data-b="sat" aria-pressed="false">Satellite</button>
+      <button class="bm" data-b="hyb" aria-pressed="true">Hybrid</button>
+      <button class="bm" data-b="osm" aria-pressed="false" title="OpenStreetMap">OSM</button>
+      <button id="rail" aria-pressed="false">Rail tracks overlay</button>
+    </div>
+    <p class="note" id="mapNote" hidden></p>
+  </div>
+  <div class="admin-only">
+    <div class="label" style="margin-bottom:6px">Platforms, tracks and signals</div>
+    <div class="row" style="flex-wrap:nowrap">
+      <button id="drawBtn" aria-pressed="false" style="flex:1">Track editor</button>
+      <button id="marksBtn" aria-pressed="true" title="Show or hide the tracks and signals you marked">My marks</button>
+    </div>
+  </div>
+  <p class="note">Positions follow the published timetable, not live GPS. Tap a vehicle to see its next stops.</p>
+  <p class="note">Unofficial fan project, not affiliated with ATM. Free and open source (GPL-3.0).</p>
+</section>
+
+<aside class="card" id="card" hidden aria-live="polite"></aside>
+
+<aside class="drawer" id="drawer" hidden aria-label="Track editor">
+  <h2>Track editor</h2>
+  <div class="tabs" role="tablist">
+    <button class="tab" data-mode="mark" role="tab" aria-pressed="true">Platforms &amp; tracks</button>
+    <button class="tab" data-mode="signal" role="tab" aria-pressed="false">Signals</button>
+    <button class="tab" data-mode="draw" role="tab" aria-pressed="false">Draw track</button>
+  </div>
+
+  <section data-panel="mark">
+    <p class="note">Click a track on the map (zoom in). Say what it is used for and which way trains run on it.</p>
+    <div id="markPick" class="note picked">No track selected</div>
+    <label class="label" for="markRole">Use</label>
+    <select id="markRole">
+      <option>Arrival platform</option>
+      <option>Departure platform</option>
+      <option>Arrival and departure platform</option>
+      <option>Tail track (reversing)</option>
+      <option>Depot access</option>
+      <option>Stabling / storage</option>
+      <option>Depot: movements only, no parking</option>
+      <option>Main line</option>
+      <option>Crossover</option>
+      <option>Not used in service</option>
+    </select>
+    <span class="label">Direction of trains</span>
+    <div class="row">
+      <button class="dirbtn" data-dir="1" aria-pressed="true">Way A ➜</button>
+      <button class="dirbtn" data-dir="-1" aria-pressed="false">➜ Way B</button>
+      <button class="dirbtn" data-dir="0" aria-pressed="false">Both ways</button>
+    </div>
+    <p class="note">The yellow arrows on the map show the direction you picked.</p>
+    <input type="text" id="markNote" placeholder="Note (optional), e.g. used only after 21:00">
+    <div class="row"><button id="markSave">Save</button></div>
+  </section>
+
+  <section data-panel="signal" hidden>
+    <p class="note">Click where the signal stands: on the track or beside it, as on the satellite image. It is linked to the nearest track. The arrow points the way trains travel when they face it.</p>
+    <div id="sigPick" class="note picked">No point selected</div>
+    <span class="label">Faces trains going</span>
+    <div class="row">
+      <button class="sdir" data-dir="1" aria-pressed="true">Way A ➜</button>
+      <button class="sdir" data-dir="-1" aria-pressed="false">➜ Way B</button>
+    </div>
+    <label class="label" for="sigType">Type</label>
+    <select id="sigType">
+      <option value="block">Block signal (sezione di blocco)</option>
+      <option value="departure">Departure signal (partenza)</option>
+      <option value="entry">Entry / protection signal (protezione)</option>
+      <option value="shunt">Shunting signal (manovra)</option>
+      <option value="stop">Stopping point (fermata), e.g. on the test loop</option>
+    </select>
+    <input type="text" id="sigName" placeholder="Name (optional), e.g. S12">
+    <div class="row"><button id="sigSave">Place signal</button></div>
+  </section>
+
+  <section data-panel="draw" hidden>
+    <p class="note">For tracks missing from the map: click along the track in the direction trains run, then save.</p>
+    <input type="text" id="trkOther" placeholder="Name of this track">
+    <input type="text" id="trkNote" placeholder="Note (optional)">
+    <div class="row"><span id="ptCount" class="note">0 points</span></div>
+    <div class="row">
+      <button id="undoPt">Undo point</button>
+      <button id="clearPt">Clear</button>
+      <button id="saveTrk">Save track</button>
+    </div>
+  </section>
+
+  <div class="label">Saved</div>
+  <ul class="tracklist" id="trkList"></ul>
+  <div class="row"><button id="copyAll">Copy all</button><button id="closeDraw">Close</button></div>
+  <textarea id="exportBox" readonly hidden aria-label="Exported data"></textarea>
+</aside>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script id="payload" type="application/octet-stream">__DATA__</script>
+<script id="m3payload" type="application/octet-stream">__M3__</script>
+<script>
+(async function () {
+  // ---------- load data ----------
+  const b64 = document.getElementById('payload').textContent.trim();
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const text = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  const D = JSON.parse(text);
+  let FLEETDATA = null;
+  try {
+    const b2 = document.getElementById('m3payload').textContent.trim();
+    if (b2 && b2[0] !== '_') {
+      const bin2 = Uint8Array.from(atob(b2), c => c.charCodeAt(0));
+      FLEETDATA = JSON.parse(await new Response(new Blob([bin2]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+    }
+  } catch (e) { console.warn('Fleet data not loaded', e); }
+  document.getElementById('loading').remove();
+
+  const MODE_COLOR = { 0: '#ff8a1f', 3: '#33c3d6' };
+  const routes = D.routes.map(r => ({ ...r, color: r.t === 1 ? '#' + r.c : MODE_COLOR[r.t] || '#ccc' }));
+
+  // decode shapes
+  const shapes = D.shapes.map(s => {
+    const n = s.p.length / 2, lat = new Float64Array(n), lon = new Float64Array(n);
+    let a = 0, b = 0;
+    for (let i = 0; i < n; i++) { a += s.p[2 * i]; b += s.p[2 * i + 1]; lat[i] = a / 1e5; lon[i] = b / 1e5; }
+    return { lat, lon, d: s.d };
+  });
+
+  // decode trips into absolute arrays
+  const trips = D.trips.map(t => {
+    const n = t[3].length, ts = new Int32Array(n), ds = new Float32Array(n);
+    let a = 0, b = 0;
+    for (let i = 0; i < n; i++) { a += t[3][i]; b += t[4][i]; ts[i] = a; ds[i] = b; }
+    // ATM service day runs 03:00 -> 02:59: trips before 03:00 belong to the end of the day
+    if (ts[0] < 10800) for (let i = 0; i < n; i++) ts[i] += 86400;
+    return { r: t[0], s: t[1], h: D.heads[t[2]], ts, ds, st: t[5], start: ts[0], end: ts[n - 1] };
+  });
+  const tripOrder = trips.map((_, i) => i).sort((a, b) => trips[a].start - trips[b].start);
+  const DAYS = ['', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
+  let dayPick = 1;
+  try { dayPick = +(localStorage.getItem('mtl-day') || (((new Date().getDay() + 6) % 7) + 1)); } catch (e) {}
+  if (dayPick > 5) dayPick = 1;
+  const syncDay = () => {
+    document.querySelectorAll('.dayb').forEach(b => b.setAttribute('aria-pressed', +b.dataset.d === dayPick));
+    document.getElementById('day').textContent = 'Orario feriale · ' + DAYS[dayPick] + ' · giornata 03:00–02:59';
+  };
+  document.querySelectorAll('.dayb').forEach(b => b.onclick = () => { if (b.disabled) return; dayPick = +b.dataset.d; try { localStorage.setItem('mtl-day', dayPick); } catch (e) {} syncDay(); });
+  syncDay();
+
+  // ---------- map ----------
+  const map = L.map('map', { zoomControl: false, preferCanvas: true, minZoom: 10, maxZoom: 19 }).setView([45.4642, 9.19], 12);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+  const TT = ' · Timetable © Comune di Milano / AMAT (CC BY 4.0) · Metro tracks © OpenStreetMap contributors (ODbL)';
+  const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+  const esri = (svc, extra) => L.tileLayer(ESRI + svc + '/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18, ...extra });
+  const sat = esri('World_Imagery', { attribution: 'Imagery © Esri, Maxar, Earthstar Geographics' + TT });
+  const roads = esri('Reference/World_Transportation', { opacity: .9 });
+  const places = esri('Reference/World_Boundaries_and_Places', { opacity: .9 });
+  const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' + TT
+  });
+  // OSM data via CARTO, used automatically if openstreetmap.org refuses tiles to a local file
+  const osmAlt = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19, subdomains: 'abcd', attribution: '© OpenStreetMap contributors © CARTO' + TT
+  });
+  const rail = L.tileLayer('https://{s}.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png', {
+    maxZoom: 19, subdomains: 'abc', opacity: .85, attribution: 'Rail tracks © OpenRailwayMap (CC BY-SA)'
+  });
+  const mapNote = document.getElementById('mapNote');
+  let osmErrors = 0, osmFallback = false;
+  osm.on('tileerror', () => {
+    if (osmFallback || ++osmErrors < 4) return;
+    osmFallback = true; map.removeLayer(osm); osmAlt.addTo(map).bringToBack();
+    mapNote.textContent = 'openstreetmap.org refused tiles to this file, so the same OpenStreetMap data is shown through CARTO.';
+    mapNote.hidden = false;
+  });
+  const bases = { sat: [sat], hyb: [sat, roads, places], osm: [osm] };
+  let currentBase = null;
+  const setBase = which => {
+    if (currentBase) bases[currentBase].forEach(l => map.removeLayer(l));
+    map.removeLayer(osmAlt);
+    const layers = which === 'osm' && osmFallback ? [osmAlt] : bases[which];
+    layers.forEach(l => l.addTo(map));
+    layers[0].bringToBack();
+    if (map.hasLayer(rail)) rail.bringToFront();
+    currentBase = which;
+    document.querySelectorAll('.bm').forEach(b => b.setAttribute('aria-pressed', b.dataset.b === which));
+  };
+  document.querySelectorAll('.bm').forEach(b => b.onclick = () => setBase(b.dataset.b));
+  setBase('hyb');
+  const railBtn = document.getElementById('rail');
+  railBtn.onclick = () => {
+    const on = !map.hasLayer(rail);
+    if (on) rail.addTo(map); else map.removeLayer(rail);
+    railBtn.setAttribute('aria-pressed', on);
+  };
+
+  // route shapes per route
+  const shapesByRoute = routes.map(() => new Set());
+  trips.forEach(t => shapesByRoute[t.r].add(t.s));
+  const routeLayers = routes.map((r, ri) => {
+    const g = L.layerGroup();
+    shapesByRoute[ri].forEach(si => {
+      const sh = shapes[si], pts = [];
+      for (let i = 0; i < sh.lat.length; i++) pts.push([sh.lat[i], sh.lon[i]]);
+      if (r.t === 1) L.polyline(pts, { color: '#000', weight: 7, opacity: .35, interactive: false }).addTo(g);
+      L.polyline(pts, { color: r.color, weight: r.t === 1 ? 4 : 3, opacity: r.t === 1 ? .95 : .8, interactive: false }).addTo(g);
+    });
+    return g;
+  });
+
+  // ---------- M3 fleet on real tracks ----------
+  const decodeFlat = f => { const out = []; let a = 0, b = 0; for (let i = 0; i < f.length; i += 2) { a += f[i]; b += f[i + 1]; out.push([a / 1e6, b / 1e6]); } return out; };
+  // per-line look: M3 Meneghino 6 cars ~105 m, M4 driverless 4 cars ~50 m
+  const LOOK = {
+    M3: { color: '#f5c400', text: '#111', tint: '#fff6cc', dark: '#2a2200', yard: '#e8cf55', cars: 6 },
+    M4: { color: '#1f6fd6', text: '#fff', tint: '#dce9ff', dark: '#06224d', yard: '#7fa8e6', cars: 4 },
+    M1: { color: '#e3001b', text: '#fff', tint: '#ffd9dc', dark: '#3d0006', yard: '#f07a85', cars: 6 },
+    BUS: { color: '#33c3d6', text: '#002a30', tint: '#d6f6fb', dark: '#002a30', yard: '#33c3d6', cars: 1 }
+  };
+  const fleets = [];
+  const ALLTRACKS = [];   // every drawn track, for the editor's click-to-select
+  const platLayer = L.layerGroup(), stopLayer = L.layerGroup(), nameLayer = L.layerGroup();
+  const syncPlat = () => {
+    if (map.getZoom() >= 15) platLayer.addTo(map); else map.removeLayer(platLayer);
+    if (map.getZoom() >= 14) stopLayer.addTo(map); else map.removeLayer(stopLayer);
+    if (map.getZoom() >= 15) nameLayer.addTo(map); else map.removeLayer(nameLayer);
+  };
+  map.on('zoomend', syncPlat);
+  (FLEETDATA ? FLEETDATA.fleets : []).forEach(F => {
+    const li = routes.findIndex(r => r.id === F.line); if (li < 0) return;
+    const look = F.mode === 'bus' ? { ...LOOK.BUS, cars: (F.size || 12) >= 18 ? 2 : 1, size: F.size || 12 } : (LOOK[F.line] || LOOK.M3);
+    const g = L.layerGroup();
+    const TS = {
+      main: [{ color: '#000', weight: 7, opacity: .35 }, { color: look.color, weight: 4, opacity: .95 }],
+      crossover: [{ color: look.color, weight: 2.5, opacity: .95 }],
+      siding: [{ color: look.color, weight: 2.5, opacity: .9 }],
+      yard: [{ color: look.yard, weight: 1.8, opacity: .9 }],
+      test: [{ color: '#ffe066', weight: 2.4, opacity: .95, dashArray: '7 5' }],
+      link: [{ color: '#d0d0d0', weight: 2, opacity: .8, dashArray: '4 4' }]
+    };
+    F.tracks.forEach(t => ALLTRACKS.push({ line: F.line, w: t.w, c: t.c, pts: decodeFlat(t.p) }));
+    ['yard', 'test', 'link', 'siding', 'crossover', 'main'].forEach(cat => F.tracks.filter(t => t.c === cat).forEach(t => {
+      const pts = decodeFlat(t.p);
+      (TS[cat] || TS.siding).forEach(st => L.polyline(pts, { ...st, interactive: false }).addTo(g));
+    }));
+    // station boards (M3, M4): click a station to see the next trains
+    const boards = (F.boards || []).map(b => {
+      const dirs = {};
+      Object.entries(b.dirs).forEach(([k, v]) => { let a = 0; dirs[k] = v.map(x => (a += x)); });
+      return { n: b.n.replace(/ Fs\b/, ' FS'), la: b.la, lo: b.lo, dirs };
+    });
+    const fiHere = fleets.length;
+    boards.forEach((b, bi) => {
+      const open = () => { state.sel = 'b' + fiHere + ':' + bi; state.follow = false; renderCard(); };
+      L.circleMarker([b.la, b.lo], { radius: 18, stroke: false, fillOpacity: 0, bubblingMouseEvents: false }).on('click', open).addTo(g);  // easy to hit
+      L.circleMarker([b.la, b.lo], { radius: 7, color: look.color, weight: 3, fillColor: '#fff', fillOpacity: 1, bubblingMouseEvents: false })
+        .bindTooltip(b.n, { className: 'st', direction: 'top', offset: [0, -8] }).on('click', open).addTo(g);
+      L.marker([b.la, b.lo], { icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<button class="stname" style="--c:${look.color}">${b.n}</button>` }) })
+        .on('click', open).addTo(nameLayer);
+    });
+    if (F.tracks.length) routeLayers[li] = g;
+    // bus stops: an H like on OpenStreetMap, shown when zoomed in
+    const busStops = (F.stops || []).map((st, si) => {
+      let a = 0; const ts = (st.t || []).map(x => (a += x)).map(x => x < 10800 ? x + 86400 : x);
+      const ord = ts.map((_, k) => k).sort((p, q) => ts[p] - ts[q]);
+      const s2 = { ...st, n: st.n.replace(/\b\w/g, c => c.toUpperCase()), ts: ord.map(k => ts[k]), hs: ord.map(k => (st.h || [])[k]) };
+      const m = L.marker([st.la, st.lo], { keyboard: false, bubblingMouseEvents: false,
+        icon: L.divIcon({ className: '', html: '<div class="hstop' + (F.display ? ' live' : '') + '">H</div>', iconSize: [0, 0] }) })
+        .bindTooltip(s2.n, { className: 'st', direction: 'top', offset: [0, -8] }).addTo(stopLayer);
+      if (F.display) m.on('click', () => { state.sel = 's' + fiHere + ':' + si; state.follow = false; renderCard(); });
+      return s2;
+    });
+    // station platforms (drawn when zoomed in)
+    if (F.platforms) F.platforms.forEach(pl => {
+      L.polygon(decodeFlat(pl.p), { color: look.color, weight: 1, fillColor: '#d9d4c7', fillOpacity: .75, interactive: false }).addTo(platLayer);
+    });
+    (F.labels || []).forEach(lb => L.marker([lb.la, lb.lo], { keyboard: false,
+      icon: L.divIcon({ className: '', html: '<div class="plat-label ' + (lb.s || '') + '">' + lb.t + '</div>', iconSize: [0, 0] }) })
+      .bindTooltip('Binario ' + lb.t + (lb.t === '3' ? ' · arrivi' : ' · partenze'), { className: 'st', direction: 'top', offset: [0, -8] }).addTo(platLayer));
+    const fleet = { li, boards, line: F.line, look, trips: F.mode === 'trips', bus: F.mode === 'bus', name: F.mode === 'bus' ? routes[li].n : F.line, pulls: F.pulls || [], home: F.home, far: F.far, carLen: 2 * F.half / look.cars,
+      paths: F.paths.map(p => { const pts = decodeFlat(p.p); return { lat: pts.map(x => x[0]), lon: pts.map(x => x[1]), d: p.d }; }) };
+    fleet.stops = busStops; fleet.display = !!F.display; fleet.heads = F.heads || [];
+    fleet.stock = F.stock || []; fleet.test = F.test || null; fleet.platmap = F.platmap || null;
+    fleet.trains = F.trains.map((segs, i) => ({ n: i + 1, segs, starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: (F.alts || [])[i] || [], arr2: (F.arr2 || [])[i] || [], duties: (F.duties || [])[i] || null }));
+    fleets.push(fleet);
+  });
+  const fleetOf = ri => fleets.find(f => f.li === ri);
+  syncPlat();
+  const STATUS = {
+    service: 'In service', turnback: 'Turning back, not in service', from_depot: 'Leaving the depot',
+    to_depot: 'Returning to the depot', empty: 'Empty run, not in service', training: 'Driver training on the test loop (anello di prova)'
+  };
+  function trackAt(F, pid, d) {
+    const sh = F.paths[pid], sd = sh.d; let a = 0, b = sd.length - 1;
+    // beyond either end: carry on in the same direction, so a parked train keeps all its cars
+    const ext = (i, j, over) => { const L = (sd[j] - sd[i]) || 1, f = over / L;
+      return [sh.lat[j] + (sh.lat[j] - sh.lat[i]) * f, sh.lon[j] + (sh.lon[j] - sh.lon[i]) * f]; };
+    if (d <= sd[0]) return d < sd[0] - 0.5 ? ext(1, 0, sd[0] - d) : [sh.lat[0], sh.lon[0]];
+    if (d >= sd[b]) return d > sd[b] + 0.5 ? ext(b - 1, b, d - sd[b]) : [sh.lat[b], sh.lon[b]];
+    while (b - a > 1) { const m = (a + b) >> 1; if (sd[m] <= d) a = m; else b = m; }
+    const f = sd[b] > sd[a] ? (d - sd[a]) / (sd[b] - sd[a]) : 0;
+    return [sh.lat[a] + (sh.lat[b] - sh.lat[a]) * f, sh.lon[a] + (sh.lon[b] - sh.lon[a]) * f];
+  }
+  // which real train (from the fleet list) runs this simulated duty at time t
+  function realTrain(F, tr, t) {
+    if (!F.stock || !F.stock.length || !tr.duties) return null;
+    let d = tr.duties.find(x => x[0] <= t && t <= x[1]) || tr.duties.find(x => x[0] > t) || tr.duties[tr.duties.length - 1];
+    if (!d) return null;
+    return d[2] < 0 ? { n: '?', missing: true } : { n: d[2] + 1, ...F.stock[d[2]] };
+  }
+  const parkedLabel = (F, where) => where && where !== 'depot' ? 'Parked overnight in a ' + where + ' tail track' : 'Parked in the ' + F.home + ' depot';
+  function trainState(F, tr, t) {
+    const st = tr.starts; let lo = 0, hi = st.length - 1;
+    if (t < st[0]) { const s = tr.segs[0]; return { pos: trackAt(F, s[0], s[4][0]), pid: s[0], d: s[4][0], status: 'parked', label: parkedLabel(F, tr.where[0]), trip: -1, seg: -1, store: s[5] }; }
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (st[m] <= t) lo = m; else hi = m - 1; }
+    const s = tr.segs[lo], ts = s[3], ds = s[4];
+    if (t <= ts[ts.length - 1]) {
+      let i = 0; while (i < ts.length - 2 && ts[i + 1] <= t) i++;
+      const span = ts[i + 1] - ts[i], d = ds[i] + (ds[i + 1] - ds[i]) * (span > 0 ? (t - ts[i]) / span : 0);
+      let label = STATUS[s[1]] || s[1];
+      if (s[1] === 'service' && i === 0 && ds[0] === ds[1]) label = 'Boarding, departs ' + fmt(ts[1]);
+      return { pos: trackAt(F, s[0], d), pid: s[0], d, status: s[1], label, trip: s[2], seg: lo };
+    }
+    const next = tr.segs[lo + 1];
+    let status = 'hold', label;
+    if (!next || s[1] === 'to_depot' || (s[1] === 'empty' && next[1] === 'from_depot')) { status = 'parked'; label = !next ? parkedLabel(F, s[5] !== undefined ? 'depot' : tr.where[1]) : parkedLabel(F, 'depot'); }
+    else if (s[1] === 'service') label = F.bus ? 'Waiting at the terminus' : 'At the terminus, passengers getting off';
+    else label = 'Reversing in the tail track';
+    return { pos: trackAt(F, s[0], ds[ds.length - 1]), pid: s[0], d: ds[ds.length - 1], status, label, trip: -1, seg: lo, store: s[5] };
+  }
+
+  // metro stations
+  const metroStations = {};
+  trips.forEach(t => {
+    if (routes[t.r].t !== 1) return;
+    for (let i = 0; i < t.st.length; i++) {
+      const s = t.st[i]; if (s < 0) continue;
+      const [n, la, lo] = D.stops[s];
+      const key = n.replace(/\s+m\d.*$/i, '').trim() + '|' + t.r;
+      if (!metroStations[key]) metroStations[key] = { n, la, lo, r: t.r };
+    }
+  });
+  const stationLayer = L.layerGroup();
+  Object.values(metroStations).forEach(s => {
+    L.circleMarker([s.la, s.lo], { radius: 4, color: routes[s.r].color, weight: 2, fillColor: '#fff', fillOpacity: 1 })
+      .bindTooltip(s.n, { className: 'st', direction: 'top', offset: [0, -4] }).addTo(stationLayer);
+  });
+
+  // ---------- state ----------
+  const state = { t: 8 * 3600, speed: 60, playing: true, modes: { 0: true, 1: true, 3: true },
+                  metro: { M1: true, M2: true, M3: true, M4: true, M5: true }, line: '', sel: null, follow: false };
+
+  const metroBox = document.getElementById('metros');
+  routes.filter(r => r.t === 1).forEach(r => {
+    const b = document.createElement('button');
+    b.className = 'mbtn'; b.textContent = r.n; b.style.background = r.color;
+    b.style.color = r.id === 'M3' ? '#1a1a1a' : '#fff';
+    b.setAttribute('aria-pressed', 'true');
+    b.onclick = () => { state.metro[r.id] = !state.metro[r.id]; b.setAttribute('aria-pressed', state.metro[r.id]); refreshLayers(); };
+    metroBox.appendChild(b);
+  });
+
+  const sel = document.getElementById('lineSel');
+  const groups = { 1: 'Metro', 0: 'Tram', 3: 'Bus' };
+  [1, 0, 3].forEach(m => {
+    const og = document.createElement('optgroup'); og.label = groups[m];
+    routes.map((r, i) => [r, i]).filter(([r]) => r.t === m)
+      .sort((a, b) => a[0].n.localeCompare(b[0].n, 'it', { numeric: true }))
+      .forEach(([r, i]) => {
+        const o = document.createElement('option'); o.value = i;
+        o.textContent = (m === 1 ? r.n : groups[m] + ' ' + r.n) + ' · ' + r.l;
+        og.appendChild(o);
+      });
+    sel.appendChild(og);
+  });
+  sel.onchange = () => {
+    state.line = sel.value;
+    refreshLayers();
+    if (state.line !== '') {
+      const bounds = L.latLngBounds([]);
+      shapesByRoute[+state.line].forEach(si => { const s = shapes[si]; for (let i = 0; i < s.lat.length; i += 5) bounds.extend([s.lat[i], s.lon[i]]); });
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40] });
+    }
+  };
+
+  function visible(ri) {
+    const r = routes[ri];
+    if (state.line !== '') return ri === +state.line;
+    if (!state.modes[r.t]) return false;
+    if (r.t === 1 && !state.metro[r.id]) return false;
+    return true;
+  }
+  function refreshLayers() {
+    routes.forEach((r, i) => {
+      const show = state.line !== '' ? i === +state.line : (r.t === 1 && visible(i));
+      if (show) routeLayers[i].addTo(map); else map.removeLayer(routeLayers[i]);
+    });
+    const metroOn = state.line === '' ? state.modes[1] : routes[+state.line].t === 1;
+    if (metroOn) stationLayer.addTo(map); else map.removeLayer(stationLayer);
+  }
+  document.querySelectorAll('.mode').forEach(b => b.onclick = () => {
+    const m = b.dataset.m; state.modes[m] = !state.modes[m]; b.setAttribute('aria-pressed', state.modes[m]);
+    if (state.line !== '') { state.line = ''; sel.value = ''; }
+    refreshLayers();
+  });
+  refreshLayers();
+
+  // ---------- clock controls ----------
+  const playBtn = document.getElementById('play');
+  playBtn.onclick = () => { state.playing = !state.playing; playBtn.textContent = state.playing ? '❚❚' : '▶'; playBtn.setAttribute('aria-label', state.playing ? 'Pause' : 'Play'); };
+  document.querySelectorAll('.spd').forEach(b => b.onclick = () => {
+    state.speed = +b.dataset.s;
+    document.querySelectorAll('.spd').forEach(x => x.setAttribute('aria-pressed', x === b));
+  });
+  const slider = document.getElementById('slider');
+  slider.oninput = () => { state.t = +slider.value; };
+  const fmt = (s, sec) => {
+    s = ((s % 86400) + 86400) % 86400;
+    const h = String(Math.floor(s / 3600)).padStart(2, '0'), m = String(Math.floor(s / 60) % 60).padStart(2, '0');
+    return sec ? [h + ':' + m, ':' + String(Math.floor(s) % 60).padStart(2, '0')] : h + ':' + m;
+  };
+
+  // ---------- positions ----------
+  function locate(tr, t) {
+    const ts = tr.ts; let i = 0;
+    let lo = 0, hi = ts.length - 1;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (ts[mid] <= t) lo = mid; else hi = mid - 1; }
+    i = lo;
+    let d;
+    if (i >= ts.length - 1) d = tr.ds[ts.length - 1];
+    else { const span = ts[i + 1] - ts[i]; d = span > 0 ? tr.ds[i] + (tr.ds[i + 1] - tr.ds[i]) * (t - ts[i]) / span : tr.ds[i]; }
+    const sh = shapes[tr.s], sd = sh.d;
+    let a = 0, b = sd.length - 1;
+    if (d <= 0) return [sh.lat[0], sh.lon[0], 0];
+    if (d >= sd[b]) return [sh.lat[b], sh.lon[b], 0];
+    while (b - a > 1) { const m = (a + b) >> 1; if (sd[m] <= d) a = m; else b = m; }
+    const f = sd[b] > sd[a] ? (d - sd[a]) / (sd[b] - sd[a]) : 0;
+    const lat = sh.lat[a] + (sh.lat[b] - sh.lat[a]) * f, lon = sh.lon[a] + (sh.lon[b] - sh.lon[a]) * f;
+    const ang = Math.atan2(-(sh.lat[b] - sh.lat[a]), (sh.lon[b] - sh.lon[a]) * 0.7);
+    return [lat, lon, ang];
+  }
+
+  // ---------- canvas overlay ----------
+  const canvas = document.createElement('canvas'); canvas.className = 'veh';
+  map.getContainer().appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  function resize() {
+    const s = map.getSize(), dpr = window.devicePixelRatio || 1;
+    canvas.width = s.x * dpr; canvas.height = s.y * dpr; canvas.style.width = s.x + 'px'; canvas.style.height = s.y + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  map.on('resize', resize); resize();
+
+  let drawn = [];
+  const counts = { 0: 0, 1: 0, 3: 0 };
+  function draw() {
+    const s = map.getSize(); ctx.clearRect(0, 0, s.x, s.y);
+    drawn = []; counts[0] = counts[1] = counts[3] = 0;
+    const z = map.getZoom(), t = state.t;
+    const order = [3, 0, 1];
+    const buckets = { 0: [], 1: [], 3: [] };
+    for (let q = 0; q < tripOrder.length; q++) {
+      const k = tripOrder[q], tr = trips[k];
+      if (tr.start > t) break;
+      if (tr.end < t) continue;
+      const r = routes[tr.r];
+      counts[r.t] = (counts[r.t] || 0) + 1;
+      if (!visible(tr.r)) continue;
+      if (fleetOf(tr.r)) continue;
+      buckets[r.t] && buckets[r.t].push(k);
+    }
+    for (const m of order) {
+      for (const k of buckets[m]) {
+        const tr = trips[k], r = routes[tr.r];
+        const [la, lo, ang] = locate(tr, t);
+        const p = map.latLngToContainerPoint([la, lo]);
+        if (p.x < -20 || p.y < -20 || p.x > s.x + 20 || p.y > s.y + 20) continue;
+        drawn.push([p.x, p.y, k]);
+        const selected = state.sel === k;
+        if (m === 1) {
+          const rad = z >= 14 ? 9 : 7;
+          ctx.beginPath(); ctx.arc(p.x, p.y, rad + 2, 0, 7); ctx.fillStyle = '#fff'; ctx.fill();
+          ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, 7); ctx.fillStyle = r.color; ctx.fill();
+          ctx.fillStyle = r.id === 'M3' ? '#111' : '#fff';
+          ctx.font = '700 ' + (rad + 2) + 'px Barlow Condensed, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(r.n.replace('M', ''), p.x, p.y + 1);
+        } else {
+          const rad = z >= 15 ? 6 : z >= 13 ? 4 : 2.6;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(ang);
+          ctx.fillStyle = r.color; ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.lineWidth = 1;
+          ctx.beginPath();
+          if (m === 0) { ctx.rect(-rad * 1.5, -rad * .8, rad * 3, rad * 1.6); }
+          else { ctx.arc(0, 0, rad, 0, 7); }
+          ctx.fill(); ctx.stroke(); ctx.restore();
+          if (z >= 15) {
+            ctx.fillStyle = '#fff'; ctx.font = '600 11px Barlow, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.strokeStyle = 'rgba(0,0,0,.8)'; ctx.lineWidth = 3; ctx.strokeText(r.n, p.x + rad + 3, p.y); ctx.fillText(r.n, p.x + rad + 3, p.y);
+          }
+        }
+        if (selected) { ctx.beginPath(); ctx.arc(p.x, p.y, 16, 0, 7); ctx.strokeStyle = '#ffcf3f'; ctx.lineWidth = 3; ctx.stroke(); }
+      }
+    }
+    fleets.forEach((F, fi) => { if (visible(F.li)) drawFleet(F, fi, s, z, t); });
+    document.getElementById('c1').textContent = counts[1];
+    document.getElementById('c0').textContent = counts[0];
+    document.getElementById('c3').textContent = counts[3];
+  }
+
+  // lateness: 0 for now (the timetable is perfect); the fault game will change it
+  const delayOf = (F, tr, t) => tr.delay || 0;
+  const delayClass = d => d >= 300 ? 'late' : d <= -180 ? 'early' : 'ok';
+  const DELAYCOL = { late: '#e5383b', early: '#1f7a3a' };
+  function fleetColors(F, st, tr) {
+    const L_ = F.look;
+    if (st.status === 'service' && isPlayer && F.line === 'M3' && tr) {
+      const c = DELAYCOL[delayClass(delayOf(F, tr, state.t))];
+      if (c) return { fill: c, edge: '#0b0b0b', text: '#fff' };
+    }
+    if (st.status === 'service') return { fill: L_.color, edge: L_.dark, text: L_.text };
+    if (st.status === 'parked') return { fill: '#3d3d3d', edge: L_.color, text: L_.color };
+    if (st.status === 'training') return { fill: '#ffb347', edge: '#5a3300', text: '#2a1600' };
+    return { fill: L_.tint, edge: L_.color, text: L_.dark };   // moving, not in service
+  }
+  function drawFleet(F, fi, s, z, t) {
+    const items = F.trains.map((tr, i) => [trainState(F, tr, t), i]);
+    const rank = st => st.status === 'parked' ? 0 : st.status === 'service' ? 2 : 1;
+    items.sort((a, b) => rank(a[0]) - rank(b[0]));
+    const mpp = 40075016 * Math.cos(45.46 * Math.PI / 180) / (256 * Math.pow(2, z));   // metres per pixel
+    const CARS = F.look.cars, CAR = F.carLen, half = CARS * CAR / 2;
+    const longView = 2 * half / mpp >= 26;   // train long enough on screen to draw its cars
+    for (const [st, i] of items) {
+      if (F.trips || F.bus) { const tr = F.trains[i], segs = tr.segs, e = segs[segs.length - 1][3]; if (t < tr.starts[0] || t > e[e.length - 1]) continue; }
+      if (st.status === 'parked' && z < 14) continue;
+      const p = map.latLngToContainerPoint(st.pos);
+      if (p.x < -80 || p.y < -80 || p.x > s.x + 80 || p.y > s.y + 80) continue;
+      const key = 'f' + fi + ':' + i; drawn.push([p.x, p.y, key]);
+      const rt = realTrain(F, F.trains[i], t);
+      const col = fleetColors(F, st, F.trains[i]), num = F.trips ? F.line.slice(1) : rt ? (F.line === 'M4' && !rt.missing ? rt.units.slice(-2) : String(rt.n)) : String(F.trains[i].n);
+      if (longView) {
+        const w = Math.max(6.8, 2.7 / mpp), pts = [];   // 15% slimmer
+        for (let c = 0; c <= CARS; c++) pts.push(map.latLngToContainerPoint(trackAt(F, st.pid, st.d - half + c * CAR)));
+        ctx.lineCap = 'butt';
+        for (let c = 0; c < CARS; c++) {
+          const A = pts[c], B = pts[c + 1], dx = B.x - A.x, dy = B.y - A.y, Ln = Math.hypot(dx, dy) || 1, g = Math.min(1.2, Ln * .08);
+          const ax = A.x + dx / Ln * g, ay = A.y + dy / Ln * g, bx = B.x - dx / Ln * g, by = B.y - dy / Ln * g;
+          ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.strokeStyle = st.status === 'parked' ? col.edge : '#0b0b0b'; ctx.lineWidth = w + 2.5; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.strokeStyle = col.fill; ctx.lineWidth = w; ctx.stroke();
+        }
+        if (F.bus) {   // windscreen at the front; the 18 m one gets its dark bellows in the middle
+          const Fr = pts[CARS], Bk = pts[CARS - 1], dx = Fr.x - Bk.x, dy = Fr.y - Bk.y, Ln = Math.hypot(dx, dy) || 1, k = Math.min(.18, 2 / (Ln * mpp));
+          ctx.beginPath(); ctx.moveTo(Fr.x - dx * k, Fr.y - dy * k); ctx.lineTo(Fr.x - dx / Ln * 1.2, Fr.y - dy / Ln * 1.2);
+          ctx.strokeStyle = '#0d2b33'; ctx.lineWidth = w * .8; ctx.stroke();
+          if (CARS === 2) { const J = pts[1]; ctx.beginPath(); ctx.arc(J.x, J.y, w * .42, 0, 7); ctx.fillStyle = '#1b1b1b'; ctx.fill(); }
+        }
+        ctx.font = '700 11px Barlow Condensed, sans-serif';
+        const lab = F.trips ? F.line : st.status === 'parked' ? num : F.name + ' · ' + num, tw = ctx.measureText(lab).width + 8, ly = p.y - w / 2 - 12;
+        ctx.fillStyle = '#0b0b0b'; ctx.beginPath(); ctx.roundRect(p.x - tw / 2, ly - 8, tw, 16, 4); ctx.fill();
+        ctx.fillStyle = st.status === 'service' ? F.look.color : '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, p.x, ly + 1);
+        if (state.sel === key) { ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(18, half / mpp + 6), 0, 7); ctx.strokeStyle = '#ffcf3f'; ctx.lineWidth = 2.5; ctx.stroke(); }
+        continue;
+      }
+      const rad = st.status === 'parked' ? 5 : (z >= 13 ? 7.6 : 6.8);
+      if (F.bus && CARS === 2) {   // articulated bus: a longer pill
+        ctx.beginPath(); ctx.roundRect(p.x - rad * 1.6 - 1.3, p.y - rad - 1.3, rad * 3.2 + 2.6, rad * 2 + 2.6, rad + 1.3); ctx.fillStyle = col.edge; ctx.fill();
+        ctx.beginPath(); ctx.roundRect(p.x - rad * 1.6, p.y - rad, rad * 3.2, rad * 2, rad); ctx.fillStyle = col.fill; ctx.fill();
+      } else {
+      ctx.beginPath(); ctx.arc(p.x, p.y, rad + 1.3, 0, 7); ctx.fillStyle = col.edge; ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, 7); ctx.fillStyle = col.fill; ctx.fill();
+      }
+      ctx.fillStyle = col.text; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '700 ' + (num.length > 1 ? rad + 1 : rad + 3) + 'px Barlow Condensed, sans-serif';
+      ctx.fillText(num, p.x, p.y + 1);
+      if (state.sel === key) { ctx.beginPath(); ctx.arc(p.x, p.y, 16, 0, 7); ctx.strokeStyle = '#ffcf3f'; ctx.lineWidth = 3; ctx.stroke(); }
+    }
+  }
+
+  // ---------- selection card ----------
+  const card = document.getElementById('card');
+  function renderCard() {
+    if (state.sel == null) { card.hidden = true; return; }
+    if (typeof state.sel === 'string' && state.sel[0] === 'b') return renderBoard();
+    if (typeof state.sel === 'string' && state.sel[0] === 's') return renderStop();
+    if (typeof state.sel === 'string') return renderTrainCard();
+    const tr = trips[state.sel], r = routes[tr.r], t = state.t;
+    if (t > tr.end + 30) { state.sel = null; card.hidden = true; return; }
+    const kind = r.t === 1 ? 'Metro' : r.t === 0 ? 'Tram' : 'Bus';
+    let rows = '', nextMarked = false;
+    for (let i = 0; i < tr.st.length; i++) {
+      if (tr.st[i] < 0) continue;
+      const past = tr.ts[i] < t - 5;
+      let cls = past ? 'past' : '';
+      if (!past && !nextMarked) { cls = 'next'; nextMarked = true; }
+      rows += `<li class="${cls}"><time>${fmt(tr.ts[i])}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
+    }
+    card.innerHTML = `<div class="hd"><span class="badge" style="background:${r.color};color:${r.id === 'M3' ? '#111' : '#fff'}">${r.n}</span>
+      <div><h2>→ <span class="cap">${tr.h}</span></h2><div class="sub">${kind} · ${r.l}</div></div></div>
+      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Close</button></div>
+      <ol class="stops">${rows}</ol>`;
+    card.hidden = false;
+    document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
+    document.getElementById('closeBtn').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
+    const nx = card.querySelector('li.next');
+    if (nx && !card.matches(':hover')) nx.scrollIntoView({ block: 'nearest' });
+  }
+  function stopList(tr, t) {
+    let rows = '', nextMarked = false;
+    for (let i = 0; i < tr.st.length; i++) {
+      if (tr.st[i] < 0) continue;
+      const past = tr.ts[i] < t - 5;
+      let cls = past ? 'past' : '';
+      if (!past && !nextMarked) { cls = 'next'; nextMarked = true; }
+      rows += `<li class="${cls}"><time>${fmt(tr.ts[i])}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
+    }
+    return rows;
+  }
+  function renderTrainCard() {
+    const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F.trains[i], st = trainState(F, tr, state.t);
+    let body = '', title = st.label;
+    if (st.trip >= 0) { const tp = trips[st.trip]; title = '→ <span class="cap">' + tp.h + '</span>'; body = `<ol class="stops">${stopList(tp, state.t)}</ol>`; }
+    // next activity for trains not in service
+    if (st.trip < 0) {
+      const nxt = tr.segs.find(sg => sg[1] === 'service' && sg[3][sg[3].length - 1] > state.t);
+      body = nxt ? `<p class="sub" style="margin-top:10px">Next service: departs ${fmt(nxt[3][1])} towards <span class="cap">${trips[nxt[2]].h}</span></p>`
+                 : `<p class="sub" style="margin-top:10px">No more passenger trips today.</p>`;
+    }
+    body += platformPicker(F, tr, state.t);
+    const rt = realTrain(F, tr, state.t);
+    const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>'
+      : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
+    const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
+    body = kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
+    card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
+      <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + (st.trip >= 0 ? st.label : 'Not in passenger service')}</div></div></div>
+      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Close</button></div>${body}`;
+    card.hidden = false;
+    document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
+    document.getElementById('closeBtn').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
+    card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
+    card.querySelectorAll('[data-arr2]').forEach(b => b.onclick = () => { orderP2(F, tr, +b.dataset.arr2); renderCard(); });
+    card.querySelectorAll('[data-plat]').forEach(b => b.onclick = () => {
+      const alt = tr.alts[+b.dataset.alt], p = +b.dataset.plat;
+      if (alt.plat === p) return;
+      tr.segs.splice(alt.i, alt.n, ...JSON.parse(JSON.stringify(alt.opts[String(p)])));
+      tr.starts = tr.segs.map(x => x[3][0]); alt.plat = p; renderCard();
+    });
+    const nx = card.querySelector('li.next');
+    if (nx && !card.matches(':hover')) nx.scrollIntoView({ block: 'nearest' });
+  }
+  // station board, in Italian like the real ones: next two trains in each direction
+  function renderBoard() {
+    const [fi, bi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], b = F.boards[bi], t = state.t;
+    const soon = F.line === 'M4' ? 30 : 90;          // 'in arrivo' under 1:30 (M3); driverless M4 under 30 s
+    const rows = Object.entries(b.dirs).filter(([d]) => d.toUpperCase() !== b.n.toUpperCase()).map(([d, ts]) => {
+      let i = ts.findIndex(x => x >= t), lines = '';
+      for (let k = 0; k < 2; k++, i++) {
+        // no train in the next 30 minutes (late night or before the first train): one red line
+        if (i < 0 || i >= ts.length || ts[i] - t > 30 * 60) { if (k === 0) lines += '<li><span class="nonserv">Servizio terminato</span></li>'; break; }
+        const diff = ts[i] - t, min = Math.max(1, Math.round(diff / 60));
+        const txt = diff <= soon ? '<strong class="arrivo">in arrivo</strong>' : min + (min === 1 ? ' minuto' : ' minuti');
+        lines += `<li><span>${k + 1}° treno</span><span>${txt}</span></li>`;
+      }
+      return `<div class="dir"><div class="dname">${d.replace(/\b\w/g, c => c.toUpperCase())}</div><ul>${lines}</ul></div>`;
+    }).join('');
+    card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
+      <div><h2>${b.n}</h2><div class="sub">Prossimi treni</div></div></div>
+      <div class="board">${rows}</div>${platformDiagram(F, b, t)}
+      <div class="row"><button id="closeBtn">Close</button></div>`;
+    card.hidden = false;
+    document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
+  }
+  // schematic of the terminal platforms with the train standing on each
+  function platformDiagram(F, b, t) {
+    const pm = F.platmap; if (!pm || !pm.plats.length || pm.station.toUpperCase() !== b.n.toUpperCase()) return '';
+    const kx = 111320 * Math.cos(45.46 * Math.PI / 180), ky = 110540;
+    const dist = (p, poly) => { let best = 1e9; for (let i = 0; i < poly.length - 1; i++) { const a = poly[i], c = poly[i + 1];
+      const ax = a[1] * kx, ay = a[0] * ky, bx = c[1] * kx, by = c[0] * ky, px = p[1] * kx, py = p[0] * ky, dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+      const u = L2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2)) : 0; best = Math.min(best, Math.hypot(px - ax - u * dx, py - ay - u * dy)); } return best; };
+    const rows = pm.plats.map(([no, w]) => {
+      const tk = ALLTRACKS.find(x => x.line === F.line && x.w === w); let who = '';
+      if (tk) F.trains.forEach(tr => {
+        const st = trainState(F, tr, t); if (st.status === 'parked') return;
+        const near = Math.hypot((st.pos[1] - pm.stop[1]) * kx, (st.pos[0] - pm.stop[0]) * ky) < 130;
+        if (near && dist(st.pos, tk.pts) < 2.5) {
+          const rt = realTrain(F, tr, t), name = 'Treno ' + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n);
+          const what = st.trip >= 0 ? '→ ' + trips[st.trip].h.replace(/\b\w/g, c => c.toUpperCase()) + (st.label.startsWith('Boarding') ? ' · ' + st.label.replace('Boarding, departs', 'parte') : '') : (st.status === 'hold' ? 'arrivato' : 'in manovra');
+          who = `<span class="ptrain">${name}</span> <span class="pwhat">${what}</span>`;
+        }
+      });
+      return `<li><span class="pno">${no}</span><span class="prail">${who || '<span class="pempty">libero</span>'}</span></li>`;
+    }).join('');
+    return `<div class="pdiag"><div class="label">Binari</div><ul>${rows}</ul></div>`;
+  }
+  // ---- ATM stop display (line 64): closest bus, day and time, then the timetable ----
+  const GG = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'], MESI = ['GEN', 'FEB', 'MAR', 'APR', 'MAG', 'GIU', 'LUG', 'AGO', 'SET', 'OTT', 'NOV', 'DIC'];
+  function simDate(t) {
+    const now = new Date(), mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+    return new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + (dayPick - 1) + Math.floor(t / 86400));
+  }
+  const WHEEL = '<svg viewBox="0 0 9 10" fill="currentColor" aria-label="accessibile"><rect x="3" y="0" width="2" height="2"/><rect x="3" y="3" width="2" height="3"/><rect x="5" y="5" width="2" height="1"/><rect x="6" y="6" width="1" height="3"/><rect x="7" y="8" width="2" height="1"/><rect x="1" y="5" width="1" height="3"/><rect x="2" y="8" width="3" height="1"/><rect x="5" y="7" width="1" height="1"/><rect x="2" y="4" width="1" height="1"/></svg>';
+  function renderStop() {
+    const [fi, si] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], s = F.stops[si], t = state.t;
+    const i = s.ts.findIndex(x => x >= t);
+    let wait;
+    if (i < 0) wait = 'FINE SERVIZIO';
+    else { const diff = s.ts[i] - t; wait = diff < 120 ? 'in arrivo' : diff < 3600 ? Math.floor(diff / 60) + ' MIN' : fmt(s.ts[i]); }
+    const dt = simDate(t), hhmm = String(Math.floor(t / 3600) % 24).padStart(2, '0') + ':' + String(Math.floor(t / 60) % 60).padStart(2, '0');
+    const dateRow = `${GG[dt.getDay()]} ${dt.getDate()} ${MESI[dt.getMonth()]}. ${hhmm}`;
+    // timetable, one block per direction, minutes grouped by hour
+    const byHead = {};
+    s.ts.forEach((x, k) => { const h = F.heads[s.hs[k]] || ''; (byHead[h] = byHead[h] || []).push(x); });
+    const tables = Object.entries(byHead).map(([h, xs]) => {
+      const hours = {}; xs.forEach(x => { const hh = Math.floor(x / 3600); (hours[hh] = hours[hh] || []).push(x); });
+      const rows = Object.keys(hours).map(Number).sort((a, b) => a - b).map(hh => `<tr><td>${String(hh % 24).padStart(2, '0')}</td><td>${hours[hh].map(x =>
+        `<span class="${x < t - 30 ? 'past' : x === s.ts[i] ? 'nx' : ''}">${String(Math.floor(x / 60) % 60).padStart(2, '0')}</span>`).join('')}</td></tr>`).join('');
+      return `<h3>Direzione ${h.replace(/\b\w/g, c => c.toUpperCase())}</h3><table>${rows}</table>`;
+    }).join('');
+    card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
+      <div><h2>${s.n}</h2><div class="sub">Fermata bus · tempo di attesa</div></div></div>
+      <div class="atm"><div class="atm-case"><div class="atm-screen">
+        <div class="atm-row"><span>${F.name}</span>${WHEEL}<span class="min">${wait}</span></div>
+        <div class="atm-row atm-date">${dateRow}</div></div>
+        <div class="atm-foot"><span class="atm-plate">Fermata n° ${s.code}</span><span class="atm-grille"></span></div></div></div>
+      <div class="orario"><div class="label">Orario feriale</div>${tables}</div>
+      <div class="row"><button id="closeBtn">Close</button></div>`;
+    card.hidden = false;
+    document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
+    const nx = card.querySelector('.orario span.nx');
+    if (nx && !card.matches(':hover') && !card.dataset.scrolled) { nx.scrollIntoView({ block: 'nearest' }); }
+  }
+
+  // ---- player order: the train from Rogoredo runs into platform 2 and reverses there ----
+  const P2WAY = 103;
+  function trainOnPlatform(F, way, t, except) {
+    const pm = F.platmap, tk = ALLTRACKS.find(x => x.line === F.line && x.w === way); if (!pm || !tk) return null;
+    const kx = 111320 * Math.cos(45.46 * Math.PI / 180), ky = 110540;
+    const dist = (p, poly) => { let best = 1e9; for (let i = 0; i < poly.length - 1; i++) { const a = poly[i], c = poly[i + 1];
+      const ax = a[1] * kx, ay = a[0] * ky, bx = c[1] * kx, by = c[0] * ky, px = p[1] * kx, py = p[0] * ky, dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+      const u = L2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2)) : 0; best = Math.min(best, Math.hypot(px - ax - u * dx, py - ay - u * dy)); } return best; };
+    for (const o of F.trains) {
+      if (o === except) continue;
+      const st = trainState(F, o, t); if (st.status === 'parked') continue;
+      if (Math.hypot((st.pos[1] - pm.stop[1]) * kx, (st.pos[0] - pm.stop[0]) * ky) < 130 && dist(st.pos, tk.pts) < 2.5) return o;
+    }
+    return null;
+  }
+  const trName = (F, o, t) => { const rt = realTrain(F, o, t); return 'Treno ' + (rt && !rt.missing ? rt.n : o.n); };
+  // who else is planned on platform p between a and b
+  function platUsers(F, p, a, b, except) {
+    const who = [];
+    F.trains.forEach(o => {
+      if (o === except) return;
+      o.alts.forEach(x => { if (x.plat === p && x.from < b + 20 && x.dep + 20 > a) who.push({ o, alt: x }); });
+      if (p === 2 && o.p2 && o.p2.from < b + 20 && o.p2.dep + 20 > a) who.push({ o, p2: true });
+    });
+    if (p === 1) F.pulls.forEach(([x, d]) => { if (x < b + 20 && d + 20 > a) who.push({ pull: d }); });
+    return who;
+  }
+  function setPlat(o, alt, p) {
+    o.segs.splice(alt.i, alt.n, ...JSON.parse(JSON.stringify(alt.opts[String(p)])));
+    o.starts = o.segs.map(x => x[3][0]); alt.plat = p;
+  }
+  let p2Msg = '';
+  function orderP2(F, tr, k) {
+    const a = tr.arr2[k], t = state.t;
+    if (!a || a.done || t < a.open || t > a.close) { p2Msg = 'Too late: the train is already at the station throat.'; return; }
+    const there = trainOnPlatform(F, P2WAY, t, tr);
+    if (there) { p2Msg = `Order refused: platform 2 is not free (${trName(F, there, t)} is standing there).`; return; }
+    const users = platUsers(F, 2, a.from, a.dep, tr), moved = [];
+    for (const u of users) {
+      if (u.p2) { p2Msg = `Order refused: platform 2 is already promised to ${trName(F, u.o, t)}.`; return; }
+      if (platUsers(F, 1, u.alt.from, u.alt.dep, u.o).length || !u.alt.opts['1']) { p2Msg = `Order refused: ${trName(F, u.o, t)} needs platform 2 at ${fmt(u.alt.from)} and platform 1 is busy too.`; return; }
+    }
+    users.forEach(u => { setPlat(u.o, u.alt, 1); moved.push(trName(F, u.o, t) + ' (departs ' + fmt(u.alt.dep) + ')'); });
+    const end = a.i + a.n, delta = a.segs.length - a.n;
+    tr.segs.splice(a.i, a.n, ...JSON.parse(JSON.stringify(a.segs)));
+    tr.starts = tr.segs.map(x => x[3][0]);
+    tr.alts = tr.alts.filter(x => x.i < a.i || x.i >= end); tr.alts.forEach(x => { if (x.i >= end) x.i += delta; });
+    tr.arr2.forEach(x => { if (x !== a && x.i >= end) x.i += delta; if (x !== a && x.i >= a.i && x.i < end) x.done = true; });
+    a.done = true; tr.p2 = { from: a.from, dep: a.dep };
+    p2Msg = `Ordered: arrives on platform 2 at ${fmt(a.arr)}, the driver changes cab there and it leaves for ${F.far} at ${fmt(a.dep)}.` +
+      (moved.length ? ' Moved to platform 1: ' + moved.join(', ') + '.' : '');
+  }
+  function arr2Box(F, tr, st) {
+    if (!isPlayer || F.line !== 'M3' || !tr.arr2) return '';
+    const t = state.t;
+    if (tr.p2 && t <= tr.p2.dep) return `<div class="picker"><div class="label">Platform 2 order</div><p class="note">${p2Msg || 'Arrives on platform 2 and reverses there; leaves at ' + fmt(tr.p2.dep) + '.'}</p></div>`;
+    const k = tr.arr2.findIndex(a => !a.done && t >= a.open && t <= a.close);
+    if (k < 0) return '';
+    const busy = trainOnPlatform(F, P2WAY, t, tr);
+    return `<div class="picker"><div class="label">San Donato arrival</div>
+      <p class="note">Normally into platform 3, then the tail. You can order it into platform 2 to reverse in place (only if platform 2 is free now).</p>
+      <div class="row"><button data-arr2="${k}" ${busy ? 'disabled' : ''}>Arrive on platform 2 and reverse</button></div>
+      ${busy ? `<div class="warn">Platform 2 is occupied by ${trName(F, busy, t)}.</div>` : ''}${p2Msg ? `<p class="note">${p2Msg}</p>` : ''}</div>`;
+  }
+  // ---- test loop (anello di prova) on demand for a train resting in the depot ----
+  let loopMsg = '';
+  function testLoopBox(F, tr, st) {
+    if (!F.test || st.status !== 'parked' || st.store === undefined) return '';
+    if (!F.test.by_store[String(st.store)]) return `<div class="picker"><div class="label">Anello di prova</div><p class="note">This depot track has no route to the test loop.</p></div>`;
+    return `<div class="picker"><div class="label">Anello di prova</div>
+      <div class="row"><button data-loop="one">1 giro</button><button data-loop="until">Until its next run</button></div>
+      ${loopMsg ? `<p class="note">${loopMsg}</p>` : '<p class="note">Sends this train round the test loop and back to the same depot track.</p>'}</div>`;
+  }
+  function sendToTestLoop(F, tr, how) {
+    const t0 = Math.round(state.t) + 20, st = trainState(F, tr, state.t), T = F.test, r = T.by_store[String(st.store)];
+    const nextIdx = st.seg + 1, next = tr.segs[nextIdx];
+    const deadline = next ? next[3][0] - 600 : 27 * 3600;
+    const [pin, pback, off] = r, Lin = F.paths[pin].d[F.paths[pin].d.length - 1], Lb = F.paths[pback].d[F.paths[pback].d.length - 1];
+    const tIn = (Lin - off) / T.v_yard, lapT = T.lap / T.v_lap, tBack = (Lb - off) / T.v_yard;
+    const room = deadline - t0 - tIn - T.reverse - tBack;
+    let laps = how === 'one' ? 1 : Math.floor(room / lapT);
+    if (laps < 1 || room < lapT) { loopMsg = 'No time for a lap before its next run' + (next ? ' (leaves the depot at ' + fmt(next[3][0]) + ')' : '') + '.'; return; }
+    const segs = []; let t = t0;
+    segs.push([pin, 'training', -1, [t, t + tIn], [off, Lin]]); t += tIn;
+    for (let k = 0; k < laps; k++) { segs.push([T.cycle, 'training', -1, [t, t + lapT], [0, T.lap]]); t += lapT; }
+    t += T.reverse;
+    segs.push([pback, 'to_depot', -1, [t, t + tBack], [0, Lb - off], st.store]); t += tBack;
+    tr.segs.splice(nextIdx, 0, ...segs.map(x => x.map(v => Array.isArray(v) ? v.map(Math.round) : v)));
+    tr.starts = tr.segs.map(x => x[3][0]);
+    loopMsg = laps + (laps === 1 ? ' lap' : ' laps') + ', back in the depot at ' + fmt(t) + '.';
+  }
+  // which departure platform a train waiting in a San Donato tail will use; the user may change it
+  function platformPicker(F, tr, t) {
+    const ai = tr.alts.findIndex(a => t <= a.leave && a.leave - t < 20 * 60);
+    if (ai < 0) return '';
+    const alt = tr.alts[ai], plats = Object.keys(alt.opts).map(Number).sort();
+    const clash = p => {
+      const who = [];
+      F.trains.forEach(o => o !== tr && o.alts.forEach(b => { if (b.plat === p && b.from < alt.dep + 20 && b.dep + 20 > alt.from) who.push('train ' + o.n + ' (departs ' + fmt(b.dep) + ')'); }));
+      if (p === 2) F.trains.forEach(o => { if (o !== tr && o.p2 && o.p2.from < alt.dep + 20 && o.p2.dep + 20 > alt.from) who.push('train ' + o.n + ' (reversing on platform 2 until ' + fmt(o.p2.dep) + ')'); });
+      if (p === 1) F.pulls.forEach(([a, d]) => { if (a < alt.dep + 20 && d + 20 > alt.from) who.push('a train from the depot (departs ' + fmt(d) + ')'); });
+      return who;
+    };
+    const busy = clash(alt.plat);
+    return `<div class="picker"><div class="label">Departure platform for the ${fmt(alt.dep)} train</div>
+      <div class="row">${plats.map(p => `<button data-alt="${ai}" data-plat="${p}" aria-pressed="${alt.plat === p}">Platform ${p}</button>`).join('')}</div>
+      <div class="note">Chosen automatically. Leaves the tail at ${fmt(alt.leave)}, at the platform from ${fmt(alt.from)}.</div>
+      ${busy.length ? `<div class="warn">Platform ${alt.plat} is also used by ${busy.join(', ')}.</div>` : ''}</div>`;
+  }
+  map.on('click', e => {
+    if (drawing) return;
+    const p = e.containerPoint; let best = null, bd = 18 * 18;
+    for (const [x, y, k] of drawn) { const d = (x - p.x) ** 2 + (y - p.y) ** 2; if (d < bd) { bd = d; best = k; } }
+    state.sel = best; state.follow = false; lastCard = 0; p2Msg = ''; renderCard();
+  });
+
+  // ---------- track editor: platform use, signals, missing tracks ----------
+  let drawing = false, mode = 'mark';
+  const drawer = document.getElementById('drawer'), drawBtn = document.getElementById('drawBtn');
+  const trkOther = document.getElementById('trkOther'), trkNote = document.getElementById('trkNote');
+  const ptCount = document.getElementById('ptCount'), trkList = document.getElementById('trkList'), exportBox = document.getElementById('exportBox');
+  const savedLayer = L.layerGroup().addTo(map), currentLayer = L.layerGroup().addTo(map);
+  let pts = [], ED = { tracks: [], marks: [], signals: [] };
+  try {
+    const raw = JSON.parse(localStorage.getItem('mtl-edit') || 'null');
+    if (raw) ED = { tracks: raw.tracks || [], marks: raw.marks || [], signals: raw.signals || [] };
+    else ED.tracks = JSON.parse(localStorage.getItem('mtl-tracks') || '[]');
+  } catch (e) {}
+  const persist = () => { try { localStorage.setItem('mtl-edit', JSON.stringify(ED)); } catch (e) {} };
+  // the automatic depot shunting signals are removed: Giovanni places them himself
+  try {
+    if (!localStorage.getItem('mtl-auto-shunt-removed-v1')) {
+      ED.signals = ED.signals.filter(sg => !sg.auto);
+      localStorage.setItem('mtl-auto-shunt-removed-v1', '1'); persist();
+    }
+  } catch (e) {}
+  const bearing = (a, b) => (Math.atan2((b[1] - a[1]) * Math.cos(a[0] * Math.PI / 180), b[0] - a[0]) * 180 / Math.PI + 360) % 360;
+  const arrowIcon = (deg, color) => L.divIcon({ className: '', iconSize: [0, 0],
+    html: `<div class="arrow-ic" style="transform:translate(-50%,-50%) rotate(${deg}deg)"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="${color}" stroke="#000" stroke-width="1"/></svg></div>` });
+  const SIGCOL = { block: '#ff3b3b', departure: '#3bd16f', entry: '#ffcf3f', shunt: '#9fb7ff', stop: '#ffffff' };
+  const sigIcon = (deg, type, name) => L.divIcon({ className: '', iconSize: [0, 0],
+    html: `<div class="sig" style="position:relative"><div style="transform:rotate(${deg}deg)"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M11 2 L18 16 L11 12 L4 16 Z" fill="${SIGCOL[type] || '#fff'}" stroke="#000" stroke-width="1.5"/><circle cx="11" cy="19" r="2.5" fill="#000"/></svg></div>${name ? `<span>${name}</span>` : ''}</div>` });
+
+  // nearest track to a click, with the point on it and the track's own direction there
+  function snap(latlng, tol = 18) {
+    const P = map.latLngToContainerPoint(latlng); let best = null;
+    ALLTRACKS.forEach((tk, ti) => {
+      if (!map.hasLayer(routeLayers[fleets.find(f => f.line === tk.line)?.li]) && !map.hasLayer(rail)) return;
+      for (let i = 0; i < tk.pts.length - 1; i++) {
+        const A = map.latLngToContainerPoint(tk.pts[i]), B = map.latLngToContainerPoint(tk.pts[i + 1]);
+        const dx = B.x - A.x, dy = B.y - A.y, L2 = dx * dx + dy * dy, u = L2 ? Math.max(0, Math.min(1, ((P.x - A.x) * dx + (P.y - A.y) * dy) / L2)) : 0;
+        const d = Math.hypot(P.x - A.x - u * dx, P.y - A.y - u * dy);
+        if (d < tol && (!best || d < best.d)) {
+          const a = tk.pts[i], b = tk.pts[i + 1];
+          best = { d, ti, i, ll: [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u], brg: bearing(a, b) };
+        }
+      }
+    });
+    return best;
+  }
+  function wayArrows(tk, dir, color, layer) {
+    const n = tk.pts.length; if (n < 2 || dir === 0) return;
+    [0.25, 0.5, 0.75].forEach(f => {
+      const i = Math.min(n - 2, Math.floor((n - 1) * f)), a = tk.pts[i], b = tk.pts[i + 1];
+      const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      L.marker(mid, { interactive: false, icon: arrowIcon((bearing(a, b) + (dir < 0 ? 180 : 0)) % 360, color) }).addTo(layer);
+    });
+  }
+
+  // selection state for each tab
+  let pickTrack = null, markDir = 1, pickSig = null, sigDir = 1;
+  const markPick = document.getElementById('markPick'), sigPick = document.getElementById('sigPick');
+  function redrawCurrent() {
+    currentLayer.clearLayers();
+    if (mode === 'draw' && pts.length) {
+      L.polyline(pts, { color: '#ffcf3f', weight: 4, dashArray: '6 5', interactive: false }).addTo(currentLayer);
+      pts.forEach((p, i) => L.circleMarker(p, { radius: i === pts.length - 1 ? 5 : 3, color: '#111', weight: 1, fillColor: '#ffcf3f', fillOpacity: 1, interactive: false }).addTo(currentLayer));
+    }
+    if (mode === 'mark' && pickTrack) {
+      const tk = ALLTRACKS[pickTrack.ti];
+      L.polyline(tk.pts, { color: '#fff', weight: 9, opacity: .35, interactive: false }).addTo(currentLayer);
+      L.polyline(tk.pts, { color: '#ffcf3f', weight: 4, interactive: false }).addTo(currentLayer);
+      wayArrows(tk, markDir, '#ffcf3f', currentLayer);
+    }
+    if (mode === 'signal' && pickSig) {
+      if (pickSig.click && pickSig.off > 1) L.polyline([pickSig.click, pickSig.ll], { color: '#fff', weight: 1, dashArray: '2 3', interactive: false }).addTo(currentLayer);
+      L.marker(pickSig.click || pickSig.ll, { interactive: false, icon: sigIcon((pickSig.brg + (sigDir < 0 ? 180 : 0)) % 360, document.getElementById('sigType').value, document.getElementById('sigName').value.trim()) }).addTo(currentLayer);
+    }
+    ptCount.textContent = pts.length + (pts.length === 1 ? ' point' : ' points');
+  }
+  function describeTrack(tk) {
+    const kind = { main: 'main line track', yard: 'depot track', siding: 'siding', crossover: 'crossover', test: 'test loop', link: 'link track' }[tk.c] || tk.c;
+    return tk.line + ' · ' + kind + (tk.w >= 0 ? ' · OSM way #' + tk.w : ' · through track');
+  }
+  function redrawSaved() {
+    savedLayer.clearLayers(); trkList.innerHTML = '';
+    const add = (text, del) => { const li = document.createElement('li'); li.innerHTML = '<span></span><button>Delete</button>'; li.firstChild.textContent = text; li.lastChild.onclick = del; trkList.appendChild(li); };
+    ED.marks.forEach((m, i) => {
+      const tk = ALLTRACKS.find(x => x.line === m.line && x.w === m.w);
+      if (tk) { L.polyline(tk.pts, { color: '#ff4fd8', weight: 4, interactive: false }).addTo(savedLayer); wayArrows(tk, m.dir, '#ff4fd8', savedLayer); }
+      add(m.role + ' · ' + m.line + (m.note ? ' · ' + m.note : ''), () => { ED.marks.splice(i, 1); persist(); redrawSaved(); });
+    });
+    ED.signals.forEach((sg, i) => {
+      L.marker([sg.lat, sg.lon], { interactive: false, icon: sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer);
+      add('Signal ' + (sg.name || '') + ' · ' + sg.type + ' · ' + sg.line, () => { ED.signals.splice(i, 1); persist(); redrawSaved(); });
+    });
+    ED.tracks.forEach((tk, i) => {
+      L.polyline(tk.points, { color: '#ff4fd8', weight: 4, dashArray: '5 4', interactive: false }).addTo(savedLayer);
+      add('Drawn: ' + tk.name + ' · ' + tk.points.length + ' pts', () => { ED.tracks.splice(i, 1); persist(); redrawSaved(); });
+    });
+    if (!trkList.children.length) trkList.innerHTML = '<li class="note">Nothing saved yet</li>';
+  }
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.drawer .tab').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
+    document.querySelectorAll('.drawer [data-panel]').forEach(p => p.hidden = p.dataset.panel !== m);
+    redrawCurrent();
+  }
+  document.querySelectorAll('.drawer .tab').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  const pressGroup = (sel, val) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', +b.dataset.dir === val));
+  document.querySelectorAll('.dirbtn').forEach(b => b.onclick = () => { markDir = +b.dataset.dir; pressGroup('.dirbtn', markDir); redrawCurrent(); });
+  document.querySelectorAll('.sdir').forEach(b => b.onclick = () => { sigDir = +b.dataset.dir; pressGroup('.sdir', sigDir); redrawCurrent(); });
+  document.getElementById('sigType').onchange = redrawCurrent;
+  document.getElementById('sigName').oninput = redrawCurrent;
+
+  function setDrawing(on) {
+    drawing = on; drawer.hidden = !on; drawBtn.setAttribute('aria-pressed', on);
+    document.body.classList.toggle('drawing', on);
+    if (on) { state.sel = null; state.follow = false; renderCard(); }
+    redrawCurrent(); if (typeof syncMarks === 'function') syncMarks();
+  }
+  drawBtn.onclick = () => setDrawing(!drawing);
+  document.getElementById('closeDraw').onclick = () => setDrawing(false);
+  map.on('click', e => {
+    if (!drawing) return;
+    if (mode === 'draw') { pts.push([+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)]); redrawCurrent(); return; }
+    const s = snap(e.latlng, mode === 'signal' ? 60 : 18);
+    if (s && mode === 'signal') {            // keep where you clicked, remember the track it belongs to
+      const a = ALLTRACKS[s.ti].pts[s.i], b = ALLTRACKS[s.ti].pts[s.i + 1];
+      const kx = 111320 * Math.cos(a[0] * Math.PI / 180), ky = 110540;
+      const vx = (b[1] - a[1]) * kx, vy = (b[0] - a[0]) * ky, px = (e.latlng.lng - s.ll[1]) * kx, py = (e.latlng.lat - s.ll[0]) * ky;
+      s.off = Math.round(Math.hypot(px, py) * 10) / 10; s.side = (vx * py - vy * px) > 0 ? 'left' : 'right';
+      s.click = [e.latlng.lat, e.latlng.lng];
+    }
+    if (!s) { (mode === 'mark' ? markPick : sigPick).textContent = 'No track there. Zoom in and click right on a track.'; return; }
+    const tk = ALLTRACKS[s.ti];
+    if (mode === 'mark') { pickTrack = s; markPick.textContent = describeTrack(tk); }
+    else { pickSig = s; sigPick.textContent = describeTrack(tk) + (s.off > 1 ? ' · ' + s.off + ' m to the ' + s.side + ' of the track (way direction)' : ' · on the track'); }
+    redrawCurrent();
+  });
+  document.getElementById('markSave').onclick = () => {
+    if (!pickTrack) { markPick.textContent = 'Click a track first'; return; }
+    const tk = ALLTRACKS[pickTrack.ti];
+    ED.marks = ED.marks.filter(m => !(m.line === tk.line && m.w === tk.w));
+    ED.marks.push({ line: tk.line, w: tk.w, kind: tk.c, role: document.getElementById('markRole').value, dir: markDir,
+      dir_meaning: markDir === 1 ? 'same as OSM way' : markDir === -1 ? 'opposite to OSM way' : 'both',
+      from: tk.pts[0].map(x => +x.toFixed(6)), to: tk.pts[tk.pts.length - 1].map(x => +x.toFixed(6)), note: document.getElementById('markNote').value.trim() });
+    document.getElementById('markNote').value = ''; pickTrack = null; markPick.textContent = 'Saved. Click the next track.';
+    persist(); redrawSaved(); redrawCurrent();
+  };
+  document.getElementById('sigSave').onclick = () => {
+    if (!pickSig) { sigPick.textContent = 'Click a track first'; return; }
+    const tk = ALLTRACKS[pickSig.ti], heading = Math.round((pickSig.brg + (sigDir < 0 ? 180 : 0)) % 360);
+    const at = pickSig.click || pickSig.ll;
+    ED.signals.push({ line: tk.line, w: tk.w, lat: +at[0].toFixed(6), lon: +at[1].toFixed(6), on_track: pickSig.ll.map(x => +x.toFixed(6)),
+      offset_m: pickSig.off || 0, side: pickSig.side || 'on track', heading,
+      dir: sigDir, type: document.getElementById('sigType').value, name: document.getElementById('sigName').value.trim() });
+    document.getElementById('sigName').value = ''; pickSig = null; sigPick.textContent = 'Placed. Click where the next signal stands.';
+    persist(); redrawSaved(); redrawCurrent();
+  };
+  document.getElementById('undoPt').onclick = () => { pts.pop(); redrawCurrent(); };
+  document.getElementById('clearPt').onclick = () => { pts = []; redrawCurrent(); };
+  document.getElementById('saveTrk').onclick = () => {
+    if (pts.length < 2) { ptCount.textContent = 'Click at least 2 points first'; return; }
+    ED.tracks.push({ name: trkOther.value.trim() || 'Unnamed track', note: trkNote.value.trim(), points: pts });
+    pts = []; trkOther.value = ''; trkNote.value = ''; persist(); redrawCurrent(); redrawSaved();
+  };
+  document.getElementById('copyAll').onclick = () => {
+    const txt = 'MTL-EDIT ' + JSON.stringify(ED);
+    exportBox.value = txt; exportBox.hidden = false; exportBox.select();
+    const btn = document.getElementById('copyAll');
+    const ok = () => { btn.textContent = 'Copied'; setTimeout(() => btn.textContent = 'Copy all', 1500); };
+    try { navigator.clipboard.writeText(txt).then(ok, () => { document.execCommand('copy'); ok(); }); }
+    catch (e) { document.execCommand('copy'); ok(); }
+  };
+  redrawSaved(); setMode('mark');
+  const marksBtn = document.getElementById('marksBtn');
+  let showMarks = true;
+  try { showMarks = localStorage.getItem('mtl-show-marks') !== '0'; } catch (e) {}
+  const syncMarks = () => {
+    const on = showMarks && !document.body.classList.contains('player') && (map.getZoom() >= 15 || drawing);
+    if (on) savedLayer.addTo(map); else map.removeLayer(savedLayer); marksBtn.setAttribute('aria-pressed', showMarks);
+  };
+  map.on('zoomend', () => syncMarks());
+  marksBtn.onclick = () => { showMarks = !showMarks; try { localStorage.setItem('mtl-show-marks', showMarks ? '1' : '0'); } catch (e) {} syncMarks(); };
+  syncMarks();
+
+  // ---------- admin / player ----------
+  let isPlayer = false;
+  try { isPlayer = localStorage.getItem('mtl-role') === 'player'; } catch (e) {}
+  function setRole(p) {
+    isPlayer = p; document.body.classList.toggle('player', p);
+    document.querySelectorAll('.role').forEach(b => b.setAttribute('aria-pressed', (b.dataset.role === 'player') === p));
+    if (p && drawing) setDrawing(false);
+    try { localStorage.setItem('mtl-role', p ? 'player' : 'admin'); } catch (e) {}
+    renderPanel(); if (typeof syncMarks === 'function') syncMarks();
+  }
+  document.querySelectorAll('.role').forEach(b => b.onclick = () => setRole(b.dataset.role === 'player'));
+  const m3list = document.getElementById('m3list');
+  function renderPanel() {
+    if (!isPlayer) return;
+    const fi = fleets.findIndex(f => f.line === 'M3'); if (fi < 0) return;
+    const F = fleets[fi], t = state.t, rows = [];
+    F.trains.forEach((tr, i) => {
+      const st = trainState(F, tr, t); if (st.status === 'parked') return;
+      const rt = realTrain(F, tr, t), name = rt ? rt.n : tr.n;
+      let where = st.label, order = 9e9;
+      if (st.trip >= 0) {
+        const tp = trips[st.trip]; let k = 0; while (k < tp.ts.length && tp.ts[k] < t) k++;
+        const nxt = tp.st[Math.min(k, tp.st.length - 1)], stopName = D.stops[nxt >= 0 ? nxt : tp.st[k - 1]][0];
+        where = '→ ' + tp.h.replace(/\b\w/g, c => c.toUpperCase()) + ' · ' + stopName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        order = tp.start;
+      }
+      const d = delayOf(F, tr, t), cls = delayClass(d), m = Math.round(d / 60);
+      rows.push({ order, html: `<li data-k="${i}"><span class="tn" style="background:${DELAYCOL[cls] || '#f5c400'};color:${cls === 'ok' ? '#111' : '#fff'}">${name}</span><span class="where">${where}</span><span class="dl">${m === 0 ? 'in orario' : (m > 0 ? '+' : '') + m + ' min'}</span></li>` });
+    });
+    rows.sort((a, b) => a.order - b.order);
+    m3list.innerHTML = rows.map(r => r.html).join('') || '<li class="note">No M3 trains running now</li>';
+    m3list.querySelectorAll('li[data-k]').forEach(li => li.onclick = () => { state.sel = 'f' + fi + ':' + li.dataset.k; state.follow = false; renderCard(); });
+  }
+  setRole(isPlayer);
+
+  // ---------- loop ----------
+  let last = performance.now(), lastCard = 0, lastPanel = 0;
+  map.on('move zoom', draw);
+  function frame(now) {
+    const dt = Math.min(0.25, (now - last) / 1000); last = now;
+    if (state.playing) {
+      state.t += dt * state.speed;
+      if (state.t > +slider.max) state.t = +slider.min;
+      slider.value = state.t;
+    }
+    const [hm, ss] = fmt(state.t, true);
+    document.getElementById('clock').innerHTML = hm + '<span class="s">' + ss + (state.t >= 86400 ? ' +1' : '') + '</span>';
+    if (state.follow && state.sel != null) {
+      const [la, lo] = typeof state.sel === 'string' ? (([fi, i]) => trainState(fleets[fi], fleets[fi].trains[i], state.t).pos)(state.sel.slice(1).split(':').map(Number)) : locate(trips[state.sel], state.t);
+      map.panTo([la, lo], { animate: false });
+    }
+    draw();
+    if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); }
+    if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
+    requestAnimationFrame(frame);
+  }
+  window.mtl = { map, state, fleets, renderCard, trainState, trainOnPlatform };
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

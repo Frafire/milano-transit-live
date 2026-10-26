@@ -1,0 +1,762 @@
+"""Build a metro line's fleet simulation on its real OSM tracks. LINE=M3 or LINE=M4."""
+import sys, os, json, math, collections
+sys.path.insert(0, '.')
+LINE = os.environ.get('LINE', 'M3')
+CFG = {
+  'M3': dict(tracks='osm_m3.txt', main='Linea M3', home='San Donato', far='Comasina',
+             HOME_STOP=(45.42893, 9.25585), FAR_STOP=(45.52885, 9.16333),
+             SD_TAILS=[163, 116], COM_TAILS=[183, 179], SD_DEP={1: 143, 2: 120}, PLATS=[1, 2],
+             SD_OUT_NODE=165, IN_VIA=[124, 153, 160], DEPOT_IN_VIA=[124, 153, 160], AFTER_ARR=160,
+             PULL_OUT=300, PLAT_WAIT=120,
+             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]),
+             labels=[('1', 78, 70, 'on'), ('2', 103, 85, 'on'), ('3', 79, 100, 'on')]),
+  'M4': dict(tracks='osm_m4.txt', main='Linea M4', home='San Cristoforo', far='Linate Aeroporto',
+             HOME_STOP=(45.44236, 9.12977), FAR_STOP=(45.46284, 9.27800),
+             SD_TAILS=[18, 107], COM_TAILS=[3, 4], SD_DEP={1: 20}, PLATS=[1],
+             SD_OUT_NODE=34, IN_VIA=[39, 40], DEPOT_IN_VIA=[39, 40, 16], AFTER_ARR=16,
+             PULL_OUT=450, PLAT_WAIT=30,
+             depot_box=(45.431, 45.4385, 9.122, 9.1335), skip_dead=(), half=25.25, training=False, through=False),
+}[LINE]
+os.environ['TRACKS'] = CFG['tracks']
+from router import *
+print('track rules from the editor:', load_rules('rules_%s.json' % LINE.lower(), LINE))
+print('main-line directions (right-hand running):', infer_main_directions())
+for _w in {'M4': [18, 88]}.get(LINE, []):      # Linate station tracks: used both ways until Giovanni marks them
+    ONEWAY.pop(_w, None)
+from dwell import add_dwell
+
+D = json.load(open('data.json'))
+R = D['routes']
+M3 = [i for i, r in enumerate(R) if r['id'] == LINE][0]
+
+SD_STOP, COM_STOP = CFG['HOME_STOP'], CFG['FAR_STOP']
+SD_TAILS, COM_TAILS = CFG['SD_TAILS'], CFG['COM_TAILS']
+SD_DEP = CFG['SD_DEP']; SD_OUT_NODE = CFG['SD_OUT_NODE']
+TRAIN_HALF = CFG['half']
+V_YARD = 15 / 3.6   # depot speed limit 15 km/h (confirmed by ATM staff; not on the test loop)
+V_EMPTY = 13.0    # m/s ~47 km/h empty run on the line
+PULL_OUT = CFG['PULL_OUT']   # depot -> platform (M3: 5 min; M4: 7-8 min, very slow)
+PLAT_WAIT = CFG['PLAT_WAIT'] # wait at platform before first departure (M3 2 min, M4 30 s)
+DWELL_END = 45    # passengers leave at the terminus (Giovanni: 30 s - 1 min)
+TRAIN_LEN = 2 * CFG['half']
+REVERSE = round(TRAIN_LEN / 1.4) + 30   # driver walks the train (~1.4 m/s) and sets up the cab (>= 30 s)
+V_TAIL = 12.5 / 3.6                       # Giovanni: 10-15 km/h entering and leaving the dead-end tracks
+LAYOVER_DEPOT = 25 * 60
+
+# depot storage tracks, nearest first
+depot_dead = [n for n in node_pos if len(node_edges[n]) == 1]
+def in_depot(n):
+    la, lo = ll(*node_pos[n]); b = CFG['depot_box']; return b[0] < la < b[1] and b[2] < lo < b[3]
+STORE_EXIT = {}       # through-track middle node -> node to leave by (the far end)
+LINKS_BY_MID = {}
+if CFG.get('through'):
+    auto_links(CFG['depot_box'], CFG['skip_dead'])
+    print('depot through tracks:', len(LINKS))
+    LINKS_BY_MID = {m: (a, b) for a, b, m in LINKS}
+storage = []
+import router as _router
+FIT = 2 * TRAIN_HALF + 10      # a parked train must not stick out over a switch
+def _side_len(n):              # length of the depot track beyond a through-track end, up to its switch
+    return sum(edges[e]['len'] for e in node_edges[n] if 'mid' not in edges[e])
+too_short = no_park = 0
+for a_, b_, m in LINKS:
+    half_room = min(math.dist(node_pos[a_], node_pos[m]) + _side_len(a_), math.dist(node_pos[b_], node_pos[m]) + _side_len(b_))
+    if half_room < FIT / 2: too_short += 1; continue
+    if {edges[e]['way'] for x in (a_, b_) for e in node_edges[x] if 'mid' not in edges[e]} & NOPARK: no_park += 1; continue
+    _router.THROUGH_ALLOWED = {m}
+    for entry, exit_ in ((a_, b_), (b_, a_)):
+        r_in = route_nodes(CFG['AFTER_ARR'], m)
+        if not r_in: break
+        last = r_in[-1]; came_from = start_node(*last)
+        ex = b_ if came_from == a_ else a_
+        r_out = route_nodes(m, SD_OUT_NODE, via=[SD_DEP[1]], first=ex)
+        if r_out: storage.append((0, m)); STORE_EXIT[m] = ex
+        break
+for n in depot_dead:
+    if not in_depot(n) or n in CFG['skip_dead'] or len(node_edges[n]) != 1: continue
+    if edges[node_edges[n][0]]['len'] < FIT: too_short += 1; continue
+    if edges[node_edges[n][0]]['way'] in NOPARK: no_park += 1; continue
+    a = route_nodes(CFG['AFTER_ARR'], n); b = route_nodes(n, SD_OUT_NODE, via=[SD_DEP[1]])
+    if a and b: storage.append((plen(path_poly(b)), n))
+_router.THROUGH_ALLOWED = set()          # from now on no route may cut through a through track...
+storage = [n for _, n in sorted(storage, key=lambda x: x[0])]
+print('storage places:', len(storage), 'of which through tracks:', len(STORE_EXIT), '| depot tracks too short for a train:', too_short, '| marked movements only:', no_park)
+
+# ---------------- path library ----------------
+paths, path_key = [], {}
+def make_path(key, states):
+    if key in path_key: return path_key[key]
+    p = path_poly(states); c = cum(p)
+    pid = len(paths); paths.append((p, c)); path_key[key] = pid; return pid
+
+def leg_path(start, via, end):
+    key = ('leg', start, tuple(via), end)
+    if key in path_key: return path_key[key]
+    _router.THROUGH_ALLOWED = {x for x in (start, end) if x in STORE_EXIT}   # ...except its own parking track
+    st = route_nodes(start, end, via=via, first=STORE_EXIT.get(start))
+    _router.THROUGH_ALLOWED = set()
+    if st is None: raise RuntimeError('no route %s %s %s' % (start, via, end))
+    return make_path(key, st)
+
+# ---------------- trips ----------------
+trips = []
+for ti, t in enumerate(D['trips']):
+    if t[0] != M3: continue
+    ts, a = [], 0
+    for x in t[3]: a += x; ts.append(a)
+    ev = []; last = None
+    for tt, s in zip(ts, t[5]):
+        if s >= 0: last = s
+        ev.append((tt, last))
+    ev = add_dwell(ev)
+    first = D['stops'][t[5][0]][0].upper(); out = first.startswith(CFG['home'].upper())
+    trips.append(dict(ti=ti, dep=ts[0], arr=ts[-1], out=out, ev=ev))
+trips.sort(key=lambda x: x['dep'])
+
+# ---------------- chain trips into trains ----------------
+TURN = int(os.environ.get('TURN', 7 * 60))      # shortest possible turnaround: unload, into tail, change cab, to platform, board
+LAYOVER_DEPOT = int(os.environ.get('LAYOVER', 15 * 60))     # a train with more than this to wait at the home terminal rests in the depot
+FAR_HORIZON = int(os.environ.get('FAR_HORIZON', 24 * 3600))   # look ahead to the end of the day: never send back a train that will be needed again
+far_deps = sorted([tr for tr in trips if not tr['out']], key=lambda x: x['dep'])
+far_arrs = sorted([tr['arr'] for tr in trips if tr['out']])
+import bisect
+def need_far(t):
+    """trains that must already be waiting at the far terminal at time t to cover its departures"""
+    need, k = 0, 0
+    i0 = bisect.bisect_right([d['dep'] for d in far_deps], t)
+    for d in far_deps[i0:]:
+        if d['dep'] > t + FAR_HORIZON: break
+        k += 1
+        arrivals_in_time = bisect.bisect_right(far_arrs, d['dep'] - TURN) - bisect.bisect_right(far_arrs, t)
+        need = max(need, k - arrivals_in_time)
+    return need
+
+trains = []                         # list of list of trips
+DEPOT_AFTER, RETIRE = {}, {}        # trip -> goes to depot after it / goes back empty from the far end
+pool_home, pool_far, depot = [], [], []     # (arrival time, train)
+timeline = sorted([(tr['dep'], 1, tr) for tr in trips] + [(tr['arr'], 0, tr) for tr in trips], key=lambda e: (e[0], e[1]))
+last_far_dep = far_deps[-1]['dep']
+for t, kind, tr in timeline:
+    if kind == 0:                                   # arrival
+        k = tr['train']
+        if tr['out']:
+            pool_far.append((tr['arr'], k))
+            FAR_CAP = int(os.environ.get('FAR_CAP', 4))   # 2 tails + arrival + departure platform
+            if len(pool_far) > max(need_far(tr['arr']), FAR_CAP - 1):  # only when the terminus is really full
+                pool_far.pop(); RETIRE[tr['ti']] = True
+                depot.append((tr['arr'] + 45 * 60, k))
+        else:
+            pool_home.append((tr['arr'], k))
+        continue
+    # departure
+    pool = pool_home if tr['out'] else pool_far
+    ready = [x for x in pool if x[0] + TURN <= tr['dep']]
+    if ready:
+        # home terminal: the train that has just finished its turnaround goes (spares stay for the depot);
+        # far terminal: first come, first served
+        x = max(ready) if tr['out'] else min(ready); pool.remove(x); k = x[1]
+        prev = trains[k][-1]
+        if tr['out'] and tr['dep'] - prev['arr'] > LAYOVER_DEPOT: DEPOT_AFTER[prev['ti']] = True
+    else:
+        lead = 10 * 60 if tr['out'] else 50 * 60
+        avail = [x for x in depot if x[0] <= tr['dep'] - lead]
+        if avail:
+            x = min(avail); depot.remove(x); k = x[1]
+        else:
+            k = len(trains); trains.append([])
+    trains[k].append(tr); tr['train'] = k
+# whatever is left: home trains to the depot, far trains go back empty (last two stay overnight)
+for _, k in pool_home: DEPOT_AFTER[trains[k][-1]['ti']] = True
+for _, k in pool_far: RETIRE[trains[k][-1]['ti']] = True
+for c in trains:
+    if not c[-1]['out']: DEPOT_AFTER[c[-1]['ti']] = True
+far_end = sorted([c for c in trains if c[-1]['out']], key=lambda c: c[-1]['arr'])
+NIGHT_COM_END = {c[-1]['train']: tail for c, tail in zip(far_end[-2:][::-1], COM_TAILS)}
+far_start = sorted([c for c in trains if not c[0]['out']], key=lambda c: c[0]['dep'])
+NIGHT_COM_START = {c[0]['train']: tail for c, tail in zip(far_start[:2], COM_TAILS)}
+# Giovanni: at San Donato too one train sleeps in each tail (not every depot track is available)
+home_end = sorted([c for c in trains if not c[-1]['out']], key=lambda c: c[-1]['arr'])
+NIGHT_SD_END = {c[-1]['train']: tail for c, tail in zip(home_end[-2:][::-1], SD_TAILS)} if LINE == 'M3' else {}
+home_start = sorted([c for c in trains if c[0]['out']], key=lambda c: c[0]['dep'])
+NIGHT_SD_START = {c[0]['train']: tail for c, tail in zip(home_start[:2], SD_TAILS)} if LINE == 'M3' else {}
+for k in NIGHT_SD_END: DEPOT_AFTER.pop(trains[k][-1]['ti'], None)
+def after_break(c, j):
+    """True when the train is not at the terminal before trip j (start of day or back from depot)"""
+    if j == 0: return True
+    p = c[j - 1]['ti']; return DEPOT_AFTER.get(p) or RETIRE.get(p)
+print('empty runs back from', CFG['far'], 'during the day:', sum(1 for c in trains for tr in c[:-1] if RETIRE.get(tr['ti'])))
+
+# ---------------- allocate tails and platforms (no two trains on one track) ----------------
+def allocate(requests, options):
+    """requests: list of (start, end, key, allowed options). greedy interval assignment."""
+    busy = {o: [] for o in options}; got = {}; clashes = 0
+    for s0, s1, key, allowed in sorted(requests, key=lambda r: r[0]):
+        free = [o for o in allowed if all(e <= s0 or b >= s1 for b, e in busy[o])]
+        if free:
+            o = min(free, key=lambda o: max([e for b, e in busy[o]] + [0]))  # least recently used
+        else:
+            clashes += 1; o = min(allowed, key=lambda o: max([e for b, e in busy[o]] + [0]))
+        busy[o].append((s0, s1)); got[key] = o
+    return got, clashes
+
+# Terminal model: arrive, passengers off, run into a tail, reverse, then move up to the
+# departure platform as soon as it is free and wait there with doors open.
+T_IN, T_OUT = 100, 90          # typical platform->tail and tail->platform running times
+turns = []                      # (terminal, arrival trip, departure trip)
+for chain in trains:
+    for j in range(len(chain) - 1):
+        a_, b_ = chain[j], chain[j + 1]
+        if after_break(chain, j + 1): continue
+        turns.append(('COM' if a_['out'] else 'SD', a_, b_))
+TE, PLAT_OF, ENTRY, TAIL_OF, PLAT_ARR, PULL_PLAT, EARLY_TAIL = {}, {}, {}, {}, {}, {}, {}
+# running times measured on the real tracks
+def _stop_d(pid, stop):
+    p, c = paths[pid]; d, _ = project(p, c, *stop, 0, None); return d, c[-1]
+T_IN, T_OUT = {}, {}
+for t in SD_TAILS:
+    pid = make_path(('in', t), route_nodes(CFG['IN_VIA'][-2], t, via=CFG['IN_VIA'][-1:]))
+    d, L = _stop_d(pid, SD_STOP); T_IN[t] = (L - TRAIN_HALF - d) / V_TAIL
+    for pn in CFG['PLATS']:
+        pid = leg_path(t, [SD_DEP[pn], SD_OUT_NODE], COM_TAILS[0]); d, L = _stop_d(pid, SD_STOP)
+        T_OUT[(t, pn)] = (d - TRAIN_HALF) / V_TAIL
+for t in COM_TAILS:
+    pid = leg_path(SD_TAILS[0], [SD_DEP[1], SD_OUT_NODE], t); d, L = _stop_d(pid, COM_STOP)
+    T_IN[t] = (L - TRAIN_HALF - d) / V_TAIL
+    pid = leg_path(t, CFG['IN_VIA'], SD_TAILS[0]); d, L = _stop_d(pid, COM_STOP)
+    T_OUT[(t, 0)] = (d - TRAIN_HALF) / V_TAIL
+print('tail running times (s):', {k: round(v) for k, v in {**T_IN, **{str(k): v for k, v in T_OUT.items()}}.items()})
+
+INF = 10 ** 9
+plat_free = {('COM', 0): 0, **{('SD', p): 0 for p in CFG['PLATS']}}
+tail_free = {t: 0 for t in SD_TAILS + COM_TAILS}
+TAIL_LOG = collections.defaultdict(list)            # tail -> [(in, out, train)] for checking
+TAIL_STAYS = []
+# Giovanni: two trains spend the night in the Comasina tail tracks (NIGHT_COM_START / END above)
+pulls = [c[j] for c in trains for j in range(len(c)) if c[j]['out'] and after_break(c, j)]
+early = [c[j] for c in trains for j in range(len(c)) if not c[j]['out'] and after_break(c, j)]
+ends_far = [tr for c in trains for tr in c if tr['out'] and RETIRE.get(tr['ti'])]
+events = sorted([(b_['dep'], 0, 'turn', (term, a_, b_)) for term, a_, b_ in turns] +
+                [(tr['dep'], 0, 'pull', tr) for tr in pulls] +
+                [(tr['dep'], 0, 'early', tr) for tr in early] +
+                [(tr['arr'] + 600, 1, 'end', tr) for tr in ends_far] +
+                [(trains[k][-1]['arr'] + 600, 1, 'endsd', trains[k][-1]) for k in NIGHT_SD_END], key=lambda e: (e[0], e[1]))
+held = late = 0
+
+PREF_WAIT = 120     # a train would rather wait in the tail until ~2 min before departure...
+LAST_IN_TAIL = {}   # ...but leaves earlier (and waits on the platform) when the tail is needed
+def leave_tail(term, tail, t_tail, dep, key_choices):
+    """returns (preferred exit, earliest exit, platform, travel time) for the tail stay"""
+    best = None
+    for key, tout in key_choices:
+        te_min = max(t_tail + REVERSE, plat_free[key])
+        if best is None or te_min + tout < best[0] + best[2]: best = (te_min, key, tout)
+    te_min, key, tout = best
+    te = max(te_min, dep - tout - PREF_WAIT)
+    return te, te_min, key, tout
+
+def claim_tail(tail, t_arrive_platform_side):
+    """make the previous occupant leave early enough for a train arriving at this time"""
+    prev = LAST_IN_TAIL.get(tail)
+    if prev is None: return tail_free[tail]
+    need = t_arrive_platform_side - 40
+    if prev['te'] > need:
+        prev['te'] = max(prev['te_min'], need)
+        TE[prev['ti']] = prev['te']; PLAT_ARR[prev['ti']] = min(prev['te'] + prev['tout'], prev['dep'] - 30)
+    return prev['te'] + 40
+
+def record(tail, ti, te, te_min, tout, dep):
+    rec = {'ti': ti, 'te': te, 'te_min': te_min, 'tout': tout, 'dep': dep}
+    LAST_IN_TAIL[tail] = rec; TE[ti] = te; PLAT_ARR[ti] = min(te + tout, dep - 30)
+    return rec
+
+for _, _, kind, obj in events:
+    if kind == 'pull' and obj['train'] in NIGHT_SD_START and trains[obj['train']][0] is obj:
+        tail = NIGHT_SD_START[obj['train']]
+        te, te_min, key, tout = leave_tail('SD', tail, 0, obj['dep'], [(('SD', p), T_OUT[(tail, p)]) for p in CFG['PLATS']])
+        PLAT_OF[obj['ti']] = key[1]
+        rec = record(tail, obj['ti'], te, te_min, tout, obj['dep']); rec['log'] = (0, obj['train']); TAIL_STAYS.append((tail, rec))
+        tail_free[tail] = te + 40; plat_free[key] = obj['dep'] + 20; continue
+    if kind == 'pull':
+        tp = max(obj['dep'] - PLAT_WAIT, plat_free[('SD', 1)])
+        PULL_PLAT[obj['ti']] = min(tp, obj['dep'] - 30); PLAT_OF[obj['ti']] = 1
+        plat_free[('SD', 1)] = obj['dep'] + 20; continue
+    if kind == 'early':
+        k = obj['train']
+        if k in NIGHT_COM_START and trains[k][0] is obj:
+            tail = NIGHT_COM_START[k]; t_tail = 0
+        else:
+            tail = min(COM_TAILS, key=lambda t: tail_free[t])
+            t_tail = max(tail_free[tail], obj['dep'] - 900)
+        te, te_min, key, tout = leave_tail('COM', tail, t_tail, obj['dep'], [(('COM', 0), T_OUT[(tail, 0)])])
+        EARLY_TAIL[obj['ti']] = (tail, t_tail)
+        rec = None
+        rec = record(tail, obj['ti'], te, te_min, tout, obj['dep']); rec['log'] = (t_tail, k); TAIL_STAYS.append((tail, rec))
+        tail_free[tail] = te + 40; plat_free[key] = obj['dep'] + 20
+        continue
+    if kind == 'endsd':
+        k = obj['train']; tail = NIGHT_SD_END[k]
+        for t in SD_TAILS:
+            if LAST_IN_TAIL.get(t): tail_free[t] = min(tail_free[t], claim_tail(t, obj['arr'] + DWELL_END))
+        entry = max(obj['arr'] + DWELL_END, tail_free[tail]); held += entry > obj['arr'] + DWELL_END + 5
+        ENTRY[obj['ti']] = entry; TAIL_OF[obj['ti']] = tail
+        TAIL_LOG[tail].append((entry, INF, k)); tail_free[tail] = INF; LAST_IN_TAIL.pop(tail, None)
+        continue
+    if kind == 'end':
+        k = obj['train']; night = k in NIGHT_COM_END and trains[k][-1] is obj
+        for t in COM_TAILS:
+            if LAST_IN_TAIL.get(t): tail_free[t] = min(tail_free[t], claim_tail(t, obj['arr'] + DWELL_END))
+        tail = NIGHT_COM_END[k] if night else min(COM_TAILS, key=lambda t: tail_free[t])
+        entry = max(obj['arr'] + DWELL_END, tail_free[tail]); held += entry > obj['arr'] + DWELL_END + 5
+        ENTRY[obj['ti']] = entry; TAIL_OF[obj['ti']] = tail
+        if night: TAIL_LOG[tail].append((entry, INF, k)); tail_free[tail] = INF; LAST_IN_TAIL.pop(tail, None)
+        else:
+            out_t = entry + T_IN[tail] + REVERSE; TE[('end', obj['ti'])] = out_t
+            TAIL_LOG[tail].append((entry, out_t, k)); tail_free[tail] = out_t + 40; LAST_IN_TAIL.pop(tail, None)
+        continue
+    term, a_, b_ = obj
+    tails = COM_TAILS if term == 'COM' else SD_TAILS
+    want = a_['arr'] + DWELL_END
+    for t in tails: tail_free[t] = min(tail_free[t], claim_tail(t, want)) if LAST_IN_TAIL.get(t) else tail_free[t]
+    tail = min(tails, key=lambda t: tail_free[t])
+    entry = max(want, tail_free[tail])        # waits on the arrival platform if needed
+    if entry > a_['arr'] + DWELL_END + 5: held += 1
+    t_tail = entry + T_IN[tail]
+    if term == 'COM': choices = [(('COM', 0), T_OUT[(tail, 0)])]
+    else: choices = [(('SD', p), T_OUT[(tail, p)]) for p in CFG['PLATS']]
+    te, te_min, key, tout = leave_tail(term, tail, t_tail, b_['dep'], choices)
+    if term == 'SD': PLAT_OF[b_['ti']] = key[1]
+    ENTRY[a_['ti']] = entry; TAIL_OF[a_['ti']] = tail
+    rec = record(tail, b_['ti'], te, te_min, tout, b_['dep']); rec['log'] = (entry, a_['train'])
+    TAIL_STAYS.append((tail, rec))
+    tail_free[tail] = te + 40; plat_free[key] = b_['dep'] + 20
+# check: never two trains in one dead-end track; count late departures
+for tail, rec in TAIL_STAYS: TAIL_LOG[tail].append((rec['log'][0], rec['te'], rec['log'][1]))
+late = sum(1 for tail, rec in TAIL_STAYS if rec['te'] + rec['tout'] > rec['dep'] - 30)
+clash = 0
+for t, log in TAIL_LOG.items():
+    log.sort()
+    for x, y in zip(log, log[1:]):
+        if y[0] < x[1]: clash += 1
+print('tail clashes:', clash, '| held on arrival platform for a free tail:', held, '| departures that would be late:', late)
+SD_TAIL_OF = COM_TAIL_OF = TAIL_OF
+
+# ---------------- timeline builder ----------------
+class TL:
+    def __init__(s, k): s.k = k; s.segs = []; s.pos = None
+    def add(s, pid, status, ts, ds, trip=-1):
+        s.segs.append([pid, status, trip, [round(x) for x in ts], [round(x, 1) for x in ds]])
+        s.pos = (pid, ds[-1])
+
+def move(tl, pid, d0, d1, t0, v, status):
+    t1 = t0 + abs(d1 - d0) / v
+    tl.add(pid, status, [t0, t1], [d0, d1]); return t1
+
+def service_leg(tl, start, via, end, trip, t_leave, plat_stop, end_stop, approach_status, t_plat_arr=None):
+    """One leg from a reversal point through a full passenger trip to the next reversal point."""
+    pid = leg_path(start, via, end); p, c = paths[pid]
+    L = c[-1]
+    d_start = TRAIN_HALF if len(node_edges[start]) == 1 else 0
+    d_end = L - TRAIN_HALF if len(node_edges[end]) == 1 else L
+    # project passenger stops
+    ds, last_d = [], d_start
+    for tt, s in trip['ev']:
+        name, la, lo = D['stops'][s]
+        if s == trip['ev'][0][1]: la, lo = plat_stop
+        elif s == trip['ev'][-1][1]: la, lo = end_stop
+        d, _ = project(p, c, la, lo, last_d, 3000)
+        d = max(d, last_d); ds.append(d); last_d = d
+    t_dep = trip['ev'][0][0]
+    if t_plat_arr is None:
+        t_plat_arr = t_dep - 30
+    # approach from reversal point to the departure platform
+    tl.add(pid, approach_status, [t_leave, t_plat_arr], [d_start, ds[0]])
+    tl.add(pid, 'service', [t_plat_arr] + [e[0] for e in trip['ev']], [ds[0]] + ds, trip['ti'])
+    if tl.k >= 0:                      # station boards: when this train reaches each platform
+        direction = CFG['far'] if trip['out'] else CFG['home']
+        seen_stop = set()
+        for i, (tt, s_) in enumerate(trip['ev']):
+            if s_ in seen_stop: continue
+            seen_stop.add(s_)
+            BOARD[station_key(D['stops'][s_][0])][direction].append(round(t_plat_arr if i == 0 else tt))
+    t_arr = trip['ev'][-1][0]
+    return pid, ds[-1], d_end, t_arr
+
+DWELL_MIN, DWELL_MAX = 30, 120   # Giovanni: trains wait 30 s to 2 min at the departure platform
+def when_leave(t_in_tail, tr, d_pl):
+    """Leave the tail so the train sits at the platform as long as possible (up to 2 min)
+    without ever departing late; never less than 30 s if it can be helped."""
+    approach = (d_pl - TRAIN_HALF) / V_YARD
+    t_leave = max(t_in_tail + REVERSE, TE.get(tr['ti'], 0), tr['dep'] - approach - DWELL_MAX)
+    t_plat = t_leave + approach
+    if t_plat > tr['dep'] - DWELL_MIN:
+        t_plat = max(tr['dep'] - DWELL_MIN, t_leave + 25)   # drive in a little quicker
+    return t_leave, t_plat
+
+ALTS = collections.defaultdict(list)
+BOARD = collections.defaultdict(lambda: collections.defaultdict(list))
+def station_key(name):
+    return name.upper().replace(' ' + LINE, '').strip()
+# ---- parking places: one per depot stay, never two trains on one track ----
+STORE_BEFORE, STORE_AFTER = {}, {}
+stays = []                                   # (start, end, key_after, key_before)
+for k, c in enumerate(trains):
+    def leave_at(tr): return tr['dep'] - (75 * 60 if not tr['out'] else 12 * 60)
+    if k not in NIGHT_COM_START and k not in NIGHT_SD_START: stays.append((0, leave_at(c[0]), None, c[0]['ti']))
+    for j, tr in enumerate(c):
+        if DEPOT_AFTER.get(tr['ti']) or (RETIRE.get(tr['ti']) and not (j == len(c) - 1 and k in NIGHT_COM_END)):
+            arrive = tr['arr'] + (5 * 60 if not tr['out'] else 40 * 60)
+            nxt = c[j + 1] if j + 1 < len(c) else None
+            stays.append((arrive, leave_at(nxt) if nxt else INF, tr['ti'], nxt['ti'] if nxt else None))
+place_free = {p: -1 for p in storage}
+pref = sorted(storage, key=lambda p: (p not in STORE_EXIT, storage.index(p)))
+shared = 0
+for s0, s1, after, before in sorted(stays, key=lambda x: x[0]):
+    free = [p for p in pref if place_free[p] <= s0]
+    if free: p = free[0]
+    else: p = min(pref, key=lambda q: place_free[q]); shared += 1
+    place_free[p] = s1
+    if after is not None: STORE_AFTER[after] = p
+    if before is not None: STORE_BEFORE[before] = p
+print('depot stays', len(stays), '| a track shared at the same time:', shared)
+def platform_alternatives(tl, seg0, start, ctail, tr, t_leave, t_plat, chosen):
+    """Store the same departure via every San Donato platform so the page can switch it."""
+    if len(CFG['PLATS']) < 2: return
+    opts = {}
+    for pn in CFG['PLATS']:
+        if pn == chosen: continue
+        tmp = TL(-1)
+        service_leg(tmp, start, [SD_DEP[pn], SD_OUT_NODE], ctail, tr, t_leave, SD_STOP, COM_STOP, 'turnback', t_plat)
+        opts[str(pn)] = tmp.segs
+    opts[str(chosen)] = [list(x) for x in tl.segs[seg0:seg0 + 2]]
+    ALTS[tl.k].append({'i': seg0, 'n': 2, 'plat': chosen, 'opts': opts, 'from': round(t_plat), 'dep': tr['dep'], 'leave': round(t_leave)})
+
+ARR2 = collections.defaultdict(list)
+def arrive_p2(tl, pd, nxt, ctail2):
+    """Player order: the train from Rogoredo runs into platform 2 instead of 3 and reverses there
+    (no tail). Replaces its arrival, the tail visit and the next departure."""
+    a = CFG['ARR2']; tr = pd['tr']; tmp = TL(-1)
+    saved = {w: ONEWAY.pop(w) for w in a['lift'] if w in ONEWAY}   # platform 2 run the wrong way, on order only
+    try:
+        pidA, dA, _, tA = service_leg(tmp, pd['ctail'], a['via'], a['end'], tr, pd['t_leave'], COM_STOP, SD_STOP, 'turnback', pd['t_plat'])
+    except RuntimeError as e:
+        print('ARR2 route', e); return
+    finally:
+        ONEWAY.update(saved)
+    t_ready = tA + DWELL_END + REVERSE                  # passengers off, driver changes cab
+    if nxt['dep'] - 30 < t_ready: return                # not enough time to reverse in place
+    t_board = max(t_ready, nxt['dep'] - DWELL_MAX)
+    tmp.add(pidA, 'turnback', [tA, t_ready], [dA, dA])
+    tmpB = TL(-1)
+    pidB, dB_arr, dB_end, tB = service_leg(tmpB, a['end'], [SD_OUT_NODE], ctail2, nxt, t_ready, SD_STOP, COM_STOP, 'turnback', t_board)
+    appr, serv = tmpB.segs
+    d0 = serv[4][0]; appr[4] = [d0, d0]                 # it is already standing at the platform
+    last = tl.segs[-1]                                  # the run into the Comasina tail keeps its times
+    tail_move = [pidB, last[1], -1, list(last[3]), [round(dB_arr, 1), round(dB_end, 1)]]
+    rog = max(tt for tt, s_ in tr['ev'] if 'ROGOREDO' in D['stops'][s_][0].upper())
+    ARR2[tl.k].append({'i': pd['i'], 'n': len(tl.segs) - pd['i'], 'segs': tmp.segs + [appr, serv, tail_move],
+                       'open': round(rog), 'close': round(tA - 40), 'from': round(tA), 'dep': nxt['dep'], 'arr': round(tA)})
+
+out = []
+pending = None
+for k, chain in enumerate(trains):
+    tl = TL(k)
+    sd_tail_i = k % 3; com_tail_i = k % 2; plat = 1 + (k % 2)
+    # where the train is before its first trip
+    loc = ('depot', STORE_BEFORE.get(chain[0]['ti'], storage[0]))
+    first = chain[0]
+    start_where = 'depot'; end_where = 'depot'
+    if k in NIGHT_COM_START:
+        loc = ('com', NIGHT_COM_START[k], 0); start_where = CFG['far']
+    if k in NIGHT_SD_START:
+        loc = ('sd', NIGHT_SD_START[k], 0); start_where = CFG['home']
+    for j, tr in enumerate(chain):
+        nxt = chain[j + 1] if j + 1 < len(chain) else None
+        if tr['out']:
+            ctail = COM_TAIL_OF.get(tr['ti'], COM_TAILS[com_tail_i]); com_tail_i ^= 1
+            if loc[0] == 'depot':
+                # pull out: depot -> platform 1 in 5 min, wait 2 min, depart
+                start = STORE_BEFORE.get(tr['ti'], loc[1]); via = [SD_DEP[1], SD_OUT_NODE]
+                pid0 = leg_path(start, via, ctail); d_pl, _ = project(paths[pid0][0], paths[pid0][1], *SD_STOP, 0, None)
+                d0 = TRAIN_HALF if len(node_edges[start]) == 1 else 0
+                run = max(PULL_OUT if LINE == 'M4' else 0, (d_pl - d0) / V_YARD)     # M3: at 15 km/h all the way
+                t_plat = PULL_PLAT[tr['ti']]; t_leave = t_plat - run
+                pid, d_arr, d_end, t_arr = service_leg(tl, start, via, ctail, tr, t_leave, SD_STOP, COM_STOP, 'from_depot', t_plat)
+                tl.segs[-2].append(start)
+            else:
+                start = loc[1]; p_no = PLAT_OF.get(tr['ti'], 1)
+                via = [SD_DEP[p_no], SD_OUT_NODE]
+                t_leave, t_plat = TE[tr['ti']], PLAT_ARR[tr['ti']]
+                seg0 = len(tl.segs)
+                pid, d_arr, d_end, t_arr = service_leg(tl, start, via, ctail, tr, t_leave, SD_STOP, COM_STOP, 'turnback', t_plat)
+                platform_alternatives(tl, seg0, start, ctail, tr, t_leave, t_plat, p_no)
+            # terminus: passengers off, run into the tail
+            ctail = TAIL_OF.get(tr['ti'], ctail)
+            pid = leg_path(start, via, ctail); d_end = paths[pid][1][-1] - TRAIN_HALF
+            t_end = move(tl, pid, d_arr, d_end, ENTRY.get(tr['ti'], t_arr + DWELL_END), V_TAIL, 'turnback')
+            if pending and loc[0] == 'sd':
+                arrive_p2(tl, pending, tr, ctail)
+            pending = None
+            loc = ('com', ctail, t_end)
+            if RETIRE.get(tr['ti']):
+                if nxt is None and k in NIGHT_COM_END:
+                    end_where = CFG['far']                     # sleeps in the tail
+                else:                                          # not needed here: back to the depot empty
+                    store = STORE_AFTER[tr['ti']]
+                    pidE = leg_path(ctail, CFG['DEPOT_IN_VIA'], store); cE = paths[pidE][1]
+                    d0, d1 = TRAIN_HALF, cE[-1] - TRAIN_HALF
+                    t0 = TE.get(('end', tr['ti']), t_end + REVERSE)
+                    t1 = t0 + (d1 - d0 - 900) / V_EMPTY
+                    tl.add(pidE, 'empty', [t0, t1, t1 + 900 / V_YARD], [d0, d1 - 900, d1]); tl.segs[-1].append(store)
+                    loc = ('depot', store)
+        else:
+            # leaving Comasina tail (or arriving from depot by empty run)
+            if loc[0] == 'depot':
+                # early train: empty run from the depot to Comasina tail first
+                ctail, t_ready = EARLY_TAIL[tr['ti']]
+                pidE = leg_path(STORE_BEFORE.get(tr['ti'], loc[1]), [SD_DEP[1], SD_OUT_NODE], ctail); cE = paths[pidE][1]
+                LE = cE[-1]; d0, d1 = TRAIN_HALF, LE - TRAIN_HALF
+                t0 = t_ready - (d1 - d0) / V_EMPTY - 90
+                tl.add(pidE, 'empty', [t0, t0 + 90, t_ready], [d0, d0 + 200, d1]); tl.segs[-1].append(STORE_BEFORE.get(tr['ti'], loc[1]))
+                loc = ('com', ctail, t_ready)
+            ctail = loc[1]
+            go_depot = bool(DEPOT_AFTER.get(tr['ti']))
+            if nxt is None and k in NIGHT_SD_END:
+                end = NIGHT_SD_END[k]; via = CFG['IN_VIA']; end_where = CFG['home']
+            elif go_depot:
+                end = STORE_AFTER[tr['ti']]; via = CFG['DEPOT_IN_VIA']
+            else:
+                end = SD_TAIL_OF[tr['ti']]
+                via = CFG['IN_VIA']
+            t_leave, t_plat = TE[tr['ti']], PLAT_ARR[tr['ti']]
+            seg_in0 = len(tl.segs)
+            pid, d_arr, d_end, t_arr = service_leg(tl, ctail, via, end, tr, t_leave, COM_STOP, SD_STOP, 'turnback', t_plat)
+            pending = None
+            if CFG.get('ARR2') and not go_depot and nxt is not None and nxt['out'] and not (nxt is None and k in NIGHT_SD_END):
+                pending = dict(i=seg_in0, tr=tr, ctail=ctail, t_leave=t_leave, t_plat=t_plat)
+            if go_depot:
+                t_end = move(tl, pid, d_arr, d_end, t_arr + DWELL_END, V_YARD, 'to_depot'); tl.segs[-1].append(end)
+                loc = ('depot', end)
+                # midday layover: comes back out later from the depot (handled by next OUT trip)
+            else:
+                t_end = move(tl, pid, d_arr, d_end, ENTRY.get(tr['ti'], t_arr + DWELL_END), V_TAIL, 'turnback')
+                loc = ('sd', end, t_end)
+    tl.start_where, tl.end_where = start_where, end_where
+    out.append(tl)
+
+if CFG['training']:
+    # ---------------- driver training on the anello di prova ----------------
+    loop_states = None
+    r1 = route_nodes(78, 78, via=[157, 144, 145, 162])
+    cyc = route_nodes(157, 157, via=[144, 145, 162, 78])
+    # Giovanni decides when an idle train goes round the test loop: routes from every depot track
+    pcy = make_path(('cycle',), cyc)
+    depot_nodes = [n for n in node_pos if in_depot(n) and len(node_edges[n]) >= 2]
+    def via_reversal(a, b):
+        """one reversal inside the depot (normal shunting): a -> X, change cab, X -> b"""
+        best = None
+        for x in depot_nodes:
+            r1 = route_nodes(a, x)
+            if not r1: continue
+            r2 = route_nodes(x, b)
+            if not r2: continue
+            L_ = plen(path_poly(r1)) + plen(path_poly(r2))
+            if best is None or L_ < best[0]: best = (L_, r1 + r2)
+        return best[1] if best else None
+    TEST = {'cycle': pcy, 'lap': round(paths[pcy][1][-1]), 'v_lap': 8.0, 'v_yard': V_YARD, 'reverse': REVERSE, 'by_store': {}}
+    for p in storage:
+        _router.THROUGH_ALLOWED = {p} if p in STORE_EXIT else set()
+        r_in = route_nodes(p, 157, first=STORE_EXIT.get(p)) or route_nodes(p, 157) or via_reversal(p, 157)
+        r_back = route_nodes(157, p, first=78) or route_nodes(157, p) or via_reversal(157, p)
+        _router.THROUGH_ALLOWED = set()
+        if r_in and r_back and end_node(*r_in[-1]) == 157:
+            TEST['by_store'][str(p)] = [make_path(('tin', p), r_in), make_path(('tback', p), r_back),
+                                        TRAIN_HALF if len(node_edges[p]) == 1 else 0]
+    print('test loop reachable from', len(TEST['by_store']), 'of', len(storage), 'depot places')
+else:
+    TEST = None
+
+
+# ---------------- real trains (M3 fleet list from Giovanni) ----------------
+STOCK, DUTIES = [], [[] for _ in out]
+if LINE in ('M3', 'M4'):
+    real_trains = __import__('fleet_' + LINE.lower()).trains
+    STOCK, SPARE = real_trains()
+    duties = []
+    for tl in out:
+        segs, start = tl.segs, None
+        for i, sg in enumerate(segs):
+            if start is None: start = 0 if (i == 0 and tl.start_where != 'depot') else sg[3][0]
+            nxt = segs[i + 1] if i + 1 < len(segs) else None
+            into = sg[1] == 'to_depot' or (sg[1] == 'empty' and (nxt is None or nxt[1] == 'from_depot'))
+            if into or nxt is None:
+                end = sg[3][-1] if into else INF
+                duties.append([start, end, tl.k, None]); start = None
+    duties.sort(key=lambda d: d[0])
+    free = {i: -1 for i in range(len(STOCK))}
+    # trains sleeping in a tail overnight: the evening train is the same as the morning one
+    night_pairs = list(zip(sorted(NIGHT_COM_START, key=lambda k: trains[k][0]['dep']), sorted(NIGHT_COM_END, key=lambda k: trains[k][-1]['arr']))) + \
+                  list(zip(sorted(NIGHT_SD_START, key=lambda k: trains[k][0]['dep']), sorted(NIGHT_SD_END, key=lambda k: trains[k][-1]['arr'])))
+    reserved = {}
+    for i, (ms, ev) in enumerate(night_pairs):
+        for d in duties:
+            if d[2] == ms and d[0] == 0: d[3] = i; free[i] = d[1]
+            if d[2] == ev and d[1] == INF: reserved[id(d)] = i
+    short = 0
+    for d in duties:
+        if d[3] is not None: continue
+        if id(d) in reserved:
+            i = reserved[id(d)]
+            if free[i] + 600 <= d[0]: d[3] = i; free[i] = d[1]; continue
+        ok = [i for i, f in free.items() if f + 600 <= d[0] and i not in reserved.values()] or \
+             [i for i, f in free.items() if f + 600 <= d[0]]
+        if ok: i = min(ok, key=lambda i: free[i]); d[3] = i; free[i] = d[1]
+        else: short += 1; d[3] = -1
+    # peak: stretches out of the depot running at the same moment
+    ev_ = sorted([(d[0], 1) for d in duties] + [(min(d[1], 27 * 3600) + 600, -1) for d in duties]); c_ = m_ = 0; at_ = 0
+    for t_, x_ in ev_:
+        c_ += x_
+        if c_ > m_: m_, at_ = c_, t_
+    print('trains needed at the busiest moment:', m_, 'at %02d:%02d' % (at_ // 3600 % 24, at_ // 60 % 60))
+    for d in duties: DUTIES[d[2]].append([d[0], min(d[1], 10 ** 6), d[3]])
+    print('real fleet:', len(STOCK), 'trains | stretches out of the depot:', len(duties), '| not covered by a real train:', short)
+
+# ---------------- report ----------------
+print('trains', len(trains), 'storage tracks', len(storage), 'paths', len(paths))
+
+# overlap check: max trains waiting at each terminal tail
+def fmt(s): return '%02d:%02d' % (s // 3600 % 24, s // 60 % 60)
+for k, tl in enumerate(out[:3]):
+    print('train', k + 1, [(s[1], fmt(s[3][0]), fmt(s[3][-1])) for s in tl.segs][:8])
+
+# ---------------- tracks to draw ----------------
+tracks = []
+for w in W:
+    cat = 'main' if w['name'] == CFG['main'] else ('test' if 'anello' in w['name'] else w['svc'] or 'main')
+    if 'Raccordo' in w['name']: cat = 'link'
+    flat, pa, pb = [], 0, 0
+    for a, b, n in w['pts']:
+        A, B = round(a * 1e6), round(b * 1e6); flat += [A - pa, B - pb]; pa, pb = A, B
+    tracks.append({'c': cat, 'p': flat, 'w': w['i']})
+
+for li_, (a_, b_, m) in enumerate(LINKS):     # depot through tracks (inside the depot building)
+    flat, pa, pb = [], 0, 0
+    for n in (a_, m, b_):
+        la_, lo_ = ll(*node_pos[n]); A, B = round(la_ * 1e6), round(lo_ * 1e6); flat += [A - pa, B - pb]; pa, pb = A, B
+    tracks.append({'c': 'yard', 'p': flat, 'w': -1 - li_})
+
+def enc(p):
+    flat, pa, pb = [], 0, 0
+    for x, y in p:
+        a, b = ll(x, y); A, B = round(a * 1e6), round(b * 1e6); flat += [A - pa, B - pb]; pa, pb = A, B
+    return flat
+def boards_out():
+    pos = collections.defaultdict(list)
+    for name, la, lo in D['stops']:
+        k = station_key(name)
+        if k in BOARD: pos[k].append((la, lo))
+    res = []
+    for k, dirs in BOARD.items():
+        la = sum(p[0] for p in pos[k]) / len(pos[k]); lo = sum(p[1] for p in pos[k]) / len(pos[k])
+        enc_dirs = {}
+        for dname, ts in dirs.items():
+            ts.sort(); prev = 0; out_ = []
+            for t in ts: out_.append(t - prev); prev = t
+            enc_dirs[dname] = out_
+        res.append({'n': k.title(), 'la': round(la, 6), 'lo': round(lo, 6), 'dirs': enc_dirs})
+    return res
+
+# a shunting signal at the entrance of every depot track (Giovanni will adjust them in the editor)
+AUTO_SIGNALS = []
+def _entry_signal(n, ei, k):
+    e = edges[ei]; pts = e['pts'] if e['b'] == n else e['pts'][::-1]     # from the fan junction towards the parking track
+    c = cum(pts); target = min(12.0, c[-1] * 0.5)
+    i = next(j for j in range(len(c) - 1) if c[j + 1] >= target); f = (target - c[i]) / ((c[i + 1] - c[i]) or 1)
+    x = pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f; y = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f
+    hdg = (math.degrees(math.atan2(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1])) + 360) % 360
+    la_, lo_ = ll(x, y)
+    AUTO_SIGNALS.append({'line': LINE, 'w': e['way'], 'lat': round(la_, 6), 'lon': round(lo_, 6), 'heading': round(hdg),
+                         'dir': 1 if e['b'] == n else -1, 'type': 'shunt', 'name': 'SM%02d' % k, 'auto': True})
+if LINE == 'M3':
+    k = 1
+    for p in storage:
+        ends = [x for x in (LINKS_BY_MID.get(p) or (p,))]
+        for n in ends:
+            for ei in node_edges[n]:
+                if 'mid' in edges[ei]: continue
+                _entry_signal(n, ei, k); k += 1
+    print('shunting signals placed at depot track entrances:', len(AUTO_SIGNALS))
+PLATMAP = {'station': CFG['home'], 'plats': [[l[0], l[1]] for l in CFG.get('labels', [])], 'stop': list(SD_STOP)}
+# platform number labels at the home terminal
+PLAT_LABELS = []
+for text, way, metres, side in CFG.get('labels', []):
+    pp = [xy(a, b) for a, b, n in W[way]['pts']]; cc = cum(pp)
+    s0, _ = project(pp, cc, *SD_STOP, 0, None)
+    sw_at_start = W[way]['pts'][0][0] < W[way]['pts'][-1][0]          # which end of the way is south-west
+    target = max(0, min(cc[-1], s0 - metres if sw_at_start else s0 + metres))
+    i = max(0, min(len(cc) - 2, next(k for k in range(len(cc) - 1) if cc[k + 1] >= target)))
+    f = (target - cc[i]) / ((cc[i + 1] - cc[i]) or 1)
+    la_, lo_ = ll(pp[i][0] + (pp[i + 1][0] - pp[i][0]) * f, pp[i][1] + (pp[i + 1][1] - pp[i][1]) * f)
+    PLAT_LABELS.append({'t': text, 'la': la_, 'lo': lo_, 's': side})
+json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in paths],
+           'trains': [tl.segs for tl in out],
+           'where': [[tl.start_where, tl.end_where] for tl in out],
+           'alts': [ALTS.get(tl.k, []) for tl in out],
+           'arr2': [ARR2.get(tl.k, []) for tl in out],
+           'pulls': [[PULL_PLAT[ti], dep] for ti, dep in ((tr['ti'], tr['dep']) for tr in pulls) if ti in PULL_PLAT],
+           'labels': PLAT_LABELS,
+           'platmap': PLATMAP,
+           'boards': boards_out(),
+           'stock': STOCK, 'duties': DUTIES, 'test': TEST,
+           'tracks': tracks,
+           'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
+          open(LINE.lower() + '.json', 'w'), separators=(',', ':'))
+print(LINE.lower() + '.json written')
+
+# --- diagnostics: trains present at each terminal at once ---
+if __name__ == '__main__':
+    for name, out_flag in (('Comasina', True), ('San Donato', False)):
+        iv = []
+        for chain in trains:
+            for j in range(len(chain) - 1):
+                if chain[j]['out'] == out_flag and not (not out_flag and chain[j+1]['dep'] - chain[j]['arr'] > LAYOVER_DEPOT):
+                    iv.append((chain[j]['arr'], chain[j+1]['dep']))
+        ev = sorted([(a, 1) for a, b in iv] + [(b, -1) for a, b in iv]); c = m = 0
+        for t, d in ev: c += d; m = max(m, c)
+        lay = sorted(b - a for a, b in iv) or [0]
+        print(name, 'max trains present', m, 'layover median %.1f min, max %.1f' % (lay[len(lay)//2]/60, lay[-1]/60))
+
+if __name__ == '__main__':
+    for term_out, name in ((False, CFG['home']), (True, CFG['far'])):
+        arr = sorted((tr['arr'], ENTRY.get(tr['ti'], tr['arr'] + DWELL_END)) for c in trains for tr in c if tr['out'] == term_out)
+        block = [(a2, e1) for (a1, e1), (a2, e2) in zip(arr, arr[1:]) if e1 > a2 - 20]
+        waits = sorted(e - a - DWELL_END for a, e in arr)
+        print(name, 'arrival platform: held trains', sum(1 for w in waits if w > 5), 'longest hold %.1f min' % (waits[-1] / 60),
+              '| next arrival blocked', len(block))
+
+if __name__ == '__main__':
+    # trains physically at the far terminal over the day (fixed by the timetable)
+    ev = []
+    for c in trains:
+        for j, tr in enumerate(c):
+            if tr['out']: ev.append((tr['arr'], 1))
+            elif j > 0 or c[0]['train'] in NIGHT_COM_START or True: ev.append((tr['dep'], -1))
+        if not c[0]['out']: ev.append((c[0]['dep'] - 600, 1))     # trains that start there
+        if c[-1]['out'] and c[-1]['train'] not in NIGHT_COM_END: ev.append((c[-1]['arr'] + 400, -1))
+    ev.sort(); n = 0; hist = collections.Counter(); peak = []
+    for t, d in ev:
+        n += d
+        if n >= 5: peak.append('%02d:%02d' % (t // 3600 % 24, t // 60 % 60))
+        hist[n] += 1
+    print(CFG['far'], 'trains present at once (count of moments):', dict(sorted(hist.items())), 'times with 5+:', peak[:20])
+
+if __name__ == '__main__' and os.environ.get('REPORT'):
+    for name, is_out in ((CFG['home'], False), (CFG['far'], True)):
+        lay = sorted(b_['dep'] - a_['arr'] for term, a_, b_ in turns if a_['out'] == is_out)
+        print('%s turnarounds: %d, shortest %.1f min, median %.1f, longest %.1f' % (name, len(lay), lay[0] / 60, lay[len(lay) // 2] / 60, lay[-1] / 60))
+    hd = sorted(b['dep'] - a['dep'] for a, b in zip(sorted(trips, key=lambda x: x['dep'])[::1], sorted(trips, key=lambda x: x['dep'])[1:]))
+    ev = sorted([(tl.segs[0][3][0], 1) for tl in out] + [(max(s[3][-1] for s in tl.segs), -1) for tl in out])
+    on = mx = 0
+    for t, d in ev: on += d; mx = max(mx, on)
+    svc = sorted([(tr['dep'], 1) for tr in trips] + [(tr['arr'], -1) for tr in trips]); c = m = 0
+    for t, d in svc: c += d; m = max(m, c)
+    print('trains in passenger service at the busiest moment:', m, '| trains out of the depot at the busiest moment:', mx)
