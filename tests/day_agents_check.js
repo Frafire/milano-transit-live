@@ -33,7 +33,7 @@ const mk = () => A.create({ G, ops: M.ops, reverse: M.reverse_s, half: M.half, p
   plans0: M.trains, stopsOf, sigpos: M.net.sigpos, zones: E.platformZones(G), dwell: envs.map(e => e.dwell), extra: () => 0, initAt: posAt });
 const ag = mk(), T0 = H0 * 3600, T1 = H1 * 3600, t0 = Date.now();
 ag.start(T0, posAt(T0)); ag.snapshot();
-let overlap = 0, minGap = Infinity, late = [], stuck = 0;
+let overlap = 0, minGap = Infinity, late = [], stuck = 0, worstDeparture = null;
 const moved = new Map();
 for (let t = T0 + 30; t <= T1; t += 30) {
   ag.step(t);
@@ -44,7 +44,10 @@ for (let t = T0 + 30; t <= T1; t += 30) {
       (byEdge.get(ei) || byEdge.set(ei, []).get(ei)).push([a.k, dir > 0 ? (p - x0) * k : (x1 - q) * k, dir > 0 ? (q - x0) * k : (x1 - p) * k]); } });
   for (const list of byEdge.values()) for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
     if (list[i][0] === list[j][0]) continue; const g = Math.max(list[j][1] - list[i][2], list[i][1] - list[j][2]); minGap = Math.min(minGap, g); if (g < 0) overlap++; }
-  ag.agents().forEach(a => { if (a.late != null && a.lateSeen !== a.late) { a.lateSeen = a.late; late.push(a.late); }
+  ag.agents().forEach(a => { if (a.late != null && a.status === 'service' && a.lateSeen !== a.late) {
+    a.lateSeen = a.late; late.push(a.late);
+    if (!worstDeparture || a.late > worstDeparture.delay) worstDeparture = { delay: a.late, train: a.k + 1, station: G.names[a.at] || '', time: t };
+  }
     const m = moved.get(a.k); if (!m || Math.abs(m.d - a.d) > 1 || m.pid !== a.pid) moved.set(a.k, { d: a.d, pid: a.pid, t }); });
 }
 ag.agents().forEach(a => { const m = moved.get(a.k); if (a.mode === 'plan' && a.status !== 'parked' && S_waiting(a) === false && m && T1 - m.t > 1200) { stuck++;
@@ -56,10 +59,11 @@ const ms = Date.now() - t0;
 // the computed day: departures late against the plan in the same hours
 const bl = []; base.res.forEach(r => r.log.forEach(e => { if (e.status === 'service' && e.planned > T0 && e.planned < T1) bl.push(e.actual - e.planned); })); bl.sort((p, q2) => p - q2);
 console.log(`agents ${H0}:00-${H1}:00: ${ms} ms | two trains on one track piece: ${overlap} (closest ${Math.round(minGap)} m) | stuck 20+ min: ${stuck}`);
-console.log(`  departures late vs timetable (s): median ${q(0.5)}, 90% ${q(0.9)}, worst ${q(1)} | the computed day, arrivals: median ${Math.round(bl[bl.length >> 1] || 0)}, 90% ${Math.round(bl[Math.floor(bl.length * 0.9)] || 0)}`);
+console.log(`  service departures late vs timetable (s): median ${q(0.5)}, 90% ${q(0.9)}, worst ${q(1)}${worstDeparture ? ` (train ${worstDeparture.train}, ${worstDeparture.station}, ${Math.floor(worstDeparture.time / 3600)}:${String(Math.floor(worstDeparture.time / 60) % 60).padStart(2, '0')})` : ''} | max allowed 120 s`);
+console.log(`  the computed day, arrivals: median ${Math.round(bl[bl.length >> 1] || 0)}, 90% ${Math.round(bl[Math.floor(bl.length * 0.9)] || 0)}`);
 // back in time: from a saved state, the same positions again
 const tA = T0 + 3600 + 300, before = (ag.seek(tA), ag.agents().map(a => [a.pid, Math.round(a.d)]).join(';'));
 ag.seek(T1); ag.seek(tA);
 const after = ag.agents().map(a => [a.pid, Math.round(a.d)]).join(';');
 console.log(`  going back in time to ${Math.floor(tA / 3600)}:${String(Math.floor(tA / 60) % 60).padStart(2, '0')}: same positions again: ${before === after}`);
-if (overlap || stuck || before !== after) process.exit(1);
+if (overlap || stuck || q(1) > 120 || before !== after) process.exit(1);

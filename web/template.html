@@ -942,17 +942,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     document.getElementById('c3').textContent = SURFACE ? counts[3] : 'off';
   }
 
-  // lateness: 0 for now (the timetable is perfect); the fault game will change it
+  // Passenger-service lateness: empty positioning and depot runs do not count as passenger delay.
   function delayOf(F, tr, t) {
     if (tr.closedAt !== undefined && tr.live) {      // standing still because of the closure: the wait counts
       const st = trainState(F, tr, t);
       if (st.status === 'stopped' || st.status === 'held') return Math.max(0, t - tr.closedAt);
     }
     const lg = tr.liveLog; if (!lg || !state.engine) return tr.delay || 0;
-    let d = 0; for (const e of lg) { if (e.actual > t) break; d = e.actual - e.planned; }
-    return d;
+    return MTLEngine.serviceDelay(lg, tr.live || tr.segs, t);
   }
-  const delayClass = d => d >= 300 ? 'late' : d <= -180 ? 'early' : 'ok';
+  const delayClass = d => d >= 120 ? 'late' : d <= -180 ? 'early' : 'ok';
   const DELAYCOL = { late: '#e5383b', early: '#1f7a3a' };
   function fleetColors(F, st, tr) {
     const L_ = F.look;

@@ -31,7 +31,7 @@ From Giovanni (source: Italian Wikipedia, "Metropolitana di Milano", signalling 
 
 The M3 trains on the page are always driven by `web/agents.js`. In normal service each train follows its own day from the timetable as a reference: it never leaves a station early, it uses the same station stop times and radio extras as before, and when late it drives as fast as allowed. The signal and spacing rules are the same as in a closure.
 
-The day computed in advance (`engine.js`, `m3_live.json`) is used only to place the trains when the page opens, or when the clock jumps while nothing has happened yet.
+The day computed in advance (`engine.js`, `m3_live.json`) is used only to place the trains when the page opens, or when the clock jumps while nothing has happened yet. The block planner keeps at least 90 s between non-service movements and targets 120 s when passenger service is involved; the live agents apply the same minimum at station departures. Empty depot dispatches have no published timetable and keep a 12-minute recovery reserve to be ready for their next passenger run.
 
 **Time line:**
 - The state of all trains is saved every 10 minutes and before every event (closure, reopening, radio order).
@@ -48,7 +48,7 @@ Computing a new conflict-free day in advance after a closure ran into deadlocks.
 
 - **Signals:** a train never passes a red signal. That means a block section, a terminal junction, a tail or a turn-back crossover held by another train.
 - **Other trains:** it never runs into another train. It checks the real track pieces, so this also holds when reversing over a crossover.
-- **Shuttles:** the open parts of the line run without a timetable. A train leaves when the signal is green and the train in front left that station at least 150 s earlier.
+- **Shuttles:** the open parts of the line run without a timetable. A train leaves when the signal is green and the train in front left that station at least 120 s earlier.
 - **Turning back:** at the station next to the closure the train turns back over a crossover, prepared at build time:
   - A: on beyond the crossover, change cab, back into the other platform;
   - B: across before the station, arriving on the other track;

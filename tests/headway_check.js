@@ -7,6 +7,18 @@ const { M, D } = L.load();
 const booked = L.runDay(M, D), res = booked.res;
 const fmt = s => String(Math.floor(s / 3600) % 24).padStart(2, '0') + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 const MIN_GAP = 120;
+let blockViolations = 0;
+for (const R of E.blockResources(M.blocks, M.path_edges, M.net.edges)) {
+  const iv = [];
+  res.forEach((r, k) => E.occupancy(r.segs, R, M.half).forEach(x => iv.push({ ...x, k })));
+  iv.sort((a, b) => a.enter - b.enter);
+  for (let i = 0; i < iv.length; i++) for (let j = i + 1; j < iv.length; j++) {
+    const a = iv[i], b = iv[j]; if (a.k === b.k) continue;
+    const min = a.status === 'service' || b.status === 'service' ? 120 : 90;
+    if (b.enter - a.enter < min - 0.5 || b.enter < a.exit - 0.5) blockViolations++;
+  }
+}
+console.log(`line blocks: 90/120 s clearance or overlap violations: ${blockViolations}`);
 // time a live segment reaches distance d (first) and leaves it (last time at d)
 function reach(ts, ds, d) { for (let i = 1; i < ds.length; i++) if (ds[i] >= d - 0.05) { const f = ds[i] > ds[i - 1] ? (d - ds[i - 1]) / (ds[i] - ds[i - 1]) : 1; return ts[i - 1] + (ts[i] - ts[i - 1]) * Math.max(0, Math.min(1, f)); } return null; }
 function leave(ts, ds, d) { for (let i = 1; i < ds.length; i++) if (ds[i] > d + 0.05) return ts[i - 1]; return null; }
@@ -42,4 +54,4 @@ const wM = morning.reduce((a, m) => m.late > a.late ? m : a, morning[0]);
 console.log(`morning 06-10: ${morning.length} departures | later than timetable by >30 s: ${lateM.length} | worst ${Math.round(wM.late)} s (${wM.st}, ${fmt(wM.plan)}) | average ${avgM > 0 ? '+' : ''}${Math.round(avgM)} s | more than 1 min early: ${earlyM.length}`);
 if (process.env.DETAIL) { const by = {}; morning.forEach(m => { const k = m.dir + " " + m.st; (by[k] = by[k] || []).push(m.late); });
   for (const [k, v] of Object.entries(by)) { const a = v.reduce((x, y) => x + y, 0) / v.length; console.log("  " + k.padEnd(26), "avg", Math.round(a), "s  max", Math.round(Math.max(...v)), "s  late>30:", v.filter(x => x > 30).length + "/" + v.length); } }
-process.exit(under ? 1 : 0);
+process.exit(under || blockViolations ? 1 : 0);

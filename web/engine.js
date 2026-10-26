@@ -194,6 +194,17 @@
     });
   }
 
+  // Passenger delay follows service runs only; late empty positioning runs are not passenger lateness.
+  function serviceDelay(log, segs, t) {
+    let delay = 0;
+    for (const e of log || []) {
+      if (e.actual > t) break;
+      const status = e.status || (segs[e.seg] && segs[e.seg][1]);
+      if (status === 'service') delay = e.actual - e.planned;
+    }
+    return delay;
+  }
+
   // ---------------- one train per section (ZUB, and the reversing stub when the line is closed) ----------------
   // resources: [{ name, ranges: { pid: [a, b] } }]. A train occupies a resource from when its front reaches a
   // until its rear clears b. A train that would enter while another is inside waits at its last stop before.
@@ -207,15 +218,15 @@
       for (let i = 0; i < ts.length; i++) {
         const inside = ds[i] >= a - half + pad && ds[i] <= b + half;
         if (inside && enter === null) enter = ts[i];
-        if (!inside && enter !== null) { out.push({ si, enter, exit: ts[i] }); enter = null; }
+        if (!inside && enter !== null) { out.push({ si, status: s[1], enter, exit: ts[i] }); enter = null; }
       }
-      if (enter !== null) out.push({ si, enter, exit: si === segs.length - 1 ? Infinity : ts[ts.length - 1], open: true });
+      if (enter !== null) out.push({ si, status: s[1], enter, exit: si === segs.length - 1 ? Infinity : ts[ts.length - 1], open: true });
     });
     // a train that stops inside and goes on in its next segment (reversal) keeps the resource
     const merged = [];
     out.forEach(x => {
       const m = merged[merged.length - 1];
-      if (m && m.open && x.enter - m.exit < 600) { m.exit = x.exit; m.open = x.open; } else merged.push({ ...x });
+      if (m && m.open && x.enter - m.exit < 600) { m.exit = x.exit; m.open = x.open; if (x.status === 'service') m.status = 'service'; } else merged.push({ ...x });
     });
     return merged;
   }
@@ -237,12 +248,19 @@
     // earliest conflict in one resource (cached; recomputed only when a train using it was driven again)
     const conflictOf = ri => {
       const iv = [];
-      occ[ri].forEach((list, k) => { for (const x of list) iv.push({ enter: x.enter, exit: x.exit, si: x.si, open: x.open, k }); });
+      occ[ri].forEach((list, k) => { for (const x of list) iv.push({ enter: x.enter, exit: x.exit, si: x.si, status: x.status, open: x.open, k }); });
       iv.sort((x, y) => x.enter - y.enter);
-      let prev = null;
-      for (const x of iv) {
-        if (prev && x.k !== prev.k && x.enter < prev.exit - 0.5 && !skip.has(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter))) return { x, p: prev };
-        if (!prev || x.exit > prev.exit) prev = x;
+      for (let i = 0; i < iv.length; i++) {
+        const x = iv[i]; let conflict = null, latestAllowed = -Infinity;
+        for (let j = 0; j < i; j++) {
+          const p = iv[j]; if (p.k === x.k) continue;
+          const clearance = resources[ri].block ? (p.status === 'service' || x.status === 'service' ? 120 : 90) : 2;
+          const allowed = Math.max(p.exit, p.enter + clearance);
+          if (x.enter < allowed - 0.5 && allowed > latestAllowed && !skip.has(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter))) {
+            conflict = { x, p, clearance }; latestAllowed = allowed;
+          }
+        }
+        if (conflict) return conflict;
       }
       return null;
     };
@@ -250,7 +268,7 @@
     for (;;) {
       if (++guard > 6000) break;
       let best = null;
-      cache.forEach((c, ri) => { if (c && (!best || c.x.enter < best.x.enter)) best = { R: resources[ri], ri, x: c.x, p: c.p }; });
+      cache.forEach((c, ri) => { if (c && (!best || c.x.enter < best.x.enter)) best = { R: resources[ri], ri, x: c.x, p: c.p, clearance: c.clearance }; });
       if (!best) break;
       let { R, ri, x, p } = best;
       // the junction tends to empty the tail first: a train leaving the tail goes before one about to enter it
@@ -280,7 +298,7 @@
           key = x.si + ':' + (i + 2);
         }
       }
-      const until = Math.min(p.exit + 2, 30 * 3600);
+      const until = Math.min(Math.max(p.exit, p.enter + (best.clearance || 90)) + 2, 30 * 3600);
       if ((holds[x.k][key] || 0) >= until || until <= x.enter + 1) { skip.add(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter)); cache[ri] = conflictOf(ri); continue; }   // cannot do better here
       holds[x.k][key] = until; held++;
       if (log) log.push({ train: x.k, seg: x.si, status: plans[x.k][x.si][1], res: R.name, from: x.enter, until, by: p.k, byStatus: plans[p.k][p.si][1] });
@@ -474,6 +492,6 @@
     for (const [pid, z] of Object.entries(G.platforms)) out[pid] = z.map(([a, b, st]) => [a, b, 40 / 3.6, st]);
     return out;
   }
-  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, stopTime, makeDwell, throatResources, blockResources, DT, platformZones, turnLocks, partsOf, stopOf };
+  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, serviceDelay, edgeLimit, partLimit, partBounds, stopTime, makeDwell, throatResources, blockResources, DT, platformZones, turnLocks, partsOf, stopOf };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

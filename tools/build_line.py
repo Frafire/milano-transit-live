@@ -42,7 +42,7 @@ if os.path.exists(_ops):
     OPS.update({k: v for k, v in json.load(open(_ops)).items() if not k.startswith('_')})
     print('operating rules from', _ops)
 V_YARD = OPS['depot_speed_kmh'] / 3.6   # depot speed limit 15 km/h (confirmed by ATM staff; not on the test loop)
-EMPTY_MARGIN = int(os.environ.get("EMPTY_MARGIN", 600))
+EMPTY_MARGIN = int(os.environ.get("EMPTY_MARGIN", 720))  # unscheduled empty runs need recovery time before the next service
 V_EMPTY = 13.0    # m/s ~47 km/h empty run on the line
 PULL_OUT = CFG['PULL_OUT']   # depot -> platform (M3: 5 min; M4: 7-8 min, very slow)
 PLAT_WAIT = CFG['PLAT_WAIT'] # wait at platform before first departure (M3 2 min, M4 30 s)

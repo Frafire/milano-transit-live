@@ -17,7 +17,7 @@
 // after it are applied again when their time comes (the same input gives the same result). The day computed in
 // advance by engine.js is only used to start quickly at any time when nothing has happened yet.
 (function (root) {
-  const DT = 0.5, HEADWAY = 150, LOOK = 700, GAP = 15, CLAIM = 8;
+  const DT = 0.5, HEADWAY = 120, NON_SERVICE_HEADWAY = 90, LOOK = 700, GAP = 15, CLAIM = 8;
 
   function create(o) {
     // o: { G, ops, reverse, half, prof, pathEdges, netEdges, resources, locks(cl), planOf(k), stopsOf, zones,
@@ -410,7 +410,8 @@
         if (leg.plan && st.dep && S.t < st.dep) { a.why = 'orario'; return; }                               // never early
         if (leg.timed && !leg.plan && st.dep && S.t < st.dep && S.t - a.dwellUntil < 60) { a.why = 'orario'; return; }   // after reopening: a minute at most
         const key = st.st + ':' + (leg.dir || '');
-        if (leg.shuttle && S.lastDep[key] != null && S.t - S.lastDep[key] < HEADWAY) { a.why = 'intervallo'; return; }
+        const minHeadway = leg.status === 'service' ? HEADWAY : NON_SERVICE_HEADWAY;
+        if (S.lastDep[key] != null && S.t - S.lastDep[key] < minHeadway) { a.why = 'intervallo'; return; }
         const au = authority(a, leg);
         if (au.lim < a.d + 5) { a.why = 'segnale'; if (!a.red) a.red = { since: S.t, why: au.why }; return; }
         S.lastDep[key] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift();
