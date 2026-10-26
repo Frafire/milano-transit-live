@@ -150,6 +150,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .cmds button[aria-pressed="true"] { background: #8dff9e; color: #071109; }
 .radio .cmds button:disabled { opacity: .4; cursor: default; background: #0d1d12; color: #8dff9e; }
 .radiobtn { font-family: 'VT323', ui-monospace, monospace !important; font-size: 19px !important; background: #071109 !important; color: #8dff9e !important; border: 2px solid #3b5e45 !important; border-radius: 0 !important; }
+.sigtag { position: absolute; left: 7px; top: -16px; font: 600 10px/1 system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.72); padding: 1px 3px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
 .sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
@@ -2396,6 +2397,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     SIGURL[a] = c.toDataURL(); });
   const sigLayer = L.layerGroup(); let showSigs = false, SIGS = null;
   try { showSigs = localStorage.getItem('mtl-sigs') === '1'; } catch (e) {}
+  const tagHtml = tag => `<span class="sigtag admin-only">${tag}</span>`;   // #AXX, shown in admin mode only
   function buildSignals(F) {
     if (!RT) RT = stretches(F);
     const half = F.engine.half + 2.5, out = [];
@@ -2412,14 +2414,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       return best && (best.vx * -uy + best.vy * ux) > 0 ? 1 : -1;
     }
+    const NPL = (F.engine.net.signals || []).length, tagOf = n => '#A' + String(n).padStart(2, '0');
     const place = (pid, other, d, sgn, tip, blockIdx) => {
+      const tag = tagOf(NPL + blockIdx + 1); tip = tag + ' · ' + tip;
       const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);
       const kx = Math.cos(a[0] * Math.PI / 180), ux = (b[1] - a[1]) * kx, uy = b[0] - a[0], n = Math.hypot(ux, uy) || 1;
       const side = other != null ? outward(other, a, ux / n, uy / n) : 1;
       const off = 7 / 111000 * side, pos = [a[0] - ux / n * off, a[1] + uy / n * off / kx];
-      const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL.stop}">` }) })
+      const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL.stop}">${tagHtml(tag)}` }) })
         .bindTooltip(tip, { className: 'st', direction: 'top' });
-      out.push({ m, block: blockIdx, a: null });
+      out.push({ m, block: blockIdx, a: null, tag });
     };
     // block signals, usual direction: one at the start of every block section (stations and in between)
     (F.engine.blocks || []).forEach((bl, bi) => {
@@ -2430,13 +2434,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     });
     // the other signals placed on the map (terminal junctions, tails, depot): state from the track just ahead of them
     sectionAhead(F).forEach(x => {
-      const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt';
-      const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[shunt ? 'sstop' : 'stop']}">` }) })
-        .bindTooltip((shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
+      const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt', tag = tagOf((F.engine.net.signals || []).indexOf(x.sg) + 1);
+      const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[shunt ? 'sstop' : 'stop']}">${tagHtml(tag)}` }) })
+        .bindTooltip(tag + ' · ' + (shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
       // where it is on the paths that go over it: it shows the section right behind it (junction, tail, block)
       const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
       for (const [pid, list] of Object.entries(F.engine.net.sigpos || {})) for (const [d, i] of list) if (i === si) refs.push([pid, d]);
-      out.push({ m, block: -1, ahead: x.parts, refs, shunt, a: null, sg: x.sg });
+      out.push({ m, block: -1, ahead: x.parts, refs, shunt, a: null, sg: x.sg, tag });
     });
     // wrong-way signals at the platform ends (the line is banalizzata): placeholders, always red
     ['N', 'S'].forEach(dir => {
@@ -2525,7 +2529,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       else if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
       const a = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
-      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[a]}">` })); }
+      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
     });
   }
   // tool: take signals away (they go into the MTL-EDIT export as "removed"; the build then drops them)
