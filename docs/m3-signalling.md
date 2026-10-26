@@ -17,3 +17,12 @@ From Giovanni (source: Italian Wikipedia, "Metropolitana di Milano", signalling 
 
 - Step 3: block sections between signals; one train per block; signal shows red or red + white.
 - Degraded mode (fault scenarios): ZUB station-to-station running — a train may only enter the section between two stations when the whole section is free, so headways stretch to several minutes.
+
+## Block scheme (October 2026)
+
+- Two kinds of signal only: standard (blocco / ATP) and shunting (manovra).
+- Along the line, each station and direction has two signals: the entry (protection) signal where the tunnel ends, and the departure signal just past the platform. Sections are [tunnel] → [station].
+- A signal placed on the map (standard, facing the train) replaces the computed one when it is near: departure within −15/+40 m, entry within 120 m before the platform. Placed signals in the middle of a tunnel add a section. A stretch longer than 1 km with no placed signal is cut in equal parts (exception: San Donato – Rogoredo).
+- A signal shows via libera as soon as its section (and the junction or tail just behind it) is free. Trains never enter an occupied section.
+- Other placed signals (terminal junctions, tails, depot) show the state of the track ahead of them, up to the next signal facing the same way or 300 m.
+- Via impedita: a train that should be moving by the timetable but is stopped at a red signal calls the DCO on the radio. It calls at once in the tunnel, 30 s past its departure at a platform, and after 45 s in tails and terminal junctions. For now nobody answers. The train moves again when the signal clears, and says so. About 50 calls on a normal weekday.

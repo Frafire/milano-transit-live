@@ -785,6 +785,125 @@
    "type": "entry",
    "name": "",
    "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 88,
+   "lat": 45.529856,
+   "lon": 9.162909,
+   "on_track": [
+    45.529855,
+    9.162908
+   ],
+   "offset_m": 0.1,
+   "side": "right",
+   "heading": 162,
+   "dir": -1,
+   "type": "block",
+   "name": "",
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 87,
+   "lat": 45.52988,
+   "lon": 9.162823,
+   "on_track": [
+    45.529885,
+    9.162843
+   ],
+   "offset_m": 1.7,
+   "side": "right",
+   "heading": 162,
+   "dir": 1,
+   "type": "block",
+   "name": "",
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 79,
+   "lat": 45.429257,
+   "lon": 9.2564,
+   "on_track": [
+    45.429257,
+    9.2564
+   ],
+   "offset_m": 0.1,
+   "side": "left",
+   "heading": 50,
+   "dir": 1,
+   "type": "block",
+   "name": "",
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 78,
+   "lat": 45.429415,
+   "lon": 9.256199,
+   "on_track": [
+    45.42942,
+    9.256194
+   ],
+   "offset_m": 0.6,
+   "side": "left",
+   "heading": 51,
+   "dir": -1,
+   "type": "block",
+   "name": "",
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 64,
+   "lat": 45.430106,
+   "lon": 9.257352,
+   "on_track": [
+    45.430096,
+    9.257364
+   ],
+   "offset_m": 1.5,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "block",
+   "name": "",
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 58,
+   "lat": 45.430758,
+   "lon": 9.258747,
+   "on_track": [
+    45.430759,
+    9.258743
+   ],
+   "offset_m": 0.3,
+   "side": "left",
+   "heading": 229,
+   "dir": 1,
+   "type": "block",
+   "name": "",
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 103,
+   "lat": 45.429287,
+   "lon": 9.256376,
+   "on_track": [
+    45.429289,
+    9.256374
+   ],
+   "offset_m": 0.2,
+   "side": "left",
+   "heading": 50,
+   "dir": -1,
+   "type": "block",
+   "name": "",
+   "kind": "atp"
   }
  ],
  "speeds": {

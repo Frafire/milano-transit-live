@@ -396,7 +396,7 @@ def stop_marks(pid):
             (ax, ay), (bx, by) = p[i], p[i + 1]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
             if not L2: continue
             u = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); e = math.hypot(x - ax - u * dx, y - ay - u * dy)
-            if e < 4 and (best is None or e < best[0]):
+            if e < 1.8 and (best is None or e < best[0]):
                 brg = math.degrees(math.atan2(dx, dy)) % 360
                 best = (e, c[i] + u * (c[i + 1] - c[i]), brg)
         if best and abs((best[2] - sg.get('heading', best[2]) + 180) % 360 - 180) < 60:
@@ -918,12 +918,13 @@ for pid in range(len(paths)):
     PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves})
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
-    NET['signals'] = [{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'heading', 'dir', 'type', 'name')}
+    NET['signals'] = [{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name')}
                       for sg in json.load(open(_rules)).get('signals', []) if sg.get('line') == LINE]
 print('network for the live engine:', len(NET['nodes']), 'nodes,', len(NET['edges']), 'track pieces,', len(NET['signals']), 'signals')
 # ---------------- block sections along the line (fixed block, one train per section) ----------------
 # A section runs from a station's departure signal (end of the platform, direction of travel) to the next station's.
 BLOCKS = []
+ENTRY_GAP = 15                      # computed entry signal: this far before the platform start
 if CFG.get('blocks'):
     def _parts(pid, x0, x1):
         out_ = []
@@ -948,17 +949,35 @@ if CFG.get('blocks'):
                 if dr_ not in done: print('blocks: stops do not match', dr_, len(st), len(names), [round(x) for x in st][:6])
                 continue
             done.add(dr_)
-            sig = [d + TRAIN_HALF + 2.5 for d in st]          # departure signal: just in front of the train's nose
+            # Giovanni's scheme: [tunnel] -> [station]. Two signals per station and direction: the entry (protection)
+            # signal where the tunnel ends, before the platform, and the departure signal just past the platform end.
+            # A signal he placed on the map (standard / ATP, facing this way) is used instead of the computed one.
+            real = []
+            for x in sorted(x for x, k in stop_marks(sg[0]) if k == 'atp'):
+                if not real or x - real[-1] > 25: real.append(x)          # one signal each side of the track: count it once
+            def snap(d0, lo, hi):
+                c_ = [x for x in real if d0 + lo <= x <= d0 + hi]
+                return (min(c_, key=lambda x: abs(x - d0)), True) if c_ else (d0, False)
             last = len(st) - 1
+            dep = [snap(d + TRAIN_HALF + 2.5, -15, 40) for d in st]
+            ent = [None] + [snap(st[j] - TRAIN_HALF - (2.5 if j == last else ENTRY_GAP), -120, 5) for j in range(1, last + 1)]
+            def add(kind, nm, a_, b_, is_real):
+                BLOCKS.append({'name': '%s %s' % (dr_, nm), 'dir': dr_, 'kind': kind, 'parts': _parts(sg[0], a_, b_), 'signal_d': round(a_, 1),
+                               'pid': sg[0], 'station': kind == 'departure', 'real': is_real})
             for j in range(last):
-                end_ = sig[j + 1] if j + 1 < last else st[last] - TRAIN_HALF - 2.5   # the terminus platform is its own section
-                # long stretches have intermediate block signals (LZB fixed block): sections of at most ~500 m
-                n = max(1, math.ceil((end_ - sig[j]) / CFG.get('block_max_m', 500)))
-                for q in range(n):
-                    a_ = sig[j] + (end_ - sig[j]) * q / n; b_ = sig[j] + (end_ - sig[j]) * (q + 1) / n
-                    BLOCKS.append({'name': '%s %s → %s%s' % (dr_, names[j], names[j + 1], ' (%d/%d)' % (q + 1, n) if n > 1 else ''), 'dir': dr_,
-                                   'parts': _parts(sg[0], a_, b_), 'signal_d': round(a_, 1), 'pid': sg[0], 'station': q == 0})
-            BLOCKS.append({'name': '%s %s arrivo' % (dr_, names[last]), 'dir': dr_, 'parts': _parts(sg[0], st[last] - TRAIN_HALF - 2.5, sig[last])})
+                a_, b_ = dep[j][0], ent[j + 1][0]
+                # signals he placed in the tunnel between the two stations: more block sections
+                cuts_ = [a_] + [x for x in real if a_ + 60 < x < b_ - 60] + [b_]
+                for q in range(len(cuts_) - 1):
+                    x0, x1 = cuts_[q], cuts_[q + 1]
+                    # exception: a very long stretch with no signal placed is cut in equal parts (LZB-like)
+                    n = max(1, math.ceil((x1 - x0) / CFG.get('block_max_m', 1000)))
+                    for r_ in range(n):
+                        y0 = x0 + (x1 - x0) * r_ / n; y1 = x0 + (x1 - x0) * (r_ + 1) / n
+                        kind = 'departure' if q == 0 and r_ == 0 else 'block'
+                        add(kind, '%s → %s%s' % (names[j], names[j + 1], '' if kind == 'departure' else ' (blocco)'), y0, y1, dep[j][1] if kind == 'departure' else (r_ == 0))
+                # the station: from its entry signal to its departure signal (the terminus: to the end of the platform)
+                add('entry', '%s%s' % (names[j + 1], ' arrivo' if j + 1 == last else ''), b_, dep[j + 1][0], ent[j + 1][1])
     print('block sections:', len(BLOCKS))
 if NOSE_LOG: print('nose stops (shift of the stop in m, by station):', {k: sorted(v) for k, v in sorted(NOSE_LOG.items())})
 PLATMAP = {'station': CFG['home'], 'plats': [[l[0], l[1]] for l in CFG.get('labels', [])], 'stop': list(SD_STOP)}

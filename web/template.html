@@ -132,6 +132,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .log { max-height: 20vh; overflow-y: auto; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 2px, transparent 2px 4px); }
 .radio .log .m { white-space: pre-wrap; }
 .radio .log .pc { color: #ffd23f; }
+.radio .log .call { color: #ff6b6b; }
+.radio.calling .rhd { animation: blink .5s steps(2) 6; background: #4a1a1a; }
 .radio .log .dr { color: #8dff9e; }
 .radio .log .sys { color: #6f8f77; }
 .radio .log time { color: #6f8f77; margin-right: 6px; }
@@ -1816,7 +1818,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     radioTrain = { F, tr, no: trainNo(F, tr) };
     radioWho.textContent = 'Treno ' + radioTrain.no; radioCmdHtml = '';
     radioEl.hidden = false;
-    if (!radioMsgs.length) say('', 'Canale aperto. Tu sei il Posto Centrale.', 'sys');
+    if (!radioMsgs.length) say('', 'Canale aperto. Tu sei il DCO (Posto Centrale).', 'sys');
     drawRadioLog(); drawRadioCmds();
   }
   document.getElementById('radioClose').onclick = () => { radioEl.hidden = true; };
@@ -1944,6 +1946,61 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       for (const x of MTLEngine.occupancy(o.live, R, F.engine.half)) if (x.enter < c.arr && x.exit > c.arr - 30) return o; }
     return null;
   }
+  // ---- via impedita: a train stopped in front of a red signal calls the DCO on the radio. No answer for now: the train
+  // stays where it is until the signal clears by itself, then says it is moving again. Only when the train should be
+  // moving by the timetable: in the tunnel it calls at once, at a platform after 30 s past its departure time. ----
+  const redStops = new Map(), dcoCalls = [];
+  function sigName(bl) {
+    if (bl.kind === 'throat') return 'segnale di protezione (' + bl.name.trim() + ')';
+    const n = cap(bl.name.slice(2)).replace(' (Blocco)', '').replace(' Arrivo', '');
+    return bl.kind === 'entry' ? 'segnale di protezione di ' + n : bl.kind === 'departure' ? 'segnale di partenza di ' + n.split(' → ')[0] : 'segnale di blocco ' + n.replace(' → ', ' – ');
+  }
+  // does the timetable plan have this train standing still at time t? (then a red ahead is normal, no call)
+  function planStanding(tr, t) {
+    const st = tr.starts; if (!st || t < st[0]) return true;
+    let lo = 0, hi = st.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (st[m] <= t) lo = m; else hi = m - 1; }
+    const ts = tr.segs[lo][3], ds = tr.segs[lo][4]; if (t >= ts[ts.length - 1]) return true;
+    let i = 0; while (i < ts.length - 2 && ts[i + 1] <= t) i++;
+    return ds[i + 1] === ds[i];
+  }
+  function dcoTick() {
+    const F = m3eng(); if (!F || !state.engine) return;
+    const AR = F.engine.throatR || [], BR = AR.filter(r => r.block), BL = F.engine.blocks || [], half = F.engine.half;
+    const occ = F.trains.map(tr => trainState(F, tr, state.t));
+    const inside = (R, k) => occ.some((q, j) => j !== k && q.status !== 'parked' && R.ranges[q.pid] && q.d >= R.ranges[q.pid][0] - half + R.pad && q.d <= R.ranges[q.pid][1] + half);
+    F.trains.forEach((tr, k) => {
+      const o = occ[k]; let red = null;
+      if (o.status !== 'parked' && o.seg >= 0 && o.v === 0 && !planStanding(tr, state.t)) {
+        // the section in front of the nose (a block, or the terminal junction / a tail) is taken by another train
+        // standing at a signal (within 40 m of the start of a section), with the route behind it not free: the section
+        // itself or the junction / tail it leads to (up to 400 m ahead)
+        const gapOf = R => { const r = R.ranges[o.pid]; return r ? r[0] + (R.pad || 0) - (o.d + half) : null; };
+        const atSig = AR.some(R => { const g = gapOf(R); return g != null && g >= -3 && g <= 40; });
+        const ahead = atSig ? AR.filter(R => { const g = gapOf(R); return g != null && g >= -3 && g <= 400; }) : [];
+        if (ahead.some(R => inside(R, k))) {
+          const bi = BR.findIndex(R => { const r = R.ranges[o.pid]; return r && Math.abs(r[0] - (o.d + half)) <= 40; });
+          const th = ahead.find(R => !R.block && inside(R, k));
+          red = bi >= 0 ? BL[bi] : { kind: 'throat', name: '  ' + (th ? th.name : 'sezione') };
+        }
+      }
+      const w = redStops.get(tr);
+      if (!red) { if (w) { if (w.called) say('T' + trainNo(F, tr), `Qui ${trainNo(F, tr)}, il ${w.name} è a via libera, riparto. Passo.`, 'dr'); redStops.delete(tr); } return; }
+      if (!w) {
+        // at a platform = a timetable stop of the planned run, not just near a station
+        const ps = tr.segs[o.seg], pds = ps && ps[0] === o.pid ? ps[4] : [];
+        let plat = false; for (let i = 1; i < pds.length; i++) if (pds[i] === pds[i - 1] && Math.abs(pds[i] - o.d) < 5) plat = true;
+        // tunnel: at once; platform: 30 s past departure; tails and terminal junctions (waiting for the junction to clear
+        // is part of turning back): after 45 s
+        redStops.set(tr, { since: state.t, name: sigName(red), wait: red.kind === 'throat' ? 45 : plat ? 30 : 5, called: false }); return;
+      }
+      if (!w.called && state.t - w.since >= w.wait) {
+        w.called = true; dcoCalls.push({ t: state.t, train: trainNo(F, tr), sig: w.name });
+        if (radioEl.hidden) openRadio(F, tr);
+        radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000);
+        say('T' + trainNo(F, tr), `DCO, qui treno ${trainNo(F, tr)}, sono fermo al ${w.name}, via impedita. Chiedo spiegazioni. Passo.`, 'call');
+      }
+    });
+  }
   // the driver reports when the ordered stop starts and ends
   function radioTick() {
     for (let i = radioWatch.length - 1; i >= 0; i--) {
@@ -1954,10 +2011,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     drawRadioCmds();
   }
 
-  // ================= STATION SIGNALS (placeholders, not controlling trains yet) =================
-  // M3 is "banalizzata": both tracks can be used both ways. At every station, on both tracks, a departure signal for
-  // each direction at the end of the platform: red + white when the line ahead (to the next station) is free, else red.
-  // Signals for running the wrong way are red.
+  // ================= SIGNALS =================
+  // Two kinds only: standard (blocco / ATP) and shunting (manovra). Along the line every station has, in each direction,
+  // an entry (protection) signal where the tunnel ends and a departure signal past the platform: [tunnel] -> [station].
+  // A signal shows via libera (red + white) as soon as the section ahead is free, else via impedita (red).
+  // Trains obey them: they never enter an occupied section. Wrong-way signals (the line is banalizzata) stay red.
   const SIGMAP2 = ['..ggggggg..', '.gGkkkkkGg.', 'gGkkkkkkkGg', 'gGkkRRRkkGg', 'gGkRhRRRkGg', 'gGkRRRRRkGg', 'gGkRRRRRkGg', 'gGkkRRRkkGg', 'gGkkkkkkkGg',
     'gGkkkkkkkGg', 'gGkkWWWkkGg', 'gGkWhWWWkGg', 'gGkWWWWWkGg', 'gGkWWWWWkGg', 'gGkkWWWkkGg', 'gGkkkkkkkGg', '.gGkkkkkGg.', '..ggggggg..'];
   const SIGC2 = { stop: { R: '#d60012', W: '#3a3a3a', hR: '#ff3c4e', hW: '#3a3a3a' }, go: { R: '#d60012', W: '#ececec', hR: '#ff3c4e', hW: '#ffffff' } };
@@ -1965,6 +2023,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   Object.keys(SIGC2).forEach(a => { const c = document.createElement('canvas'); c.width = 11; c.height = 18; const x = c.getContext('2d');
     SIGMAP2.forEach((row, y) => [...row].forEach((ch, i) => { if (ch === '.') return;
       x.fillStyle = ch === 'g' ? '#a0a0a0' : ch === 'G' ? '#dedede' : ch === 'k' ? '#101010' : ch === 'h' ? SIGC2[a][y < 9 ? 'hR' : 'hW'] : SIGC2[a][ch]; x.fillRect(i, y, 1, 1); }));
+    SIGURL[a] = c.toDataURL(); });
+  // shunting signal (manovra): two white lamps, horizontal = stop, diagonal = proceed
+  ['sstop', 'sgo'].forEach(a => { const c = document.createElement('canvas'); c.width = 9; c.height = 9; const x = c.getContext('2d');
+    x.fillStyle = '#101010'; x.fillRect(0, 0, 9, 9); x.fillStyle = '#a0a0a0'; x.fillRect(0, 0, 9, 1); x.fillRect(0, 8, 9, 1); x.fillRect(0, 0, 1, 9); x.fillRect(8, 0, 1, 9);
+    x.fillStyle = '#ffffff'; (a === 'sstop' ? [[2, 4], [6, 4]] : [[2, 6], [6, 2]]).forEach(([i, j]) => x.fillRect(i - 1, j - 1, 2, 2));
     SIGURL[a] = c.toDataURL(); });
   const sigLayer = L.layerGroup(); let showSigs = false, SIGS = null;
   try { showSigs = localStorage.getItem('mtl-sigs') === '1'; } catch (e) {}
@@ -1997,7 +2060,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     (F.engine.blocks || []).forEach((bl, bi) => {
       if (bl.pid == null) return;
       const other = pidOf(bl.dir === 'N' ? 'S' : 'N');
-      place(bl.pid, other, bl.signal_d, +1, (bl.station ? 'Partenza · ' : 'Blocco · ') + cap(bl.name.slice(2)), bi);
+      const what = bl.kind === 'entry' ? 'Protezione' : bl.kind === 'departure' ? 'Partenza' : 'Blocco';
+      place(bl.pid, other, bl.signal_d, +1, what + ' · ' + cap(bl.name.slice(2)) + (bl.real ? '' : ' (posizione stimata)'), bi);
+    });
+    // the other signals placed on the map (terminal junctions, tails, depot): state from the track just ahead of them
+    sectionAhead(F).forEach(x => {
+      const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt';
+      const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[shunt ? 'sstop' : 'stop']}">` }) })
+        .bindTooltip((shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
+      out.push({ m, block: -1, ahead: x.parts, shunt, a: null });
     });
     // wrong-way signals at the platform ends (the line is banalizzata): placeholders, always red
     ['N', 'S'].forEach(dir => {
@@ -2007,6 +2078,58 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       stops.forEach((st, j) => { if (j > 0) place(pid, other, st.d - half, -1, `${cap(st.n)} · partenza senso inverso verso ${cap(stops[j - 1].n)}`, -1); });
     });
     return out;
+  }
+  // ---- placed signals that are not block signals: the section ahead, walking the tracks in the signal's direction
+  // until the next signal facing the same way (or 300 m), taking every branch at junctions ----
+  function sectionAhead(F) {
+    const net = F.engine.net, E_ = net.edges, P_ = netPts(F), KXs = 111320 * Math.cos(45.46 * Math.PI / 180), KYs = 110540;
+    const xy = ll => [(ll[1] - 9.19) * KXs, (ll[0] - 45.46) * KYs];
+    const atNode = {}; E_.forEach((e, i) => { (atNode[e.a] = atNode[e.a] || []).push(i); (atNode[e.b] = atNode[e.b] || []).push(i); });
+    // where a signal is on the network: edge, metres from node a, +1 if it faces towards b
+    const locate = sg => {
+      const [px, py] = xy(sg.on_track || [sg.lat, sg.lon]); let best = null;
+      P_.forEach((pts, ei) => {
+        const q = pts.map(xy), seg = []; let geo = 0;
+        for (let i = 0; i < q.length - 1; i++) { seg.push(geo); geo += Math.hypot(q[i + 1][0] - q[i][0], q[i + 1][1] - q[i][1]); }
+        for (let i = 0; i < q.length - 1; i++) { const [ax, ay] = q[i], [bx, by] = q[i + 1], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+          const u = L2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2)) : 0, dd = Math.hypot(px - ax - u * dx, py - ay - u * dy);
+          if (!best || dd < best.dd) { const brg = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360, diff = Math.abs(((brg - (sg.heading || 0)) % 360 + 540) % 360 - 180);
+            best = { dd, ei, l: (seg[i] + u * Math.sqrt(L2)) * E_[ei].len / (geo || 1), dir: diff < 90 ? 1 : -1 }; } }
+      });
+      return best && best.dd < 2 ? best : null;
+    };
+    const sigs = (net.signals || []).filter(sg => sg.kind === 'atp' || sg.kind === 'shunt' || sg.type === 'shunt').map(sg => ({ sg, at: locate(sg) })).filter(x => x.at);
+    // block signals are drawn from the block sections already
+    const blk = (F.engine.blocks || []).filter(b => b.pid != null).map(b => trackAt(F, b.pid, b.signal_d));
+    const near = (a, b) => Math.hypot((a[1] - b[1]) * KXs, (a[0] - b[0]) * KYs);
+    return sigs.filter(x => !blk.some(q => near(q, [x.sg.lat, x.sg.lon]) < 30)).map(x => {
+      const parts = [], LIM = 300; let total = 0;
+      const stopsHere = (ei, from, to, dir) => sigs.filter(y => y !== x && y.at.ei === ei && y.at.dir === dir && (dir > 0 ? y.at.l > from + 5 && y.at.l <= to : y.at.l < from - 5 && y.at.l >= to)).map(y => y.at.l);
+      const walk = (ei, l, dir, used, depth) => {
+        if (depth > 6 || used >= LIM) return;
+        const e = E_[ei], end = dir > 0 ? e.len : 0, st = stopsHere(ei, l, end, dir);
+        let to = st.length ? (dir > 0 ? Math.min(...st) : Math.max(...st)) : end;
+        if (Math.abs(to - l) > LIM - used) to = l + dir * (LIM - used);
+        parts.push([ei, Math.min(l, to), Math.max(l, to)]); total = Math.max(total, used + Math.abs(to - l));
+        if (st.length || to !== end) return;
+        const node = dir > 0 ? e.b : e.a;
+        (atNode[node] || []).forEach(n => { if (n === ei) return; const f = E_[n]; walk(n, f.a === node ? 0 : f.len, f.a === node ? 1 : -1, used + Math.abs(to - l), depth + 1); });
+      };
+      walk(x.at.ei, x.at.l, x.at.dir, 0, 0);
+      return { sg: x.sg, parts, len: total };
+    });
+  }
+  // is any part of the train on these track pieces?
+  function onParts(F, o, parts) {
+    const pe = F.engine.pathEdges[o.pid]; if (!pe) return false;
+    const h = F.engine.half, lo = o.d - h, hi = o.d + h;
+    for (const [ei, dir, x0, x1] of pe.e) {
+      if (x1 < lo || x0 > hi) continue;
+      const k = (F.engine.net.edges[ei].len || 1) / ((x1 - x0) || 1), a = Math.max(lo, x0), b = Math.min(hi, x1);
+      const l0 = dir > 0 ? (a - x0) * k : (x1 - b) * k, l1 = dir > 0 ? (b - x0) * k : (x1 - a) * k;
+      for (const [pi, p0, p1] of parts) if (pi === ei && l1 >= p0 && l0 <= p1) return true;
+    }
+    return false;
   }
   function updateSignals() {
     const F = m3eng(); if (!F) return;
@@ -2018,8 +2141,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const occ = F.trains.map(tr => trainState(F, tr, state.t));
     SIGS.forEach(sg => {
       let busy = true;
-      if (sg.block >= 0) { const R = BR[sg.block]; busy = occ.some(o => { const r = R && R.ranges[o.pid]; return r && o.d >= r[0] - half + R.pad && o.d <= r[1] + half; }); }
-      const a = busy ? 'stop' : 'go';
+      if (sg.block >= 0) { const R = BR[sg.block], bl = F.engine.blocks[sg.block];
+        const also = (F.engine.throatR || []).filter(Q => !Q.block && Q.ranges[bl.pid] && Q.ranges[bl.pid][0] >= bl.signal_d - 5 && Q.ranges[bl.pid][0] <= bl.signal_d + 40);
+        busy = [R, ...also].some(Q => occ.some(o => { const r = Q && Q.ranges[o.pid]; return r && o.d >= r[0] - half + (Q.pad || 0) && o.d <= r[1] + half; })); }
+      else if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
+      const a = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
       if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[a]}">` })); }
     });
   }
@@ -2104,12 +2230,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); radioTick(); updateSignals(); }
+    if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); radioTick(); dcoTick(); updateSignals(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
   }
-  window.mtl = { map, state, fleets, renderCard, trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain };
+  window.mtl = { map, state, fleets, renderCard, trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls };
   requestAnimationFrame(frame);
 })();
 </script>
