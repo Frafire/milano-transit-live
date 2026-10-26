@@ -4,7 +4,7 @@
 // Run from the build folder: node ../tests/headway_check.js
 const L = require('./lib.js'), { E } = L;
 const { M, D } = L.load();
-const res = E.runFleet(M.trains, M.ops, M.reverse_s, L.profiles(M), L.envs(M, D));
+const booked = L.runDay(M, D), res = booked.res;
 const fmt = s => String(Math.floor(s / 3600) % 24).padStart(2, '0') + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 const MIN_GAP = 120;
 // time a live segment reaches distance d (first) and leaves it (last time at d)

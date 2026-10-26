@@ -65,11 +65,15 @@
 
   // simulate one train for the whole day; returns live segments + a log of arrivals (plan vs actual)
   // env.dwell(pid, d, tArrive, late, key): seconds to stand at this stop, or null to keep to the plan
-  function runTrain(segs, ops, reverse, holds, profiles, env) {
+  // prev/from: keep the result of an earlier run up to segment `from` and drive again only from there
+  function runTrain(segs, ops, reverse, holds, profiles, env, prev, from) {
     holds = holds || {};
-    const live = [], log = [];
-    let t = -Infinity;
-    for (let si = 0; si < segs.length; si++) {
+    let live = [], log = [], t = -Infinity, si0 = 0;
+    if (prev && from > 0) {
+      live = prev.segs.slice(0, from); log = prev.log.filter(e => e.seg < from); si0 = from;
+      const ls = live[from - 1][3]; t = ls[ls.length - 1];
+    }
+    for (let si = si0; si < segs.length; si++) {
       const s = segs[si], [pid, status, trip, pts, pds] = s;
       // between segments the train reverses or rests: it never starts before the plan,
       // and never takes less than the cab change (or the planned gap, if shorter)
@@ -185,13 +189,13 @@
   // resources: [{ name, ranges: { pid: [a, b] } }]. A train occupies a resource from when its front reaches a
   // until its rear clears b. A train that would enter while another is inside waits at its last stop before.
   function occupancy(segs, res, half) {
-    const out = [];
+    const out = [], pad = res.pad || 0;
     segs.forEach((s, si) => {
       const r = res.ranges[s[0]]; if (!r) return;
       const [a, b] = r, ts = s[3], ds = s[4];
       let enter = null;
       for (let i = 0; i < ts.length; i++) {
-        const inside = ds[i] >= a - half && ds[i] <= b + half;
+        const inside = ds[i] >= a - half + pad && ds[i] <= b + half;
         if (inside && enter === null) enter = ts[i];
         if (!inside && enter !== null) { out.push({ si, enter, exit: ts[i] }); enter = null; }
       }
@@ -211,46 +215,86 @@
     for (let i = 1; i < pds.length; i++) { if (pds[i] >= a - half) break; if (pds[i] === pds[i - 1]) m = i; }
     return m >= 0 ? si + ':' + m : si + ':start';
   }
-  function runBooked(plans, ops, reverse, resources, half, base, profiles, envs) {
-    plans = plans.slice();
-    const holds = plans.map(() => ({}));
+  // keep: { holds, plans } of an earlier booked run, to continue from it after a small change (only new conflicts)
+  function runBooked(plans, ops, reverse, resources, half, base, profiles, envs, keep) {
+    plans = keep ? keep.plans.slice() : plans.slice();
+    const holds = keep ? keep.holds.map(h => ({ ...h })) : plans.map(() => ({}));
     const res = base ? base.slice() : plans.map((p, k) => runTrain(p, ops, reverse, null, profiles, envs && envs[k]));
+    // occupancy of every resource by every train, refreshed only for the train that was just driven again
+    const occ = resources.map(R => res.map(r => occupancy(r.segs, R, half)));
+    const skip = new Set();
     let guard = 0, held = 0;
-    for (const R of resources) {
-      for (;;) {
-        if (++guard > 3000) break;
+    for (;;) {
+      if (++guard > 4000) break;
+      // the earliest conflict over all resources
+      let best = null;
+      resources.forEach((R, ri) => {
         const iv = [];
-        res.forEach((r, k) => occupancy(r.segs, R, half).forEach(x => iv.push({ ...x, k })));
+        occ[ri].forEach((list, k) => list.forEach(x => iv.push({ ...x, k })));
         iv.sort((x, y) => x.enter - y.enter);
-        let prev = null, fix = null;
+        let prev = null;
         for (const x of iv) {
-          if (prev && x.k !== prev.k && x.enter < prev.exit - 0.5) { fix = [x, prev]; break; }
+          if (prev && x.k !== prev.k && x.enter < prev.exit - 0.5 && !skip.has(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter))) {
+            if (!best || x.enter < best.x.enter) best = { R, ri, x, p: prev };
+            break;
+          }
           if (!prev || x.exit > prev.exit) prev = x;
         }
-        if (!fix) break;
-        const [x, p] = fix, a = R.ranges[plans[x.k][x.si][0]][0];
-        let key = holdKey(plans[x.k], x.si, a, half);
-        const sg = plans[x.k][x.si], stopD = a - half - 10;
-        const lastStop = key.endsWith(':start') ? null : sg[4][+key.split(':')[1]];
-        if ((lastStop === null || stopD - lastStop > 400) && stopD > sg[4][0] + 1) {
-          // no station just before the section: stop at its entrance (signal) and wait there
-          const ts = sg[3], ds = sg[4]; let i = 0; while (i < ds.length - 1 && ds[i + 1] <= stopD) i++;
-          if (i < ds.length - 1 && ds[i + 1] > ds[i]) {
-            const tt = ts[i] + (ts[i + 1] - ts[i]) * (stopD - ds[i]) / (ds[i + 1] - ds[i]);
-            const ns = [sg[0], sg[1], sg[2], [...ts.slice(0, i + 1), tt, tt, ...ts.slice(i + 1)], [...ds.slice(0, i + 1), stopD, stopD, ...ds.slice(i + 1)], ...sg.slice(5)];
-            plans[x.k] = plans[x.k].slice(); plans[x.k][x.si] = ns;
-            const old = holds[x.k]; holds[x.k] = {};
-            for (const [kk, vv] of Object.entries(old)) { const [a1, b1] = kk.split(':'); holds[x.k][(+a1 === x.si && b1 !== 'start' && +b1 > i) ? a1 + ':' + (+b1 + 2) : kk] = vv; }
-            key = x.si + ':' + (i + 2);
-          }
+      });
+      if (!best) break;
+      let { R, ri, x, p } = best;
+      // the junction tends to empty the tail first: a train leaving the tail goes before one about to enter it
+      if (R.prefer && R.prefer(plans, x, p)) [x, p] = [p, x];
+      const a = R.ranges[plans[x.k][x.si][0]][0] + (R.pad || 0);
+      let key = holdKey(plans[x.k], x.si, a, half);
+      const sg = plans[x.k][x.si], stopD = (R.stopAt && R.stopAt[sg[0]] != null) ? R.stopAt[sg[0]] : a - half - 10;
+      const lastStop = key.endsWith(':start') ? null : sg[4][+key.split(':')[1]];
+      if ((lastStop === null || stopD - lastStop > 400) && stopD > sg[4][0] + 1) {
+        // no station just before: stop at the entrance (signal) and wait there
+        const ts = sg[3], ds = sg[4]; let i = 0; while (i < ds.length - 1 && ds[i + 1] <= stopD) i++;
+        if (i < ds.length - 1 && ds[i + 1] > ds[i]) {
+          const tt = ts[i] + (ts[i + 1] - ts[i]) * (stopD - ds[i]) / (ds[i + 1] - ds[i]);
+          const ns = [sg[0], sg[1], sg[2], [...ts.slice(0, i + 1), tt, tt, ...ts.slice(i + 1)], [...ds.slice(0, i + 1), stopD, stopD, ...ds.slice(i + 1)], ...sg.slice(5)];
+          plans[x.k] = plans[x.k].slice(); plans[x.k][x.si] = ns;
+          const old = holds[x.k]; holds[x.k] = {};
+          for (const [kk, vv] of Object.entries(old)) { const [a1, b1] = kk.split(':'); holds[x.k][(+a1 === x.si && b1 !== 'start' && +b1 > i) ? a1 + ':' + (+b1 + 2) : kk] = vv; }
+          key = x.si + ':' + (i + 2);
         }
-        const until = Math.min(p.exit + 2, 30 * 3600);
-        if ((holds[x.k][key] || 0) >= until) break;           // cannot do better: give up rather than loop
-        holds[x.k][key] = until; held++;
-        res[x.k] = runTrain(plans[x.k], ops, reverse, holds[x.k], profiles, envs && envs[x.k]);
       }
+      const until = Math.min(p.exit + 2, 30 * 3600);
+      if ((holds[x.k][key] || 0) >= until) { skip.add(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter)); continue; }   // cannot do better here
+      holds[x.k][key] = until; held++;
+      res[x.k] = runTrain(plans[x.k], ops, reverse, holds[x.k], profiles, envs && envs[x.k], res[x.k], x.si);
+      resources.forEach((R2, r2) => { occ[r2][x.k] = occupancy(res[x.k].segs, R2, half); });
     }
     return { res, holds, held, plans };
+  }
+
+  // ---------------- terminal junction areas ----------------
+  // throats: [{ name, edges: [edge index], p1: [edge index] }] from the build; pathEdges: per path [[edge, dir, from, to]]
+  function throatResources(throats, pathEdges) {
+    const out = [];
+    (throats || []).forEach(th => {
+      const make = (name, list, pad) => {
+        const set = new Set(list), R = { name, ranges: {}, pad };
+        pathEdges.forEach((pe, pid) => { if (!pe) return; let a = Infinity, b = -Infinity;
+          pe.e.forEach(([ei, , x0, x1]) => { if (set.has(ei)) { a = Math.min(a, x0); b = Math.max(b, x1); } });
+          if (a < b) R.ranges[pid] = [a, b]; });
+        return R;
+      };
+      if (th.edges.length) {
+        const R = make('incrocio ' + th.name, th.edges, 10);
+        // tail exit first: x (later) is leaving a tail (starts at the very beginning of its path) and p is going into one
+        R.prefer = (plans, x, p) => {
+          const sx = plans[x.k][x.si], sp = plans[p.k][p.si];
+          const exit = sx[1] === 'turnback' && sx[4][0] < 100, entry = sp[1] === 'turnback' && sp[4][0] >= 100;
+          return exit && entry && x.enter - p.enter < 60;
+        };
+        out.push(R);
+      }
+      if (th.p1 && th.p1.length) out.push(make('binario 1 ' + th.name, th.p1, 10));
+    });
+    return out;
   }
 
   // ---------------- closing San Donato - Rogoredo at time tc ----------------
@@ -355,6 +399,6 @@
     return { segs: out, kind, turned };
   }
 
-  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, stopTime, makeDwell, DT };
+  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, stopTime, makeDwell, throatResources, DT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

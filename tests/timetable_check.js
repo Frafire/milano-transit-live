@@ -4,7 +4,7 @@
 const L = require('./lib.js'), { E } = L;
 const { M, D } = L.load();
 const prof = L.profiles(M), envs = L.envs(M, D);
-const res = E.runFleet(M.trains, M.ops, M.reverse_s, prof, envs);
+const booked = L.runDay(M, D), res = booked.res;
 const fmt = s => String(Math.floor(s / 3600) % 24).padStart(2, '0') + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0');
 const runs = [];
 res.forEach((r, k) => r.segs.forEach((s, si) => {
@@ -24,6 +24,7 @@ for (const dir of ['N', 'S']) {
   const rr = runs.filter(r => r.dir === dir);
   console.log(`  ${dir === 'N' ? 'San Donato → Comasina' : 'Comasina → San Donato'}: timetable ${(avg(rr, r => r.planDur) / 60).toFixed(1)} min, simulated ${(avg(rr, r => r.liveDur) / 60).toFixed(1)} min on average`);
 }
+console.log(`  waits at the terminal junctions (one train at a time): ${booked.held}`);
 console.log(`  leaving the terminus late (>30 s): ${late('depLate', 30)} | arriving late (>1 min): ${late('arrLate', 60)}, (>3 min): ${late('arrLate', 180)}`);
 const w = worst('arrLate');
 console.log(`  worst arrival: ${w.arrLate > 0 ? '+' : ''}${Math.round(w.arrLate)} s (train ${w.k + 1}, due ${fmt(w.arrPlan)}) | runs arriving early: ${runs.filter(r => r.arrLate < -30).length}`);

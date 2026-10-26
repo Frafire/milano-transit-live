@@ -8,7 +8,7 @@ CFG = {
              SD_TAILS=[163, 116], COM_TAILS=[183, 179], SD_DEP={1: 143, 2: 120}, PLATS=[1, 2],
              SD_OUT_NODE=165, IN_VIA=[124, 153, 160], DEPOT_IN_VIA=[124, 153, 160], AFTER_ARR=160,
              PULL_OUT=300, PLAT_WAIT=120,
-             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]),
+             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
              labels=[('1', 78, 70, 'on'), ('2', 103, 85, 'on'), ('3', 79, 100, 'on')]),
   'M4': dict(tracks='osm_m4.txt', main='Linea M4', home='San Cristoforo', far='Linate Aeroporto',
              HOME_STOP=(45.44236, 9.12977), FAR_STOP=(45.46284, 9.27800),
@@ -733,6 +733,35 @@ if CFG.get('SECTION'):
     SECTION = {'stub': STUB, 'ranges': {str(k): v for k, v in ranges.items()}, 'rev': {str(k): v for k, v in rev.items()},
                'sb_signal': list(ll(*node_pos[SC['sb'][0]])), 'nb_signal': list(ll(*node_pos[SC['nb'][0]]))}
     print('San Donato-Rogoredo: paths through the section', len(ranges), '| short-turn versions', len(rev))
+# ---------------- terminal junctions ("incrocio") for the live engine ----------------
+# one train at a time between the platforms and the tail tracks; at the home terminal also the depot access to platform 1
+THROATS = []
+if CFG.get('THROATS'):
+    def _throat(ends, tails, extra_from=()):
+        es = set()
+        for a in ends:
+            for t in tails:
+                for start in (a,):
+                    for r in (route_nodes(start, t), route_nodes(t, start)):
+                        if r: es |= {ei for ei, _ in r}
+        for src in extra_from:                       # depot -> platform 1
+            r = route_nodes(src, CFG['THROATS']['home']['p1'][0])
+            if r: es |= {ei for ei, _ in r}
+        # keep the junction area only: no tail tracks, no platform/main tracks, no long depot tracks
+        keep = set()
+        for ei in es:
+            e = edges[ei]
+            if e['a'] in tails or e['b'] in tails: continue
+            if W[e['way']]['name'] == CFG['main']: continue
+            if e['len'] > 250: continue
+            keep.add(ei)
+        return sorted(keep)
+    TH = CFG['THROATS']
+    home_ex = [STORE_BEFORE.get(chain[0]['ti'], storage[0]) for chain in trains][:3] if storage else []
+    _dep = [ei for ei in range(len(edges)) if any({edges[ei]['a'], edges[ei]['b']} == set(pr) for pr in TH['home'].get('depot', []))]
+    THROATS.append({'name': CFG['home'], 'edges': sorted(set(_throat(TH['home']['ends'], SD_TAILS, home_ex)) | set(_dep)), 'p1': [ei for ei in range(len(edges)) if {edges[ei]['a'], edges[ei]['b']} == set(TH['home']['p1'])]})
+    THROATS.append({'name': CFG['far'], 'edges': _throat(TH['far']['ends'], COM_TAILS), 'p1': []})
+    for t in THROATS: print('junction area', t['name'], '- track pieces:', len(t['edges']))
 # ---------------- network for the live engine (step 1) ----------------
 # every track piece between two junctions, with its category and speed limit, plus the signals
 def _edge_cat(e):
@@ -821,7 +850,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'platmap': PLATMAP,
            'boards': boards_out(),
            'stock': STOCK, 'duties': DUTIES, 'test': TEST,
-           'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
+           'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))
 print(LINE.lower() + '.json written')

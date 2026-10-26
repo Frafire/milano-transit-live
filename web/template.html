@@ -142,6 +142,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .cmds button:disabled { opacity: .4; cursor: default; background: #0d1d12; color: #8dff9e; }
 .radiobtn { font-family: 'VT323', ui-monospace, monospace !important; font-size: 19px !important; background: #071109 !important; color: #8dff9e !important; border: 2px solid #3b5e45 !important; border-radius: 0 !important; }
 .sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
+.deppt { width: 14px; height: 14px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 3px solid #d60012; box-shadow: 0 0 0 2px #000; cursor: grab; }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
@@ -614,7 +615,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         fleet.engine.stations = st;
       }
       fleet.engine.prof = F.path_edges ? MTLEngine.buildProfiles(F.path_edges, F.net.edges, fleet.engine.fileSpeeds, fleet.engine.ops, fleet.engine.fileCuts) : null;
-      fleet.trains.forEach(tr => { tr.F = fleet; relive(tr); });
+      fleet.engine.throatR = MTLEngine.throatResources(F.throats, F.path_edges);
+      fleet.trains.forEach(tr => { tr.F = fleet; });
+      reliveFleet(fleet);
     }
     fleets.push(fleet);
   });
@@ -655,18 +658,25 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     return [];
   }
-  function reliveFleet(F) {
-    const R = sectionResources(F);
-    if (!R.length) { F.trains.forEach(tr => { const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev, null, F.engine.prof, tr.env); tr.live = r.segs; tr.liveStarts = r.segs.map(x => x[3][0]); tr.liveLog = r.log; }); return; }
-    const r = MTLEngine.runBooked(F.trains.map(tr => tr.segs), F.engine.ops, F.engine.rev, R, F.engine.half, null, F.engine.prof, F.trains.map(tr => tr.env));
+  // the whole day for the fleet: terminal junctions one train at a time (+ the Rogoredo stub when closed).
+  // changed: a single train whose plan changed (radio, platform): continue from the last booking instead of starting over
+  function reliveFleet(F, changed) {
+    const R = (F.engine.throatR || []).concat(sectionResources(F)), E_ = F.engine;
+    const envs = F.trains.map(tr => tr.env);
+    let r;
+    if (changed && F.book && R.length) {
+      const k = F.trains.indexOf(changed), keep = { holds: F.book.holds.slice(), plans: F.book.plans.slice() };
+      keep.plans[k] = changed.segs; keep.holds[k] = {};
+      const base = F.trains.map((tr, i) => i === k ? MTLEngine.runTrain(tr.segs, E_.ops, E_.rev, null, E_.prof, tr.env) : { segs: tr.live, log: tr.liveLog });
+      r = MTLEngine.runBooked(null, E_.ops, E_.rev, R, E_.half, base, E_.prof, envs, keep);
+    } else if (R.length) r = MTLEngine.runBooked(F.trains.map(tr => tr.segs), E_.ops, E_.rev, R, E_.half, null, E_.prof, envs);
+    else r = { res: F.trains.map(tr => MTLEngine.runTrain(tr.segs, E_.ops, E_.rev, null, E_.prof, tr.env)), held: 0, holds: null, plans: null };
     F.trains.forEach((tr, k) => { tr.live = r.res[k].segs; tr.liveStarts = tr.live.map(x => x[3][0]); tr.liveLog = r.res[k].log; });
-    F.holds = r.held;
+    F.holds = r.held; F.book = r.holds ? { holds: r.holds, plans: r.plans } : null;
   }
   function relive(tr) {
     const F = tr.F; if (!F || !F.engine) return;
-    if (F.closed) return reliveFleet(F);
-    const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev, null, F.engine.prof, tr.env);
-    tr.live = r.segs; tr.liveStarts = r.segs.map(x => x[3][0]); tr.liveLog = r.log;
+    reliveFleet(F, F.closed ? null : tr);
   }
   function trainState(F, tr, t) {
     const useLive = F.engine && state.engine && tr.live, SG = useLive ? tr.live : tr.segs;
@@ -1266,10 +1276,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const trkOther = document.getElementById('trkOther'), trkNote = document.getElementById('trkNote');
   const ptCount = document.getElementById('ptCount'), trkList = document.getElementById('trkList'), exportBox = document.getElementById('exportBox');
   const savedLayer = L.layerGroup().addTo(map), currentLayer = L.layerGroup().addTo(map);
-  let pts = [], ED = { tracks: [], marks: [], signals: [], speeds: {}, cuts: {} };
+  let pts = [], ED = { tracks: [], marks: [], signals: [], speeds: {}, cuts: {}, points: {} };
   try {
     const raw = JSON.parse(localStorage.getItem('mtl-edit') || 'null');
-    if (raw) ED = { tracks: raw.tracks || [], marks: raw.marks || [], signals: raw.signals || [], speeds: raw.speeds || {}, cuts: raw.cuts || {} };
+    if (raw) ED = { tracks: raw.tracks || [], marks: raw.marks || [], signals: raw.signals || [], speeds: raw.speeds || {}, cuts: raw.cuts || {}, points: raw.points || {} };
     else ED.tracks = JSON.parse(localStorage.getItem('mtl-tracks') || '[]');
   } catch (e) {}
   const persist = () => { try { localStorage.setItem('mtl-edit', JSON.stringify(ED)); } catch (e) {} };
@@ -1879,9 +1889,43 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[a]}">` })); }
     });
   }
+  // ---- depot exit signal at San Donato: a dot Giovanni drags where the real signal is ----
+  let depMarker = null;
+  function depotPids(F) { const set = new Set(); F.trains.forEach(tr => tr.segs.forEach(sg => { if (sg[1] === 'from_depot') set.add(sg[0]); })); return [...set]; }
+  function projectOn(F, pid, ll) {
+    const P = F.paths[pid], kx = Math.cos(45.46 * Math.PI / 180); let best = null;
+    for (let i = 0; i < P.lat.length - 1; i++) {
+      const ax = P.lon[i] * kx * 111320, ay = P.lat[i] * 110540, bx = P.lon[i + 1] * kx * 111320, by = P.lat[i + 1] * 110540, px = ll[1] * kx * 111320, py = ll[0] * 110540;
+      const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, u = L2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2)) : 0;
+      const dd = Math.hypot(px - ax - u * dx, py - ay - u * dy);
+      if (!best || dd < best.dd) best = { dd, d: P.d[i] + u * (P.d[i + 1] - P.d[i]) };
+    }
+    return best;
+  }
+  function applyDepotSignal(F, rerun) {
+    const R = (F.engine.throatR || []).find(r => r.name.startsWith('incrocio') && r.name.includes(F.home)); if (!R) return;
+    R.stopAt = {};
+    const at = ED.points && ED.points.sd_depot;
+    if (at) depotPids(F).forEach(pid => { const p_ = projectOn(F, pid, at); if (p_ && p_.dd < 40) R.stopAt[pid] = p_.d; });
+    if (rerun) reliveFleet(F);
+  }
+  function drawDepotMarker(F) {
+    if (depMarker) { map.removeLayer(depMarker); depMarker = null; }
+    if (!showSigs || isPlayer) return;
+    let at = ED.points && ED.points.sd_depot;
+    if (!at) {        // default: just before the junction on the first depot route
+      const R = (F.engine.throatR || []).find(r => r.name.includes(F.home)), pid = depotPids(F).find(p_ => R && R.ranges[p_]);
+      if (pid == null) return; at = trackAt(F, pid, R.ranges[pid][0] - F.engine.half - 10);
+    }
+    depMarker = L.marker(at, { draggable: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<div class="deppt"></div>' }) })
+      .bindTooltip('Segnale uscita deposito → San Donato: trascinalo dove sta davvero', { className: 'st', direction: 'top' }).addTo(map);
+    depMarker.on('dragend', () => { const q = depMarker.getLatLng(); ED.points = ED.points || {}; ED.points.sd_depot = [+q.lat.toFixed(6), +q.lng.toFixed(6)];
+      persist(); applyDepotSignal(F, true); });
+  }
   const sigsBtn = document.getElementById('sigsBtn');
   sigsBtn.setAttribute('aria-pressed', showSigs);
-  sigsBtn.onclick = () => { showSigs = !showSigs; sigsBtn.setAttribute('aria-pressed', showSigs); try { localStorage.setItem('mtl-sigs', showSigs ? '1' : '0'); } catch (e) {} updateSignals(); };
+  sigsBtn.onclick = () => { showSigs = !showSigs; sigsBtn.setAttribute('aria-pressed', showSigs); try { localStorage.setItem('mtl-sigs', showSigs ? '1' : '0'); } catch (e) {} updateSignals(); const F = m3eng(); if (F) drawDepotMarker(F); };
+  setTimeout(() => { const F = m3eng(); if (F) { if (ED.points && ED.points.sd_depot) applyDepotSignal(F, true); drawDepotMarker(F); } }, 0);
   map.on('zoomend', updateSignals);
 
   function renderPanel() {
@@ -1931,7 +1975,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
   }
-  window.mtl = { map, state, fleets, renderCard, trainState, trainOnPlatform };
+  window.mtl = { map, state, fleets, renderCard, trainState, trainOnPlatform, relive };
   requestAnimationFrame(frame);
 })();
 </script>
