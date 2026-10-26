@@ -313,6 +313,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   <div class="admin-only">
     <div class="label" style="margin-bottom:6px">M3 trains</div>
     <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button><button id="platBtn" aria-pressed="false">Platforms</button><button id="sigsBtn" aria-pressed="false">Segnali</button></div>
+    <div class="row"><button id="sigDelBtn" aria-pressed="false" title="Clic su un semaforo per toglierlo (finisce nell'export MTL-EDIT)">Togli semafori</button><button id="sigUndoBtn" title="Rimette tutti i semafori tolti">Rimetti tutti</button></div>
+    <p class="note" id="sigDelNote" hidden></p>
     <p class="note">On: trains drive with acceleration and braking. Off: they follow the plan exactly.</p>
   </div>
   <div class="admin-only">
@@ -686,11 +688,23 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     return [sh.lat[a] + (sh.lat[b] - sh.lat[a]) * f, sh.lon[a] + (sh.lon[b] - sh.lon[a]) * f];
   }
   // which real train (from the fleet list) runs this simulated duty at time t
+  // a real unit is shown on one train only: the one running it now, else the last one that ran it, else the next
+  function unitHolders(F, t) {
+    if (F._uh && F._uh.t === t) return F._uh.m;
+    const m = new Map();
+    F.trains.forEach(o => (o.duties || []).forEach(x => { if (x[2] < 0) return;
+      const r = x[0] <= t && t <= x[1] ? [0, 0] : x[1] < t ? [1, t - x[1]] : [2, x[0] - t], b = m.get(x[2]);
+      if (!b || r[0] < b.r[0] || r[0] === b.r[0] && r[1] < b.r[1]) m.set(x[2], { o, r }); }));
+    F._uh = { t, m }; return m;
+  }
   function realTrain(F, tr, t) {
-    if (!F.stock || !F.stock.length || !tr.duties) return null;
-    let d = tr.duties.find(x => x[0] <= t && t <= x[1]) || tr.duties.find(x => x[0] > t) || tr.duties[tr.duties.length - 1];
-    if (!d) return null;
-    return d[2] < 0 ? { n: '?', missing: true } : { n: d[2] + 1, ...F.stock[d[2]] };
+    if (!F.stock || !F.stock.length || !tr.duties || !tr.duties.length) return null;
+    const now = tr.duties.find(x => x[0] <= t && t <= x[1]);
+    if (now && now[2] < 0) return { n: '?', missing: true };
+    const past = tr.duties.filter(x => x[1] < t).pop(), next = tr.duties.find(x => x[0] > t), H = unitHolders(F, t);
+    for (const d of [now, past, next]) if (d && d[2] >= 0 && H.get(d[2]) && H.get(d[2]).o === tr) return { n: d[2] + 1, ...F.stock[d[2]] };
+    if (!now && !past && next && next[2] < 0) return { n: '?', missing: true };
+    return { n: '—', none: true };
   }
   const parkedLabel = (F, where) => where && where !== 'depot' ? 'Parked overnight in a ' + where + ' tail track' : 'Parked in the ' + F.home + ' depot';
   // live engine: drive this train from its (possibly changed) plan
@@ -1090,13 +1104,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       body = `<ol class="stops">${state.fullTT ? stopList(tp, state.t) : stopListShort(tp, state.t)}</ol>
         <div class="row"><button id="ttBtn" aria-pressed="${!!state.fullTT}">${state.fullTT ? 'Orario ridotto' : 'Orario completo'}</button></div>`; }
     // next activity for trains not in service
-    if (st.trip < 0) {
+    if (st.agent && st.agent.mode !== 'plan') body = st.agent.status === 'service' && st.agent.to != null ? `<p class="sub" style="margin-top:10px">Servizio passeggeri ridotto: ferma in tutte le stazioni fino a <span class="cap">${cap(F.engine.G.names[st.agent.to])}</span>.</p>` : '';
+    else if (st.trip < 0) {
       const nxt = tr.segs.find(sg => sg[1] === 'service' && sg[3][sg[3].length - 1] > state.t);
       body = nxt ? `<p class="sub" style="margin-top:10px">Next service: departs ${fmt(nxt[3][1])} towards <span class="cap">${trips[nxt[2]].h}</span></p>`
                  : `<p class="sub" style="margin-top:10px">No more passenger trips today.</p>`;
     }
     const rt = realTrain(F, tr, state.t);
-    const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>'
+    const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>' : rt.none ? ''
       : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
     const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
     const tiles = (F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div></div>`)
@@ -1145,6 +1160,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   // doors: open while the train stands at a stop in service (a moment after stopping until just before leaving)
   function doorsOpen(F, tr, t) {
+    // the trains of the one engine: doors open only standing at a station with passengers (never moving, never in a tail)
+    if (F.ag && state.engine && tr.agentK != null) { const a = F.ag.state(tr.agentK);
+      return !!a && !a.hidden && a.v === 0 && (a.stopAt != null && a.status === 'service' || a.status === 'stopped'); }
     const useLive = F.engine && state.engine && tr.live, SG = useLive ? tr.live : tr.segs;
     for (let k = 0; k < SG.length; k++) {
       const s = SG[k], ts = s[3], ds = s[4];
@@ -1187,7 +1205,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
     body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
-      <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + (st.trip >= 0 ? st.label : 'Not in passenger service')}</div></div></div>
+      <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + cardSub(st)}</div></div></div>
       <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Close</button></div>${body}`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
@@ -1207,10 +1225,49 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (nx && !card.matches(':hover')) nx.scrollIntoView({ block: 'nearest' });
   }
   // station board, in Italian like the real ones: next two trains in each direction
+  // the next trains at a station from the trains themselves (M3): a train standing at the platform shows
+  // "Treno per ..." until it leaves; the others by when they will get there (timetable time plus their delay)
+  function liveBoard(F, b, dirName, t) {
+    const G = F.engine && F.engine.G; if (!F.ag || !G) return null;
+    const norm = x => x.toUpperCase().replace(/\s+M\d$/, '').trim(), X = G.names.findIndex(n => norm(n) === norm(b.n)); if (X < 0) return null;
+    const dir = norm(dirName) === norm(F.far) ? 'N' : 'S', out = [];
+    F.trains.forEach((tr, k) => {
+      const a = F.ag.agents()[k]; if (!a || a.hidden || a.status === 'parked' && a.mode !== 'plan') return;
+      const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
+      if (leg && leg.stops && leg.status === 'service' && leg.dir === dir) {
+        if (a.stopAt === X && leg.stops[0] && leg.stops[0].st === X) { if (leg.stops.length > 1) out.push({ t: -1, here: true }); return; }
+        const z = leg.stops.find(z => z.st === X);
+        if (z && z !== leg.stops[leg.stops.length - 1]) { const eta = Math.max(t + Math.abs(z.d - a.d) / 13 + 20 * leg.stops.indexOf(z), z.arr ? z.arr + Math.max(0, a.late || 0) : 0); out.push({ t: eta }); return; }
+      }
+      if (a.mode !== 'plan') return;
+      // its next runs of the day through this station that way
+      const plan = tr.segs; let n = 0;
+      for (let j = Math.max(0, a.si + (leg && leg.stops && leg.stops.some(z => z.st === X) ? 1 : 0)); j < plan.length && n < 2; j++) {
+        const s0 = plan[j]; if (s0[1] !== 'service' || s0[2] < 0) continue;
+        const sts = (F._sof = F._sof || stopsOfF(F))(s0); if (sts.length < 2) continue;
+        const d0 = sts[sts.length - 1].st > sts[0].st ? 'N' : 'S'; if (d0 !== dir) continue;
+        const z = sts.findIndex(y => y.st === X); if (z < 0 || z === sts.length - 1) continue;
+        const tt = s0[3][sts[z].j] + Math.max(0, a.late || 0); if (tt >= t - 30) { out.push({ t: tt }); n++; }
+      }
+    });
+    return out.sort((p, q) => p.t - q.t);
+  }
   function renderBoard() {
     const [fi, bi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], b = F.boards[bi], t = state.t;
     const soon = F.line === 'M4' ? 30 : 90;          // 'in arrivo' under 1:30 (M3); driverless M4 under 30 s
     const rows = Object.entries(b.dirs).filter(([d]) => d.toUpperCase() !== b.n.toUpperCase()).map(([d, ts]) => {
+      const live = liveBoard(F, b, d, t);
+      if (live) {
+        let lines = '';
+        const next = live.filter(x => x.here || x.t - t <= 30 * 60).slice(0, 2);
+        if (!next.length) lines = '<li><span class="nonserv">Servizio terminato</span></li>';
+        next.forEach((x, k) => {
+          const diff = x.t - t, min = Math.max(1, Math.round(diff / 60));
+          const txt = x.here ? `<strong class="arrivo">Treno per ${d.replace(/\b\w/g, c => c.toUpperCase())}</strong>` : diff <= soon ? '<strong class="arrivo">in arrivo</strong>' : min + (min === 1 ? ' minuto' : ' minuti');
+          lines += `<li><span>${k + 1}° treno</span><span>${txt}</span></li>`;
+        });
+        return `<div class="dir"><div class="dname">${d.replace(/\b\w/g, c => c.toUpperCase())}</div><ul>${lines}</ul></div>`;
+      }
       let i = ts.findIndex(x => x >= t), lines = '';
       for (let k = 0; k < 2; k++, i++) {
         // no train in the next 30 minutes (late night or before the first train): one red line
@@ -1382,6 +1439,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   map.on('click', e => {
     if (drawing) return;
+    if (sigDel && SIGS) {             // remove the signal clicked on (both computed and placed ones)
+      const p0 = e.containerPoint; let hit = null, hd = 20 * 20;
+      SIGS.forEach(sg => { if (sg.removed) return; const q = map.latLngToContainerPoint(sg.m.getLatLng()), dd = (q.x - p0.x) ** 2 + (q.y - p0.y) ** 2; if (dd < hd) { hd = dd; hit = sg; } });
+      if (hit) { const ll = hit.m.getLatLng(); ED.removed.push([+ll.lat.toFixed(6), +ll.lng.toFixed(6)]); persist(); hit.removed = true; sigLayer.removeLayer(hit.m);
+        sigDelNote.hidden = false; sigDelNote.textContent = `${ED.removed.length} semafori tolti. Mandami l'export MTL-EDIT: li tolgo anche dalle sezioni di blocco e vediamo cosa cambia.`; }
+      return;
+    }
     const p = e.containerPoint; let best = null, bd = 18 * 18;
     for (const [x, y, k] of drawn) { const d = (x - p.x) ** 2 + (y - p.y) ** 2; if (d < bd) { bd = d; best = k; } }
     state.sel = best; state.follow = false; lastCard = 0; p2Msg = ''; renderCard();
@@ -1393,10 +1457,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const trkOther = document.getElementById('trkOther'), trkNote = document.getElementById('trkNote');
   const ptCount = document.getElementById('ptCount'), trkList = document.getElementById('trkList'), exportBox = document.getElementById('exportBox');
   const savedLayer = L.layerGroup().addTo(map), currentLayer = L.layerGroup().addTo(map);
-  let pts = [], ED = { tracks: [], marks: [], signals: [], speeds: {}, cuts: {}, points: {} };
+  let pts = [], ED = { tracks: [], marks: [], signals: [], speeds: {}, cuts: {}, points: {}, removed: [] };
   try {
     const raw = JSON.parse(localStorage.getItem('mtl-edit') || 'null');
-    if (raw) ED = { tracks: raw.tracks || [], marks: raw.marks || [], signals: raw.signals || [], speeds: raw.speeds || {}, cuts: raw.cuts || {}, points: raw.points || {} };
+    if (raw) ED = { tracks: raw.tracks || [], marks: raw.marks || [], signals: raw.signals || [], speeds: raw.speeds || {}, cuts: raw.cuts || {}, points: raw.points || {}, removed: raw.removed || [] };
     else ED.tracks = JSON.parse(localStorage.getItem('mtl-tracks') || '[]');
   } catch (e) {}
   const persist = () => { try { localStorage.setItem('mtl-edit', JSON.stringify(ED)); } catch (e) {} };
@@ -1874,7 +1938,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const E_ = F.engine, G = E_.G;
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G),
+      resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t),
       locks: cl => MTLEngine.blockResources(MTLEngine.turnLocks(G, cl), E_.pathEdges, E_.net.edges).map(r => Object.assign(r, { lock: true })) });
@@ -1920,14 +1984,20 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   CLOSURES.forEach((c, i) => { const b = document.createElement('button'); b.textContent = c[2]; b.onclick = () => closeStretch(i); clGrid.appendChild(b); });
   reopenBtn.onclick = reopenStretch; normalBtn.onclick = backToTimetable;
   const AGLABEL = { service: 'In servizio', stopped: 'Fermo in stazione: tratta interrotta', held: 'Trattenuto: tratta chiusa', turnback: 'In manovra (cambio banco)', empty: 'Vuoto, senza passeggeri', depot: 'Rientrato in deposito', parked: 'In deposito' };
-  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC' };
+  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC', pc: ' · trattenuto dal PC' };
+  // the line under the train name: the agents' service (shuttles carry passengers: reduced service)
+  function cardSub(st) {
+    const a = st.agent;
+    if (a && a.mode !== 'plan') return a.status === 'service' ? 'Servizio passeggeri ridotto' : a.status === 'stopped' ? 'Fermo in stazione' : 'Senza passeggeri';
+    return st.trip >= 0 ? st.label : 'Not in passenger service';
+  }
   function agentState(F, tr) {
     const s = F.ag.state(tr.agentK), G = F.engine.G;
     if (s.hidden || s.status === 'parked') return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: 0, status: 'parked', label: s.hidden ? AGLABEL.depot : parkedLabel(F, 'depot'), trip: -1, seg: s.seg, store: tr.segs[s.seg] && tr.segs[s.seg][5] };
     const why = s.v === 0 ? (WHY[s.why] || (s.red ? WHY.segnale : '')) : '';
     let label;
     if (s.mode === 'plan') label = (STATUS[s.status] || s.status) + why;
-    else if (s.status === 'service') label = (s.mode === 'shuttle' && !s.timed ? 'Navetta' : 'In servizio') + (s.to != null ? ' per ' + cap(G.names[s.to]) : '') + why;
+    else if (s.status === 'service') label = (s.mode === 'shuttle' && !s.timed ? 'Navetta · servizio ridotto' : 'In servizio') + (s.to != null ? ' per ' + cap(G.names[s.to]) : '') + why;
     else label = (AGLABEL[s.status] || s.status) + why;
     return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: s.v, status: s.status, label, trip: s.mode === 'plan' ? s.trip : -1, seg: s.mode === 'plan' ? s.seg : -1, agent: s };
   }
@@ -1940,7 +2010,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const durTxt = s => s === 30 ? '30 secondi' : s === 60 ? '1 minuto' : s === 90 ? '1 minuto e 30' : '2 minuti';
   const cap = x => x.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-  function trainNo(F, tr) { const rt = realTrain(F, tr, state.t); return rt && !rt.missing ? rt.n : tr.n; }
+  function trainNo(F, tr) { const rt = realTrain(F, tr, state.t); return rt && !rt.missing && !rt.none ? rt.n : tr.n; }
   function stationAt(F, pid, d) {
     const st = F.engine.stations; if (!st) return null;
     const q = trackAt(F, pid, d), x = (q[1] - 9.19) * 111320 * Math.cos(45.46 * Math.PI / 180), y = (q[0] - 45.46) * 110540;
@@ -2003,6 +2073,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       h += `<div class="lbl">Treno fermo per l'interruzione</div><div class="row">` + (nx != null ? `<button data-em="next">Prosegui vuoto fino a ${cap(G.names[nx])}</button>` : '') +
            (a.inside && a.inside.dir === 'S' && a.inside.end != null ? `<button data-em="depot">Rientro in deposito, vuoto</button>` : '') + `</div>`;
     }
+    if (a.stopAt != null && s.status === 'service') h += `<div class="lbl">Fermo a ${cap(G.names[a.stopAt])}</div><div class="row">` +
+      (a.pcHold ? `<button data-em="release">Riparti</button>` : `<button data-em="hold">Resta fermo a ${cap(G.names[a.stopAt])}</button>`) + `</div>`;
     if (F.ag.S.reopened != null && s.timed && a.status === 'service') {
       h += `<div class="lbl">Ritardo ${s.late != null ? (s.late >= 0 ? '+' : '') + Math.round(s.late / 60) + ' min' : ''}</div><div class="row"><button data-em="skip">Salta le prossime fermate</button><button data-em="limit">Limitazione corsa</button>` +
            (s.dir === 'S' ? `<button data-em="depot">Rientro in deposito</button>` : '') + `</div>`;
@@ -2016,11 +2088,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     radioCmds.querySelectorAll('[data-em]').forEach(b => b.onclick = () => {
       const kind = b.dataset.em, nx = F.ag.nextOf(tr.agentK);
       const TXT = { next: `Treno ${no}, prosegui senza passeggeri fino a ${nx != null ? cap(G.names[nx]) : 'la prossima stazione'}. Passo.`, depot: `Treno ${no}, rientra in deposito senza passeggeri. Passo.`,
+        hold: `Treno ${no}, resta fermo in stazione a porte aperte fino a nuovo ordine. Passo.`, release: `Treno ${no}, puoi ripartire, segui il segnale. Passo.`,
         skip: `Treno ${no}, autorizzato il salto delle prossime fermate. Passo.`, limit: `Treno ${no}, limita la corsa alla prima stazione utile e inverti. Passo.` };
       say('PC', TXT[kind], 'pc');
       const r = F.ag.event({ kind: 'order', k: tr.agentK, what: kind });
       if (!r) { driverSays('Negativo PC, da qui non posso. Passo.'); return; }
-      if (kind === 'next') { driverSays(pick(['Ricevuto, faccio scendere i passeggeri e proseguo vuoto. Passo.', 'Copiato PC, proseguo a vuoto. Passo.'])); }
+      if (kind === 'hold') driverSays(`Ricevuto PC, resto fermo a ${cap(String(r))} e avviso i passeggeri. Passo.`);
+      else if (kind === 'release') driverSays('Ricevuto, chiudo le porte e riparto. Passo.');
+      else if (kind === 'next') { driverSays(pick(['Ricevuto, faccio scendere i passeggeri e proseguo vuoto. Passo.', 'Copiato PC, proseguo a vuoto. Passo.'])); }
       else if (kind === 'depot') driverSays('Ricevuto, rientro in deposito a vuoto. Passo.');
       else if (kind === 'skip') driverSays('Ricevuto, salto le fermate e annuncio ai passeggeri. Passo.');
       else driverSays(`Ricevuto, fine corsa a ${cap(String(r))}, poi inverto. Passo.`);
@@ -2052,6 +2127,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const ci = (tr.calts || []).findIndex(c => !c.done && state.t >= c.open && state.t <= c.close);
     if (ci >= 0) { const c = tr.calts[ci];
       h += `<div class="lbl">Tronchetto a Comasina</div><div class="row">${Object.keys(c.opts).map(Number).sort((a, b) => c.names[a] - c.names[b]).map(t => `<button data-rt="${t}" data-ci="${ci}" ${c.tail === t ? 'disabled' : ''}>Tronchetto ${c.names[t]}</button>`).join('')}</div>`; }
+    // San Donato: platform 2 taken by a train reversing there, this one waits in the tail
+    const cp = tr.agentK != null && CALLS[tr.agentK] && CALLS[tr.agentK].p2;
+    if (cp && tr.alts[cp.ai]) h += `<div class="lbl">Binario 2 occupato (retrocessione)</div><div class="row"><button id="p2Wait">Resta fermo e attendi</button><button id="p2Divert">Devia al binario 1</button></div>`;
     // platform 2 and reversal, coming from Rogoredo
     const k2 = (tr.arr2 || []).findIndex(a => !a.done && state.t >= a.open && state.t <= a.close);
     if (k2 >= 0) h += `<div class="lbl">Arrivo a San Donato</div><div class="row"><button id="radioP2">Entra al binario 2 e inverti lì</button></div>`;
@@ -2066,10 +2144,28 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {}; tr.env.extra[n.key] = radioStopSel; relive(tr);
       radioWatch.push({ tr, F, key: n.key, name: n.name, dur: radioStopSel, said: 0 });
       const st0 = trainState(F, tr, state.t);
-      if (radioStopSel > 30 && st0.trip >= 0 && lastRuns(F).has(st0.trip)) driverSays(`Ricevuto, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Il collega non ha voglia di tornare a casa? Passo.`);
+      const dawn = state.t < 6 * 3600 + 15 * 60 && radioWhy !== 'nessun motivo';
+      if (radioWhy === 'treno davanti in ritardo' && st0.trip >= 0 && firstRuns(F).has(st0.trip))
+        driverSays(pick([`Ritardo il treno davanti? PC, sono il primo della giornata: davanti a me ci sono solo i topi e il buio. Va bene, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`,
+                         `Davanti a me? PC, ho aperto io la linea stamattina, davanti non c'è nessuno! Faccio comunque ${durTxt(radioStopSel)} a ${cap(n.name)}, magari il caffè è ancora caldo. Passo.`]));
+      else if (dawn) driverSays(`Iniziamo bene la giornata! Ricevuto, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`);
+      else if (radioStopSel > 30 && st0.trip >= 0 && lastRuns(F).has(st0.trip)) driverSays(`Ricevuto, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Il collega non ha voglia di tornare a casa? Passo.`);
       else driverSays(pick([`Ricevuto PC, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Avviso i passeggeri. Passo.`,
                        `Copiato, Posto Centrale. A ${cap(n.name)} tengo le porte aperte ${durTxt(radioStopSel)}. Passo e chiudo.`,
                        `Ricevuto. Fermata prolungata a ${cap(n.name)}, ${durTxt(radioStopSel)}. Passo.`]));
+    };
+    const p2w = document.getElementById('p2Wait'), p2d = document.getElementById('p2Divert');
+    if (p2w) p2w.onclick = () => { say('PC', `Treno ${radioTrain.no}, resta fermo sul tronchetto e attendi che il binario 2 si liberi. Passo.`, 'pc');
+      driverSays('Ricevuto PC, attendo il via libera per il binario 2. Passo.'); };
+    if (p2d) p2d.onclick = () => {
+      const c = CALLS[tr.agentK], alt = c && c.p2 && tr.alts[c.p2.ai]; if (!alt) return;
+      say('PC', `Treno ${radioTrain.no}, ti devio al binario 1: ci aspettiamo di partire dal binario 1. Passo.`, 'pc');
+      const keep = tr.segs.slice(alt.i, alt.i + alt.n);
+      setPlat(tr, alt, 1);
+      if (F.ag.replan(tr.agentK) === false) {          // it is already past the switch: back to platform 2
+        tr.segs.splice(alt.i, keep.length, ...keep); tr.starts = tr.segs.map(x => x[3][0]); alt.plat = 2; relive(tr);
+        driverSays('Negativo PC, ho già passato lo scambio. Resto in attesa per il binario 2. Passo.');
+      } else { c.p2 = null; driverSays('Ricevuto, vado sul binario 1 e parto da lì. Passo.'); }
     };
     const cancel = document.getElementById('radioCancel');
     if (cancel) cancel.onclick = () => { say('PC', `Treno ${radioTrain.no}, annulla la sosta prolungata, servizio regolare. Passo.`, 'pc');
@@ -2168,6 +2264,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   // last passenger run of the evening in each direction (easter egg on the radio)
   let LASTRUNS = null;
+  // the first passenger run of the day each way (nobody in front of it)
+  let FIRSTRUNS = null;
+  function firstRuns(F) {
+    if (FIRSTRUNS) return FIRSTRUNS;
+    const best = {};
+    F.trains.forEach(tr => tr.segs.forEach(sg => { if (sg[1] !== 'service' || sg[2] < 0) return; const tp = trips[sg[2]], a = D.stops[tp.st[0]], b = D.stops[tp.st[tp.st.length - 1]];
+      const dir = b[1] > a[1] ? 'N' : 'S'; if (!best[dir] || tp.start < trips[best[dir]].start) best[dir] = sg[2]; }));
+    return (FIRSTRUNS = new Set(Object.values(best)));
+  }
   function lastRuns(F) {
     if (LASTRUNS) return LASTRUNS;
     const best = {};
@@ -2210,6 +2315,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         call(`PC, qui treno ${no}, sono fermo ${what} da 5 minuti, via impedita. Chiedo spiegazioni. Passo.`);
       }
       if (!a.red && c.red) { c.red = false; say('T' + no, `Qui ${no}, via libera. Ripartito, passo. Buona giornata.`, 'dr'); }
+      // San Donato: from the tail towards platform 2 while a train reverses there: it waits, then asks the PC
+      if (a.mode === 'plan' && !a.hidden && a.stopAt == null && a.v === 0 && a.red && em.ag.S.t - a.red.since >= 30 && !c.p2) {
+        const ai = (tr.alts || []).findIndex(x => x.plat === 2 && state.t <= x.leave && x.leave - state.t < 15 * 60 && x.opts['1']);
+        const o = ai >= 0 ? trainOnPlatform(F, P2WAY, state.t, tr) : null;
+        if (o && o.p2 && state.t <= o.p2.dep + 60) { c.p2 = { ai };
+          call(`PC, qui treno ${no}, sono sul tronchetto di San Donato: il binario 2 è occupato dal treno ${trainNo(F, o)} in retrocessione. Resto fermo o mi mandate al binario 1? Chiedo istruzioni. Passo.`); }
+      }
+      if (c.p2 && (!a.red || !tr.alts[c.p2.ai] || tr.alts[c.p2.ai].plat !== 2)) c.p2 = null;
       if (a.late != null && a.late > 600 && (!c.late || em.ag.S.t - c.late > 900)) {
         c.late = em.ag.S.t;
         call(`PC, qui treno ${no}, siamo in forte ritardo (+${Math.round(a.late / 60)} min). Chiedo autorizzazione per salto fermate, limitazione corsa o rientro in deposito. Passo.`);
@@ -2321,7 +2434,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt';
       const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[shunt ? 'sstop' : 'stop']}">` }) })
         .bindTooltip((shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
-      out.push({ m, block: -1, ahead: x.parts, shunt, a: null });
+      // where it is on the paths that go over it: it shows the section right behind it (junction, tail, block)
+      const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
+      for (const [pid, list] of Object.entries(F.engine.net.sigpos || {})) for (const [d, i] of list) if (i === si) refs.push([pid, d]);
+      out.push({ m, block: -1, ahead: x.parts, refs, shunt, a: null, sg: x.sg });
     });
     // wrong-way signals at the platform ends (the line is banalizzata): placeholders, always red
     ['N', 'S'].forEach(dir => {
@@ -2388,7 +2504,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const F = m3eng(); if (!F) return;
     const show = showSigs && map.getZoom() >= 16;
     if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); return; }
-    if (!SIGS) { SIGS = buildSignals(F); SIGS.forEach(sg => sg.m.addTo(sigLayer)); }
+    if (!SIGS) { SIGS = buildSignals(F);
+      const gone = ll => (ED.removed || []).some(([la, lo]) => Math.hypot((la - ll.lat) * 111000, (lo - ll.lng) * 78000) < 4);
+      SIGS.forEach(sg => { if (gone(sg.m.getLatLng())) sg.removed = true; else sg.m.addTo(sigLayer); }); }
     if (!map.hasLayer(sigLayer)) sigLayer.addTo(map);
     const BR = (F.engine.throatR || []).filter(r => r.block), half = F.engine.half;
     const occ = F.trains.map(tr => trainState(F, tr, state.t));
@@ -2397,11 +2515,26 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (sg.block >= 0) { const R = BR[sg.block], bl = F.engine.blocks[sg.block];
         const also = (F.engine.throatR || []).filter(Q => !Q.block && Q.ranges[bl.pid] && Q.ranges[bl.pid][0] >= bl.signal_d - 5 && Q.ranges[bl.pid][0] <= bl.signal_d + 40);
         busy = [R, ...also].some(Q => occ.some(o => { const r = Q && Q.ranges[o.pid]; return r && o.d >= r[0] - half + (Q.pad || 0) && o.d <= r[1] + half; })); }
+      else if (sg.refs && sg.refs.length) {
+        const RR = F.ag ? F.ag.resources() : (F.engine.throatR || []);
+        busy = sg.refs.some(([pid, d]) => {
+          let R = null, best = Infinity;
+          for (const r of RR) { const g = r.ranges[pid]; if (g && g[0] >= d - 5 && g[0] <= d + 150 && g[0] < best) { best = g[0]; R = r; } }
+          if (!R) return occ.some(o => onParts(F, o, sg.ahead));
+          return occ.some(o => { const g = R.ranges[o.pid]; return g && o.status !== 'parked' && o.d + half >= g[0] && o.d - half <= g[1]; });
+        });
+      }
       else if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
       const a = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
       if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[a]}">` })); }
     });
   }
+  // tool: take signals away (they go into the MTL-EDIT export as "removed"; the build then drops them)
+  let sigDel = false;
+  const sigDelBtn = document.getElementById('sigDelBtn'), sigDelNote = document.getElementById('sigDelNote');
+  sigDelBtn.onclick = () => { sigDel = !sigDel; sigDelBtn.setAttribute('aria-pressed', sigDel); sigDelNote.hidden = !sigDel;
+    sigDelNote.textContent = sigDel ? 'Clic su un semaforo per toglierlo (accendi "Segnali" e avvicinati).' : ''; if (sigDel && !showSigs) sigsBtn.click(); };
+  document.getElementById('sigUndoBtn').onclick = () => { ED.removed = []; persist(); if (SIGS) { SIGS.forEach(sg => { sg.removed = false; sg.m.addTo(sigLayer); }); } sigDelNote.hidden = true; };
   const sigsBtn = document.getElementById('sigsBtn');
   sigsBtn.setAttribute('aria-pressed', showSigs);
   sigsBtn.onclick = () => { showSigs = !showSigs; sigsBtn.setAttribute('aria-pressed', showSigs); try { localStorage.setItem('mtl-sigs', showSigs ? '1' : '0'); } catch (e) {} updateSignals(); };

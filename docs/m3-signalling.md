@@ -65,3 +65,12 @@ Computing a new conflict-free day in advance after a closure ran into deadlocks.
 - **Red signals:** a train calls the PC only after 5 minutes held at the same signal.
 - **Empty trains** (not in service) pass the platforms at 40 km/h, in normal service too.
 - **Test:** `tests/agents_check.js` (one closure, 08:00–10:00, in a few seconds).
+
+## Placed signals and removing them
+
+- A train held by a busy section stops just before the placed signal that protects it (up to 150 m before the
+  section), never with its body in a junction or a turn-back area. A train standing a few metres past a signal (the
+  short San Donato tails) stays where it is instead of creeping to the junction.
+- A placed signal shows red when the section that starts at it (within 150 m ahead) is occupied.
+- "Togli semafori" in the editor hides signals with a click; the MTL-EDIT export lists them under `removed`.
+  Copied into `data/rules_m3.json` as `removed_signals`, the build drops them and merges their sections.

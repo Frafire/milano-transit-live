@@ -223,6 +223,9 @@ TE, PLAT_OF, ENTRY, TAIL_OF, PLAT_ARR, PULL_PLAT, EARLY_TAIL = {}, {}, {}, {}, {
 # exit signal (Giovanni), to save distance. Value: distance from the tail end to the train's centre.
 TAIL_STOP = {}
 _rules_ = json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rules_%s.json' % LINE.lower()) else {}
+def _gone(sg):
+    return any(math.hypot((sg['lat'] - la) * 111000, (sg['lon'] - lo) * 78000) < 3 for la, lo in _rules_.get('removed_signals', []))
+_rules_['signals'] = [sg for sg in _rules_.get('signals', []) if not _gone(sg)]
 for _t in (COM_TAILS if CFG.get('tail_at_signal') else []):
     _e = edges[node_edges[_t][0]]; _P = _e['pts'] if _e['b'] == _t else _e['pts'][::-1]; _P = _P[::-1]   # from the tail end
     _best = None
@@ -1118,10 +1121,38 @@ for pid in range(len(paths)):
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
     NET['signals'] = [{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name')}
-                      for sg in json.load(open(_rules)).get('signals', []) if sg.get('line') == LINE]
+                      for sg in _rules_.get('signals', []) if sg.get('line') == LINE]
+    NET['removed'] = _rules_.get('removed_signals', [])
+# where each placed signal is on every path that goes over it facing it: trains stop just before it, and it shows
+# the state of the junction / tail / section right behind it. sigpos[pid] = [[d, signal index], ...]
+SIGPOS = {}
+for si_, sg in enumerate(NET['signals']):
+    if 'on_track' not in sg: continue
+    x, y = xy(*sg['on_track'])
+    for pid in range(len(paths)):
+        p_, c_ = paths[pid]; best = None
+        for i in range(len(p_) - 1):
+            (ax, ay), (bx, by) = p_[i], p_[i + 1]
+            if min(ax, bx) - 3 > x or max(ax, bx) + 3 < x or min(ay, by) - 3 > y or max(ay, by) + 3 < y: continue
+            dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+            if not L2: continue
+            u = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); e = math.hypot(x - ax - u * dx, y - ay - u * dy)
+            if e < 1.8 and (best is None or e < best[0]): best = (e, c_[i] + u * (c_[i + 1] - c_[i]), math.degrees(math.atan2(dx, dy)) % 360)
+        if best and abs((best[2] - sg.get('heading', best[2]) + 180) % 360 - 180) < 60:
+            SIGPOS.setdefault(str(pid), []).append([round(best[1], 1), si_])
+for v in SIGPOS.values(): v.sort()
+NET['sigpos'] = SIGPOS
 print('network for the live engine:', len(NET['nodes']), 'nodes,', len(NET['edges']), 'track pieces,', len(NET['signals']), 'signals')
 # ---------------- block sections along the line (fixed block, one train per section) ----------------
 # A section runs from a station's departure signal (end of the platform, direction of travel) to the next station's.
+# signals Giovanni removed with the editor (rules_m3.json "removed_signals": [[lat, lon], ...])
+REMOVED = [tuple(x) for x in _rules_.get('removed_signals', [])]
+def removed_near(pid, d, m=8.0):
+    if not REMOVED: return False
+    p_, c_ = paths[pid]; import bisect as _bb
+    j = max(0, min(len(c_) - 2, _bb.bisect_right(c_, d) - 1)); f = (d - c_[j]) / ((c_[j + 1] - c_[j]) or 1)
+    x, y = p_[j][0] + (p_[j + 1][0] - p_[j][0]) * f, p_[j][1] + (p_[j + 1][1] - p_[j][1]) * f
+    return any(math.hypot(x - xy(la, lo)[0], y - xy(la, lo)[1]) < m for la, lo in REMOVED)
 BLOCKS = []
 ENTRY_GAP = 15                      # computed entry signal: this far before the platform start
 if CFG.get('blocks'):
@@ -1163,20 +1194,28 @@ if CFG.get('blocks'):
             def add(kind, nm, a_, b_, is_real):
                 BLOCKS.append({'name': '%s %s' % (dr_, nm), 'dir': dr_, 'kind': kind, 'parts': _parts(sg[0], a_, b_), 'signal_d': round(a_, 1),
                                'pid': sg[0], 'station': kind == 'departure', 'real': is_real})
+            # every signal along the run, in order: (position, kind, name, placed by Giovanni)
+            bounds = []
             for j in range(last):
                 a_, b_ = dep[j][0], ent[j + 1][0]
+                bounds.append((a_, 'departure', '%s → %s' % (names[j], names[j + 1]), dep[j][1]))
                 # signals he placed in the tunnel between the two stations: more block sections
-                cuts_ = [a_] + [x for x in real if a_ + 60 < x < b_ - 60] + [b_]
-                for q in range(len(cuts_) - 1):
-                    x0, x1 = cuts_[q], cuts_[q + 1]
-                    # exception: a very long stretch with no signal placed is cut in equal parts (LZB-like)
-                    n = max(1, math.ceil((x1 - x0) / CFG.get('block_max_m', 1000)))
-                    for r_ in range(n):
-                        y0 = x0 + (x1 - x0) * r_ / n; y1 = x0 + (x1 - x0) * (r_ + 1) / n
-                        kind = 'departure' if q == 0 and r_ == 0 else 'block'
-                        add(kind, '%s → %s%s' % (names[j], names[j + 1], '' if kind == 'departure' else ' (blocco)'), y0, y1, dep[j][1] if kind == 'departure' else (r_ == 0))
-                # the station: from its entry signal to its departure signal (the terminus: to the end of the platform)
-                add('entry', '%s%s' % (names[j + 1], ' arrivo' if j + 1 == last else ''), b_, dep[j + 1][0], ent[j + 1][1])
+                for x in real:
+                    if a_ + 60 < x < b_ - 60: bounds.append((x, 'block', '%s → %s (blocco)' % (names[j], names[j + 1]), True))
+                bounds.append((b_, 'entry', '%s%s' % (names[j + 1], ' arrivo' if j + 1 == last else ''), ent[j + 1][1]))
+            end_d = dep[last][0]
+            # signals Giovanni removed with the editor: no signal there, the two sections become one
+            gone = [b for b in bounds[1:] if removed_near(sg[0], b[0])]
+            if gone: print('  signals removed (%s):' % dr_, [b[2] for b in gone])
+            bounds = [bounds[0]] + [b for b in bounds[1:] if b not in gone]
+            for q, (x0, kind, nm, is_real) in enumerate(bounds):
+                x1 = bounds[q + 1][0] if q + 1 < len(bounds) else end_d
+                # exception: a very long stretch with no signal is cut in equal parts (LZB-like)
+                n = max(1, math.ceil((x1 - x0) / CFG.get('block_max_m', 1000))) if kind != 'entry' else 1
+                for r_ in range(n):
+                    y0 = x0 + (x1 - x0) * r_ / n; y1 = x0 + (x1 - x0) * (r_ + 1) / n
+                    if r_ == 0: add(kind, nm, y0, y1, is_real)
+                    else: add('block', nm.split(' (')[0] + ' (blocco)', y0, y1, False)
     print('block sections:', len(BLOCKS))
 if DEGRADED:
     def _parts2(pid, x0, x1):

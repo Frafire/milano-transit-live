@@ -261,16 +261,29 @@
         if (s0 < nose - 1) continue;
         if (s0 > nose + LOOK || s0 - half - 3 >= lim) break;
         if (skipBlocks && R[ri].block && !R[ri].lock) continue;
-        if (busyFor(ri, a.k)) { lim = s0 - half - 3; why = { res: ri }; break; }
+        if (busyFor(ri, a.k)) { lim = Math.min(lim, R[ri].lock ? s0 - half - 3 : atSignal(a, s0)); why = { res: ri }; break; }
         // a junction (nobody may stop in it): go in only if the train can get right through it
         if (R[ri].noWait) {
           // the whole train must be able to get out of it (its rear past the end), and what follows must be free
           let blocked = lim < e0 + half + 2 ? why : null;
           for (let m = n + 1; m < list.length && !blocked; m++) { const [s1, , r1] = list[m]; if (s1 > e0 + half + 5) break; if (r1 !== ri && busyFor(r1, a.k)) blocked = { res: r1 }; }
-          if (blocked) { lim = s0 - half - 3; why = blocked; break; }
+          if (blocked) { lim = Math.min(lim, S.lockCl ? s0 - half - 3 : atSignal(a, s0)); why = blocked; break; }
         }
       }
       return { lim, why };
+    }
+    // where to stop for a section starting at s0: just before the signal that protects it (a placed one, up to 150 m
+    // before; else the section's own start)
+    function atSignal(a, s0) {
+      const sp = o.sigpos && o.sigpos[a.pid]; let best = null;
+      // (a train standing a few metres past a signal, as in the short San Donato tails, stays where it is)
+      if (sp) for (const [d] of sp) { if (d > s0 + 5) break; if (d >= s0 - 150 && d > a.d + half - 12 && clearStand(a.pid, Math.max(a.d, d - half - 3))) best = d; }
+      return best != null ? Math.max(Math.min(a.d, s0 - half - 3), best - half - 3) : s0 - half - 3;
+    }
+    // a train standing with its middle at c is not in a junction nor in a turn-back area (it would block them)
+    function clearStand(pid, c) {
+      for (const [s1, e1, ri] of byPid[pid] || []) { if (s1 > c + half) break; if ((R[ri].noWait || R[ri].lock) && e1 >= c - half) return false; }
+      return true;
     }
     function claimAhead(a) {
       if (a.v < 0.2) return;                      // a train standing at a signal does not hold what is behind it
@@ -393,6 +406,7 @@
         if (!st || leg.stops.length === 1 && st.d >= leg.end - 0.5) {      // last stop of the run: it ends here
           leg.stops.shift(); a.stopAt = null; a.legs.shift(); if (leg.arrive) { a.at = leg.arrive.at; a.arr = leg.arrive.dir; } return;
         }
+        if (a.pcHold) { a.why = 'pc'; return; }                                                              // held by the PC
         if (leg.plan && st.dep && S.t < st.dep) { a.why = 'orario'; return; }                               // never early
         if (leg.timed && !leg.plan && st.dep && S.t < st.dep && S.t - a.dwellUntil < 60) { a.why = 'orario'; return; }   // after reopening: a minute at most
         const key = st.st + ':' + (leg.dir || '');
@@ -503,6 +517,10 @@
         else { a.mode = 'inside'; a.legs.push({ kind: 'stopped' }); }
         a.status = 'empty'; return true;
       }
+      if (kind !== 'hold') a.pcHold = false;
+      // a train standing at a station: the PC holds it there, or lets it go
+      if (kind === 'hold') { if (a.stopAt == null && a.status !== 'stopped') return false; a.pcHold = true; return G.names[a.stopAt != null ? a.stopAt : a.at] || true; }
+      if (kind === 'release') { a.pcHold = false; return true; }
       // after reopening, a late train: skip stops, end the run early and turn back, or empty to the depot
       const leg = a.legs.find(l => !l.kind && l.stops && l.status === 'service' && l.stops.length);
       if (S.reopened && leg) {
@@ -618,7 +636,7 @@
       const a = S.agents[k]; if (!a) return null;
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
       return { pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, inside: a.inside, trip: a.trip,
-               seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait,
+               seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold,
                dir: leg ? leg.dir : (a.inside ? a.inside.dir : null), to: leg && leg.arrive ? leg.arrive.at : null, timed: !!(leg && leg.timed), at: a.at };
     }
     const nextOf = k => { const a = S.agents[k]; return a && a.inside && a.inside.q + 1 < a.inside.stops.length ? a.inside.stops[a.inside.q + 1].st : null; };
@@ -626,8 +644,13 @@
     function replan(k) {
       const a = S.agents[k]; if (!a || a.mode !== 'plan') return;
       const cur = a.legs[0];
-      if (cur && cur.si === a.si && !cur.kind) { const fresh = planLeg(k, a.si, a.d); if (S.t < a.wait) fresh.start = cur.start; else fresh.start = a.d;
-        if (a.stopAt != null && fresh.stops.length && Math.abs(fresh.stops[0].d - a.d) > 1) a.stopAt = null; a.legs = [fresh]; }
+      if (cur && cur.si === a.si && !cur.kind) {
+        // the new plan may run this stretch on another path (San Donato: platform 1 instead of 2): same place on it
+        const pid2 = planOf(k)[a.si][0]; let d = a.d;
+        if (pid2 !== a.pid) { d = mapTo(a.pid, a.d, pid2); if (d == null) return false; a.pid = pid2; a.d = d; }
+        const fresh = planLeg(k, a.si, d); if (S.t < a.wait) fresh.start = cur.start; else fresh.start = d;
+        if (a.stopAt != null && fresh.stops.length && Math.abs(fresh.stops[0].d - a.d) > 1) a.stopAt = null; a.legs = [fresh]; a.red = null; }
+      return true;
     }
     return { S, TL, start, close, step, seek, event, order, reopen, replan, state, nextOf, snapshot, agents: () => S.agents, resources: () => R };
   }
