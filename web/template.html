@@ -114,6 +114,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .orario td span.past { opacity: .35; }
 .orario td span.nx { color: #ff9416; font-weight: 700; }
 .spdbtns button { min-width: 44px; }
+.platlab { transform: translate(-50%, -50%); font: 600 10px/1 var(--body); color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000; white-space: nowrap; pointer-events: none; }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
@@ -269,7 +270,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   </div>
   <div class="admin-only">
     <div class="label" style="margin-bottom:6px">M3 trains</div>
-    <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button></div>
+    <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button><button id="platBtn" aria-pressed="false">Platforms</button></div>
     <p class="note">On: trains drive with acceleration and braking. Off: they follow the plan exactly.</p>
   </div>
   <div class="admin-only">
@@ -1433,6 +1434,32 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       (peak ? `Top speed it needs (accelerating and braking at ${a} m/s²): <b>${Math.round(peak)} km/h</b>` : `Not possible in ${T} s with ${a} m/s²`) +
       `<br>Simulation now: ${sim ? Math.round(sim) + ' s' : '–'} · timetable: ${Math.round(x.plan)} s`;
   };
+  // ---- M3 platforms: where every station starts and ends, on both tracks ----
+  const m3platLayer = L.layerGroup();
+  let showPlat = false;
+  try { showPlat = localStorage.getItem('mtl-platforms') === '1'; } catch (e) {}
+  function drawPlatforms() {
+    m3platLayer.clearLayers();
+    const F = m3eng(); if (!F || !showPlat || map.getZoom() < 15) { map.removeLayer(m3platLayer); return; }
+    if (!RT) RT = stretches(F);
+    const len = 2 * F.engine.half + 5, half = len / 2;      // platform a little longer than the train
+    ['N', 'S'].forEach(dir => {
+      const xs = RT[dir]; if (!xs.length) return;
+      const pid = xs[0].tr.segs[xs[0].si][0];
+      const stops = xs.map(x => ({ n: x.from, d: x.d0 })).concat([{ n: xs[xs.length - 1].to, d: xs[xs.length - 1].d1 }]);
+      stops.forEach(st => {
+        const pts = []; for (let d = st.d - half; d <= st.d + half + 0.1; d += 5) pts.push(trackAt(F, pid, d));
+        L.polyline(pts, { color: '#e8e4d8', weight: 12, opacity: .45, lineCap: 'butt', interactive: false }).bindTooltip(st.n, { className: 'st', sticky: true }).addTo(m3platLayer);
+        [pts[0], pts[pts.length - 1]].forEach(q => L.circleMarker(q, { radius: 3, color: '#000', weight: 1, fillColor: '#fff', fillOpacity: 1, interactive: false }).addTo(m3platLayer));
+      });
+    });
+    m3platLayer.addTo(map);
+  }
+  const platBtn = document.getElementById('platBtn');
+  platBtn.setAttribute('aria-pressed', showPlat);
+  platBtn.onclick = () => { showPlat = !showPlat; platBtn.setAttribute('aria-pressed', showPlat); try { localStorage.setItem('mtl-platforms', showPlat ? '1' : '0'); } catch (e) {} drawPlatforms(); };
+  map.on('zoomend', drawPlatforms);
+  setTimeout(drawPlatforms, 0);
   function snapJunction(latlng) {
     const F = m3eng(); if (!F) return null;
     const Pc = map.latLngToContainerPoint(latlng); let best = null;
@@ -1440,16 +1467,25 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (d < 11 && (!best || d < best.d)) best = { d, n }; });
     return best;
   }
+  let lastSnap = null;
   function snapEdge(latlng) {
     const F = m3eng(); if (!F) return null;
     const Pc = map.latLngToContainerPoint(latlng), P = netPts(F); let best = null;
-    P.forEach((pts_, i) => { for (let k = 0; k < pts_.length - 1; k++) {
+    const hits = [];
+    P.forEach((pts_, i) => { let bd = null; for (let k = 0; k < pts_.length - 1; k++) {
       const A = map.latLngToContainerPoint(pts_[k]), B = map.latLngToContainerPoint(pts_[k + 1]);
       const dx = B.x - A.x, dy = B.y - A.y, L2 = dx * dx + dy * dy, u = L2 ? Math.max(0, Math.min(1, ((Pc.x - A.x) * dx + (Pc.y - A.y) * dy) / L2)) : 0;
       const d = Math.hypot(Pc.x - A.x - u * dx, Pc.y - A.y - u * dy);
-      if (d < 14 && (!best || d < best.d)) best = { d, i };
-    } });
-    return best && { F, e: F.engine.net.edges[best.i], i: best.i };
+      if (d < 14 && (bd === null || d < bd)) bd = d;
+    } if (bd !== null) hits.push({ d: bd, i }); });
+    if (!hits.length) return null;
+    hits.sort((x, y) => x.d - y.d);
+    // tracks on top of each other (Porta Romana - Repubblica): a second click on the same spot takes the next one
+    const same = lastSnap && Math.hypot(lastSnap.x - Pc.x, lastSnap.y - Pc.y) < 6;
+    const k = same ? (lastSnap.k + 1) % hits.length : 0;
+    lastSnap = { x: Pc.x, y: Pc.y, k };
+    best = hits[k];
+    return { F, e: F.engine.net.edges[best.i], i: best.i, n: hits.length, k };
   }
   function setMode(m) {
     mode = m;
@@ -1485,7 +1521,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       const h = snapEdge(e.latlng);
       if (!h) { spdPick.textContent = 'No M3 track there. Zoom in and click right on a track.'; return; }
-      const kind = { main: 'main line', siding: 'siding / platform', test: 'test loop', crossover: 'crossover', yard: 'depot track', link: 'depot access' }[h.e.cat] || h.e.cat;
+      const kind = ({ main: 'main line', siding: 'siding / platform', test: 'test loop', crossover: 'crossover', yard: 'depot track', link: 'depot access' }[h.e.cat] || h.e.cat)
+        + (h.n > 1 ? ` (track ${h.k + 1} of ${h.n} here: click again for the next)` : '');
       if (h.e.fixed) { spdPick.textContent = `${kind}, ${Math.round(h.e.len)} m: fixed at ${h.e.kmh} km/h`; return; }
       const P = netPts(h.F)[h.i], Lp = P.reduce((a, q, k) => k ? a + segLen(P[k - 1], q) : 0, 0);
       const at = distAlong(P, [e.latlng.lat, e.latlng.lng]) * (h.e.len / (Lp || 1));        // metres from the piece's start
