@@ -41,14 +41,11 @@ Needs Python 3.10+ (no extra packages), Node.js (for the engine test) and bash.
 
 `web/engine.js` drives every M3 train second by second with acceleration, braking and speed limits, following the plan built in Python. The plan is "what should happen", the engine is "what happens"; `tests/engine_test.js` checks that with nothing going wrong no train is more than 30 s behind the plan and no run starts late. The track network the engine uses (track pieces, junctions, speed limits, signals) is exported into `m3.json` as `net`. Signalling notes for the next steps are in [`docs/m3-signalling.md`](docs/m3-signalling.md).
 
-## San Donato – Rogoredo: ZUB and closing the section (Player mode)
+## Closing San Donato – Rogoredo (Player mode)
 
-In the M3 control panel, under "Chiusura tratte":
+In the M3 control panel, under "Chiusura tratte", **Chiudi la tratta**: trains inside the section stop where they are, trains at San Donato stay there (depot moves are free), every other train unloads at Rogoredo, reverses beyond the crossover and starts its next run to Comasina from Rogoredo. Only one train at a time in the reversing stub. `tests/section_test.js` checks closures at several times of day.
 
-- **ZUB** (marcia interstazionale): only one train per track between San Donato and Rogoredo; the next one waits at the signal.
-- **Chiudi la tratta**: trains inside the section stop where they are, trains at San Donato stay there (depot moves are free), every other train unloads at Rogoredo, reverses beyond the crossover and starts its next run to Comasina from Rogoredo. Only one train at a time in the reversing stub.
-
-The two section signals use the pixel-art M3 aspects in `web/assets/signals/` (red = stop, red + white = proceed). `tests/section_test.js` checks ZUB and closures at several times of day.
+Signals and ZUB (station-to-station running) are on hold until the signals can be placed and controlled. The pixel-art M3 signal icons stay in the project: `tools/signal_icons.py` and `web/assets/signals/` (red = stop, red + white = proceed, white = M1).
 
 ## Changing how M3 runs
 

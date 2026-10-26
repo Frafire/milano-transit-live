@@ -113,7 +113,6 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .orario td span { display: inline-block; margin-right: 7px; }
 .orario td span.past { opacity: .35; }
 .orario td span.nx { color: #ff9416; font-weight: 700; }
-.sigpix { image-rendering: pixelated; image-rendering: crisp-edges; width: 22px; height: 36px; transform: translate(-50%, -100%); filter: drop-shadow(0 1px 1px rgba(0,0,0,.6)); }
 .hstop.live { cursor: pointer; border-color: #ff9416; }
 .board { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; background: #050607; border-radius: 6px; padding: 10px 12px; font-family: var(--display); }
 .board .dname { color: var(--signal); font: 600 17px var(--display); letter-spacing: .02em; }
@@ -222,10 +221,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <ul class="m3list" id="m3list"></ul>
     <div class="label" style="margin-top:4px">Chiusura tratte · San Donato – Rogoredo</div>
     <div class="row">
-      <button id="zubBtn" aria-pressed="false" title="Marcia interstazionale: un solo treno per binario tra le due stazioni">ZUB</button>
       <button id="closeSecBtn" aria-pressed="false">Chiudi la tratta</button>
     </div>
-    <p class="note" id="secNote">ZUB: one train per track between San Donato and Rogoredo. Closing: trains inside stop, trains at San Donato stay there (depot moves are free), every other train turns back at Rogoredo over the crossover.</p>
+    <p class="note" id="secNote">Closing: trains inside stop, trains at San Donato stay there (depot moves are free), every other train turns back at Rogoredo over the crossover.</p>
   </section>
 
   <div class="admin-only">
@@ -583,10 +581,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       for (const v of Object.values(S.rev)) stub.ranges[v[0]] = [v[3] - S.stub - 5, v[3]];
       return [stub];
     }
-    if (!F.zub) return [];
-    const sb = { name: 'sb', ranges: {} }, nb = { name: 'nb', ranges: {} };
-    for (const [pid, r] of Object.entries(S.ranges)) { if (r.sb) sb.ranges[pid] = r.sb; if (r.nb) nb.ranges[pid] = r.nb; }
-    return [sb, nb];
+    return [];
   }
   function reliveFleet(F) {
     const R = sectionResources(F);
@@ -597,7 +592,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function relive(tr) {
     const F = tr.F; if (!F || !F.engine) return;
-    if (F.zub || F.closed) return reliveFleet(F);
+    if (F.closed) return reliveFleet(F);
     const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev);
     tr.live = r.segs; tr.liveStarts = r.segs.map(x => x[3][0]); tr.liveLog = r.log;
   }
@@ -1342,55 +1337,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   document.querySelectorAll('.role').forEach(b => b.onclick = () => setRole(b.dataset.role === 'player'));
   const m3list = document.getElementById('m3list');
-  // ---- pixel-art signals (same map as tools/signal_icons.py) ----
-  const SIGMAP = ['..ggggggg..', '.gGkkkkkGg.', 'gGkkkkkkkGg', 'gGkkRRRkkGg', 'gGkRhRRRkGg', 'gGkRRRRRkGg', 'gGkRRRRRkGg', 'gGkkRRRkkGg', 'gGkkkkkkkGg',
-    'gGkkkkkkkGg', 'gGkkWWWkkGg', 'gGkWhWWWkGg', 'gGkWWWWWkGg', 'gGkWWWWWkGg', 'gGkkWWWkkGg', 'gGkkkkkkkGg', '.gGkkkkkGg.', '..ggggggg..'];
-  const PIXCOL = { stop: { R: '#d60012', W: '#3a3a3a', hR: '#ff3c4e', hW: '#3a3a3a' }, go: { R: '#d60012', W: '#ececec', hR: '#ff3c4e', hW: '#ffffff' },
-                   white: { R: '#3c0a0c', W: '#ececec', hR: '#3c0a0c', hW: '#ffffff' } };
-  const SIGIMG = {};
-  Object.keys(PIXCOL).forEach(a => {
-    const c = document.createElement('canvas'); c.width = 11; c.height = 18; const x = c.getContext('2d');
-    SIGMAP.forEach((row, y) => [...row].forEach((ch, i) => {
-      if (ch === '.') return;
-      x.fillStyle = ch === 'g' ? '#a0a0a0' : ch === 'G' ? '#dedede' : ch === 'k' ? '#101010' : ch === 'h' ? PIXCOL[a][y < 9 ? 'hR' : 'hW'] : PIXCOL[a][ch];
-      x.fillRect(i, y, 1, 1);
-    }));
-    SIGIMG[a] = c.toDataURL();
-  });
-  const pixIcon = a => L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpix" alt="" src="${SIGIMG[a]}">` });
-  const secLayer = L.layerGroup().addTo(map);
-  let secSignals = null;
-  function trackBusy(F, key, t) {
-    const S = F.engine.S;
-    return F.trains.some(tr => { const st = trainState(F, tr, t), r = S.ranges[st.pid];
-      return r && r[key] && st.d >= r[key][0] - F.engine.half && st.d <= r[key][1] + F.engine.half; });
-  }
-  function updateSectionSignals() {
-    const F = fleets.find(f => f.line === 'M3'); if (!F || !F.engine || !F.engine.S) return;
-    const S = F.engine.S;
-    if (!secSignals) {
-      secSignals = { sb: L.marker(S.sb_signal, { icon: pixIcon('go'), keyboard: false, interactive: false }).addTo(secLayer),
-                     nb: L.marker(S.nb_signal, { icon: pixIcon('go'), keyboard: false, interactive: false }).addTo(secLayer), a: {} };
-    }
-    const show = F.closed || F.zub || map.getZoom() >= 15;
-    if (show && !map.hasLayer(secLayer)) secLayer.addTo(map); else if (!show && map.hasLayer(secLayer)) map.removeLayer(secLayer);
-    ['sb', 'nb'].forEach(k => {
-      const a = F.closed ? 'stop' : trackBusy(F, k, state.t) ? 'stop' : 'go';
-      if (secSignals.a[k] !== a) { secSignals.a[k] = a; secSignals[k].setIcon(pixIcon(a)); }
-    });
-  }
-  const zubBtn = document.getElementById('zubBtn'), closeSecBtn = document.getElementById('closeSecBtn'), secNote = document.getElementById('secNote');
+  const closeSecBtn = document.getElementById('closeSecBtn'), secNote = document.getElementById('secNote');
   function m3fleet() { return fleets.find(f => f.line === 'M3' && f.engine && f.engine.S); }
   function sectionNote(F) {
-    if (!F.closed) { secNote.textContent = F.zub ? 'ZUB attiva: un solo treno per binario tra San Donato e Rogoredo' + (F.holds ? ` (${F.holds} attese al segnale)` : '') + '.' : secNote.dataset.idle; return; }
+    if (!F.closed) { secNote.textContent = secNote.dataset.idle; return; }
     const c = { inside: 0, sd: 0, north: 0 }; F.trains.forEach(tr => c[tr.closeKind] = (c[tr.closeKind] || 0) + 1);
     secNote.textContent = `Tratta chiusa dalle ${fmt(F.closedAt)}: ${c.inside} treni fermi in linea, ${c.sd} trattenuti a San Donato, ${c.north} limitati a Rogoredo.`;
   }
   secNote.dataset.idle = secNote.textContent;
-  zubBtn.onclick = () => {
-    const F = m3fleet(); if (!F) return;
-    F.zub = !F.zub; zubBtn.setAttribute('aria-pressed', F.zub); reliveFleet(F); sectionNote(F); updateSectionSignals();
-  };
   closeSecBtn.onclick = () => {
     const F = m3fleet(); if (!F) return;
     const S = F.engine.S, pathLen = pid => { const d = F.paths[pid].d; return d[d.length - 1]; };
@@ -1408,7 +1362,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       F.closed = false;
     }
     closeSecBtn.setAttribute('aria-pressed', F.closed); closeSecBtn.textContent = F.closed ? 'Riapri la tratta' : 'Chiudi la tratta';
-    reliveFleet(F); sectionNote(F); updateSectionSignals();
+    reliveFleet(F); sectionNote(F);
   };
   function renderPanel() {
     if (!isPlayer) return;
@@ -1450,7 +1404,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       map.panTo([la, lo], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); updateSectionSignals(); }
+    if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); }
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
   }

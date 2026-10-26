@@ -1,4 +1,4 @@
-// San Donato - Rogoredo: ZUB (one train per track between the two stations) and closure with short turns at Rogoredo.
+// San Donato - Rogoredo: closure with short turns at Rogoredo.
 // Run from the build folder: node ../tests/section_test.js
 const E = require('../web/engine.js');
 const M = require(process.cwd() + '/m3.json');
@@ -8,21 +8,7 @@ const fmt = s => String(Math.floor(s / 3600) % 24).padStart(2, '0') + ':' + Stri
 const lateness = res => { let w = 0, n = 0; res.forEach(r => r.log.forEach(e => { const l = e.actual - e.planned; if (l > 60) n++; w = Math.max(w, l); })); return [n, Math.round(w)]; };
 let fail = 0;
 
-// 1) ZUB all day
-const sb = { name: 'sb', ranges: {} }, nb = { name: 'nb', ranges: {} };
-for (const [pid, r] of Object.entries(S.ranges)) { if (r.sb) sb.ranges[pid] = r.sb; if (r.nb) nb.ranges[pid] = r.nb; }
-let t0 = Date.now();
-const z = E.runBooked(M.trains, ops, rev, [sb, nb], half);
-const [n1, w1] = lateness(z.res);
-console.log(`ZUB all day: ${z.held} holds, ${Date.now() - t0} ms | arrivals >1 min late: ${n1}, worst ${w1} s`);
-for (const R of [sb, nb]) {
-  const iv = []; z.res.forEach((r, k) => E.occupancy(r.segs, R, half).forEach(x => iv.push({ ...x, k })));
-  iv.sort((a, b) => a.enter - b.enter);
-  let bad = 0; for (let i = 1; i < iv.length; i++) if (iv[i].enter < iv[i - 1].exit - 1 && iv[i].k !== iv[i - 1].k) bad++;
-  console.log(`  ${R.name}: ${iv.length} passages, overlapping: ${bad}`); if (bad) fail = 1;
-}
-
-// 2) closure at 08:00
+// closure at 08:00
 const tc = +(process.env.TC || 8 * 3600);
 const base = E.runFleet(M.trains, ops, rev);
 const kinds = {}; let turned = 0;
