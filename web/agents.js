@@ -264,14 +264,16 @@
         if (busyFor(ri, a.k)) { lim = s0 - half - 3; why = { res: ri }; break; }
         // a junction (nobody may stop in it): go in only if the train can get right through it
         if (R[ri].noWait) {
-          let blocked = lim < e0 + 2 ? why : null;
-          for (let m = n + 1; m < list.length && !blocked; m++) { const [s1, , r1] = list[m]; if (s1 > e0 + 5) break; if (r1 !== ri && busyFor(r1, a.k)) blocked = { res: r1 }; }
+          // the whole train must be able to get out of it (its rear past the end), and what follows must be free
+          let blocked = lim < e0 + half + 2 ? why : null;
+          for (let m = n + 1; m < list.length && !blocked; m++) { const [s1, , r1] = list[m]; if (s1 > e0 + half + 5) break; if (r1 !== ri && busyFor(r1, a.k)) blocked = { res: r1 }; }
           if (blocked) { lim = s0 - half - 3; why = blocked; break; }
         }
       }
       return { lim, why };
     }
     function claimAhead(a) {
+      if (a.v < 0.2) return;                      // a train standing at a signal does not hold what is behind it
       for (const [s0, e0, ri] of byPid[a.pid] || []) {
         if (s0 > a.d + half + 5) break;
         if (e0 < a.d - half) continue;

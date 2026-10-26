@@ -38,6 +38,7 @@ The day computed in advance (`engine.js`, `m3_live.json`) is used only to place 
 - Going back in time restores the last saved state and drives on from there. Later events are applied again when their time comes.
 - A new event drops what came after it (a new branch of the day).
 - Changes to a train's day by radio (platform, tail, test loop) are not undone by going back.
+- Known issue: after reopening Rogoredo – San Donato, trains can lock each other in the San Donato junction (one going into a tail, one coming out). The other seven closures are clean.
 
 **Test:** `tests/day_agents_check.js`. It drives the normal day with the agents, checks that no two trains are ever on the same track piece and that nobody gets stuck, compares punctuality with the computed day, and checks that going back in time gives the same positions again.
 

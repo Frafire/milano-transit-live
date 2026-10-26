@@ -5,7 +5,7 @@ Milano Transit Live is an **unofficial fan project**. It is not affiliated with,
 | What | Source | License | What we must do |
 |---|---|---|---|
 | Code in this repository | Giovanni and contributors | GPL-3.0 (see `LICENSE`) | Copies and changes must stay open source under GPL-3.0 |
-| Timetable (GTFS) | Comune di Milano open data portal, dataset "Orari del trasporto pubblico locale nel Comune di Milano in formato GTFS" | CC BY 4.0 (to be confirmed on the dataset page) | Credit the source; the GTFS itself is not stored in this repo |
+| Timetable (GTFS) | Comune di Milano open data portal, dataset "Orari del trasporto pubblico locale nel Comune di Milano in formato GTFS" | CC BY 4.0 (to be confirmed on the dataset page) | Credit the source. An M3-only extract is stored in `data/gtfs_m3/` (made with `tools/extract_gtfs.py`); the full feed is not stored |
 | Metro track geometry (`data/osm_*.txt`) | OpenStreetMap contributors, via Overpass | ODbL 1.0 | Credit OpenStreetMap; these files and anything built from them stay open under ODbL |
 | Track rules and signals (`data/rules_*.json`) | Giovanni, with the in-game track editor | ODbL 1.0 (drawn on top of OSM data) | Same as above |
 | Satellite imagery | Esri World Imagery (Esri, Maxar, Earthstar Geographics) | Esri terms | Free ArcGIS Developer account, no ads or subscriptions, under 1 million tiles a month, visible credit |

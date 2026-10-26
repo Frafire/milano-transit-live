@@ -47,7 +47,8 @@ for (let t = T0 + 30; t <= T1; t += 30) {
   ag.agents().forEach(a => { if (a.late != null && a.lateSeen !== a.late) { a.lateSeen = a.late; late.push(a.late); }
     const m = moved.get(a.k); if (!m || Math.abs(m.d - a.d) > 1 || m.pid !== a.pid) moved.set(a.k, { d: a.d, pid: a.pid, t }); });
 }
-ag.agents().forEach(a => { const m = moved.get(a.k); if (a.mode === 'plan' && a.status !== 'parked' && S_waiting(a) === false && m && T1 - m.t > 1200) stuck++; });
+ag.agents().forEach(a => { const m = moved.get(a.k); if (a.mode === 'plan' && a.status !== 'parked' && S_waiting(a) === false && m && T1 - m.t > 1200) { stuck++;
+  if (process.env.DBG) { const l = a.legs[0] || {}; console.log('  stuck', a.k, a.status, 'since', Math.floor(m.t / 3600) + ':' + String(Math.floor(m.t / 60) % 60).padStart(2, '0'), 'pid', a.pid, Math.round(a.d), 'si', a.si, 'why', a.why, JSON.stringify(a.red && a.red.why), 'leg', l.pid, l.status, Math.round(l.end), 'res', a.red && a.red.why && a.red.why.res != null ? ag.resources()[a.red.why.res].name : ''); } } });
 function S_waiting(a) { return ag.S.t < a.wait; }
 late.sort((p, q) => p - q);
 const q = f => Math.round(late[Math.floor((late.length - 1) * f)] || 0);

@@ -23,9 +23,9 @@ The plan is in [`docs/planning/milano-transit-live-roadmap.xlsx`](docs/planning/
 
 Needs Python 3.10+ (no extra packages), Node.js (for the engine test) and bash.
 
-1. Download the GTFS zip from the Comune di Milano open data portal (dataset "Orari del trasporto pubblico locale nel Comune di Milano in formato GTFS") and unzip it, for example into `gtfs/` (ignored by git).
-2. Run `./build.sh gtfs` (optionally add a service day as `YYYYMMDD`).
-3. The game is written to `docs/index.html`. The build also runs the checks in `tests/`: no tail track ever holds two trains, no depot track ever holds two trains.
+1. Run `./build.sh`. It uses `data/gtfs_m3/`, an M3-only extract of the ATM/AMAT GTFS kept in the project (about 2.6 MB; feed version and dates in its README), so the build is the same for everyone. Add a service day as a second argument (`./build.sh data/gtfs_m3 YYYYMMDD`) if needed.
+2. The game is written to `docs/index.html`. The build also runs the checks in `tests/`: tails and depot tracks never hold two trains, block sections, the normal day driven by the agents, one line closure with reopening, timetable and spacing.
+3. For a newer timetable: download the full GTFS zip from the Comune di Milano open data portal (dataset "Orari del trasporto pubblico locale nel Comune di Milano in formato GTFS", about 470 MB unzipped), unzip it into `gtfs/` (ignored by git), then run `python3 tools/extract_gtfs.py gtfs data/gtfs_m3` and `./build.sh`. For all lines (M1, M4, buses): `ALL_LINES=1 ./build.sh gtfs`.
 
 ## Layout
 
