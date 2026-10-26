@@ -22,10 +22,14 @@
   }
 
   // drive one run: from a stop, through timing points, to the next stop
-  function driveRun(pid, legs, t0, ops, out) {
-    const a = ops.acceleration_ms2, b = ops.braking_ms2, vmax = ops.line_max_kmh / 3.6;
+  // prof: speed limits along this path, [[from d, to d, m/s], ...] sorted by from d. With limits the train runs like
+  // the ATO does: as fast as allowed, then waits at the next stop. Without, it keeps to the planned running times.
+  function driveRun(pid, legs, t0, ops, out, prof) {
+    const a = ops.acceleration_ms2, b = ops.braking_ms2, vmax = (prof ? (ops.train_max_kmh || 90) : ops.line_max_kmh) / 3.6;
+    const half = ops.train_half || 0;
     const n = legs.length;
-    const vt = legs.map((g, k) => cruiseSpeed(g.d1 - g.d0, g.t1 - g.t0, k === 0 ? 1 / (2 * a) : 0, k === n - 1 ? 1 / (2 * b) : 0, vmax));
+    const vt = legs.map((g, k) => prof ? vmax : cruiseSpeed(g.d1 - g.d0, g.t1 - g.t0, k === 0 ? 1 / (2 * a) : 0, k === n - 1 ? 1 / (2 * b) : 0, vmax));
+    let p0 = 0;
     const end = legs[n - 1].d1;
     let d = legs[0].d0, v = 0, t = t0, k = 0, step = 0;
     const ts = [t], ds = [d];
@@ -35,6 +39,15 @@
       let vcap = vt[k];
       for (let j = k + 1; j < n; j++) vcap = Math.min(vcap, Math.sqrt(vt[j] * vt[j] + 2 * b * Math.max(0, legs[j].d0 - d)));
       vcap = Math.min(vcap, Math.sqrt(2 * b * Math.max(0, end - d)));
+      if (prof) {                                   // speed limits: under the whole train, and braking for the next ones
+        while (p0 < prof.length - 1 && prof[p0][1] < d - half) p0++;
+        for (let j = p0; j < prof.length; j++) {
+          const sg = prof[j]; if (sg[0] > d + half + 400) break;
+          if (sg[1] < d - half) continue;
+          if (sg[0] <= d + half) vcap = Math.min(vcap, sg[2]);
+          else vcap = Math.min(vcap, Math.sqrt(sg[2] * sg[2] + 2 * b * (sg[0] - d - half)));
+        }
+      }
       if (v < vcap) v = Math.min(vcap, v + a * DT); else v = Math.max(vcap, v - b * DT * 1.5);
       if (v < 0.3) v = 0.3;                          // creep the last centimetres
       d = Math.min(end, d + v * DT); t += DT;
@@ -47,7 +60,7 @@
   }
 
   // simulate one train for the whole day; returns live segments + a log of arrivals (plan vs actual)
-  function runTrain(segs, ops, reverse, holds) {
+  function runTrain(segs, ops, reverse, holds, profiles) {
     holds = holds || {};
     const live = [], log = [];
     let t = -Infinity;
@@ -76,7 +89,7 @@
         while (j < pts.length - 1 && pds[j + 1] !== pds[j]) { legs.push({ d0: pds[j], d1: pds[j + 1], t0: pts[j], t1: pts[j + 1] }); j++; }
         const late = t - pts[i];
         const sub = { ts: [], ds: [] };
-        t = driveRun(pid, legs, t, ops, sub);
+        t = driveRun(pid, legs, t, ops, sub, profiles ? profiles[pid] : null);
         out.ts.push(...sub.ts.slice(1)); out.ds.push(...sub.ds.slice(1));
         log.push({ seg: si, status, planned: pts[j], actual: t, lateIn: late });
         i = j;
@@ -88,8 +101,22 @@
     return { segs: live, log };
   }
 
-  function runFleet(trains, ops, reverse) {
-    return trains.map(segs => runTrain(segs, ops, reverse));
+  function runFleet(trains, ops, reverse, profiles) {
+    return trains.map(segs => runTrain(segs, ops, reverse, null, profiles));
+  }
+
+  // ---------------- speed limits ----------------
+  // limit of a track piece: fixed (depot, tails, crossovers) or Giovanni's value, else the line default
+  function edgeLimit(e, speeds, ops) { return e.fixed ? e.kmh : (speeds && speeds[e.key] != null ? speeds[e.key] : e.kmh); }
+  // per path: [[from, to, m/s]] from the track pieces it uses + 15 km/h on the diverging side of every junction
+  function buildProfiles(pathEdges, netEdges, speeds, ops) {
+    const div = (ops.diverging_kmh || 15) / 3.6, w = 25;
+    return pathEdges.map(pe => {
+      if (!pe || !pe.e.length) return null;
+      const out = pe.e.map(([ei, , a, b]) => [a, b, edgeLimit(netEdges[ei], speeds, ops) / 3.6]);
+      pe.div.forEach(d => out.push([d - w, d + w, div]));
+      return out.sort((x, y) => x[0] - y[0]);
+    });
   }
 
   // ---------------- one train per section (ZUB, and the reversing stub when the line is closed) ----------------
@@ -122,10 +149,10 @@
     for (let i = 1; i < pds.length; i++) { if (pds[i] >= a - half) break; if (pds[i] === pds[i - 1]) m = i; }
     return m >= 0 ? si + ':' + m : si + ':start';
   }
-  function runBooked(plans, ops, reverse, resources, half, base) {
+  function runBooked(plans, ops, reverse, resources, half, base, profiles) {
     plans = plans.slice();
     const holds = plans.map(() => ({}));
-    const res = base ? base.slice() : plans.map(p => runTrain(p, ops, reverse));
+    const res = base ? base.slice() : plans.map(p => runTrain(p, ops, reverse, null, profiles));
     let guard = 0, held = 0;
     for (const R of resources) {
       for (;;) {
@@ -158,7 +185,7 @@
         const until = Math.min(p.exit + 2, 30 * 3600);
         if ((holds[x.k][key] || 0) >= until) break;           // cannot do better: give up rather than loop
         holds[x.k][key] = until; held++;
-        res[x.k] = runTrain(plans[x.k], ops, reverse, holds[x.k]);
+        res[x.k] = runTrain(plans[x.k], ops, reverse, holds[x.k], profiles);
       }
     }
     return { res, holds, held, plans };
@@ -220,9 +247,12 @@
         if (o && o[1] === 'service' && ro && ro.nb && rv) {
           const [rp, off, d0] = rv;
           let q = 0; while (q < o[4].length && o[4][q] < ro.nb[1]) q++;
-          const tArr = o[3][q];
-          out.push([rp, 'turnback', -1, [tRev, Math.max(tArr, tRev + 60)], [d0, o[4][q] + off]]);
-          out.push([rp, 'service', o[2], o[3].slice(q), o[4].slice(q).map(x => Math.round((x + off) * 10) / 10)]);
+          const tArr = o[3][q], dR = Math.round((o[4][q] + off) * 10) / 10;
+          const tAt = Math.min(tArr, tRev + 30 + (dR - d0) / (25 / 3.6));     // drive over normally, then wait on the platform
+          out.push([rp, 'turnback', -1, [tRev, Math.max(tAt, tRev + 30)], [d0, dR]]);
+          const svT = o[3].slice(q), svD = o[4].slice(q).map(x => Math.round((x + off) * 10) / 10);
+          if (tAt < svT[0] - 1) { svT.unshift(Math.max(tAt, tRev + 30)); svD.unshift(dR); }
+          out.push([rp, 'service', o[2], svT, svD]);
           k = j + 1;
           while (k < plan.length && plan[k][0] === o[0]) { const z = plan[k]; out.push([rp, z[1], z[2], z[3], z[4].map(x => Math.round((x + off) * 10) / 10), ...z.slice(5)]); k++; }
           continue;
@@ -248,6 +278,6 @@
     return { segs: out, kind, turned };
   }
 
-  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, DT };
+  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, DT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

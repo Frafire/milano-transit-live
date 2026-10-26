@@ -47,6 +47,12 @@ In the M3 control panel, under "Chiusura tratte", **Chiudi la tratta**: trains i
 
 Signals and ZUB (station-to-station running) are on hold until the signals can be placed and controlled. The pixel-art M3 signal icons stay in the project: `tools/signal_icons.py` and `web/assets/signals/` (red = stop, red + white = proceed, white = M1).
 
+## Speed limits (M3)
+
+Admin mode → Track editor → **Speed limits**. Pick a speed and click the M3 track pieces (from one junction to the next); trains use the new limit straight away. Fixed limits: 15 km/h over crossovers and on the diverging side of every junction (also when turning back), 15 km/h in the depot, 12.5 km/h in the tail tracks. Pieces not set yet use `line_max_kmh` (80). **Copy all** exports the limits with the other edits; they go into `data/rules_m3.json` under `speeds`.
+
+With speed limits the live engine drives like the ATO: as fast as allowed, then waits at the next stop. `tests/engine_test.js` reports how much time trains have in hand at stops, and warns when the limits make the timetable impossible.
+
 ## Changing how M3 runs
 
 The M3 operating rules live in [`data/operations_m3.json`](data/operations_m3.json): stop time at stations, unloading time at the terminus, platform wait, minimum turnaround, tail and depot speeds. Change a number (you can do it on github.com with the pencil icon), run `./build.sh` again and the whole day is re-planned. The build stops with an error if a change breaks a rule (two trains in a tail or on a depot track).

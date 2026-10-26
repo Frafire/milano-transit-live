@@ -11,6 +11,8 @@
   "driver_walk_speed_ms": 1.4,
   "cab_setup_s": 30,
   "line_max_kmh": 80,
+  "train_max_kmh": 90,
+  "diverging_kmh": 15,
   "acceleration_ms2": 1.0,
   "braking_ms2": 1.0
 }

@@ -3,6 +3,8 @@
 const E = require('../web/engine.js');
 const M = require(process.cwd() + '/m3.json');
 const S = M.section, half = M.half, ops = M.ops, rev = M.reverse_s;
+ops.train_half = half;
+const prof = E.buildProfiles(M.path_edges, M.net.edges, M.speeds, ops);
 const pathLen = pid => { const d = M.paths[pid].d; return d[d.length - 1]; };
 const fmt = s => String(Math.floor(s / 3600) % 24).padStart(2, '0') + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0');
 const lateness = res => { let w = 0, n = 0; res.forEach(r => r.log.forEach(e => { const l = e.actual - e.planned; if (l > 60) n++; w = Math.max(w, l); })); return [n, Math.round(w)]; };
@@ -10,14 +12,14 @@ let fail = 0;
 
 // closure at 08:00
 const tc = +(process.env.TC || 8 * 3600);
-const base = E.runFleet(M.trains, ops, rev);
+const base = E.runFleet(M.trains, ops, rev, prof);
 const kinds = {}; let turned = 0;
 const plans = M.trains.map((p, k) => { const c = E.closePlan(p, base[k].segs, tc, S, ops, rev, pathLen); kinds[c.kind] = (kinds[c.kind] || 0) + 1; turned += c.turned; return c.segs; });
 const stub = { name: 'stub', ranges: {} };
 for (const [pid, r] of Object.entries(S.ranges)) if (r.sb) stub.ranges[pid] = [r.sb[0] - 5, r.sb[0] + S.stub];
 for (const v of Object.values(S.rev)) stub.ranges[v[0]] = [v[3] - S.stub - 5, v[3]];
 t0 = Date.now();
-const c = E.runBooked(plans, ops, rev, [stub], half);
+const c = E.runBooked(plans, ops, rev, [stub], half, null, prof);
 const iv = []; c.res.forEach((r, k) => E.occupancy(r.segs, stub, half).forEach(x => iv.push({ ...x, k })));
 iv.sort((a, b) => a.enter - b.enter);
 let bad = 0; for (let i = 1; i < iv.length; i++) if (iv[i].enter < iv[i - 1].exit - 1 && iv[i].k !== iv[i - 1].k) bad++;

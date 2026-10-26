@@ -36,7 +36,7 @@ TRAIN_HALF = CFG['half']
 # operating rules Giovanni can tune without touching code: data/operations_<line>.json
 OPS = {'station_stop_s': 30, 'terminus_unload_s': 45, 'platform_wait_min_s': 30, 'platform_wait_max_s': 120,
        'min_turnaround_min': 7, 'depot_rest_if_wait_over_min': 15, 'tail_speed_kmh': 12.5, 'depot_speed_kmh': 15,
-       'driver_walk_speed_ms': 1.4, 'cab_setup_s': 30, 'line_max_kmh': 80, 'acceleration_ms2': 1.0, 'braking_ms2': 1.0}
+       'driver_walk_speed_ms': 1.4, 'cab_setup_s': 30, 'line_max_kmh': 80, 'train_max_kmh': 90, 'diverging_kmh': 15, 'acceleration_ms2': 1.0, 'braking_ms2': 1.0}
 _ops = 'operations_%s.json' % LINE.lower()
 if os.path.exists(_ops):
     OPS.update({k: v for k, v in json.load(open(_ops)).items() if not k.startswith('_')})
@@ -92,10 +92,11 @@ print('storage places:', len(storage), 'of which through tracks:', len(STORE_EXI
 
 # ---------------- path library ----------------
 paths, path_key = [], {}
+PATH_STATES = {}      # pid -> [(edge, dir)], for speed limits along each path
 def make_path(key, states):
     if key in path_key: return path_key[key]
     p = path_poly(states); c = cum(p)
-    pid = len(paths); paths.append((p, c)); path_key[key] = pid; return pid
+    pid = len(paths); paths.append((p, c)); path_key[key] = pid; PATH_STATES[pid] = list(states); return pid
 
 def leg_path(start, via, end):
     key = ('leg', start, tuple(via), end)
@@ -744,7 +745,7 @@ def _edge_cat(e):
 _tails = set(CFG['SD_TAILS']) | set(CFG['COM_TAILS'])
 def _edge_kmh(e, cat):
     if cat == 'test': return OPS.get('line_max_kmh', 80)               # anello di prova: not limited to 15
-    if 'mid' in e or (in_depot(e['a']) and in_depot(e['b'])): return OPS['depot_speed_kmh']
+    if cat in ('yard', 'link'): return OPS['depot_speed_kmh']        # depot tracks, through tracks, depot access
     if e['a'] in _tails or e['b'] in _tails: return OPS['tail_speed_kmh']
     return OPS.get('line_max_kmh', 80)
 NET = {'nodes': {}, 'edges': [], 'signals': []}
@@ -755,6 +756,24 @@ for ei, e in enumerate(edges):
     NET['edges'].append({'a': e['a'], 'b': e['b'], 'len': round(e['len'], 1), 'way': e['way'] if 'mid' not in e else -1,
                          'cat': cat, 'kmh': _edge_kmh(e, cat), 'p': enc(e['pts'])})
 NET['nodes'] = {str(k): v for k, v in NET['nodes'].items()}
+for ei, e in enumerate(edges):
+    ne = NET['edges'][ei]; ne['key'] = '%s-%s' % (e['a'], e['b'])
+    ne['fixed'] = ne['cat'] in ('crossover', 'yard', 'link') or ne['kmh'] < OPS.get('line_max_kmh', 80)   # depot, tails, crossovers: not editable
+    if ne['cat'] == 'crossover': ne['kmh'] = 15
+# for every path: which track piece covers which stretch, and where it takes the diverging side of a junction (15 km/h)
+def _ang(u, v): return math.degrees(math.acos(max(-1.0, min(1.0, u[0] * v[0] + u[1] * v[1]))))
+PATH_EDGES = []
+for pid in range(len(paths)):
+    st = PATH_STATES.get(pid); spans, div, d = [], [], 0.0
+    if st:
+        for k, (ei, dr) in enumerate(st):
+            L_ = plen(poly(ei, dr)); spans.append([ei, dr, round(d, 1), round(d + L_, 1)])
+            if k + 1 < len(st):
+                n = end_node(ei, dr); e2, d2 = st[k + 1]
+                if len(node_edges[n]) >= 3 and _ang(tangent(poly(ei, dr), False), tangent(poly(e2, d2), True)) > 6:
+                    div.append(round(d + L_, 1))
+            d += L_
+    PATH_EDGES.append({'e': spans, 'div': div})
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
     NET['signals'] = [{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'heading', 'dir', 'type', 'name')}
@@ -782,7 +801,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'platmap': PLATMAP,
            'boards': boards_out(),
            'stock': STOCK, 'duties': DUTIES, 'test': TEST,
-           'tracks': tracks, 'net': NET, 'ops': OPS, 'section': SECTION, 'reverse_s': REVERSE,
+           'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))
 print(LINE.lower() + '.json written')

@@ -113,6 +113,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .orario td span { display: inline-block; margin-right: 7px; }
 .orario td span.past { opacity: .35; }
 .orario td span.nx { color: #ff9416; font-weight: 700; }
+.spdbtns button { min-width: 44px; }
+.spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
 .hstop.live { cursor: pointer; border-color: #ff9416; }
 .board { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; background: #050607; border-radius: 6px; padding: 10px 12px; font-family: var(--display); }
 .board .dname { color: var(--signal); font: 600 17px var(--display); letter-spacing: .02em; }
@@ -279,6 +281,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <button class="tab" data-mode="mark" role="tab" aria-pressed="true">Platforms &amp; tracks</button>
     <button class="tab" data-mode="signal" role="tab" aria-pressed="false">Signals</button>
     <button class="tab" data-mode="draw" role="tab" aria-pressed="false">Draw track</button>
+    <button class="tab" data-mode="speed" role="tab" aria-pressed="false">Speed limits</button>
   </div>
 
   <section data-panel="mark">
@@ -326,6 +329,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     </select>
     <input type="text" id="sigName" placeholder="Name (optional), e.g. S12">
     <div class="row"><button id="sigSave">Place signal</button></div>
+  </section>
+
+  <section data-panel="speed" hidden>
+    <p class="note">Pick a speed, then click the M3 track pieces (from one junction to the next) that have that limit. The trains use it straight away.</p>
+    <div class="row spdbtns" id="spdBtns"></div>
+    <div id="spdPick" class="note picked">Click a track piece</div>
+    <p class="note">Fixed, not editable: 15 km/h over crossovers and on the diverging side of every junction (also when turning back), 15 km/h in the depot, 12.5 km/h in the tail tracks. Grey dashed pieces are fixed.</p>
   </section>
 
   <section data-panel="draw" hidden>
@@ -541,7 +551,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     fleet.stock = F.stock || []; fleet.test = F.test || null; fleet.platmap = F.platmap || null;
     fleet.trains = F.trains.map((segs, i) => ({ n: i + 1, segs, starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: (F.alts || [])[i] || [], arr2: (F.arr2 || [])[i] || [], duties: (F.duties || [])[i] || null }));
     if (F.net && F.ops && window.MTLEngine) {
-      fleet.engine = { ops: F.ops, rev: F.reverse_s, net: F.net, S: F.section, half: F.half };
+      fleet.engine = { ops: { ...F.ops, train_half: F.half }, rev: F.reverse_s, net: F.net, S: F.section, half: F.half, pathEdges: F.path_edges, fileSpeeds: F.speeds || {} };
+      fleet.engine.prof = F.path_edges ? MTLEngine.buildProfiles(F.path_edges, F.net.edges, fleet.engine.fileSpeeds, fleet.engine.ops) : null;
       fleet.trains.forEach(tr => { tr.F = fleet; relive(tr); });
     }
     fleets.push(fleet);
@@ -585,15 +596,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function reliveFleet(F) {
     const R = sectionResources(F);
-    if (!R.length) { F.trains.forEach(tr => { const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev); tr.live = r.segs; tr.liveStarts = r.segs.map(x => x[3][0]); tr.liveLog = r.log; }); return; }
-    const r = MTLEngine.runBooked(F.trains.map(tr => tr.segs), F.engine.ops, F.engine.rev, R, F.engine.half);
+    if (!R.length) { F.trains.forEach(tr => { const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev, null, F.engine.prof); tr.live = r.segs; tr.liveStarts = r.segs.map(x => x[3][0]); tr.liveLog = r.log; }); return; }
+    const r = MTLEngine.runBooked(F.trains.map(tr => tr.segs), F.engine.ops, F.engine.rev, R, F.engine.half, null, F.engine.prof);
     F.trains.forEach((tr, k) => { tr.live = r.res[k].segs; tr.liveStarts = tr.live.map(x => x[3][0]); tr.liveLog = r.res[k].log; });
     F.holds = r.held;
   }
   function relive(tr) {
     const F = tr.F; if (!F || !F.engine) return;
     if (F.closed) return reliveFleet(F);
-    const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev);
+    const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev, null, F.engine.prof);
     tr.live = r.segs; tr.liveStarts = r.segs.map(x => x[3][0]); tr.liveLog = r.log;
   }
   function trainState(F, tr, t) {
@@ -1146,10 +1157,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const trkOther = document.getElementById('trkOther'), trkNote = document.getElementById('trkNote');
   const ptCount = document.getElementById('ptCount'), trkList = document.getElementById('trkList'), exportBox = document.getElementById('exportBox');
   const savedLayer = L.layerGroup().addTo(map), currentLayer = L.layerGroup().addTo(map);
-  let pts = [], ED = { tracks: [], marks: [], signals: [] };
+  let pts = [], ED = { tracks: [], marks: [], signals: [], speeds: {} };
   try {
     const raw = JSON.parse(localStorage.getItem('mtl-edit') || 'null');
-    if (raw) ED = { tracks: raw.tracks || [], marks: raw.marks || [], signals: raw.signals || [] };
+    if (raw) ED = { tracks: raw.tracks || [], marks: raw.marks || [], signals: raw.signals || [], speeds: raw.speeds || {} };
     else ED.tracks = JSON.parse(localStorage.getItem('mtl-tracks') || '[]');
   } catch (e) {}
   const persist = () => { try { localStorage.setItem('mtl-edit', JSON.stringify(ED)); } catch (e) {} };
@@ -1238,14 +1249,59 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       L.polyline(tk.points, { color: '#ff4fd8', weight: 4, dashArray: '5 4', interactive: false }).addTo(savedLayer);
       add('Drawn: ' + tk.name + ' · ' + tk.points.length + ' pts', () => { ED.tracks.splice(i, 1); persist(); redrawSaved(); });
     });
+    const nSp = Object.keys(ED.speeds || {}).length;
+    if (nSp) add(`Speed limits on ${nSp} track piece${nSp > 1 ? 's' : ''}`, () => { ED.speeds = {}; persist(); redrawSaved(); drawSpeeds(); applySpeeds(); });
     if (!trkList.children.length) trkList.innerHTML = '<li class="note">Nothing saved yet</li>';
+  }
+  // ---- speed limits tool (M3) ----
+  const SPEEDS = [20, 30, 40, 50, 60, 70, 80];
+  const SPCOL = k => k <= 15 ? '#ff3b3b' : k <= 30 ? '#ff8a3b' : k <= 40 ? '#ffcf3f' : k <= 50 ? '#c6f03b' : k <= 60 ? '#3bd16f' : k <= 70 ? '#3bd1c6' : '#4f9bff';
+  let spdPickV = 60;
+  const spdBtns = document.getElementById('spdBtns'), spdPick = document.getElementById('spdPick');
+  spdBtns.innerHTML = SPEEDS.map(v => `<button data-v="${v}" aria-pressed="${v === spdPickV}" style="border-color:${SPCOL(v)}">${v}</button>`).join('') + '<button data-v="0">Default</button>';
+  spdBtns.querySelectorAll('button').forEach(b => b.onclick = () => { spdPickV = +b.dataset.v; spdBtns.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
+  const speedLayer = L.layerGroup().addTo(map);
+  const m3eng = () => fleets.find(f => f.engine && f.engine.pathEdges);
+  const NETPTS = {};
+  function netPts(F) { if (!NETPTS[F.line]) NETPTS[F.line] = F.engine.net.edges.map(e => decodeFlat(e.p)); return NETPTS[F.line]; }
+  const allSpeeds = F => ({ ...F.engine.fileSpeeds, ...ED.speeds });
+  let speedTimer = null;
+  function applySpeeds() {        // new limits: rebuild the speed profiles and drive the day again
+    const F = m3eng(); if (!F) return;
+    F.engine.prof = MTLEngine.buildProfiles(F.engine.pathEdges, F.engine.net.edges, allSpeeds(F), F.engine.ops);
+    reliveFleet(F);
+  }
+  function drawSpeeds() {
+    speedLayer.clearLayers();
+    const F = m3eng(); if (!F || !drawing || mode !== 'speed') return;
+    const sp = allSpeeds(F), P = netPts(F), z = map.getZoom();
+    F.engine.net.edges.forEach((e, i) => {
+      const v = MTLEngine.edgeLimit(e, sp, F.engine.ops), set = !e.fixed && sp[e.key] != null;
+      L.polyline(P[i], { color: e.fixed ? '#9a9a9a' : SPCOL(v), weight: e.fixed ? 3 : (set ? 6 : 4), opacity: set || e.fixed ? .95 : .55, dashArray: e.fixed ? '4 4' : null, interactive: false }).addTo(speedLayer);
+      if (!e.fixed && z >= 14 && e.len > 60) {
+        const mid = P[i][Math.floor(P[i].length / 2)];
+        L.marker(mid, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="spdlab" style="--c:${SPCOL(v)}">${v}${set ? '' : '?'}</div>` }) }).addTo(speedLayer);
+      }
+    });
+  }
+  function snapEdge(latlng) {
+    const F = m3eng(); if (!F) return null;
+    const Pc = map.latLngToContainerPoint(latlng), P = netPts(F); let best = null;
+    P.forEach((pts_, i) => { for (let k = 0; k < pts_.length - 1; k++) {
+      const A = map.latLngToContainerPoint(pts_[k]), B = map.latLngToContainerPoint(pts_[k + 1]);
+      const dx = B.x - A.x, dy = B.y - A.y, L2 = dx * dx + dy * dy, u = L2 ? Math.max(0, Math.min(1, ((Pc.x - A.x) * dx + (Pc.y - A.y) * dy) / L2)) : 0;
+      const d = Math.hypot(Pc.x - A.x - u * dx, Pc.y - A.y - u * dy);
+      if (d < 14 && (!best || d < best.d)) best = { d, i };
+    } });
+    return best && { F, e: F.engine.net.edges[best.i] };
   }
   function setMode(m) {
     mode = m;
     document.querySelectorAll('.drawer .tab').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
     document.querySelectorAll('.drawer [data-panel]').forEach(p => p.hidden = p.dataset.panel !== m);
-    redrawCurrent();
+    redrawCurrent(); drawSpeeds();
   }
+  map.on('zoomend', drawSpeeds);
   document.querySelectorAll('.drawer .tab').forEach(b => b.onclick = () => setMode(b.dataset.mode));
   const pressGroup = (sel, val) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', +b.dataset.dir === val));
   document.querySelectorAll('.dirbtn').forEach(b => b.onclick = () => { markDir = +b.dataset.dir; pressGroup('.dirbtn', markDir); redrawCurrent(); });
@@ -1257,13 +1313,24 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     drawing = on; drawer.hidden = !on; drawBtn.setAttribute('aria-pressed', on);
     document.body.classList.toggle('drawing', on);
     if (on) { state.sel = null; state.follow = false; renderCard(); }
-    redrawCurrent(); if (typeof syncMarks === 'function') syncMarks();
+    redrawCurrent(); drawSpeeds(); if (typeof syncMarks === 'function') syncMarks();
   }
   drawBtn.onclick = () => setDrawing(!drawing);
   document.getElementById('closeDraw').onclick = () => setDrawing(false);
   map.on('click', e => {
     if (!drawing) return;
     if (mode === 'draw') { pts.push([+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)]); redrawCurrent(); return; }
+    if (mode === 'speed') {
+      const h = snapEdge(e.latlng);
+      if (!h) { spdPick.textContent = 'No M3 track there. Zoom in and click right on a track.'; return; }
+      const kind = { main: 'main line', siding: 'siding / platform', test: 'test loop', crossover: 'crossover', yard: 'depot track', link: 'depot access' }[h.e.cat] || h.e.cat;
+      if (h.e.fixed) { spdPick.textContent = `${kind}, ${Math.round(h.e.len)} m: fixed at ${h.e.kmh} km/h`; return; }
+      if (spdPickV) ED.speeds[h.e.key] = spdPickV; else delete ED.speeds[h.e.key];
+      spdPick.textContent = `${kind}, ${Math.round(h.e.len)} m: ${spdPickV ? spdPickV + ' km/h' : 'back to default (' + h.e.kmh + ' km/h)'}`;
+      persist(); drawSpeeds(); redrawSaved();
+      clearTimeout(speedTimer); speedTimer = setTimeout(applySpeeds, 300);
+      return;
+    }
     const s = snap(e.latlng, mode === 'signal' ? 60 : 18);
     if (s && mode === 'signal') {            // keep where you clicked, remember the track it belongs to
       const a = ALLTRACKS[s.ti].pts[s.i], b = ALLTRACKS[s.ti].pts[s.i + 1];
@@ -1314,6 +1381,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     catch (e) { document.execCommand('copy'); ok(); }
   };
   redrawSaved(); setMode('mark');
+  if (Object.keys(ED.speeds).length) applySpeeds();
   const marksBtn = document.getElementById('marksBtn');
   let showMarks = true;
   try { showMarks = localStorage.getItem('mtl-show-marks') !== '0'; } catch (e) {}
