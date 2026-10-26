@@ -21,5 +21,6 @@ grep -h "tail clashes\|not covered\|test loop" m3.log || true
 echo "== tests"
 python3 "$ROOT/tests/check_tails.py"
 python3 "$ROOT/tests/check_depot.py"
+node "$ROOT/tests/engine_test.js"
 echo "== page"
 python3 "$ROOT/tools/assemble.py"

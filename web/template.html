@@ -253,6 +253,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <p class="note" id="mapNote" hidden></p>
   </div>
   <div class="admin-only">
+    <div class="label" style="margin-bottom:6px">M3 trains</div>
+    <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button></div>
+    <p class="note">On: trains drive with acceleration and braking. Off: they follow the plan exactly.</p>
+  </div>
+  <div class="admin-only">
     <div class="label" style="margin-bottom:6px">Platforms, tracks and signals</div>
     <div class="row" style="flex-wrap:nowrap">
       <button id="drawBtn" aria-pressed="false" style="flex:1">Track editor</button>
@@ -339,6 +344,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 </aside>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="engine.js"></script>
 <script id="payload" type="application/octet-stream">__DATA__</script>
 <script id="m3payload" type="application/octet-stream">__M3__</script>
 <script>
@@ -433,6 +439,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   };
   document.querySelectorAll('.bm').forEach(b => b.onclick = () => setBase(b.dataset.b));
   setBase('hyb');
+  const engineBtn = document.getElementById('engineBtn');
+  engineBtn.onclick = () => { state.engine = !state.engine; engineBtn.setAttribute('aria-pressed', state.engine); };
   const railBtn = document.getElementById('rail');
   railBtn.onclick = () => {
     const on = !map.hasLayer(rail);
@@ -485,7 +493,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       link: [{ color: '#d0d0d0', weight: 2, opacity: .8, dashArray: '4 4' }]
     };
     F.tracks.forEach(t => ALLTRACKS.push({ line: F.line, w: t.w, c: t.c, pts: decodeFlat(t.p) }));
-    ['yard', 'test', 'link', 'siding', 'crossover', 'main'].forEach(cat => F.tracks.filter(t => t.c === cat).forEach(t => {
+    const drawn_ = F.net ? F.net.edges.map(e => ({ c: e.cat, p: e.p })) : F.tracks;   // M3: drawn from the engine's network
+    ['yard', 'test', 'link', 'siding', 'crossover', 'main'].forEach(cat => drawn_.filter(t => t.c === cat).forEach(t => {
       const pts = decodeFlat(t.p);
       (TS[cat] || TS.siding).forEach(st => L.polyline(pts, { ...st, interactive: false }).addTo(g));
     }));
@@ -528,6 +537,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     fleet.stops = busStops; fleet.display = !!F.display; fleet.heads = F.heads || [];
     fleet.stock = F.stock || []; fleet.test = F.test || null; fleet.platmap = F.platmap || null;
     fleet.trains = F.trains.map((segs, i) => ({ n: i + 1, segs, starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: (F.alts || [])[i] || [], arr2: (F.arr2 || [])[i] || [], duties: (F.duties || [])[i] || null }));
+    if (F.net && F.ops && window.MTLEngine) {
+      fleet.engine = { ops: F.ops, rev: F.reverse_s, net: F.net };
+      fleet.trains.forEach(tr => { tr.F = fleet; relive(tr); });
+    }
     fleets.push(fleet);
   });
   const fleetOf = ri => fleets.find(f => f.li === ri);
@@ -555,19 +568,26 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     return d[2] < 0 ? { n: '?', missing: true } : { n: d[2] + 1, ...F.stock[d[2]] };
   }
   const parkedLabel = (F, where) => where && where !== 'depot' ? 'Parked overnight in a ' + where + ' tail track' : 'Parked in the ' + F.home + ' depot';
+  // live engine: drive this train from its (possibly changed) plan
+  function relive(tr) {
+    const F = tr.F; if (!F || !F.engine) return;
+    const r = MTLEngine.runTrain(tr.segs, F.engine.ops, F.engine.rev);
+    tr.live = r.segs; tr.liveStarts = r.segs.map(x => x[3][0]); tr.liveLog = r.log;
+  }
   function trainState(F, tr, t) {
-    const st = tr.starts; let lo = 0, hi = st.length - 1;
-    if (t < st[0]) { const s = tr.segs[0]; return { pos: trackAt(F, s[0], s[4][0]), pid: s[0], d: s[4][0], status: 'parked', label: parkedLabel(F, tr.where[0]), trip: -1, seg: -1, store: s[5] }; }
+    const useLive = F.engine && state.engine && tr.live, SG = useLive ? tr.live : tr.segs;
+    const st = useLive ? tr.liveStarts : tr.starts; let lo = 0, hi = st.length - 1;
+    if (t < st[0]) { const s = SG[0]; return { pos: trackAt(F, s[0], s[4][0]), pid: s[0], d: s[4][0], status: 'parked', label: parkedLabel(F, tr.where[0]), trip: -1, seg: -1, store: s[5] }; }
     while (lo < hi) { const m = (lo + hi + 1) >> 1; if (st[m] <= t) lo = m; else hi = m - 1; }
-    const s = tr.segs[lo], ts = s[3], ds = s[4];
+    const s = SG[lo], ts = s[3], ds = s[4];
     if (t <= ts[ts.length - 1]) {
-      let i = 0; while (i < ts.length - 2 && ts[i + 1] <= t) i++;
+      let i = 0, j = ts.length - 2; while (i < j) { const m = (i + j + 1) >> 1; if (ts[m] <= t) i = m; else j = m - 1; }
       const span = ts[i + 1] - ts[i], d = ds[i] + (ds[i + 1] - ds[i]) * (span > 0 ? (t - ts[i]) / span : 0);
       let label = STATUS[s[1]] || s[1];
       if (s[1] === 'service' && i === 0 && ds[0] === ds[1]) label = 'Boarding, departs ' + fmt(ts[1]);
       return { pos: trackAt(F, s[0], d), pid: s[0], d, status: s[1], label, trip: s[2], seg: lo };
     }
-    const next = tr.segs[lo + 1];
+    const next = SG[lo + 1];
     let status = 'hold', label;
     if (!next || s[1] === 'to_depot' || (s[1] === 'empty' && next[1] === 'from_depot')) { status = 'parked'; label = !next ? parkedLabel(F, s[5] !== undefined ? 'depot' : tr.where[1]) : parkedLabel(F, 'depot'); }
     else if (s[1] === 'service') label = F.bus ? 'Waiting at the terminus' : 'At the terminus, passengers getting off';
@@ -594,7 +614,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 
   // ---------- state ----------
   const state = { t: 8 * 3600, speed: 60, playing: true, modes: { 0: true, 1: true, 3: true },
-                  metro: { M1: true, M2: true, M3: true, M4: true, M5: true }, line: '', sel: null, follow: false };
+                  metro: { M1: true, M2: true, M3: true, M4: true, M5: true }, line: '', sel: null, follow: false, engine: true };
 
   const metroBox = document.getElementById('metros');
   routes.filter(r => r.t === 1).forEach(r => {
@@ -887,7 +907,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const alt = tr.alts[+b.dataset.alt], p = +b.dataset.plat;
       if (alt.plat === p) return;
       tr.segs.splice(alt.i, alt.n, ...JSON.parse(JSON.stringify(alt.opts[String(p)])));
-      tr.starts = tr.segs.map(x => x[3][0]); alt.plat = p; renderCard();
+      tr.starts = tr.segs.map(x => x[3][0]); relive(tr); alt.plat = p; renderCard();
     });
     const nx = card.querySelector('li.next');
     if (nx && !card.matches(':hover')) nx.scrollIntoView({ block: 'nearest' });
@@ -1003,7 +1023,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function setPlat(o, alt, p) {
     o.segs.splice(alt.i, alt.n, ...JSON.parse(JSON.stringify(alt.opts[String(p)])));
-    o.starts = o.segs.map(x => x[3][0]); alt.plat = p;
+    o.starts = o.segs.map(x => x[3][0]); relive(o); alt.plat = p;
   }
   let p2Msg = '';
   function orderP2(F, tr, k) {
@@ -1019,7 +1039,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     users.forEach(u => { setPlat(u.o, u.alt, 1); moved.push(trName(F, u.o, t) + ' (departs ' + fmt(u.alt.dep) + ')'); });
     const end = a.i + a.n, delta = a.segs.length - a.n;
     tr.segs.splice(a.i, a.n, ...JSON.parse(JSON.stringify(a.segs)));
-    tr.starts = tr.segs.map(x => x[3][0]);
+    tr.starts = tr.segs.map(x => x[3][0]); relive(tr);
     tr.alts = tr.alts.filter(x => x.i < a.i || x.i >= end); tr.alts.forEach(x => { if (x.i >= end) x.i += delta; });
     tr.arr2.forEach(x => { if (x !== a && x.i >= end) x.i += delta; if (x !== a && x.i >= a.i && x.i < end) x.done = true; });
     a.done = true; tr.p2 = { from: a.from, dep: a.dep };
@@ -1062,7 +1082,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     t += T.reverse;
     segs.push([pback, 'to_depot', -1, [t, t + tBack], [0, Lb - off], st.store]); t += tBack;
     tr.segs.splice(nextIdx, 0, ...segs.map(x => x.map(v => Array.isArray(v) ? v.map(Math.round) : v)));
-    tr.starts = tr.segs.map(x => x[3][0]);
+    tr.starts = tr.segs.map(x => x[3][0]); relive(tr);
     loopMsg = laps + (laps === 1 ? ' lap' : ' laps') + ', back in the depot at ' + fmt(t) + '.';
   }
   // which departure platform a train waiting in a San Donato tail will use; the user may change it

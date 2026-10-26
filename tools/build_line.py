@@ -36,7 +36,7 @@ TRAIN_HALF = CFG['half']
 # operating rules Giovanni can tune without touching code: data/operations_<line>.json
 OPS = {'station_stop_s': 30, 'terminus_unload_s': 45, 'platform_wait_min_s': 30, 'platform_wait_max_s': 120,
        'min_turnaround_min': 7, 'depot_rest_if_wait_over_min': 15, 'tail_speed_kmh': 12.5, 'depot_speed_kmh': 15,
-       'driver_walk_speed_ms': 1.4, 'cab_setup_s': 30}
+       'driver_walk_speed_ms': 1.4, 'cab_setup_s': 30, 'line_max_kmh': 80, 'acceleration_ms2': 1.0, 'braking_ms2': 1.0}
 _ops = 'operations_%s.json' % LINE.lower()
 if os.path.exists(_ops):
     OPS.update({k: v for k, v in json.load(open(_ops)).items() if not k.startswith('_')})
@@ -693,6 +693,34 @@ if LINE == 'M3':
                 if 'mid' in edges[ei]: continue
                 _entry_signal(n, ei, k); k += 1
     print('shunting signals placed at depot track entrances:', len(AUTO_SIGNALS))
+# ---------------- network for the live engine (step 1) ----------------
+# every track piece between two junctions, with its category and speed limit, plus the signals
+def _edge_cat(e):
+    if 'mid' in e: return 'yard'
+    w = W[e['way']]
+    if 'Raccordo' in w['name']: return 'link'
+    if w['name'] == CFG['main']: return 'main'
+    if 'anello' in w['name']: return 'test'
+    return w['svc'] or 'main'
+_tails = set(CFG['SD_TAILS']) | set(CFG['COM_TAILS'])
+def _edge_kmh(e, cat):
+    if cat == 'test': return OPS.get('line_max_kmh', 80)               # anello di prova: not limited to 15
+    if 'mid' in e or (in_depot(e['a']) and in_depot(e['b'])): return OPS['depot_speed_kmh']
+    if e['a'] in _tails or e['b'] in _tails: return OPS['tail_speed_kmh']
+    return OPS.get('line_max_kmh', 80)
+NET = {'nodes': {}, 'edges': [], 'signals': []}
+for ei, e in enumerate(edges):
+    cat = _edge_cat(e)
+    for n in (e['a'], e['b']):
+        if n not in NET['nodes']: NET['nodes'][n] = [round(v, 6) for v in ll(*node_pos[n])]
+    NET['edges'].append({'a': e['a'], 'b': e['b'], 'len': round(e['len'], 1), 'way': e['way'] if 'mid' not in e else -1,
+                         'cat': cat, 'kmh': _edge_kmh(e, cat), 'p': enc(e['pts'])})
+NET['nodes'] = {str(k): v for k, v in NET['nodes'].items()}
+_rules = 'rules_%s.json' % LINE.lower()
+if os.path.exists(_rules):
+    NET['signals'] = [{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'heading', 'dir', 'type', 'name')}
+                      for sg in json.load(open(_rules)).get('signals', []) if sg.get('line') == LINE]
+print('network for the live engine:', len(NET['nodes']), 'nodes,', len(NET['edges']), 'track pieces,', len(NET['signals']), 'signals')
 PLATMAP = {'station': CFG['home'], 'plats': [[l[0], l[1]] for l in CFG.get('labels', [])], 'stop': list(SD_STOP)}
 # platform number labels at the home terminal
 PLAT_LABELS = []
@@ -715,7 +743,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'platmap': PLATMAP,
            'boards': boards_out(),
            'stock': STOCK, 'duties': DUTIES, 'test': TEST,
-           'tracks': tracks,
+           'tracks': tracks, 'net': NET, 'ops': OPS, 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))
 print(LINE.lower() + '.json written')

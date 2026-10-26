@@ -8,7 +8,8 @@ css = open(os.path.join(web, 'vendor/leaflet/leaflet.css')).read()
 js = open(os.path.join(web, 'vendor/leaflet/leaflet.js')).read()
 t = t.replace('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">', '<style>' + css + '</style>')
 t = t.replace('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>', '<script>' + js + '</script>')
-assert 'unpkg' not in t
+t = t.replace('<script src="engine.js"></script>', '<script>' + open(os.path.join(web, 'engine.js')).read() + '</script>')
+assert 'unpkg' not in t and 'src="engine.js"' not in t
 d = base64.b64encode(open('data.json.gz', 'rb').read()).decode()
 fleets = [json.load(open(f)) for f in ('m1.json', 'm3.json', 'm4.json', 'b130.json', 'b64.json')]
 m = base64.b64encode(gzip.compress(json.dumps({'fleets': fleets}, separators=(',', ':')).encode(), 9)).decode()

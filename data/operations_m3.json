@@ -9,5 +9,8 @@
   "tail_speed_kmh": 12.5,
   "depot_speed_kmh": 15,
   "driver_walk_speed_ms": 1.4,
-  "cab_setup_s": 30
+  "cab_setup_s": 30,
+  "line_max_kmh": 80,
+  "acceleration_ms2": 1.0,
+  "braking_ms2": 1.0
 }

@@ -21,7 +21,7 @@ The plan is in [`docs/planning/milano-transit-live-roadmap.xlsx`](docs/planning/
 
 ## Build it yourself
 
-Needs Python 3.10+ (no extra packages) and bash.
+Needs Python 3.10+ (no extra packages), Node.js (for the engine test) and bash.
 
 1. Download the GTFS zip from the Comune di Milano open data portal (dataset "Orari del trasporto pubblico locale nel Comune di Milano in formato GTFS") and unzip it, for example into `gtfs/` (ignored by git).
 2. Run `./build.sh gtfs` (optionally add a service day as `YYYYMMDD`).
@@ -36,6 +36,10 @@ Needs Python 3.10+ (no extra packages) and bash.
 | `data/` | Metro tracks from OpenStreetMap and the track rules and signals from the editor |
 | `tests/` | Checks run by the build |
 | `docs/` | The built game (served by GitHub Pages) and planning files |
+
+## Live engine (M3)
+
+`web/engine.js` drives every M3 train second by second with acceleration, braking and speed limits, following the plan built in Python. The plan is "what should happen", the engine is "what happens"; `tests/engine_test.js` checks that with nothing going wrong no train is more than 30 s behind the plan and no run starts late. The track network the engine uses (track pieces, junctions, speed limits, signals) is exported into `m3.json` as `net`. Signalling notes for the next steps are in [`docs/m3-signalling.md`](docs/m3-signalling.md).
 
 ## Changing how M3 runs
 
