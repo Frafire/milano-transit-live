@@ -9,9 +9,11 @@ js = open(os.path.join(web, 'vendor/leaflet/leaflet.js')).read()
 t = t.replace('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">', '<style>' + css + '</style>')
 t = t.replace('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>', '<script>' + js + '</script>')
 t = t.replace('<script src="engine.js"></script>', '<script>' + open(os.path.join(web, 'engine.js')).read() + '</script>')
-assert 'unpkg' not in t and 'src="engine.js"' not in t
+t = t.replace('<script src="agents.js"></script>', '<script>' + open(os.path.join(web, 'agents.js')).read() + '</script>')
+assert 'unpkg' not in t and 'src="engine.js"' not in t and 'src="agents.js"' not in t
 d = base64.b64encode(open('data.json.gz', 'rb').read()).decode()
-fleets = [json.load(open(f)) for f in ('m1.json', 'm3.json', 'm4.json', 'b130.json', 'b64.json')]
+# M3 only for now (the page shows only M3); ALL_LINES=1 packs every line again
+fleets = [json.load(open(f)) for f in (('m1.json', 'm3.json', 'm4.json', 'b130.json', 'b64.json') if os.environ.get('ALL_LINES') else ('m3.json',))]
 m = base64.b64encode(gzip.compress(json.dumps({'fleets': fleets}, separators=(',', ':')).encode(), 9)).decode()
 live = base64.b64encode(gzip.compress(open('m3_live.json', 'rb').read(), 9)).decode() if os.path.exists('m3_live.json') else ''
 os.makedirs(os.path.dirname(OUT), exist_ok=True)

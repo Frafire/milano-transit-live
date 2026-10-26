@@ -24,7 +24,9 @@
   // drive one run: from a stop, through timing points, to the next stop
   // prof: speed limits along this path, [[from d, to d, m/s], ...] sorted by from d. With limits the train runs like
   // the ATO does: as fast as allowed, then waits at the next stop. Without, it keeps to the planned running times.
-  function driveRun(pid, legs, t0, ops, out, prof) {
+  // slow: { until, ms } a speed restriction until a time (after a stretch reopens: 20 km/h for 2 minutes)
+  // zones: [[from d, to d, m/s]] extra limits on this run (an empty train passing a platform: 20 km/h)
+  function driveRun(pid, legs, t0, ops, out, prof, slow, zones) {
     const a = ops.acceleration_ms2, b = ops.braking_ms2, vmax = (prof ? (ops.train_max_kmh || 90) : ops.line_max_kmh) / 3.6;
     const half = ops.train_half || 0;
     const n = legs.length;
@@ -47,6 +49,11 @@
           if (sg[0] <= d + half) vcap = Math.min(vcap, sg[2]);
           else vcap = Math.min(vcap, Math.sqrt(sg[2] * sg[2] + 2 * b * (sg[0] - d - half)));
         }
+      }
+      if (slow && t < slow.until) vcap = Math.min(vcap, slow.ms);
+      if (zones) for (const z of zones) {
+        if (z[1] < d - half || z[0] > d + half + 400) continue;
+        if (z[0] <= d + half) vcap = Math.min(vcap, z[2]); else vcap = Math.min(vcap, Math.sqrt(z[2] * z[2] + 2 * b * (z[0] - d - half)));
       }
       const v0 = v;
       if (v < vcap) v = Math.min(vcap, v + a * DT); else v = Math.max(vcap, v - b * DT * 1.5);
@@ -103,7 +110,9 @@
         while (j < pts.length - 1 && pds[j + 1] !== pds[j]) { legs.push({ d0: pds[j], d1: pds[j + 1], t0: pts[j], t1: pts[j + 1] }); j++; }
         const late = t - pts[i];
         const sub = { ts: [], ds: [] };
-        t = driveRun(pid, legs, t, ops, sub, profiles ? profiles[pid] : null);
+        // an empty train (not in service) does not stop at stations but passes the platforms at 20 km/h
+        const zones = status !== 'service' && env && env.platforms && env.platforms[pid] ? env.platforms[pid] : null;
+        t = driveRun(pid, legs, t, ops, sub, profiles ? profiles[pid] : null, env && env.slow, zones);
         out.ts.push(...sub.ts.slice(1)); out.ds.push(...sub.ds.slice(1));
         log.push({ seg: si, status, planned: pts[j], actual: t, lateIn: late });
         i = j;
@@ -272,7 +281,7 @@
         }
       }
       const until = Math.min(p.exit + 2, 30 * 3600);
-      if ((holds[x.k][key] || 0) >= until) { skip.add(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter)); cache[ri] = conflictOf(ri); continue; }   // cannot do better here
+      if ((holds[x.k][key] || 0) >= until || until <= x.enter + 1) { skip.add(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter)); cache[ri] = conflictOf(ri); continue; }   // cannot do better here
       holds[x.k][key] = until; held++;
       if (log) log.push({ train: x.k, seg: x.si, status: plans[x.k][x.si][1], res: R.name, from: x.enter, until, by: p.k, byStatus: plans[p.k][p.si][1] });
       res[x.k] = runTrain(plans[x.k], ops, reverse, holds[x.k], profiles, envs && envs[x.k], res[x.k], x.si);
@@ -439,6 +448,32 @@
     return { segs: out, kind, turned };
   }
 
-  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, stopTime, makeDwell, throatResources, blockResources, DT };
+
+  // ---------------- a stretch of the line closed (the trains then drive themselves: web/agents.js) ----------------
+  // G: the build's "degraded" data (stations in order San Donato -> Comasina, main paths, how a train turns back at
+  // each station, the crossover areas to protect). cl: { a, b } station indices, a < b: the line is closed between.
+  function partsOf(G, cl) {
+    const last = G.names.length - 1, parts = [];
+    if (cl.a > 0) parts.push([0, cl.a]);
+    if (cl.b < last) parts.push([cl.b, last]);
+    return parts;
+  }
+  const stopOf = (G, dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[G.names.length - 1 - i];
+  // while a train turns back at the station next to the closure it needs the crossover and the track in front of
+  // the station: one train at a time there (a "lock", in the same form as the block sections)
+  function turnLocks(G, cl) {
+    const out = [];
+    partsOf(G, cl).forEach(P => [[P[0], 'S'], [P[1], 'N']].forEach(([X, dir]) => {
+      const lk = G.locks && G.locks[X + ':' + dir]; if (lk) out.push({ name: 'inversione ' + G.names[X] + ' ' + dir, parts: lk });
+    }));
+    return out;
+  }
+  // platforms on each path, for an empty train passing them at 20 km/h: { pid: [[from d, to d, m/s]] }
+  function platformZones(G) {
+    const out = {}; if (!G || !G.platforms) return out;
+    for (const [pid, z] of Object.entries(G.platforms)) out[pid] = z.map(([a, b, st]) => [a, b, 20 / 3.6, st]);
+    return out;
+  }
+  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, edgeLimit, partLimit, partBounds, stopTime, makeDwell, throatResources, blockResources, DT, platformZones, turnLocks, partsOf, stopOf };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

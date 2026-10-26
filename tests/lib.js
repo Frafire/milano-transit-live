@@ -34,7 +34,8 @@ function stations(M, D) {
 function envs(M, D) {
   if (!M.dwell) return null;
   const st = stations(M, D), pos = posOf(M);
-  return M.trains.map((_, k) => ({ dwell: E.makeDwell(M.dwell, st, pos, 'T' + k) }));
+  const platforms = E.platformZones(M.degraded);
+  return M.trains.map((_, k) => ({ dwell: E.makeDwell(M.dwell, st, pos, 'T' + k), platforms }));
 }
 // stations along the first complete service run in each direction: { N: [{ from, to, d0, d1, plan, pid }], S: [...] }
 function stretches(M, D) {

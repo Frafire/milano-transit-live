@@ -26,3 +26,27 @@ From Giovanni (source: Italian Wikipedia, "Metropolitana di Milano", signalling 
 - A signal shows via libera as soon as its section (and the junction or tail just behind it) is free. Trains never enter an occupied section.
 - Other placed signals (terminal junctions, tails, depot) show the state of the track ahead of them, up to the next signal facing the same way or 300 m.
 - Via impedita: a train that should be moving by the timetable but is stopped at a red signal calls the DCO on the radio. It calls at once in the tunnel, 30 s past its departure at a platform, and after 45 s in tails and terminal junctions. For now nobody answers. The train moves again when the signal clears, and says so. About 50 calls on a normal weekday.
+
+## Line closures: emergency mode (October 2026)
+
+Computing a new conflict-free day in advance after a closure ran into deadlocks. So closing a stretch switches every M3 train to `web/agents.js`: each train drives itself every half second and looks only at what is in front of it.
+
+- **Signals:** a train never passes a red signal. That means a block section, a terminal junction, a tail or a turn-back crossover held by another train.
+- **Other trains:** it never runs into another train. It checks the real track pieces, so this also holds when reversing over a crossover.
+- **Shuttles:** the open parts of the line run without a timetable. A train leaves when the signal is green and the train in front left that station at least 150 s earlier.
+- **Turning back:** at the station next to the closure the train turns back over a crossover, prepared at build time:
+  - A: on beyond the crossover, change cab, back into the other platform;
+  - B: across before the station, arriving on the other track;
+  - C: backwards over a crossover close behind the station.
+
+  One train at a time uses each crossover area (a "lock"). If a turn back is not possible, the train goes on empty to the next closed station and waits there.
+- **Termini:** at San Donato and Comasina the train takes a free tail.
+- **Trains caught inside:** they stop at the next station and call the PC. By radio the PC can send them on empty to the next station, or back to the depot (towards San Donato only).
+- **Reopening:**
+  - 20 km/h for 2 minutes;
+  - every run then takes the times of a timetable run from the next station: never more than a minute early, and if late it catches up;
+  - more than 10 minutes late, the driver asks the PC for skipped stops, a shortened run or the depot.
+- **"Torna all'orario":** puts every train back on its planned day.
+- **Red signals:** a train calls the PC only after 5 minutes held at the same signal.
+- **Empty trains** (not in service) pass the platforms at 20 km/h, in normal service too.
+- **Test:** `tests/agents_check.js` (one closure, 08:00–10:00, in a few seconds).

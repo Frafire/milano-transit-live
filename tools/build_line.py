@@ -8,7 +8,7 @@ CFG = {
              SD_TAILS=[163, 116], COM_TAILS=[183, 179], SD_DEP={1: 143, 2: 120}, PLATS=[1, 2],
              SD_OUT_NODE=165, IN_VIA=[124, 153, 160], DEPOT_IN_VIA=[124, 153, 160], AFTER_ARR=160,
              PULL_OUT=300, PLAT_WAIT=120,
-             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, tail_at_signal=True, nose_stop=True, blocks=True, com_choice=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
+             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, tail_at_signal=True, nose_stop=True, blocks=True, degraded=True, recovery=[['BRENTA', 'S', (45.4428, 45.4450, 9.2140, 9.2180)], ['CENTRALE FS', 'S', (45.4815, 45.4850, 9.1995, 9.2070)], ['CENTRALE FS', 'N', (45.4815, 45.4850, 9.1995, 9.2070)]], com_choice=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
              labels=[('1', 78, 70, 'on'), ('2', 103, 85, 'on'), ('3', 79, 100, 'on')]),
   'M4': dict(tracks='osm_m4.txt', main='Linea M4', home='San Cristoforo', far='Linate Aeroporto',
              HOME_STOP=(45.44236, 9.12977), FAR_STOP=(45.46284, 9.27800),
@@ -882,6 +882,205 @@ for ei, e in enumerate(edges):
     ne = NET['edges'][ei]; ne['key'] = '%s-%s' % (e['a'], e['b'])
     ne['fixed'] = ne['cat'] in ('crossover', 'yard', 'link') or ne['kmh'] < OPS.get('line_max_kmh', 80)   # depot, tails, crossovers: not editable
     if ne['cat'] == 'crossover': ne['kmh'] = 15
+# ---------------- degraded service: shuttles when a stretch of the line is closed ----------------
+# LINE_MAP: the stations in order San Donato -> Comasina, the two main paths (N, S) and every stop on them.
+# TURNS[station:dir]: how a train arriving in that direction turns back at that station over a crossover:
+#  'B' crossover before the station: it crosses over and arrives on the other track, reverses on the platform;
+#  'A' crossover after the station: passengers off, on beyond the crossover, reverse, over it, back to the platform.
+# RECOVERY: tracks where a train can be put away (ricovero), by radio.
+DEGRADED = None
+if CFG.get('degraded'):
+    leg_ends = {pid: (k[1], k[3]) for k, pid in path_key.items() if k[0] == 'leg'}
+    full = {}
+    for tl in out:
+        for sg in tl.segs:
+            if sg[1] != 'service' or sg[2] < 0 or sg[0] not in leg_ends: continue
+            nm = [D['stops'][x][0] for x in D['trips'][sg[2]][5] if x >= 0]
+            if len(nm) < 21: continue
+            dr_ = 'N' if nm[0].upper().startswith(CFG['home'].upper()) else 'S'
+            st_ = [];  ds_ = sg[4]
+            for i in range(len(ds_)):
+                if i == 0 or ds_[i] != ds_[i - 1]: st_.append(ds_[i])
+            if len(st_) != len(nm): continue
+            full.setdefault(dr_, {})[sg[0]] = (nm, st_)
+    # a pair whose tails match: N starts in the San Donato tail where S ends, and ends in the Comasina tail where S starts
+    pair = None
+    for pn, (nmN, stN) in full.get('N', {}).items():
+        for ps, (nmS, stS) in full.get('S', {}).items():
+            if leg_ends[pn][0] == leg_ends[ps][1] and leg_ends[pn][1] == leg_ends[ps][0]: pair = (pn, ps); break
+        if pair: break
+    if pair:
+        pN, pS = pair; names = full['N'][pN][0]
+        stopN = full['N'][pN][1]; stopS = full['S'][pS][1][::-1]          # both in San Donato -> Comasina order
+        def nodes_of(pid):
+            out_, d = [], 0.0
+            for ei, dr in PATH_STATES[pid]:
+                out_.append((start_node(ei, dr), d)); d += plen(poly(ei, dr))
+            ei, dr = PATH_STATES[pid][-1]; out_.append((end_node(ei, dr), d)); return out_
+        nN, nS = nodes_of(pN), nodes_of(pS)
+        posN = {n: d for n, d in nN}; posS = {n: d for n, d in nS}
+        def path_d_of(pid, lat, lon, near):
+            p_, c_ = paths[pid]; d_, err = project(p_, c_, lat, lon, max(0, near - 400), 800); return d_ if err < 3 else None
+        main_nodes = set(posN) | set(posS)
+        def xov_pairs(posD, posO):
+            """(u on D, v on O): joined only by crossover pieces (a scissors crossover has a middle node)."""
+            for u in posD:
+                seen, todo = {u}, [(u, 0)]
+                while todo:
+                    n, k = todo.pop()
+                    for ei in node_edges[n]:
+                        e = edges[ei]
+                        if _edge_cat(e) != 'crossover': continue
+                        m_ = e['b'] if e['a'] == n else e['a']
+                        if m_ in seen: continue
+                        seen.add(m_)
+                        if m_ in posO and m_ not in posD: yield u, m_
+                        elif m_ not in main_nodes and k < 3: todo.append((m_, k + 1))
+        def has_xov(r): return any(_edge_cat(edges[e_]) == 'crossover' for e_, _ in r)
+        def rlen(r): return sum(plen(poly(e_, d_)) for e_, d_ in r)
+        def at_d(pid, d):
+            pp, cc = paths[pid]; import bisect as _bb
+            j = max(0, min(len(cc) - 2, _bb.bisect_right(cc, d) - 1)); f = (d - cc[j]) / ((cc[j + 1] - cc[j]) or 1)
+            return ll(pp[j][0] + (pp[j + 1][0] - pp[j][0]) * f, pp[j][1] + (pp[j + 1][1] - pp[j][1]) * f)
+        TURNS = {}
+        saved = dict(ONEWAY)
+        def free_route(starts, goal):
+            ONEWAY.clear()
+            try: return route(starts, goal)
+            finally: ONEWAY.update(saved)
+        stopS_f = full['S'][pS][1]
+        for i, nm in enumerate(names):
+            if i in (0, len(names) - 1): continue
+            for dr_ in ('N', 'S'):
+                Dp, Op = (pN, pS) if dr_ == 'N' else (pS, pN)
+                posD, posO = (posN, posS) if dr_ == 'N' else (posS, posN)
+                nD, nO = (nN, nS) if dr_ == 'N' else (nS, nN)
+                dX = stopN[i] if dr_ == 'N' else stopS_f[len(names) - 1 - i]
+                dXo = stopS_f[len(names) - 1 - i] if dr_ == 'N' else stopN[i]
+                cands = []
+                for u, v in xov_pairs(posD, posO):
+                    du, dv = posD[u], posO[v]
+                    kD = [n for n, _ in nD].index(u); kO = [n for n, _ in nO].index(v)
+                    if dX - 900 < du < dX - TRAIN_HALF - 10 and dv > dXo + TRAIN_HALF:
+                        # B: cross over before the station and arrive on the other track (running against its direction)
+                        goal = max((n for n, d in nO if d < dXo - TRAIN_HALF - 10), key=lambda n: posO[n], default=None)
+                        r = free_route(list(successors(*PATH_STATES[Dp][kD - 1])), goal) if kD > 0 and goal is not None else None
+                        if r and has_xov(r) and rlen(r) < 8000:
+                            pid = make_path(('turnB', nm, dr_), PATH_STATES[Dp][:kD] + r)
+                            q = path_d_of(pid, *at_d(Op, dXo), dX)
+                            xo = [e_ for e_, _ in r if _edge_cat(edges[e_]) == 'crossover']
+                            if q is not None: cands.append((0, rlen(r), {'kind': 'B', 'pid': pid, 'd_arr': round(q, 1), 'd_dep': round(dXo, 1), 'du': round(du, 1),
+                                                                         '_lock': [(Op, dXo - TRAIN_HALF - 5, dv + 5), (Dp, du - 30, du + 5), xo]}))
+                        # C: arrive on its own track, board there, reverse and leave backwards over the crossover behind it
+                        k0 = max(k for k, (n, d) in enumerate(nD[:-1]) if d <= dX)
+                        e0, dir0 = PATH_STATES[Dp][k0]
+                        goalC = nO[kO + 1][0] if kO + 1 < len(nO) else None
+                        r = free_route([(e0, -dir0)], goalC) if goalC is not None else None
+                        # C runs backwards on its own track to the crossover: only if that is close (a short move)
+                        back = 0.0
+                        for e_, _ in (r or []):
+                            if _edge_cat(edges[e_]) == 'crossover': break
+                            back += plen(poly(e_, _))
+                        back -= (nD[k0 + 1][1] - dX)
+                        if r and has_xov(r) and rlen(r) < 8000 and back < 350:
+                            pid = make_path(('turnC', nm, dr_), r + PATH_STATES[Op][kO + 1:])
+                            dEnd = nD[k0 + 1][1]
+                            xo = [e_ for e_, _ in r if _edge_cat(edges[e_]) == 'crossover']
+                            cands.append((1, rlen(r), {'kind': 'C', 'pid': pid, 'd_dep': round(dEnd - dX, 1), 'off': round(rlen(r) - posO[goalC], 1),
+                                                       '_lock': [(Dp, du - 5, dX + TRAIN_HALF + 5), (Op, dv - 5, dv + 30), xo]}))
+                    if dX + TRAIN_HALF < du < dX + 700 and dv < dXo - TRAIN_HALF:
+                        # A: passengers off, on beyond the crossover, reverse, over it and back into the other platform
+                        if kD >= len(PATH_STATES[Dp]): continue
+                        e_next, dn = PATH_STATES[Dp][kD]
+                        if edges[e_next]['len'] < TRAIN_HALF + 20: continue
+                        goal = min((n for n, d in nO if d > dXo + TRAIN_HALF + 10), key=lambda n: posO[n], default=None)
+                        r = free_route([(e_next, -dn)], goal) if goal is not None else None
+                        if not r or not has_xov(r) or rlen(r) > 8000: continue
+                        kg = [n for n, _ in nO].index(goal)
+                        pid = make_path(('turnA', nm, dr_), r + PATH_STATES[Op][kg:])
+                        stub = TRAIN_HALF + 15
+                        xo = [e_ for e_, _ in r if _edge_cat(edges[e_]) == 'crossover']
+                        cands.append((2, rlen(r), {'kind': 'A', 'stub_d': round(du + stub, 1), 'pid': pid, 'd0': round(plen(poly(e_next, dn)) - stub, 1), 'off': round(rlen(r) - posO[goal], 1),
+                                                   '_lock': [(Dp, dX - TRAIN_HALF - 5, du + stub + TRAIN_HALF + 5), (Op, dv - 5, dXo + TRAIN_HALF + 5), xo]}))
+                if os.environ.get('DEBUG_TURN') == nm: print('turn debug', nm, dr_, 'dX', round(dX), 'dXo', round(dXo), 'xov', [(u, v, round(posD[u]), round(posO[v])) for u, v in xov_pairs(posD, posO)], [c[2]['kind'] for c in cands])
+                if cands:       # every way found, shortest first; B is the usual choice, C or A when coming from another path
+                    t_ = {}
+                    for c_ in sorted(cands, key=lambda x: (x[0], x[1])): t_.setdefault(c_[2]['kind'], c_[2])
+                    for c_ in t_.values(): c_.setdefault('_lock', None)
+                    TURNS['%d:%s' % (i, dr_)] = t_
+        # ricovero: dead-end tracks where a train is put away (Giovanni): Brenta towards San Donato, Centrale both ways
+        RECOVERY = {}
+        dead = [n for n in node_edges if len(node_edges[n]) == 1]
+        for nm, dr_, box in CFG.get('recovery', []):
+            if nm not in names: continue
+            i = names.index(nm); Dp = pN if dr_ == 'N' else pS; nD = nN if dr_ == 'N' else nS
+            dX = stopN[i] if dr_ == 'N' else stopS_f[len(names) - 1 - i]
+            goals = [g for g in dead if box[0] <= node_pos[g] and False] if False else [g for g in dead if box[0] <= ll(*node_pos[g])[0] <= box[1] and box[2] <= ll(*node_pos[g])[1] <= box[3]]
+            best = None
+            def ok_end(r):
+                tail_len = 0.0
+                for e_, _ in reversed(r):
+                    tail_len += edges[e_]['len']
+                    if _edge_cat(edges[e_]) == 'main' or tail_len > 2 * TRAIN_HALF + 10: break
+                return tail_len > 2 * TRAIN_HALF + 10 and _edge_cat(edges[r[-1][0]]) != 'main'
+            k0 = max(k for k, (n, d) in enumerate(nD[:-1]) if d <= dX)
+            for g in goals:
+                # R1: on from the platform and into the track, no reversal
+                for k in range(k0 + 1, len(nD) - 1):
+                    if nD[k][1] > dX + 900: break
+                    r = free_route(list(successors(*PATH_STATES[Dp][k - 1])), g)
+                    if r and ok_end(r) and rlen(r) < 2500 and r[0] != PATH_STATES[Dp][k]:
+                        c_ = (0, rlen(r), {'how': 'on', 'pid': make_path(('ricovero', nm, dr_, g, k), PATH_STATES[Dp][:k] + r)})
+                        if not best or c_[:2] < best[:2]: best = c_
+                # R2: reverse on the platform, back into the track
+                e0, dir0 = PATH_STATES[Dp][k0]
+                r = free_route([(e0, -dir0)], g)
+                if r and ok_end(r) and rlen(r) < 2500:
+                    c_ = (1, rlen(r), {'how': 'back', 'pid': make_path(('ricovero-r', nm, dr_, g), r), 'd_from': round(nD[k0 + 1][1] - dX, 1)})
+                    if not best or c_[:2] < best[:2]: best = c_
+                # R3: on beyond the next junction, reverse there, back into the track
+                for k in range(k0 + 1, len(nD) - 1):
+                    if nD[k][1] > dX + 700: break
+                    e_next, dn = PATH_STATES[Dp][k]
+                    if edges[e_next]['len'] < TRAIN_HALF + 20: continue
+                    r = free_route([(e_next, -dn)], g)
+                    if r and ok_end(r) and rlen(r) < 2500:
+                        stub = TRAIN_HALF + 15
+                        c_ = (2, rlen(r), {'how': 'beyond', 'stub_d': round(nD[k][1] + stub, 1), 'pid': make_path(('ricovero-b', nm, dr_, g, k), r), 'd_from': round(plen(poly(e_next, dn)) - stub, 1)})
+                        if not best or c_[:2] < best[:2]: best = c_
+            if best:
+                rec = best[2]; pp_, cc_ = paths[rec['pid']]
+                rec.update({'d_stop': round(dX, 1), 'd_end': round(cc_[-1] - TRAIN_HALF - 5, 1), 'name': nm})
+                RECOVERY['%d:%s' % (i, dr_)] = rec
+        # platforms on every path: an empty train passes them at 20 km/h (Giovanni)
+        ZONES = {}
+        plat_pts = [(at_d(pN, d), i) for i, d in enumerate(stopN)] + [(at_d(pS, d), len(names) - 1 - i) for i, d in enumerate(stopS_f)]
+        for pid in range(len(paths)):
+            pp_, cc_ = paths[pid]; z_ = []
+            for (la_, lo_), st_ in plat_pts:
+                d_, err = project(pp_, cc_, la_, lo_, 0, None)
+                if err < 1.5 and TRAIN_HALF < d_ < cc_[-1] - 1: z_.append([round(d_ - TRAIN_HALF - 5, 1), round(d_ + TRAIN_HALF + 5, 1), st_])
+            if z_: ZONES[str(pid)] = sorted(z_)
+        print('ricovero tracks:', {k: (v['name'], v['how']) for k, v in RECOVERY.items()})
+        def tail_d(pid):
+            st_, en_ = leg_ends[pid]; L_ = paths[pid][1][-1]
+            return round(tail_off(st_) if len(node_edges[st_]) == 1 else 0, 1), round(L_ - tail_off(en_) if len(node_edges[en_]) == 1 else L_, 1)
+        # every pair of main paths with matching tails (one per tail at each end): trains turning back at a terminus
+        # take the pair whose tail is free
+        PAIRS = []
+        for pn_, (nmN_, stN_) in full.get('N', {}).items():
+            for ps_, (nmS_, stS_) in full.get('S', {}).items():
+                if leg_ends[pn_][0] == leg_ends[ps_][1] and leg_ends[pn_][1] == leg_ends[ps_][0] and nmN_ == names \
+                   and leg_ends[pn_][0] in SD_TAILS and leg_ends[pn_][1] in COM_TAILS and [leg_ends[pn_][0], leg_ends[pn_][1]] not in [q_['tails'] for q_ in PAIRS]:
+                    PAIRS.append({'N': {'pid': pn_, 'stops': [round(x, 1) for x in stN_], 'tail': tail_d(pn_)},
+                                  'S': {'pid': ps_, 'stops': [round(x, 1) for x in stS_], 'tail': tail_d(ps_)},
+                                  'tails': [leg_ends[pn_][0], leg_ends[pn_][1]]})
+        print('main path pairs (San Donato tail, Comasina tail):', [p_['tails'] for p_ in PAIRS])
+        DEGRADED = {'names': names, 'N': {'pid': pN, 'stops': [round(x, 1) for x in stopN], 'tail': tail_d(pN)},
+                    'S': {'pid': pS, 'stops': [round(x, 1) for x in full['S'][pS][1]], 'tail': tail_d(pS)}, 'turns': TURNS, 'recovery': RECOVERY, 'platforms': ZONES, 'pairs': PAIRS}
+        print('degraded service: turns at', sorted(TURNS))
+    else:
+        print('degraded service: no matching pair of main paths')
 # for every path: which track piece covers which stretch, and where it takes the diverging side of a junction (15 km/h)
 def _ang(u, v): return math.degrees(math.acos(max(-1.0, min(1.0, u[0] * v[0] + u[1] * v[1]))))
 PATH_EDGES = []
@@ -979,6 +1178,27 @@ if CFG.get('blocks'):
                 # the station: from its entry signal to its departure signal (the terminus: to the end of the platform)
                 add('entry', '%s%s' % (names[j + 1], ' arrivo' if j + 1 == last else ''), b_, dep[j + 1][0], ent[j + 1][1])
     print('block sections:', len(BLOCKS))
+if DEGRADED:
+    def _parts2(pid, x0, x1):
+        out_ = []
+        for ei, dr, a, b in PATH_EDGES[pid]['e']:
+            if b <= x0 or a >= x1: continue
+            k = edges[ei]['len'] / ((b - a) or 1); lo, hi = max(a, x0), min(b, x1)
+            l0, l1 = ((lo - a) * k, (hi - a) * k) if dr > 0 else ((b - hi) * k, (b - lo) * k)
+            out_.append([ei, round(l0, 1), round(l1, 1)])
+        return out_
+    # one lock per station and direction: everything a turning train may use there (A, B or C), held from when it
+    # arrives until it has left; a following train waits at its start
+    LOCKS = {}
+    for key, kinds_ in DEGRADED['turns'].items():
+        parts_ = []
+        for kd, t_ in kinds_.items():
+            spec = t_.pop('_lock', None)
+            if spec:
+                (p1, a1, b1), (p2, a2, b2), xo = spec
+                parts_ += _parts2(p1, a1, b1) + _parts2(p2, a2, b2) + [[e_, 0, round(edges[e_]['len'], 1)] for e_ in xo]
+        if parts_: LOCKS[key] = parts_
+    DEGRADED['locks'] = LOCKS
 if NOSE_LOG: print('nose stops (shift of the stop in m, by station):', {k: sorted(v) for k, v in sorted(NOSE_LOG.items())})
 PLATMAP = {'station': CFG['home'], 'plats': [[l[0], l[1]] for l in CFG.get('labels', [])], 'stop': list(SD_STOP)}
 # platform number labels at the home terminal
@@ -1003,7 +1223,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'platmap': PLATMAP,
            'boards': boards_out(),
            'stock': STOCK, 'duties': DUTIES, 'test': TEST,
-           'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'blocks': BLOCKS, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
+           'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'blocks': BLOCKS, 'degraded': DEGRADED, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))
 print(LINE.lower() + '.json written')
