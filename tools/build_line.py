@@ -8,7 +8,7 @@ CFG = {
              SD_TAILS=[163, 116], COM_TAILS=[183, 179], SD_DEP={1: 143, 2: 120}, PLATS=[1, 2],
              SD_OUT_NODE=165, IN_VIA=[124, 153, 160], DEPOT_IN_VIA=[124, 153, 160], AFTER_ARR=160,
              PULL_OUT=300, PLAT_WAIT=120,
-             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]),
+             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]),
              labels=[('1', 78, 70, 'on'), ('2', 103, 85, 'on'), ('3', 79, 100, 'on')]),
   'M4': dict(tracks='osm_m4.txt', main='Linea M4', home='San Cristoforo', far='Linate Aeroporto',
              HOME_STOP=(45.44236, 9.12977), FAR_STOP=(45.46284, 9.27800),
@@ -693,6 +693,45 @@ if LINE == 'M3':
                 if 'mid' in edges[ei]: continue
                 _entry_signal(n, ei, k); k += 1
     print('shunting signals placed at depot track entrances:', len(AUTO_SIGNALS))
+# ---------------- San Donato - Rogoredo: closure and ZUB data for the page ----------------
+# sb: southbound track Rogoredo crossover (136) -> San Donato (153); nb: San Donato (165) -> crossover (137)
+# rev[pid]: the same run starting from the reversing stub beyond the Rogoredo crossover (short turn)
+SECTION = None
+if CFG.get('SECTION'):
+    SC = CFG['SECTION']
+    def node_d(pid, n):
+        p, c = paths[pid]; q = node_pos[n]; best = (1e9, None)
+        for i in range(len(p) - 1):
+            (ax, ay), (bx, by) = p[i], p[i + 1]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+            u = max(0.0, min(1.0, ((q[0] - ax) * dx + (q[1] - ay) * dy) / L2)) if L2 else 0.0
+            dd = math.hypot(q[0] - ax - u * dx, q[1] - ay - u * dy)
+            if dd < best[0]: best = (dd, c[i] + u * (c[i + 1] - c[i]))
+        return round(best[1], 1) if best[0] < 1.0 else None
+    STUB = TRAIN_HALF + 15                      # centre of a reversing train beyond the crossover
+    ranges, rev = {}, {}
+    end_of = {pid: k[3] for k, pid in list(path_key.items()) if k[0] == 'leg'}
+    n_paths = len(paths)
+    for pid in range(n_paths):
+        a, b = node_d(pid, SC['sb'][0]), node_d(pid, SC['sb'][1])
+        c_, d_ = node_d(pid, SC['nb'][0]), node_d(pid, SC['nb'][1])
+        r = {}
+        if a is not None and b is not None and b > a: r['sb'] = [a, b]
+        if c_ is not None and d_ is not None and d_ > c_: r['nb'] = [c_, d_]
+        if r: ranges[pid] = r
+        if 'nb' in r and pid in end_of:
+            key = ('rev', end_of[pid])
+            if key not in path_key:
+                saved = {w: ONEWAY.pop(w) for w in SC['lift'] if w in ONEWAY}
+                try: st = route_nodes(SC['sb'][1], end_of[pid], via=[SC['sb'][0], SC['nb'][1]])
+                finally: ONEWAY.update(saved)
+                if st: make_path(key, st)
+            if key in path_key:
+                rp = path_key[key]; x137 = node_d(rp, SC['nb'][1]); x136 = node_d(rp, SC['sb'][0])
+                if x137 is not None and x136 is not None:
+                    rev[pid] = [rp, round(x137 - r['nb'][1], 1), round(x136 - STUB, 1), round(x136, 1)]
+    SECTION = {'stub': STUB, 'ranges': {str(k): v for k, v in ranges.items()}, 'rev': {str(k): v for k, v in rev.items()},
+               'sb_signal': list(ll(*node_pos[SC['sb'][0]])), 'nb_signal': list(ll(*node_pos[SC['nb'][0]]))}
+    print('San Donato-Rogoredo: paths through the section', len(ranges), '| short-turn versions', len(rev))
 # ---------------- network for the live engine (step 1) ----------------
 # every track piece between two junctions, with its category and speed limit, plus the signals
 def _edge_cat(e):
@@ -743,7 +782,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'platmap': PLATMAP,
            'boards': boards_out(),
            'stock': STOCK, 'duties': DUTIES, 'test': TEST,
-           'tracks': tracks, 'net': NET, 'ops': OPS, 'reverse_s': REVERSE,
+           'tracks': tracks, 'net': NET, 'ops': OPS, 'section': SECTION, 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))
 print(LINE.lower() + '.json written')

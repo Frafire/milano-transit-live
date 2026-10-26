@@ -41,6 +41,15 @@ Needs Python 3.10+ (no extra packages), Node.js (for the engine test) and bash.
 
 `web/engine.js` drives every M3 train second by second with acceleration, braking and speed limits, following the plan built in Python. The plan is "what should happen", the engine is "what happens"; `tests/engine_test.js` checks that with nothing going wrong no train is more than 30 s behind the plan and no run starts late. The track network the engine uses (track pieces, junctions, speed limits, signals) is exported into `m3.json` as `net`. Signalling notes for the next steps are in [`docs/m3-signalling.md`](docs/m3-signalling.md).
 
+## San Donato – Rogoredo: ZUB and closing the section (Player mode)
+
+In the M3 control panel, under "Chiusura tratte":
+
+- **ZUB** (marcia interstazionale): only one train per track between San Donato and Rogoredo; the next one waits at the signal.
+- **Chiudi la tratta**: trains inside the section stop where they are, trains at San Donato stay there (depot moves are free), every other train unloads at Rogoredo, reverses beyond the crossover and starts its next run to Comasina from Rogoredo. Only one train at a time in the reversing stub.
+
+The two section signals use the pixel-art M3 aspects in `web/assets/signals/` (red = stop, red + white = proceed). `tests/section_test.js` checks ZUB and closures at several times of day.
+
 ## Changing how M3 runs
 
 The M3 operating rules live in [`data/operations_m3.json`](data/operations_m3.json): stop time at stations, unloading time at the terminus, platform wait, minimum turnaround, tail and depot speeds. Change a number (you can do it on github.com with the pencil icon), run `./build.sh` again and the whole day is re-planned. The build stops with an error if a change breaks a rule (two trains in a tail or on a depot track).
