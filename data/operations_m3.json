@@ -17,5 +17,5 @@
   "braking_ms2": 1.2,
   "curve_radius_m": 400,
   "curve_minus_kmh": 10,
-  "ato_cruise_pct": 88
+  "ato_cruise_pct": 85
 }

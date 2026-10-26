@@ -1471,7 +1471,6 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const mid = P_[i][Math.floor(P_[i].length / 2)];
       if (e.cat === 'crossover') mark(mid, '', 'X', 'Crossover (comunicazione): turning back possible');
       else if (/Raccordo/i.test(e.nm || '')) { if (e.len > 150) mark(mid, 'link', 'M2', 'Raccordo M2–M3: link tunnel to the green line'); }
-      else if (e.cat === 'siding' && (deg[e.a] === 1 || deg[e.b] === 1) && !F.engine.net.tails?.includes(e.a)) mark(mid, 'tail', 'coda', 'Dead-end tail track (binario tronco)');
     });
     m3platLayer.addTo(map);
   }
