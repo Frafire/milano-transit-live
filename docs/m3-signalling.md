@@ -74,3 +74,18 @@ Computing a new conflict-free day in advance after a closure ran into deadlocks.
 - A placed signal shows red when the section that starts at it (within 150 m ahead) is occupied.
 - "Togli semafori" in the editor hides signals with a click; the MTL-EDIT export lists them under `removed`.
   Copied into `data/rules_m3.json` as `removed_signals`, the build drops them and merges their sections.
+
+## Interlocking (web/interlocking.js)
+
+The first part of the new structure: the line decides which controlled signals show via libera, the trains ask.
+
+- **Groups** (`data/rules_m3.json`, `interlocking.groups`, by #A number): only one signal of a group at via libera
+  at a time. San Donato: depot exit #A06 and tails #A07, #A08. Comasina: tails #A09, #A10. San Donato departures:
+  platform 1 #A14, platform 2 #A45 (new).
+- **A signal clears** only for a train within 300 m whose next stop is beyond it, when the track behind it is free.
+  It goes back to red when the train's front is 15 m past it.
+- **Depot signals** (`interlocking.manual`): red until the player clicks them (one train each), unless "Deposito:
+  automatico" is on. The list is empty until the two protection signals are confirmed.
+- **Names** (`names.ways` by OSM way; `names.depot` by node): shown on the map with the signals; depot places are
+  numbered D1… across the yard.
+- Test: `tests/interlocking_check.js` (no train passes a controlled signal without via libera, never two of a group).

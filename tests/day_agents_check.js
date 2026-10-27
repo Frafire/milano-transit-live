@@ -30,7 +30,7 @@ function posAt(t) {
 }
 const mk = () => A.create({ G, ops: M.ops, reverse: M.reverse_s, half: M.half, prof, pathEdges: M.path_edges, netEdges: M.net.edges, resources: R,
   locks: cl => E.blockResources(E.turnLocks(G, cl), M.path_edges, M.net.edges).map(r => Object.assign(r, { lock: true })),
-  plans0: M.trains, stopsOf, sigpos: M.net.sigpos, zones: E.platformZones(G), dwell: envs.map(e => e.dwell), extra: () => 0, initAt: posAt });
+  plans0: M.trains, stopsOf, sigpos: M.net.sigpos, interlocking: M.net.interlocking, zones: E.platformZones(G), dwell: envs.map(e => e.dwell), extra: () => 0, initAt: posAt });
 const ag = mk(), T0 = H0 * 3600, T1 = H1 * 3600, t0 = Date.now();
 ag.start(T0, posAt(T0)); ag.snapshot();
 let overlap = 0, minGap = Infinity, late = [], stuck = 0, worstDeparture = null;

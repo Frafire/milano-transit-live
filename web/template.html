@@ -163,6 +163,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .cmds button[aria-pressed="true"] { background: #8dff9e; color: #071109; }
 .radio .cmds button:disabled { opacity: .4; cursor: default; background: #0d1d12; color: #8dff9e; }
 .radiobtn { font-family: 'VT323', ui-monospace, monospace !important; font-size: 19px !important; background: #071109 !important; color: #8dff9e !important; border: 2px solid #3b5e45 !important; border-radius: 0 !important; }
+.trkname { position: absolute; transform: translate(-50%, -50%); font: 600 10px/1.1 system-ui, sans-serif; color: #ffd23f; background: rgba(0,0,0,.7); padding: 1px 4px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
+.trkname.dep { color: #cfd6dc; font-size: 9px; }
 .sigtag { position: absolute; left: 7px; top: -16px; font: 600 10px/1 system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.72); padding: 1px 3px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
 .sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
@@ -295,6 +297,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="label">Chiusura tratte M3</div>
     <div class="clgrid" id="clGrid"></div>
     <div class="row"><button id="reopenBtn" disabled>Riapri la tratta</button><button id="normalBtn" disabled title="Tutti i treni tornano al loro orario programmato">Torna all'orario</button></div>
+    <div class="row"><button id="depotAuto" aria-pressed="true" title="Automatico: i segnali del deposito si aprono da soli. Manuale: clic sul segnale per dare via libera a un treno">Deposito: automatico</button></div>
+    <p class="note" id="ilNote" hidden></p>
     <p class="note" id="secNote">Chiudendo una tratta i treni dentro si fermano alla stazione successiva; il resto della linea va a navetta, senza orario.</p>
   </section>
 
@@ -447,6 +451,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="engine.js"></script>
+<script src="interlocking.js"></script>
 <script src="agents.js"></script>
 <script id="payload" type="application/octet-stream">__DATA__</script>
 <script id="m3payload" type="application/octet-stream">__M3__</script>
@@ -1985,12 +1990,20 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const E_ = F.engine, G = E_.G;
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos,
+      resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t),
       locks: cl => MTLEngine.blockResources(MTLEngine.turnLocks(G, cl), E_.pathEdges, E_.net.edges).map(r => Object.assign(r, { lock: true })) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
   }
+  // depot signals: automatic, or worked by the player (a click on the signal clears it for one train)
+  document.getElementById('depotAuto').onclick = () => {
+    const F = fleets.find(f => f.ag); if (!F) return;
+    const on = !F.ag.il().auto; F.ag.event({ kind: 'il', what: 'auto', on }); syncDepotAuto();
+    flashNote(on ? 'Deposito in automatico' : (F.engine.net.interlocking.manual.length ? 'Deposito in manuale: clic sui segnali del deposito per dare via libera' : 'Deposito in manuale (nessun segnale del deposito indicato nelle regole)'));
+  };
+  function syncDepotAuto() { const F = fleets.find(f => f.ag), b = document.getElementById('depotAuto'); if (!F || !F.ag.il()) return;
+    const on = !!F.ag.il().auto; if (b.getAttribute('aria-pressed') !== String(on)) { b.setAttribute('aria-pressed', String(on)); b.textContent = 'Deposito: ' + (on ? 'automatico' : 'manuale'); } }
   // the closure that applies now, from the events of the time line
   function closureNow(F) {
     if (!F || !F.ag) return null;
@@ -2410,7 +2423,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (a.status !== 'stopped') c.stopped = false;
       if (a.red && em.ag.S.t - a.red.since >= 300 && !c.red) {
         c.red = true; const w = a.red.why || {};
-        const what = w.res != null ? 'al segnale ' + (R_[w.res].name.replace(/^blocco /, '').replace(/^(N|S) /, '')) : 'dietro al treno ' + trainNo(F, F.trains[w.train] || tr);
+        const what = w.sig != null ? 'al segnale #A' + String(w.sig + 1).padStart(2, '0') : w.res != null ? 'al segnale ' + (R_[w.res].name.replace(/^blocco /, '').replace(/^(N|S) /, '')) : 'dietro al treno ' + trainNo(F, F.trains[w.train] || tr);
         call(`PC, qui treno ${no}, sono fermo ${what} da 5 minuti, via impedita. Chiedo spiegazioni. Passo.`);
       }
       if (!a.red && c.red) { c.red = false; say('T' + no, `Qui ${no}, via libera. Ripartito, passo. Buona giornata.`, 'dr'); }
@@ -2499,6 +2512,31 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const sigLayer = L.layerGroup(); let showSigs = false, SIGS = null;
   try { showSigs = localStorage.getItem('mtl-sigs') === '1'; } catch (e) {}
   const tagHtml = tag => `<span class="sigtag admin-only">${tag}</span>`;   // #AXX, shown in admin mode only
+  // interlocking notes for a signal's tooltip
+  function ilNote(F, si) {
+    const IL = F.ag && F.ag.IL, net = F.engine.net; if (!IL || si < 0) return '';
+    const g = IL.groupOf(si), names = net.interlocking && net.interlocking.group_names || [];
+    return (g != null ? ' · uno alla volta: ' + (names[g] || 'gruppo ' + (g + 1)) : '') + (IL.isManual(si) ? ' · manovrato dal giocatore (clic = via libera)' : '');
+  }
+  function clearManual(F, si, tag) {
+    if (sigDel) return;
+    if (F.ag.il().auto) { flashNote(tag + ': il deposito è in automatico'); return; }
+    F.ag.event({ kind: 'il', what: 'clear', si }); flashNote(tag + ': via libera al prossimo treno');
+  }
+  function flashNote(t) { const n = document.getElementById('ilNote'); if (!n) return; n.textContent = t; n.hidden = false; clearTimeout(flashNote.h); flashNote.h = setTimeout(() => n.hidden = true, 4000); }
+  // names of tracks (tails, platforms) and depot places, with the signals
+  const trkNameLayer = L.layerGroup(); let NAMES = false;
+  function buildNames(F) {
+    const net = F.engine.net, byWay = {};
+    net.edges.forEach(e => { if (net.names && net.names[e.way]) (byWay[e.way] = byWay[e.way] || []).push(e); });
+    for (const [w, es] of Object.entries(byWay)) {
+      const e = es.reduce((p, q) => q.len > p.len ? q : p), p = e.p; let la = p[0] / 1e6, lo = p[1] / 1e6; const pts = [[la, lo]];
+      for (let j = 2; j < p.length; j += 2) { la += p[j] / 1e6; lo += p[j + 1] / 1e6; pts.push([la, lo]); }
+      const q = pts[Math.floor(pts.length / 2)];
+      L.marker(q, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="trkname">${net.names[w]}</span>` }) }).addTo(trkNameLayer);
+    }
+    (net.depot || []).forEach(dp => L.marker([dp.lat, dp.lon], { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="trkname dep">${dp.name.replace('Deposito binario ', 'D')}</span>` }) }).addTo(trkNameLayer));
+  }
   function buildSignals(F) {
     if (!RT) RT = stretches(F);
     const half = F.engine.half + 2.5, out = [];
@@ -2537,11 +2575,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     sectionAhead(F).forEach(x => {
       const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt', tag = tagOf((F.engine.net.signals || []).indexOf(x.sg) + 1);
       const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[shunt ? 'sstop' : 'stop']}">${tagHtml(tag)}` }) })
-        .bindTooltip(tag + ' · ' + (shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
+        .bindTooltip(tag + ' · ' + (shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ilNote(F, (F.engine.net.signals || []).indexOf(x.sg)) + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
       // where it is on the paths that go over it: it shows the section right behind it (junction, tail, block)
       const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
+      if (F.ag && F.ag.IL && F.ag.IL.isManual(si)) m.on('click', () => clearManual(F, si, tag));
       for (const [pid, list] of Object.entries(F.engine.net.sigpos || {})) for (const [d, i] of list) if (i === si) refs.push([pid, d]);
-      out.push({ m, block: -1, ahead: x.parts, refs, shunt, a: null, sg: x.sg, tag });
+      out.push({ m, block: -1, ahead: x.parts, refs, shunt, a: null, sg: x.sg, tag, si });
     });
     // wrong-way signals at the platform ends (the line is banalizzata): placeholders, always red
     ['N', 'S'].forEach(dir => {
@@ -2607,7 +2646,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   function updateSignals() {
     const F = m3eng(); if (!F) return;
     const show = showSigs && map.getZoom() >= 16;
-    if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); return; }
+    if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); if (map.hasLayer(trkNameLayer)) map.removeLayer(trkNameLayer); return; }
+    if (!NAMES) { NAMES = true; buildNames(F); }
+    if (!map.hasLayer(trkNameLayer)) trkNameLayer.addTo(map);
     if (!SIGS) { SIGS = buildSignals(F);
       const gone = ll => (ED.removed || []).some(([la, lo]) => Math.hypot((la - ll.lat) * 111000, (lo - ll.lng) * 78000) < 4);
       SIGS.forEach(sg => { if (gone(sg.m.getLatLng())) sg.removed = true; else sg.m.addTo(sigLayer); }); }
@@ -2629,6 +2670,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         });
       }
       else if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
+      // interlocking signals: via libera only when cleared for a train
+      if (sg.si != null && F.ag && F.ag.IL && F.ag.IL.controlled(sg.si)) busy = F.ag.il().grant[sg.si] == null;
       const a = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
       if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
     });

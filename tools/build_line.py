@@ -225,7 +225,16 @@ TAIL_STOP = {}
 _rules_ = json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rules_%s.json' % LINE.lower()) else {}
 def _gone(sg):
     return any(math.hypot((sg['lat'] - la) * 111000, (sg['lon'] - lo) * 78000) < 3 for la, lo in _rules_.get('removed_signals', []))
-_rules_['signals'] = [sg for sg in _rules_.get('signals', []) if not _gone(sg)]
+_all_signals = _rules_.get('signals', [])
+_rules_['signals'] = [sg for sg in _all_signals if not _gone(sg)]
+# interlocking groups and depot signals name signals by their #A number in rules (1 = first): to indexes after removals
+def _sig_index(n):
+    sg = _all_signals[n - 1] if 0 < n <= len(_all_signals) else None
+    return next((i for i, x in enumerate(_rules_['signals']) if x is sg), None)
+_IL = _rules_.get('interlocking', {})
+INTERLOCKING = {'groups': [[i for i in (_sig_index(n) for n in g['signals']) if i is not None] for g in _IL.get('groups', [])],
+                'group_names': [g.get('name', '') for g in _IL.get('groups', [])],
+                'manual': [i for i in (_sig_index(n) for n in _IL.get('manual', [])) if i is not None]}
 for _t in (COM_TAILS if CFG.get('tail_at_signal') else []):
     _e = edges[node_edges[_t][0]]; _P = _e['pts'] if _e['b'] == _t else _e['pts'][::-1]; _P = _P[::-1]   # from the tail end
     _best = None
@@ -1123,6 +1132,15 @@ if os.path.exists(_rules):
     NET['signals'] = [{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name')}
                       for sg in _rules_.get('signals', []) if sg.get('line') == LINE]
     NET['removed'] = _rules_.get('removed_signals', [])
+    NET['interlocking'] = INTERLOCKING
+    # depot places, numbered across the yard (1 = first track from the north-west side); names can be set in rules
+    _dn = _rules_.get('names', {}).get('depot', {})
+    _pl = [(n, NET['nodes'].get(str(n))) for n in storage]; _pl = [(n, q) for n, q in _pl if q]
+    _c = math.cos(math.radians(45.43))
+    _pl.sort(key=lambda x: (x[1][1] - 9.25) * 78000 * math.cos(math.radians(130)) * _c / _c - (x[1][0] - 45.43) * 111000 * math.sin(math.radians(130)))
+    NET['depot'] = [{'node': n, 'lat': q[0], 'lon': q[1], 'name': _dn.get(str(n), 'Deposito binario %d' % (i + 1))} for i, (n, q) in enumerate(_pl)]
+    NET['names'] = {k: v for k, v in _rules_.get('names', {}).get('ways', {}).items()}
+    print('interlocking groups:', INTERLOCKING['groups'], '| depot signals worked by the player:', INTERLOCKING['manual'])
 # where each placed signal is on every path that goes over it facing it: trains stop just before it, and it shows
 # the state of the junction / tail / section right behind it. sigpos[pid] = [[d, signal index], ...]
 SIGPOS = {}

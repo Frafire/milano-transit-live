@@ -30,6 +30,7 @@ node "$ROOT/tests/section_test.js"
 node "$ROOT/tests/block_check.js"
 node "$ROOT/tests/agents_check.js" 4
 node "$ROOT/tests/day_agents_check.js" 5 24
+node "$ROOT/tests/interlocking_check.js" 5 24
 node "$ROOT/tests/timetable_check.js"
 node "$ROOT/tests/headway_check.js" || echo "WARNING: trains closer than 2 minutes"
 echo "== normal day for the page"

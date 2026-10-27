@@ -307,7 +307,7 @@
    "heading": 223,
    "dir": 1,
    "type": "entry",
-   "name": "",
+   "name": "Partenza binario 1",
    "kind": "atp"
   },
   {
@@ -819,6 +819,23 @@
    "type": "block",
    "name": "",
    "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 103,
+   "lat": 45.428621,
+   "lon": 9.255192,
+   "on_track": [
+    45.428614,
+    9.255201
+   ],
+   "offset_m": 0.2,
+   "side": "right",
+   "heading": 223,
+   "dir": 1,
+   "type": "entry",
+   "name": "Partenza binario 2",
+   "kind": "atp"
   }
  ],
  "speeds": {
@@ -1064,5 +1081,46 @@
    53.4,
    219
   ]
+ },
+ "interlocking": {
+  "_about": "Signals by their #A number (as on the map in admin mode). groups: only one signal of a group shows via libera at a time. manual: depot signals worked by the player (red until clicked, unless the depot is on automatic).",
+  "groups": [
+   {
+    "name": "San Donato: uscita deposito e tronchetti",
+    "signals": [
+     6,
+     7,
+     8
+    ]
+   },
+   {
+    "name": "Comasina: tronchetti",
+    "signals": [
+     9,
+     10
+    ]
+   },
+   {
+    "name": "San Donato: partenze binari 1 e 2",
+    "signals": [
+     14,
+     45
+    ]
+   }
+  ],
+  "manual": []
+ },
+ "names": {
+  "_about": "Names of tracks by OSM way (w number in the editor). Shown on the map and used by the radio.",
+  "ways": {
+   "78": "San Donato binario 1",
+   "103": "San Donato binario 2",
+   "79": "San Donato binario 3 (arrivi)",
+   "77": "San Donato tronchetto 1",
+   "58": "San Donato tronchetto 2",
+   "64": "San Donato uscita deposito",
+   "88": "Comasina tronchetto 1",
+   "87": "Comasina tronchetto 2"
+  }
  }
 }

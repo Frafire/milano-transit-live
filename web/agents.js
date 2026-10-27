@@ -19,6 +19,8 @@
 (function (root) {
   const DT = 0.5, HEADWAY = 120, NON_SERVICE_HEADWAY = 90, LOOK = 700, GAP = 15, CLAIM = 8;
 
+  const ILmod = typeof module !== 'undefined' && module.exports ? require('./interlocking.js') : root.MTLInterlocking;
+
   function create(o) {
     // o: { G, ops, reverse, half, prof, pathEdges, netEdges, resources, locks(cl), planOf(k), stopsOf, zones,
     //      dwell[k](pid, d, tArrive, late, key), extra(k, key), initAt(t) -> positions }
@@ -130,7 +132,11 @@
       return leg;
     }
     // pos[k]: { pid, d, v, seg, before, startAt, leaveAt, status } from the day computed in advance at time t
+    // interlocking: controlled signals (junction groups, depot signals worked by the player)
+    const IL = o.interlocking && ILmod ? ILmod.create(Object.assign({}, o.interlocking, { sigpos: o.sigpos, half: o.half })) : null;
+    S.il = IL ? IL.fresh(null) : null;
     function start(t, pos) {
+      S.il = IL ? IL.fresh(S.il) : null;
       S.t = t; S.cl = null; S.lockCl = null; S.parts = [[0, last]]; S.reopened = null; S.lastDep = {}; S.log = [];
       setResources(o.resources.slice()); claimed.clear(); usedRuns.clear();
       S.agents = pos.map((p, k) => {
@@ -261,7 +267,8 @@
         if (s0 < nose - 1) continue;
         if (s0 > nose + LOOK || s0 - half - 3 >= lim) break;
         if (skipBlocks && R[ri].block && !R[ri].lock) continue;
-        if (busyFor(ri, a.k)) { lim = Math.min(lim, R[ri].lock ? s0 - half - 3 : atSignal(a, s0)); why = { res: ri }; break; }
+        // (a turn-back area: wait 40 m further back, the train turning there may stop just outside it, facing this one)
+        if (busyFor(ri, a.k)) { lim = Math.min(lim, R[ri].lock ? s0 - half - 43 : atSignal(a, s0)); why = { res: ri }; break; }
         // a junction (nobody may stop in it): go in only if the train can get right through it
         if (R[ri].noWait) {
           // the whole train must be able to get out of it (its rear past the end), and what follows must be free
@@ -269,6 +276,16 @@
           for (let m = n + 1; m < list.length && !blocked; m++) { const [s1, , r1] = list[m]; if (s1 > e0 + half + 5) break; if (r1 !== ri && busyFor(r1, a.k)) blocked = { res: r1 }; }
           if (blocked) { lim = Math.min(lim, S.lockCl ? s0 - half - 3 : atSignal(a, s0)); why = blocked; break; }
         }
+      }
+      // controlled signals (interlocking): pass only with via libera for this train
+      if (IL) for (const c of IL.ahead(a.pid, nose, LOOK)) {
+        const stop = a.d > c.d - half - 3 ? a.d : c.d - half - 3;
+        if (stop >= lim) break;
+        // it stops before the signal first (a station, or the end of this move): it asks when it leaves from there
+        const next = leg.stops && leg.stops.length && a.stopAt == null ? leg.stops[0].d : leg.end;
+        if (next != null && next < c.d - half) break;
+        if (IL.request(S.il, a.k, c.si, c.d, nose, lim + half)) continue;
+        lim = stop; why = { sig: c.si }; break;
       }
       return { lim, why };
     }
@@ -448,7 +465,7 @@
         // events whose time has come (again, after going back in time)
         for (const e of TL.events) if (!e.done && e.t <= S.t + DT) { e.done = true; apply(e); }
         S.t += DT; refresh();
-        for (const a of S.agents) stepAgent(a);
+        for (const a of S.agents) { const p0 = a.pid, n0 = a.d + half; stepAgent(a); if (IL) IL.release(S.il, a.k, a.pid, a.d + half, a.hidden || a.status === 'parked', a.pid === p0 ? n0 : null); }
         if (Math.floor(S.t / SNAP) !== Math.floor((S.t - DT) / SNAP)) snapshot();
       }
       return S.t;
@@ -457,14 +474,14 @@
     // ---------- time line: saved states and events ----------
     const SNAP = 600, TL = { snaps: [], events: [] };
     function snapshot() {
-      const snap = structuredClone({ t: S.t, agents: S.agents, lastDep: S.lastDep, cl: S.cl, lockCl: S.lockCl, parts: S.parts, reopened: S.reopened, log: S.log,
+      const snap = structuredClone({ t: S.t, il: S.il, agents: S.agents, lastDep: S.lastDep, cl: S.cl, lockCl: S.lockCl, parts: S.parts, reopened: S.reopened, log: S.log,
         claims: R.map(r => r.claim), claimed: [...claimed], usedRuns: [...usedRuns] });
       TL.snaps = TL.snaps.filter(x => x.t < S.t); TL.snaps.push(snap);
       if (TL.snaps.length > 220) TL.snaps.splice(1, 1);
     }
     function restore(snap) {
       const c = structuredClone(snap);
-      Object.assign(S, { t: c.t, agents: c.agents, lastDep: c.lastDep, cl: c.cl, lockCl: c.lockCl, parts: c.parts, reopened: c.reopened, log: c.log });
+      Object.assign(S, { t: c.t, il: c.il, agents: c.agents, lastDep: c.lastDep, cl: c.cl, lockCl: c.lockCl, parts: c.parts, reopened: c.reopened, log: c.log });
       setResources(o.resources.concat(S.lockCl && o.locks ? o.locks(S.lockCl) : []));
       c.claims.forEach((x, i) => { if (R[i]) R[i].claim = x; });
       claimed.clear(); c.claimed.forEach(x => claimed.add(x)); usedRuns.clear(); c.usedRuns.forEach(x => usedRuns.add(x));
@@ -478,6 +495,7 @@
       else if (e.kind === 'reopen') reopen(S.t);
       else if (e.kind === 'order') lastResult = order(e.k, e.what, e.arg);
       else if (e.kind === 'normal') start(S.t, o.initAt(S.t));
+      else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si); else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
     }
     // a new event now: what was planned after this moment is dropped (a new branch of the day)
     function event(e) {
@@ -659,7 +677,7 @@
         if (a.stopAt != null && fresh.stops.length && Math.abs(fresh.stops[0].d - a.d) > 1) a.stopAt = null; a.legs = [fresh]; a.red = null; }
       return true;
     }
-    return { S, TL, start, close, step, seek, event, order, reopen, replan, state, nextOf, snapshot, agents: () => S.agents, resources: () => R };
+    return { S, TL, IL, il: () => S.il, start, close, step, seek, event, order, reopen, replan, state, nextOf, snapshot, agents: () => S.agents, resources: () => R };
   }
 
   const api = { create, HEADWAY, DT };
