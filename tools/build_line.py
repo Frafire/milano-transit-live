@@ -89,6 +89,7 @@ for a_, b_, m in LINKS:
         r_out = route_nodes(m, SD_OUT_NODE, via=[SD_DEP[1]], first=ex)
         if r_out: storage.append((0, m)); STORE_EXIT[m] = ex
         break
+_router.THROUGH_ALLOWED = set()          # a dead-end track must be reachable without cutting through a parked train
 for n in depot_dead:
     if not in_depot(n) or n in CFG['skip_dead'] or len(node_edges[n]) != 1: continue
     if edges[node_edges[n][0]]['len'] < FIT: too_short += 1; continue
@@ -97,6 +98,8 @@ for n in depot_dead:
     if a and b: storage.append((plen(path_poly(b)), n)); STORE_WAY[n] = edges[node_edges[n][0]]['way']
 _router.THROUGH_ALLOWED = set()          # from now on no route may cut through a through track...
 storage = [n for _, n in sorted(storage, key=lambda x: x[0])]
+_unused = set((json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rules_%s.json' % LINE.lower()) else {}).get('depot_unused', {}).get('nodes', []))
+if _unused: storage = [n for n in storage if n not in _unused]; print('depot places not used (accantonamento):', sorted(_unused))
 print('storage places:', len(storage), 'of which through tracks:', len(STORE_EXIT), '(left by the same end, cambio banco:', len(STORE_SAME), ')', '| depot tracks too short for a train:', too_short, '| marked movements only:', no_park)
 
 # ---------------- path library ----------------
@@ -234,7 +237,8 @@ _rules_ = json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rul
 def _gone(sg):
     return any(math.hypot((sg['lat'] - la) * 111000, (sg['lon'] - lo) * 78000) < 3 for la, lo in _rules_.get('removed_signals', []))
 _all_signals = _rules_.get('signals', [])
-_rules_['signals'] = [sg for sg in _all_signals if not _gone(sg) and sg.get('type') != 'cut']
+_rules_['signals'] = [sg for sg in _all_signals if not _gone(sg) and sg.get('type') not in ('cut', 'nose')]
+NOSE_FLAGS = [sg for sg in _all_signals if sg.get('type') == 'nose']        # where the nose stops (stations, depot)
 # interlocking groups and depot signals name signals by their #A number in rules (1 = first): to indexes after removals
 def _sig_index(n):     # #A number as shown on the map (after removed signals and cut points are taken out)
     return n - 1 if 0 < n <= len(_rules_['signals']) else None
@@ -402,7 +406,7 @@ def move(tl, pid, d0, d1, t0, v, status):
 # where the nose stops at a station (Giovanni): at a "nose" flag if one is placed there, otherwise almost touching the
 # station signal (an ATP signal just beyond the platform end, facing the train). Without either, the train stops
 # centred on the station point from the timetable.
-_STOPMARK = [sg for sg in _rules_.get('signals', []) if sg.get('line', LINE) == LINE and (sg.get('type') == 'nose' or sg.get('kind') == 'atp')]
+_STOPMARK = [sg for sg in NOSE_FLAGS + _rules_.get('signals', []) if sg.get('line', LINE) == LINE and (sg.get('type') == 'nose' or sg.get('kind') == 'atp')]
 NOSE_GAP = 3.0                       # metres between the nose and the signal
 _marks_cache = {}
 def stop_marks(pid):
@@ -692,6 +696,27 @@ if CFG['training']:
             TEST['by_store'][str(p)] = [make_path(('tin', p), r_in), make_path(('tback', p), r_back),
                                         TRAIN_HALF if len(node_edges[p]) == 1 else 0]
     print('test loop reachable from', len(TEST['by_store']), 'of', len(storage), 'depot places')
+    # test platforms (fermate di prova): 110 m of platform ending at each stopping-point signal on the loop
+    TEST['platforms'] = []
+    _pp, _pc = paths[pcy]
+    for sg in _rules_.get('signals', []):
+        if sg.get('type') != 'stop' or sg.get('line', LINE) != LINE: continue
+        x0, y0 = xy(*(sg.get('on_track') or (sg['lat'], sg['lon']))); best = None
+        for i in range(len(_pp) - 1):
+            (ax, ay), (bx, by) = _pp[i], _pp[i + 1]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+            if not L2: continue
+            u = max(0, min(1, ((x0 - ax) * dx + (y0 - ay) * dy) / L2)); e = math.hypot(x0 - ax - u * dx, y0 - ay - u * dy)
+            if best is None or e < best[0]: best = (e, _pc[i] + u * (_pc[i + 1] - _pc[i]))
+        if not best or best[0] > 5: continue
+        d1 = best[1]; d0 = d1 - 110; side = -1 if sg.get('side') == 'left' else 1; pts_ = []
+        for k_ in range(23):
+            d_ = d0 + (d1 - d0) * k_ / 22; d_ %= _pc[-1]
+            i = max(0, next((j for j in range(1, len(_pc)) if _pc[j] >= d_), len(_pc) - 1) - 1)
+            f = (d_ - _pc[i]) / ((_pc[i + 1] - _pc[i]) or 1); (ax, ay), (bx, by) = _pp[i], _pp[i + 1]
+            L_ = math.hypot(bx - ax, by - ay) or 1; nx, ny = (by - ay) / L_ * side, -(bx - ax) / L_ * side   # to the signal's side
+            la_, lo_ = ll(ax + (bx - ax) * f + nx * 3.2, ay + (by - ay) * f + ny * 3.2); pts_.append([round(la_, 6), round(lo_, 6)])
+        TEST['platforms'].append({'name': sg.get('name') or 'Fermata di prova', 'pts': pts_})
+    print('test platforms:', [t['name'] for t in TEST['platforms']])
 else:
     TEST = None
 
@@ -763,6 +788,12 @@ for li_, (a_, b_, m) in enumerate(LINKS):     # depot through tracks (inside the
     for n in (a_, m, b_):
         la_, lo_ = ll(*node_pos[n]); A, B = round(la_ * 1e6), round(lo_ * 1e6); flat += [A - pa, B - pb]; pa, pb = A, B
     tracks.append({'c': 'yard', 'p': flat, 'w': -1 - li_})
+
+for ti_, dt in enumerate(_rules_.get('tracks', [])):     # tracks drawn by Giovanni (inside the depot building): shown only
+    flat, pa, pb = [], 0, 0
+    for la_, lo_ in dt['points']:
+        A, B = round(la_ * 1e6), round(lo_ * 1e6); flat += [A - pa, B - pb]; pa, pb = A, B
+    tracks.append({'c': 'yard', 'p': flat, 'w': -1000 - ti_, 'drawn': True})
 
 def enc(p):
     flat, pa, pb = [], 0, 0

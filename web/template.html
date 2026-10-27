@@ -166,6 +166,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .trkname { position: absolute; transform: translate(-50%, -50%); font: 600 10px/1.1 system-ui, sans-serif; color: #ffd23f; background: rgba(0,0,0,.7); padding: 1px 4px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
 .trkname.dep { color: #cfd6dc; font-size: 9px; }
 .sigtag { position: absolute; left: 7px; top: -16px; font: 600 10px/1 system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.72); padding: 1px 3px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
+.sigpx.sh { width: 9px; height: 10px; }
 .sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
@@ -665,6 +666,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       paths: F.paths.map(p => { const pts = decodeFlat(p.p); return { lat: pts.map(x => x[0]), lon: pts.map(x => x[1]), d: p.d }; }) };
     fleet.stops = busStops; fleet.display = !!F.display; fleet.heads = F.heads || [];
     fleet.stock = F.stock || []; fleet.test = F.test || null; fleet.platmap = F.platmap || null;
+    // test platforms on the anello di prova (fermate di prova): shown like the station platforms
+    ((F.test && F.test.platforms) || []).forEach(tp => L.polyline(tp.pts, { color: '#d9d4c7', weight: 7, opacity: .85, lineCap: 'butt', interactive: true })
+      .bindTooltip(tp.name + ' · banchina di prova', { className: 'st', direction: 'top' }).addTo(platLayer));
     fleet.trains = F.trains.map((segs, i) => ({ n: i + 1, segs, starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: (F.alts || [])[i] || [], arr2: (F.arr2 || [])[i] || [], calts: (F.calts || [])[i] || [], duties: (F.duties || [])[i] || null }));
     if (F.net && F.ops && window.MTLEngine) {
       fleet.engine = { ops: { ...F.ops, train_half: F.half }, rev: F.reverse_s, net: F.net, S: F.section, half: F.half, pathEdges: F.path_edges, fileSpeeds: F.speeds || {} };
@@ -1608,7 +1612,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (!trkList.children.length) trkList.innerHTML = '<li class="note">Nothing saved yet</li>';
   }
   // ---- speed limits tool (M3) ----
-  const SPEEDS = [20, 30, 40, 50, 60, 70, 80];
+  const SPEEDS = [5, 10, 15, 20, 30, 40, 50, 60, 70, 80];     // 5 km/h: covered parts of the depot (capannone)
   const SPCOL = k => k <= 15 ? '#ff3b3b' : k <= 30 ? '#ff8a3b' : k <= 40 ? '#ffcf3f' : k <= 50 ? '#c6f03b' : k <= 60 ? '#3bd16f' : k <= 70 ? '#3bd1c6' : '#4f9bff';
   let spdPickV = 60;
   const spdBtns = document.getElementById('spdBtns'), spdPick = document.getElementById('spdPick');
@@ -2507,10 +2511,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     SIGMAP2.forEach((row, y) => [...row].forEach((ch, i) => { if (ch === '.') return;
       x.fillStyle = ch === 'g' ? '#a0a0a0' : ch === 'G' ? '#dedede' : ch === 'k' ? '#101010' : ch === 'h' ? SIGC2[a][y < 9 ? 'hR' : 'hW'] : SIGC2[a][ch]; x.fillRect(i, y, 1, 1); }));
     SIGURL[a] = c.toDataURL(); });
-  // shunting signal (manovra): two white lamps, horizontal = stop, diagonal = proceed
-  ['sstop', 'sgo'].forEach(a => { const c = document.createElement('canvas'); c.width = 9; c.height = 9; const x = c.getContext('2d');
-    x.fillStyle = '#101010'; x.fillRect(0, 0, 9, 9); x.fillStyle = '#a0a0a0'; x.fillRect(0, 0, 9, 1); x.fillRect(0, 8, 9, 1); x.fillRect(0, 0, 1, 9); x.fillRect(8, 0, 1, 9);
-    x.fillStyle = '#ffffff'; (a === 'sstop' ? [[2, 4], [6, 4]] : [[2, 6], [6, 2]]).forEach(([i, j]) => x.fillRect(i - 1, j - 1, 2, 2));
+  // shunting signal (manovra, segnale basso, as in Giovanni's picture): three lamps on a low black body;
+  // the two bottom ones lit (horizontal) = stop, top and bottom-left lit (vertical) = proceed
+  ['sstop', 'sgo'].forEach(a => { const c = document.createElement('canvas'); c.width = 9; c.height = 10; const x = c.getContext('2d');
+    x.fillStyle = '#101010'; x.fillRect(0, 1, 9, 9); x.fillRect(0, 0, 5, 1); x.fillRect(5, 1, 4, 3);
+    x.fillStyle = '#8a8a8a'; x.fillRect(0, 9, 9, 1);
+    const lamp = (i, j, on) => { x.fillStyle = on ? '#ffffff' : '#3a3a3a'; x.fillRect(i, j, 3, 3); };
+    lamp(1, 1, a === 'sgo'); lamp(1, 5, true); lamp(5, 5, a === 'sstop');
     SIGURL[a] = c.toDataURL(); });
   const sigLayer = L.layerGroup(); let showSigs = false, SIGS = null;
   try { showSigs = localStorage.getItem('mtl-sigs') === '1'; } catch (e) {}
@@ -2577,7 +2584,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // the other signals placed on the map (terminal junctions, tails, depot): state from the track just ahead of them
     sectionAhead(F).forEach(x => {
       const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt', tag = tagOf((F.engine.net.signals || []).indexOf(x.sg) + 1);
-      const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[shunt ? 'sstop' : 'stop']}">${tagHtml(tag)}` }) })
+      const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${shunt ? ' sh' : ''}" alt="" src="${SIGURL[shunt ? 'sstop' : 'stop']}">${tagHtml(tag)}` }) })
         .bindTooltip(tag + ' · ' + (shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ilNote(F, (F.engine.net.signals || []).indexOf(x.sg)) + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
       // where it is on the paths that go over it: it shows the section right behind it (junction, tail, block)
       const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
@@ -2677,7 +2684,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       // interlocking signals: via libera only when cleared for a train
       if (sg.si != null && F.ag && F.ag.IL && F.ag.IL.controlled(sg.si)) busy = F.ag.il().grant[sg.si] == null;
       const a = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
-      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
+      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${sg.shunt ? ' sh' : ''}" alt="" src="${SIGURL[a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
     });
   }
   // tool: take signals away (they go into the MTL-EDIT export as "removed"; the build then drops them)
