@@ -149,6 +149,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .log time { color: #6f8f77; margin-right: 6px; }
 .radio .cmds { border-top: 3px solid #2a3a2e; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
 .radio .cmds .lbl { color: #6f8f77; text-transform: uppercase; font-size: 16px; }
+.radio .cmds details { border: 2px solid #2a3a2e; }
+.radio .cmds details[open] { border-color: #3b5e45; }
+.radio .cmds summary { cursor: pointer; list-style: none; padding: 2px 8px; color: #8dff9e; font-size: 18px; text-transform: uppercase; }
+.radio .cmds summary::-webkit-details-marker { display: none; }
+.radio .cmds summary::before { content: '▸ '; color: #6f8f77; }
+.radio .cmds details[open] > summary::before { content: '▾ '; }
+.radio .cmds summary .tag { color: #ffd23f; text-transform: none; margin-left: 6px; }
+.radio .cmds details > .in { padding: 4px 8px 8px; display: flex; flex-direction: column; gap: 6px; }
 .radio .cmds .row { display: flex; flex-wrap: wrap; gap: 6px; }
 .radio .cmds button, .radio .cmds select { background: #0d1d12; color: #8dff9e; border: 2px solid #3b5e45; font: inherit; font-size: 18px; padding: 1px 8px; cursor: pointer; border-radius: 0; }
 .radio .cmds button:hover, .radio .cmds button:focus-visible { background: #8dff9e; color: #071109; outline: none; }
@@ -698,23 +706,25 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     return [sh.lat[a] + (sh.lat[b] - sh.lat[a]) * f, sh.lon[a] + (sh.lon[b] - sh.lon[a]) * f];
   }
   // which real train (from the fleet list) runs this simulated duty at time t
-  // a real unit is shown on one train only: the one running it now, else the last one that ran it, else the next
-  function unitHolders(F, t) {
-    if (F._uh && F._uh.t === t) return F._uh.m;
-    const m = new Map();
-    F.trains.forEach(o => (o.duties || []).forEach(x => { if (x[2] < 0) return;
-      const r = x[0] <= t && t <= x[1] ? [0, 0] : x[1] < t ? [1, t - x[1]] : [2, x[0] - t], b = m.get(x[2]);
-      if (!b || r[0] < b.r[0] || r[0] === b.r[0] && r[1] < b.r[1]) m.set(x[2], { o, r }); }));
-    F._uh = { t, m }; return m;
+  // every train has a number, and one number is on one train only: first the trains running a unit now, then
+  // the unit each one ran last, then the next one it will run, then whatever units are left (in the depot)
+  function unitMap(F, t) {
+    if (F._um && F._um.t === t) return F._um.m;
+    const m = new Map(), used = new Set(), give = (o, u) => { if (u == null || u < 0 || used.has(u) || m.has(o)) return; m.set(o, u); used.add(u); };
+    const T = F.trains;
+    T.forEach(o => { const d = (o.duties || []).find(x => x[0] <= t && t <= x[1]); if (d) give(o, d[2]); });
+    T.map(o => ({ o, d: (o.duties || []).filter(x => x[1] < t).pop() })).filter(x => x.d).sort((p, q) => q.d[1] - p.d[1]).forEach(x => give(x.o, x.d[2]));
+    T.map(o => ({ o, d: (o.duties || []).find(x => x[0] > t) })).filter(x => x.d).sort((p, q) => p.d[0] - q.d[0]).forEach(x => give(x.o, x.d[2]));
+    const free = F.stock.map((_, u) => u).filter(u => !used.has(u));
+    T.forEach(o => { if (!m.has(o) && free.length) give(o, free.shift()); });
+    F._um = { t, m }; return m;
   }
   function realTrain(F, tr, t) {
-    if (!F.stock || !F.stock.length || !tr.duties || !tr.duties.length) return null;
+    if (!F.stock || !F.stock.length || !tr.duties) return null;
     const now = tr.duties.find(x => x[0] <= t && t <= x[1]);
     if (now && now[2] < 0) return { n: '?', missing: true };
-    const past = tr.duties.filter(x => x[1] < t).pop(), next = tr.duties.find(x => x[0] > t), H = unitHolders(F, t);
-    for (const d of [now, past, next]) if (d && d[2] >= 0 && H.get(d[2]) && H.get(d[2]).o === tr) return { n: d[2] + 1, ...F.stock[d[2]] };
-    if (!now && !past && next && next[2] < 0) return { n: '?', missing: true };
-    return { n: '—', none: true };
+    const u = unitMap(F, t).get(tr);
+    return u != null ? { n: u + 1, ...F.stock[u] } : { n: '—', none: true };
   }
   const parkedLabel = (F, where) => where && where !== 'depot' ? 'Parked overnight in a ' + where + ' tail track' : 'Parked in the ' + F.home + ' depot';
   // live engine: drive this train from its (possibly changed) plan
@@ -2139,40 +2149,87 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       radioCmdHtml = ''; drawRadioCmds();
     });
   }
+  // the radio commands in folding sections (they stay open or closed as the player left them)
+  const radioOpen = new Set();
+  function radioSec(id, title, body, tag, openFirst) {
+    if (openFirst && !radioOpen.has('seen:' + id)) { radioOpen.add('seen:' + id); radioOpen.add(id); }
+    return `<details data-sec="${id}" ${radioOpen.has(id) ? 'open' : ''}><summary>${title}${tag ? `<span class="tag">${tag}</span>` : ''}</summary><div class="in">${body}</div></details>`;
+  }
+  function bindRadioSecs() {
+    radioCmds.querySelectorAll('details[data-sec]').forEach(d => d.addEventListener('toggle', () => {
+      if (d.open) radioOpen.add(d.dataset.sec); else radioOpen.delete(d.dataset.sec);
+      radioCmdHtml = radioCmdHtml.replace(new RegExp(`data-sec="${d.dataset.sec}" (open)?`), `data-sec="${d.dataset.sec}" ${d.open ? 'open' : ''}`); }));
+  }
+  // speed limit ordered by the PC: until a new order, or until the train leaves a station still ahead of it
+  const VLIMITS = [15, 20, 25, 30, 40, 50, 55, 60, 70];
+  let radioVSel = 30, radioVTo = '';
+  function speedSec(F, tr) {
+    if (!F.ag || tr.agentK == null) return '';
+    const s = F.ag.state(tr.agentK); if (!s || s.hidden || s.status === 'parked') return '';
+    const G = F.engine.G, ahead = (s.stops || []).filter((st, i) => !(i === 0 && s.stopAt === st));
+    if (radioVTo !== '' && !ahead.includes(+radioVTo)) radioVTo = '';
+    const now = s.vlim ? `${s.vlim} km/h ${s.vlimTo != null ? 'fino a ' + cap(G.names[s.vlimTo]) : 'fino a nuovo ordine'}` : '';
+    const body = (now ? `<div class="lbl">In vigore: ${now}</div>` : '') +
+      `<div class="row">${VLIMITS.map(v => `<button data-vs="${v}" aria-pressed="${radioVSel === v}">${v}</button>`).join('')}</div>
+       <div class="lbl">Fino a</div>
+       <div class="row"><select id="radioVTo" aria-label="Fino a"><option value="" ${radioVTo === '' ? 'selected' : ''}>nuovo ordine</option>${ahead.map(st => `<option value="${st}" ${String(st) === radioVTo ? 'selected' : ''}>partenza da ${cap(G.names[st])}</option>`).join('')}</select></div>
+       <div class="row"><button id="radioSendSpeed" class="send">▶ Trasmetti ${radioVSel} km/h</button>${now ? '<button id="radioSpeedOff">Annulla limitazione</button>' : ''}</div>`;
+    return radioSec('speed', 'Limitazione di velocità', body, s.vlim ? s.vlim + ' km/h' : '');
+  }
+  function bindSpeed(F, tr) {
+    radioCmds.querySelectorAll('[data-vs]').forEach(b => b.onclick = () => { radioVSel = +b.dataset.vs; drawRadioCmds(); });
+    const sel = document.getElementById('radioVTo'); if (sel) sel.onchange = () => { radioVTo = sel.value; drawRadioCmds(); };
+    const go = document.getElementById('radioSendSpeed'), off = document.getElementById('radioSpeedOff'), G = F.engine.G, no = radioTrain.no;
+    if (go) go.onclick = () => {
+      const to = radioVTo === '' ? null : +radioVTo, until = to == null ? 'fino a nuovo ordine' : 'fino alla partenza da ' + cap(G.names[to]);
+      say('PC', `Treno ${no}, limita la velocità a ${radioVSel} km/h ${until}. Passo.`, 'pc');
+      F.ag.event({ kind: 'order', k: tr.agentK, what: 'speed', arg: { kmh: radioVSel, to } });
+      (CALLS[tr.agentK] = CALLS[tr.agentK] || {}).vlimTo = to;
+      driverSays(pick([`Ricevuto PC, marcia a ${radioVSel} km/h ${until}. Passo.`, `Copiato, ${radioVSel} all'ora ${until}. Passo.`]));
+    };
+    if (off) off.onclick = () => {
+      say('PC', `Treno ${no}, annulla la limitazione di velocità, riprendi la marcia normale. Passo.`, 'pc');
+      F.ag.event({ kind: 'order', k: tr.agentK, what: 'speedoff' });
+      driverSays('Ricevuto PC, riprendo la velocità normale. Passo.');
+    };
+  }
   function drawRadioCmds() {
     if (radioEl.hidden || !radioTrain) return;
     if (radioTrain.F.ag && radioTrain.tr.agentK != null && radioTrain.F.ag.agents()[radioTrain.tr.agentK] && radioTrain.F.ag.agents()[radioTrain.tr.agentK].mode !== 'plan') {
-      const h = emergencyCmds(radioTrain.F, radioTrain.tr);
+      const h = emergencyCmds(radioTrain.F, radioTrain.tr) + speedSec(radioTrain.F, radioTrain.tr);
       if (h === radioCmdHtml) return;
-      radioCmdHtml = h; radioCmds.innerHTML = h; bindEmergencyCmds(radioTrain.F, radioTrain.tr); return;
+      radioCmdHtml = h; radioCmds.innerHTML = h; bindEmergencyCmds(radioTrain.F, radioTrain.tr); bindRadioSecs(); bindSpeed(radioTrain.F, radioTrain.tr); return;
     }
     const { F, tr } = radioTrain, ns = nextStop(F, tr), pend = radioWatch.filter(w => w.tr === tr).length;
-    let h = '';
+    let h = '', x = '';
+    // San Donato: platform 2 taken by a train reversing there, this one waits in the tail (a call: open)
+    const cp = tr.agentK != null && CALLS[tr.agentK] && CALLS[tr.agentK].p2;
+    if (cp && tr.alts[cp.ai]) h += radioSec('p2', 'Binario 2 occupato', `<div class="row"><button id="p2Wait">Resta fermo e attendi</button><button id="p2Divert">Devia al binario 1</button></div>`, 'retrocessione', true);
+    // longer stop at a station
     if (ns) {
       const had = tr.env && tr.env.extra && tr.env.extra[ns.key] || 0;
-      h += `<div class="lbl">Sosta prolungata a ${cap(ns.name)}${ns.here ? ' (fermo qui)' : ''}${had ? ' · già ordinati ' + durTxt(had) : ''}</div>
+      x = `<div class="lbl">${cap(ns.name)}${ns.here ? ' (fermo qui)' : ''}${had ? ' · già ordinati ' + durTxt(had) : ''}</div>
         <div class="row">${[30, 60, 90, 120].map(v => `<button data-rs="${v}" aria-pressed="${radioStopSel === v}">${v < 60 ? v + 's' : (v / 60) + (v % 60 ? '' : '') + ' min'}</button>`).join('').replace('1.5 min', '1:30')}</div>
         <div class="lbl">Motivo</div>
         <div class="row">${RADIO_WHY.map((w, i) => `<button data-rw="${i}" aria-pressed="${w === radioWhy}">${w}</button>`).join('')}</div>
         <div class="row"><button id="radioSendStop" class="send">▶ Trasmetti</button></div>`;
-    } else h += `<div class="lbl">Nessuna fermata davanti: il treno non è in servizio</div>`;
-    if (pend) h += `<div class="row"><button id="radioCancel">Annulla le soste ordinate (${pend})</button></div>`;
+    } else x = `<div class="lbl">Nessuna fermata davanti: il treno non è in servizio</div>`;
+    if (pend) x += `<div class="row"><button id="radioCancel">Annulla le soste ordinate (${pend})</button></div>`;
+    h += radioSec('stop', 'Attesa in stazione', x, pend ? pend + ' ordinate' : '');
+    h += speedSec(F, tr);
     // departure platform at San Donato
     const ai = tr.alts.findIndex(a => state.t <= a.leave && a.leave - state.t < 20 * 60);
     if (ai >= 0) { const a = tr.alts[ai];
-      h += `<div class="lbl">Partenza da San Donato delle ${fmt(a.dep)}</div><div class="row">${Object.keys(a.opts).map(Number).sort().map(p => `<button data-rp="${p}" data-ai="${ai}" ${a.plat === p ? 'disabled' : ''}>Binario ${p}</button>`).join('')}</div>`; }
+      h += radioSec('plat', 'Partenza da San Donato', `<div class="lbl">Partenza delle ${fmt(a.dep)}</div><div class="row">${Object.keys(a.opts).map(Number).sort().map(p => `<button data-rp="${p}" data-ai="${ai}" ${a.plat === p ? 'disabled' : ''}>Binario ${p}</button>`).join('')}</div>`, 'binario ' + a.plat); }
     // which tail at Comasina
     const ci = (tr.calts || []).findIndex(c => !c.done && state.t >= c.open && state.t <= c.close);
     if (ci >= 0) { const c = tr.calts[ci];
-      h += `<div class="lbl">Tronchetto a Comasina</div><div class="row">${Object.keys(c.opts).map(Number).sort((a, b) => c.names[a] - c.names[b]).map(t => `<button data-rt="${t}" data-ci="${ci}" ${c.tail === t ? 'disabled' : ''}>Tronchetto ${c.names[t]}</button>`).join('')}</div>`; }
-    // San Donato: platform 2 taken by a train reversing there, this one waits in the tail
-    const cp = tr.agentK != null && CALLS[tr.agentK] && CALLS[tr.agentK].p2;
-    if (cp && tr.alts[cp.ai]) h += `<div class="lbl">Binario 2 occupato (retrocessione)</div><div class="row"><button id="p2Wait">Resta fermo e attendi</button><button id="p2Divert">Devia al binario 1</button></div>`;
+      h += radioSec('tail', 'Tronchetto a Comasina', `<div class="row">${Object.keys(c.opts).map(Number).sort((a, b) => c.names[a] - c.names[b]).map(t => `<button data-rt="${t}" data-ci="${ci}" ${c.tail === t ? 'disabled' : ''}>Tronchetto ${c.names[t]}</button>`).join('')}</div>`, c.tail != null && c.names[c.tail] != null ? 'tronchetto ' + c.names[c.tail] : ''); }
     // platform 2 and reversal, coming from Rogoredo
     const k2 = (tr.arr2 || []).findIndex(a => !a.done && state.t >= a.open && state.t <= a.close);
-    if (k2 >= 0) h += `<div class="lbl">Arrivo a San Donato</div><div class="row"><button id="radioP2">Entra al binario 2 e inverti lì</button></div>`;
+    if (k2 >= 0) h += radioSec('arr2', 'Arrivo a San Donato', `<div class="row"><button id="radioP2">Entra al binario 2 e inverti lì</button></div>`);
     if (h === radioCmdHtml) return;          // unchanged: keep the buttons as they are (nothing closes or flickers)
-    radioCmdHtml = h; radioCmds.innerHTML = h;
+    radioCmdHtml = h; radioCmds.innerHTML = h; bindRadioSecs(); bindSpeed(F, tr);
     radioCmds.querySelectorAll('[data-rs]').forEach(b => b.onclick = () => { radioStopSel = +b.dataset.rs; drawRadioCmds(); });
     radioCmds.querySelectorAll('[data-rw]').forEach(b => b.onclick = () => { radioWhy = RADIO_WHY[+b.dataset.rw]; drawRadioCmds(); });
     const send = document.getElementById('radioSendStop');
@@ -2365,6 +2422,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
           call(`PC, qui treno ${no}, sono sul tronchetto di San Donato: il binario 2 è occupato dal treno ${trainNo(F, o)} in retrocessione. Resto fermo o mi mandate al binario 1? Chiedo istruzioni. Passo.`); }
       }
       if (c.p2 && (!a.red || !tr.alts[c.p2.ai] || tr.alts[c.p2.ai].plat !== 2)) c.p2 = null;
+      if (c.vlimTo != null && !a.vlim) { const where = G.names[c.vlimTo]; c.vlimTo = null;
+        if (!radioEl.hidden && radioTrain && radioTrain.tr === tr) say('T' + no, `Qui ${no}, lasciata ${cap(where)}: fine limitazione, riprendo la velocità normale. Passo.`, 'dr'); }
       if (a.late != null && a.late > 600 && (!c.late || em.ag.S.t - c.late > 900)) {
         c.late = em.ag.S.t;
         call(`PC, qui treno ${no}, siamo in forte ritardo (+${Math.round(a.late / 60)} min). Chiedo autorizzazione per salto fermate, limitazione corsa o rientro in deposito. Passo.`);

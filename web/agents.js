@@ -305,6 +305,7 @@
         v = Math.min(v, z0 <= a.d + half ? zv : Math.sqrt(zv * zv + 2 * brk * (z0 - a.d - half))); }
       if (a.slowUntil && S.t < a.slowUntil) v = Math.min(v, 20 / 3.6);      // after reopening: 20 km/h for 2 minutes
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
+      if (a.vlim) v = Math.min(v, a.vlim);                                   // speed limit ordered by the PC
       return v;
     }
 
@@ -415,6 +416,7 @@
         const au = authority(a, leg);
         if (au.lim < a.d + 5) { a.why = 'segnale'; if (!a.red) a.red = { since: S.t, why: au.why }; return; }
         S.lastDep[key] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift();
+        if (a.vlim && a.vlimTo === st.st) { a.vlim = null; a.vlimTo = null; }    // speed limit "as far as this station": over
         a.late = leg.timed && st.dep ? S.t - st.dep : null;
         a.at = st.st; a.arr = leg.dir;
       }
@@ -474,7 +476,7 @@
     function apply(e) {
       if (e.kind === 'close') close(S.t, e.cl, posNow());
       else if (e.kind === 'reopen') reopen(S.t);
-      else if (e.kind === 'order') lastResult = order(e.k, e.what);
+      else if (e.kind === 'order') lastResult = order(e.k, e.what, e.arg);
       else if (e.kind === 'normal') start(S.t, o.initAt(S.t));
     }
     // a new event now: what was planned after this moment is dropped (a new branch of the day)
@@ -499,8 +501,11 @@
     }
 
     // ---------- radio orders ----------
-    function order(k, kind) {
+    function order(k, kind, arg) {
       const a = S.agents[k]; if (!a) return false;
+      // PC speed limit: km/h, until a new order or until the train leaves station `to`
+      if (kind === 'speed') { a.vlim = arg && arg.kmh ? arg.kmh / 3.6 : null; a.vlimTo = arg && arg.to != null ? arg.to : null; return true; }
+      if (kind === 'speedoff') { a.vlim = null; a.vlimTo = null; return true; }
       if (a.mode === 'inside' && a.status === 'stopped') {
         const I = a.inside, q = I.q;
         if (kind === 'depot') {                     // empty to the end of its path (San Donato) and into the depot
@@ -637,7 +642,8 @@
       const a = S.agents[k]; if (!a) return null;
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
       return { pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, inside: a.inside, trip: a.trip,
-               seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold,
+               seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold, vlim: a.vlim ? Math.round(a.vlim * 3.6) : null, vlimTo: a.vlimTo,
+               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [],
                dir: leg ? leg.dir : (a.inside ? a.inside.dir : null), to: leg && leg.arrive ? leg.arrive.at : null, timed: !!(leg && leg.timed), at: a.at };
     }
     const nextOf = k => { const a = S.agents[k]; return a && a.inside && a.inside.q + 1 < a.inside.stops.length ? a.inside.stops[a.inside.q + 1].st : null; };
