@@ -28,6 +28,10 @@ html, body { height: 100%; margin: 0; background: var(--ink); color: var(--fg); 
 #map { position: fixed; inset: 0; background: var(--ink); }
 canvas.veh { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 450; }
 
+.console.min > :not(.keep) { display: none !important; }
+.console.min .days, .console.min .day { display: none; }
+.conmin { background: none; border: 0; color: var(--muted); font-size: 16px; line-height: 1; padding: 2px 6px 2px 0; cursor: pointer; }
+.conmin:hover { color: #fff; }
 .console {
   position: fixed; z-index: 1000;
   top: calc(12px + env(safe-area-inset-top, 0px)); left: calc(12px + env(safe-area-inset-left, 0px));
@@ -38,6 +42,7 @@ canvas.veh { position: absolute; top: 0; left: 0; pointer-events: none; z-index:
   max-height: calc(100% - 24px); overflow: auto;
 }
 .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.brand h1 { flex: 1; }
 .brand h1 { margin: 0; font: 700 20px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
 .brand small { color: var(--muted); font-size: 12px; }
 .clock { font: 600 52px/1 var(--display); color: var(--signal); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
@@ -200,6 +205,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .tile.spd b { font: 700 28px/1 var(--display); color: #f2f2f2; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
 .tile.spd span { color: var(--muted); font-size: 13px; }
 .tile.door { align-items: center; font: 700 15px/1.2 var(--display); letter-spacing: .06em; color: #9aa3ab; }
+.tile.delay { grid-column: 1 / -1; font: 700 15px/1.2 var(--display); letter-spacing: .04em; color: #cfd6dc; }
+.tile.delay.late { background: #e5383b; border-color: #e5383b; color: #fff; }
+.tile.delay.early { background: #1f7a3a; border-color: #1f7a3a; color: #fff; }
 .tile.door.open { background: #ffb020; border-color: #ffb020; color: #1a1200; }
 .stops time { font-variant-numeric: tabular-nums; color: inherit; }
 .card .row { margin-top: 10px; }
@@ -248,10 +256,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 <div class="loading" id="loading">Loading timetable…</div>
 
 <section class="console" aria-label="Simulation controls">
-  <div class="brand"><h1>Milano Transit Live</h1>
+  <div class="brand keep"><button id="conMin" class="conmin" aria-expanded="true" title="Chiudi o apri il pannello">▾</button><h1>Milano Transit Live</h1>
     <div class="roles" role="group" aria-label="Mode"><button class="role" data-role="admin" aria-pressed="true">Admin</button><button class="role" data-role="player" aria-pressed="false">Player</button></div>
   </div>
-  <div>
+  <div class="keep">
     <div class="clock" id="clock">08:00<span class="s">:00</span></div>
     <div class="days" role="group" aria-label="Day of the week">
       <button class="dayb" data-d="1">Lun</button><button class="dayb" data-d="2">Mar</button><button class="dayb" data-d="3">Mer</button>
@@ -260,14 +268,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     </div>
     <div class="day" id="day"></div>
   </div>
-  <div class="row">
+  <div class="row keep">
     <button id="play" aria-label="Pause">❚❚</button>
     <button class="spd" data-s="1">1×</button>
     <button class="spd" data-s="10">10×</button>
     <button class="spd" data-s="60" aria-pressed="true">60×</button>
     <button class="spd" data-s="300">300×</button>
   </div>
-  <input type="range" id="slider" min="10800" max="97140" step="60" value="28800" aria-label="Time of day, service day 03:00 to 02:59">
+  <input type="range" class="keep" id="slider" min="10800" max="97140" step="60" value="28800" aria-label="Time of day, service day 03:00 to 02:59">
 
   <section class="player-only m3panel" aria-label="M3 control panel">
     <div class="label">Pannello di controllo M3</div>
@@ -1096,6 +1104,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (sp.textContent !== String(kmh)) sp.textContent = kmh;
     const dt = document.getElementById('doorTile'), txt = open ? 'PORTE APERTE' : 'PORTE CHIUSE';
     if (dt.textContent !== txt) { dt.textContent = txt; dt.classList.toggle('open', open); }
+    const dl = document.getElementById('delayTile'); if (!dl) return;
+    const d = trainDelay(F, tr, state.t), mm = s => Math.floor(Math.abs(s) / 60) + ':' + String(Math.round(Math.abs(s)) % 60).padStart(2, '0');
+    const dtx = d == null ? 'FUORI SERVIZIO' : d >= 60 ? 'RITARDO +' + mm(d) : d <= -60 ? 'ANTICIPO −' + mm(d) : 'IN ORARIO';
+    if (dl.textContent !== dtx) { dl.textContent = dtx; dl.classList.toggle('late', d != null && d >= 120); dl.classList.toggle('early', d != null && d <= -180); }
+  }
+  // lateness of a train for its card: the trains of the one engine know it from their last departure
+  function trainDelay(F, tr, t) {
+    if (F.ag && state.engine && tr.agentK != null) { const s = F.ag.state(tr.agentK); if (!s || s.hidden || s.status === 'parked') return null;
+      return s.late != null ? s.late : s.status === 'service' ? 0 : null; }
+    return F.engine ? delayOf(F, tr, t) : null;
   }
   function renderTrainCard() {
     const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F.trains[i], st = trainState(F, tr, state.t);
@@ -1114,7 +1132,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>' : rt.none ? ''
       : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
     const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
-    const tiles = (F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div></div>`)
+    const tiles = (F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div><div class="tile delay" id="delayTile">IN ORARIO</div></div>`)
       + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
     body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
@@ -1184,6 +1202,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (sp.textContent !== String(kmh)) sp.textContent = kmh;
     const dt = document.getElementById('doorTile'), txt = open ? 'PORTE APERTE' : 'PORTE CHIUSE';
     if (dt.textContent !== txt) { dt.textContent = txt; dt.classList.toggle('open', open); }
+    const dl = document.getElementById('delayTile'); if (!dl) return;
+    const d = trainDelay(F, tr, state.t), mm = s => Math.floor(Math.abs(s) / 60) + ':' + String(Math.round(Math.abs(s)) % 60).padStart(2, '0');
+    const dtx = d == null ? 'FUORI SERVIZIO' : d >= 60 ? 'RITARDO +' + mm(d) : d <= -60 ? 'ANTICIPO −' + mm(d) : 'IN ORARIO';
+    if (dl.textContent !== dtx) { dl.textContent = dtx; dl.classList.toggle('late', d != null && d >= 120); dl.classList.toggle('early', d != null && d <= -180); }
+  }
+  // lateness of a train for its card: the trains of the one engine know it from their last departure
+  function trainDelay(F, tr, t) {
+    if (F.ag && state.engine && tr.agentK != null) { const s = F.ag.state(tr.agentK); if (!s || s.hidden || s.status === 'parked') return null;
+      return s.late != null ? s.late : s.status === 'service' ? 0 : null; }
+    return F.engine ? delayOf(F, tr, t) : null;
   }
   function renderTrainCard() {
     const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F.trains[i], st = trainState(F, tr, state.t);
@@ -1201,7 +1229,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>'
       : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
     const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
-    const tiles = (F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div></div>`)
+    const tiles = (F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div><div class="tile delay" id="delayTile">IN ORARIO</div></div>`)
       + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
     body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
@@ -1885,6 +1913,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   marksBtn.onclick = () => { showMarks = !showMarks; try { localStorage.setItem('mtl-show-marks', showMarks ? '1' : '0'); } catch (e) {} syncMarks(); };
   syncMarks();
 
+  // ---------- the panel on the left can be folded down to clock and time controls ----------
+  (function () {
+    const con = document.querySelector('.console'), b = document.getElementById('conMin');
+    const set = m => { con.classList.toggle('min', m); b.textContent = m ? '▸' : '▾'; b.setAttribute('aria-expanded', String(!m)); try { localStorage.setItem('mtl-panel-min', m ? '1' : ''); } catch (e) {} };
+    let m0 = false; try { m0 = localStorage.getItem('mtl-panel-min') === '1'; } catch (e) {}
+    set(m0); b.onclick = () => set(!con.classList.contains('min'));
+  })();
   // ---------- admin / player ----------
   let isPlayer = false;
   try { isPlayer = localStorage.getItem('mtl-role') === 'player'; } catch (e) {}
@@ -2008,7 +2043,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const radioTx = document.getElementById('radioTx'), radioWho = document.getElementById('radioWho');
   let radioTrain = null; const radioMsgs = [], radioWatch = [];
   const pick = a => a[Math.floor(Math.random() * a.length)];
-  const durTxt = s => s === 30 ? '30 secondi' : s === 60 ? '1 minuto' : s === 90 ? '1 minuto e 30' : '2 minuti';
+  const durTxt = s => { const m = Math.floor(s / 60), r = s % 60; return (m ? (m === 1 ? '1 minuto' : m + ' minuti') : '') + (r ? (m ? ' e ' : '') + r + ' secondi' : ''); };
   const cap = x => x.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
   function trainNo(F, tr) { const rt = realTrain(F, tr, state.t); return rt && !rt.missing && !rt.none ? rt.n : tr.n; }
   function stationAt(F, pid, d) {
@@ -2021,9 +2056,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   function nextStop(F, tr) {
     const st = trainState(F, tr, state.t); if (st.seg < 0 || st.trip < 0) return null;
     const s0 = tr.segs[st.seg]; if (!s0 || s0[1] !== 'service') return null;
-    const pds = s0[4];
-    for (let i = 1; i < pds.length - 1; i++) if (pds[i] === pds[i + 1] && pds[i] > st.d + 3) {
-      const n = stationAt(F, s0[0], pds[i]); if (n) return { key: st.seg + ':' + i, name: n, si: st.seg, d: pds[i], pid: s0[0] };
+    const pds = s0[4], here = st.v === 0 && st.agent && st.agent.stopAt != null;     // standing at a station: that one counts
+    for (let i = 1; i < pds.length - 1; i++) if (pds[i] === pds[i + 1] && (pds[i] > st.d + 3 || here && Math.abs(pds[i] - st.d) <= 8)) {
+      const n = stationAt(F, s0[0], pds[i]); if (n) return { key: st.seg + ':' + i, name: n, si: st.seg, d: pds[i], pid: s0[0], here: here && Math.abs(pds[i] - st.d) <= 8 };
     }
     return null;
   }
@@ -2112,7 +2147,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const { F, tr } = radioTrain, ns = nextStop(F, tr), pend = radioWatch.filter(w => w.tr === tr).length;
     let h = '';
     if (ns) {
-      h += `<div class="lbl">Sosta prolungata a ${cap(ns.name)}</div>
+      const had = tr.env && tr.env.extra && tr.env.extra[ns.key] || 0;
+      h += `<div class="lbl">Sosta prolungata a ${cap(ns.name)}${ns.here ? ' (fermo qui)' : ''}${had ? ' · già ordinati ' + durTxt(had) : ''}</div>
         <div class="row">${[30, 60, 90, 120].map(v => `<button data-rs="${v}" aria-pressed="${radioStopSel === v}">${v < 60 ? v + 's' : (v / 60) + (v % 60 ? '' : '') + ' min'}</button>`).join('').replace('1.5 min', '1:30')}</div>
         <div class="lbl">Motivo</div>
         <div class="row">${RADIO_WHY.map((w, i) => `<button data-rw="${i}" aria-pressed="${w === radioWhy}">${w}</button>`).join('')}</div>
@@ -2140,9 +2176,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const send = document.getElementById('radioSendStop');
     if (send) send.onclick = () => {
       const n = nextStop(F, tr); if (!n) return;
-      say('PC', `Treno ${radioTrain.no}, ${WHY_TXT[radioWhy]}: fai una sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`, 'pc');
-      tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {}; tr.env.extra[n.key] = radioStopSel; relive(tr);
-      radioWatch.push({ tr, F, key: n.key, name: n.name, dur: radioStopSel, said: 0 });
+      tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {};
+      const before = tr.env.extra[n.key] || 0, total = before + radioStopSel;
+      say('PC', `Treno ${radioTrain.no}, ${WHY_TXT[radioWhy]}: ${before ? 'aggiungi ' + (radioStopSel === 60 ? 'un altro minuto' : 'altri ' + durTxt(radioStopSel)) + ' di sosta' : 'fai una sosta di ' + durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`, 'pc');
+      tr.env.extra[n.key] = total; relive(tr);           // a second order adds to the first (one more minute = one more minute)
+      const w0 = radioWatch.find(w => w.tr === tr && w.key === n.key);
+      if (w0) w0.dur = total; else radioWatch.push({ tr, F, key: n.key, name: n.name, dur: total, said: 0 });
+      if (before) { driverSays(`Ricevuto PC, ${radioStopSel === 60 ? 'un altro minuto' : 'altri ' + durTxt(radioStopSel)} a ${cap(n.name)}: in tutto ${durTxt(total)} di sosta in più. Avviso i passeggeri. Passo.`); return; }
       const st0 = trainState(F, tr, state.t);
       const dawn = state.t < 6 * 3600 + 15 * 60 && radioWhy !== 'nessun motivo';
       if (radioWhy === 'treno davanti in ritardo' && st0.trip >= 0 && firstRuns(F).has(st0.trip))
