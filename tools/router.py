@@ -180,6 +180,8 @@ def add_link(a, b):
 # ---- rules marked by Giovanni in the track editor (one-way tracks, unused tracks) ----
 ONEWAY, BANNED = {}, set()
 NOPARK = set()      # depot tracks used to move trains around, never to park (Giovanni's X marks)
+BANNED_EDGES = set()    # pieces of track (between two switches) no route may use: Giovanni's "taglio" points
+THROUGH_STABLE = set()  # depot tracks marked as through: in at one end, out at the other (the others: same end)
 def load_rules(path, line):
     if not os.path.exists(path): return 0
     R_ = json.load(open(path)); n = 0
@@ -187,13 +189,26 @@ def load_rules(path, line):
         if m['line'] != line: continue
         if m['role'] == 'Not used in service': BANNED.add(m['w']); n += 1; continue
         if m['role'].startswith('Depot: movements only'): NOPARK.add(m['w']); n += 1
+        if m['role'].startswith('Stabling: through'): THROUGH_STABLE.add(m['w']); n += 1
         if m['dir'] in (1, -1): ONEWAY[m['w']] = m['dir']; n += 1
+    # "taglio": a point on a track; the piece between the two switches around it is closed to every route
+    for sg in R_.get('signals', []) + R_.get('route_cuts', []):
+        if sg.get('line', line) != line or sg.get('type') != 'cut': continue
+        px, py = xy(*(sg.get('on_track') or (sg['lat'], sg['lon']))); best = None
+        for ei, e in enumerate(edges):
+            if e['way'] != sg.get('w', e['way']): continue
+            for (ax, ay), (bx, by) in zip(e['pts'], e['pts'][1:]):
+                dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+                u = 0 if L2 == 0 else max(0, min(1, ((px - ax) * dx + (py - ay) * dy) / L2))
+                dd = math.hypot(px - ax - u * dx, py - ay - u * dy)
+                if best is None or dd < best[0]: best = (dd, ei)
+        if best and best[0] < 5: BANNED_EDGES.add(best[1]); n += 1
     return n
 THROUGH_ALLOWED = None      # set of through-track middles a route may use (None = all)
 def allowed(ei, d):
     if THROUGH_ALLOWED is not None and 'mid' in edges[ei] and edges[ei]['mid'] not in THROUGH_ALLOWED: return False
     w = edges[ei]['way']
-    if w in BANNED: return False
+    if w in BANNED or ei in BANNED_EDGES: return False
     return ONEWAY.get(w, d) == d
 
 # ---- right-hand running on the main line: each main track only in its own direction ----

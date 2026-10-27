@@ -56,7 +56,9 @@ LAYOVER_DEPOT = 25 * 60
 depot_dead = [n for n in node_pos if len(node_edges[n]) == 1]
 def in_depot(n):
     la, lo = ll(*node_pos[n]); b = CFG['depot_box']; return b[0] < la < b[1] and b[2] < lo < b[3]
-STORE_EXIT = {}       # through-track middle node -> node to leave by (the far end)
+STORE_EXIT = {}       # through-track middle node -> node to leave by (the far end, or the same end: cambio banco)
+STORE_SAME = set()    # through tracks left by the end the train came in
+STORE_WAY = {}        # depot place -> OSM way of its track (for numbering and names)
 LINKS_BY_MID = {}
 if CFG.get('through'):
     auto_links(CFG['depot_box'], CFG['skip_dead'])
@@ -78,6 +80,12 @@ for a_, b_, m in LINKS:
         if not r_in: break
         last = r_in[-1]; came_from = start_node(*last)
         ex = b_ if came_from == a_ else a_
+        # Giovanni: most depot tracks are left by the end the train came in (the driver changes cab);
+        # only tracks marked "Stabling: through" are left by the other end
+        here = {edges[e]['way'] for x in (a_, b_) for e in node_edges[x] if 'mid' not in edges[e]}
+        if not (here & _router.THROUGH_STABLE) and route_nodes(m, SD_OUT_NODE, via=[SD_DEP[1]], first=came_from): ex = came_from
+        STORE_WAY[m] = min(here) if here else -1
+        if ex == came_from: STORE_SAME.add(m)
         r_out = route_nodes(m, SD_OUT_NODE, via=[SD_DEP[1]], first=ex)
         if r_out: storage.append((0, m)); STORE_EXIT[m] = ex
         break
@@ -86,10 +94,10 @@ for n in depot_dead:
     if edges[node_edges[n][0]]['len'] < FIT: too_short += 1; continue
     if edges[node_edges[n][0]]['way'] in NOPARK: no_park += 1; continue
     a = route_nodes(CFG['AFTER_ARR'], n); b = route_nodes(n, SD_OUT_NODE, via=[SD_DEP[1]])
-    if a and b: storage.append((plen(path_poly(b)), n))
+    if a and b: storage.append((plen(path_poly(b)), n)); STORE_WAY[n] = edges[node_edges[n][0]]['way']
 _router.THROUGH_ALLOWED = set()          # from now on no route may cut through a through track...
 storage = [n for _, n in sorted(storage, key=lambda x: x[0])]
-print('storage places:', len(storage), 'of which through tracks:', len(STORE_EXIT), '| depot tracks too short for a train:', too_short, '| marked movements only:', no_park)
+print('storage places:', len(storage), 'of which through tracks:', len(STORE_EXIT), '(left by the same end, cambio banco:', len(STORE_SAME), ')', '| depot tracks too short for a train:', too_short, '| marked movements only:', no_park)
 
 # ---------------- path library ----------------
 paths, path_key = [], {}
@@ -226,11 +234,10 @@ _rules_ = json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rul
 def _gone(sg):
     return any(math.hypot((sg['lat'] - la) * 111000, (sg['lon'] - lo) * 78000) < 3 for la, lo in _rules_.get('removed_signals', []))
 _all_signals = _rules_.get('signals', [])
-_rules_['signals'] = [sg for sg in _all_signals if not _gone(sg)]
+_rules_['signals'] = [sg for sg in _all_signals if not _gone(sg) and sg.get('type') != 'cut']
 # interlocking groups and depot signals name signals by their #A number in rules (1 = first): to indexes after removals
-def _sig_index(n):
-    sg = _all_signals[n - 1] if 0 < n <= len(_all_signals) else None
-    return next((i for i, x in enumerate(_rules_['signals']) if x is sg), None)
+def _sig_index(n):     # #A number as shown on the map (after removed signals and cut points are taken out)
+    return n - 1 if 0 < n <= len(_rules_['signals']) else None
 _IL = _rules_.get('interlocking', {})
 INTERLOCKING = {'groups': [[i for i in (_sig_index(n) for n in g['signals']) if i is not None] for g in _IL.get('groups', [])],
                 'group_names': [g.get('name', '') for g in _IL.get('groups', [])],
@@ -1135,10 +1142,18 @@ if os.path.exists(_rules):
     NET['interlocking'] = INTERLOCKING
     # depot places, numbered across the yard (1 = first track from the north-west side); names can be set in rules
     _dn = _rules_.get('names', {}).get('depot', {})
+    def _place_pos(n, k):     # label where the train stands, staggered along its track (the tracks are 4-5 m apart)
+        if n not in LINK_ENDS: return NET['nodes'].get(str(n))
+        a_, b_ = LINK_ENDS[n]; (ax, ay), (bx, by) = node_pos[a_], node_pos[b_]; L_ = math.hypot(bx - ax, by - ay) or 1
+        f = 0.5 + ((k % 5) - 2) * 22 / L_
+        la_, lo_ = ll(ax + (bx - ax) * f, ay + (by - ay) * f); return [round(la_, 6), round(lo_, 6)]
+    LINK_ENDS = {m: (a_, b_) for a_, b_, m in LINKS}
     _pl = [(n, NET['nodes'].get(str(n))) for n in storage]; _pl = [(n, q) for n, q in _pl if q]
     _c = math.cos(math.radians(45.43))
     _pl.sort(key=lambda x: (x[1][1] - 9.25) * 78000 * math.cos(math.radians(130)) * _c / _c - (x[1][0] - 45.43) * 111000 * math.sin(math.radians(130)))
-    NET['depot'] = [{'node': n, 'lat': q[0], 'lon': q[1], 'name': _dn.get(str(n), 'Deposito binario %d' % (i + 1))} for i, (n, q) in enumerate(_pl)]
+    _pl = [(n, _place_pos(n, i) or q) for i, (n, q) in enumerate(_pl)]
+    NET['depot'] = [{'node': n, 'lat': q[0], 'lon': q[1], 'way': STORE_WAY.get(n, -1), 'out': 'through' if n in STORE_EXIT and n not in STORE_SAME else 'same end',
+                     'name': _dn.get(str(n), 'Deposito binario %d' % (i + 1))} for i, (n, q) in enumerate(_pl)]
     NET['names'] = {k: v for k, v in _rules_.get('names', {}).get('ways', {}).items()}
     print('interlocking groups:', INTERLOCKING['groups'], '| depot signals worked by the player:', INTERLOCKING['manual'])
 # where each placed signal is on every path that goes over it facing it: trains stop just before it, and it shows

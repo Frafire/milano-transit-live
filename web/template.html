@@ -378,6 +378,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <option>Tail track (reversing)</option>
       <option>Depot access</option>
       <option>Stabling / storage</option>
+      <option>Stabling: through (in at one end, out at the other)</option>
       <option>Depot: movements only, no parking</option>
       <option>Main line</option>
       <option>Crossover</option>
@@ -410,6 +411,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <option value="shunt">Shunting signal (manovra)</option>
       <option value="stop">Stopping point (fermata), e.g. on the test loop</option>
       <option value="nose">Bandiera: arresto del muso (dove si ferma la testa del treno)</option>
+      <option value="cut">Taglio: nessun treno passa su questo pezzo di binario (tra i due scambi)</option>
     </select>
     <input type="text" id="sigName" placeholder="Name (optional), e.g. S12">
     <div class="row"><button id="sigSave">Place signal</button></div>
@@ -1530,7 +1532,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const arrowIcon = (deg, color) => L.divIcon({ className: '', iconSize: [0, 0],
     html: `<div class="arrow-ic" style="transform:translate(-50%,-50%) rotate(${deg}deg)"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="${color}" stroke="#000" stroke-width="1"/></svg></div>` });
   const SIGCOL = { block: '#ff3b3b', departure: '#3bd16f', entry: '#ffcf3f', shunt: '#9fb7ff', stop: '#ffffff', nose: '#ff6fd8' };
-  const sigIcon = (deg, type, name) => L.divIcon({ className: '', iconSize: [0, 0],
+  const sigIcon = (deg, type, name) => type === 'cut' ? L.divIcon({ className: '', iconSize: [0, 0],
+    html: `<div class="sig" style="position:relative"><svg width="22" height="22" viewBox="0 0 22 22" style="transform:translate(-50%,-50%)"><circle cx="11" cy="11" r="9" fill="#e5383b" stroke="#000" stroke-width="1.5"/><path d="M6 6 L16 16 M16 6 L6 16" stroke="#fff" stroke-width="3"/></svg>${name ? `<span>${name}</span>` : ''}</div>` }) : L.divIcon({ className: '', iconSize: [0, 0],
     html: `<div class="sig" style="position:relative"><div style="transform:rotate(${deg}deg)"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M11 2 L18 16 L11 12 L4 16 Z" fill="${SIGCOL[type] || '#fff'}" stroke="#000" stroke-width="1.5"/><circle cx="11" cy="19" r="2.5" fill="#000"/></svg></div>${name ? `<span>${name}</span>` : ''}</div>` });
 
   // nearest track to a click, with the point on it and the track's own direction there
@@ -2535,7 +2538,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const q = pts[Math.floor(pts.length / 2)];
       L.marker(q, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="trkname">${net.names[w]}</span>` }) }).addTo(trkNameLayer);
     }
-    (net.depot || []).forEach(dp => L.marker([dp.lat, dp.lon], { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="trkname dep">${dp.name.replace('Deposito binario ', 'D')}</span>` }) }).addTo(trkNameLayer));
+    (net.depot || []).forEach(dp => L.marker([dp.lat, dp.lon], { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="trkname dep">${dp.name.replace('Deposito binario ', 'D')} · w${dp.way}${dp.out === 'through' ? ' ⇄' : ' ↩'}</span>` }) }).addTo(trkNameLayer));
   }
   function buildSignals(F) {
     if (!RT) RT = stretches(F);
@@ -2646,9 +2649,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   function updateSignals() {
     const F = m3eng(); if (!F) return;
     const show = showSigs && map.getZoom() >= 16;
-    if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); if (map.hasLayer(trkNameLayer)) map.removeLayer(trkNameLayer); return; }
-    if (!NAMES) { NAMES = true; buildNames(F); }
-    if (!map.hasLayer(trkNameLayer)) trkNameLayer.addTo(map);
+    const showNames = (show || !document.getElementById('drawer').hidden) && map.getZoom() >= 16;
+    if (showNames) { if (!NAMES) { NAMES = true; buildNames(F); } if (!map.hasLayer(trkNameLayer)) trkNameLayer.addTo(map); }
+    else if (map.hasLayer(trkNameLayer)) map.removeLayer(trkNameLayer);
+    if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); return; }
     if (!SIGS) { SIGS = buildSignals(F);
       const gone = ll => (ED.removed || []).some(([la, lo]) => Math.hypot((la - ll.lat) * 111000, (lo - ll.lng) * 78000) < 4);
       SIGS.forEach(sg => { if (gone(sg.m.getLatLng())) sg.removed = true; else sg.m.addTo(sigLayer); }); }
