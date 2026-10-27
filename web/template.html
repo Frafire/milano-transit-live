@@ -260,7 +260,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="roles" role="group" aria-label="Mode"><button class="role" data-role="admin" aria-pressed="true">Admin</button><button class="role" data-role="player" aria-pressed="false">Player</button></div>
   </div>
   <div class="keep">
-    <div class="clock" id="clock">08:00<span class="s">:00</span></div>
+    <div class="clock" id="clock">03:30<span class="s">:00</span></div>
     <div class="days" role="group" aria-label="Day of the week">
       <button class="dayb" data-d="1">Lun</button><button class="dayb" data-d="2">Mar</button><button class="dayb" data-d="3">Mer</button>
       <button class="dayb" data-d="4">Gio</button><button class="dayb" data-d="5">Ven</button>
@@ -271,15 +271,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   <div class="row keep">
     <button id="play" aria-label="Pause">❚❚</button>
     <button class="spd" data-s="1">1×</button>
+    <button class="spd" data-s="2">2×</button>
     <button class="spd" data-s="10">10×</button>
     <button class="spd" data-s="60" aria-pressed="true">60×</button>
     <button class="spd" data-s="300">300×</button>
   </div>
-  <input type="range" class="keep" id="slider" min="10800" max="97140" step="60" value="28800" aria-label="Time of day, service day 03:00 to 02:59">
+  <input type="range" class="keep admin-only" id="slider" min="10800" max="97140" step="60" value="12600" aria-label="Time of day, service day 03:00 to 02:59">
 
   <section class="player-only m3panel" aria-label="M3 control panel">
     <div class="label">Pannello di controllo M3</div>
-    <div class="legend"><span><i class="lg ok"></i>in orario</span><span><i class="lg late"></i>+5 min o più</span><span><i class="lg early"></i>anticipo 3 min o più</span></div>
+    <div class="legend"><span><i class="lg ok"></i>in orario</span><span><i class="lg late"></i>+2 min o più</span><span><i class="lg early"></i>anticipo 3 min o più</span></div>
     <ul class="m3list" id="m3list"></ul>
   </section>
   <section class="m3panel closures" aria-label="Chiusura tratte M3">
@@ -788,7 +789,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   });
 
   // ---------- state ----------
-  const state = { t: 8 * 3600, speed: 60, playing: true, modes: { 0: true, 1: true, 3: true },
+  const DAY_START = 3 * 3600 + 30 * 60;     // Giovanni: the day always starts at 03:30
+  const state = { t: DAY_START, speed: 60, playing: true, modes: { 0: true, 1: true, 3: true },
                   metro: { M1: true, M2: true, M3: true, M4: true, M5: true }, line: '', sel: null, follow: false, engine: true };
 
   const metroBox = document.getElementById('metros');
@@ -2613,7 +2615,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const dt = Math.min(0.25, (now - last) / 1000); last = now;
     if (state.playing) {
       state.t += dt * state.speed;
-      if (state.t > +slider.max) state.t = +slider.min;
+      if (state.t > +slider.max) state.t = DAY_START;
       slider.value = state.t;
     }
     { const FE = m3fleet(); if (FE && FE.engine && state.engine) {
