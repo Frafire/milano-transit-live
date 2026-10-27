@@ -706,9 +706,10 @@ if CFG['training']:
             (ax, ay), (bx, by) = _pp[i], _pp[i + 1]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
             if not L2: continue
             u = max(0, min(1, ((x0 - ax) * dx + (y0 - ay) * dy) / L2)); e = math.hypot(x0 - ax - u * dx, y0 - ay - u * dy)
-            if best is None or e < best[0]: best = (e, _pc[i] + u * (_pc[i + 1] - _pc[i]))
+            if best is None or e < best[0]: best = (e, _pc[i] + u * (_pc[i + 1] - _pc[i]), math.degrees(math.atan2(dx, dy)) % 360)
         if not best or best[0] > 5: continue
-        d1 = best[1]; d0 = d1 - 110; side = -1 if sg.get('side') == 'left' else 1; pts_ = []
+        same = abs((best[2] - sg.get('heading', best[2]) + 180) % 360 - 180) < 90      # the loop is run the signal's way?
+        d1 = best[1]; d0 = d1 - 110 if same else d1 + 110; side = -1 if sg.get('side') == 'left' else 1; pts_ = []
         for k_ in range(23):
             d_ = d0 + (d1 - d0) * k_ / 22; d_ %= _pc[-1]
             i = max(0, next((j for j in range(1, len(_pc)) if _pc[j] >= d_), len(_pc) - 1) - 1)

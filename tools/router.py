@@ -141,7 +141,7 @@ LINKS = []          # (a, b, mid node)
 def auto_links(box, skip=(), max_len=400, max_err=25):
     def inbox(n):
         la, lo = ll(*node_pos[n]); return box[0] < la < box[1] and box[2] < lo < box[3]
-    dead = [n for n in list(node_pos) if len(node_edges[n]) == 1 and inbox(n) and n not in skip]
+    dead = [n for n in list(node_pos) if len(node_edges[n]) == 1 and inbox(n) and n not in skip and n not in DRAWN_ENDS]
     info = {}
     for n in dead:
         e = edges[node_edges[n][0]]; p = e['pts'] if e['b'] == n else e['pts'][::-1]
@@ -181,6 +181,7 @@ def add_link(a, b):
 ONEWAY, BANNED = {}, set()
 NOPARK = set()      # depot tracks used to move trains around, never to park (Giovanni's X marks)
 BANNED_EDGES = set()    # pieces of track (between two switches) no route may use: Giovanni's "taglio" points
+DRAWN_ENDS = set()      # far ends of tracks drawn inside the depot building (never joined across the building)
 THROUGH_STABLE = set()  # depot tracks marked as through: in at one end, out at the other (the others: same end)
 def load_rules(path, line):
     if not os.path.exists(path): return 0
@@ -191,6 +192,20 @@ def load_rules(path, line):
         if m['role'].startswith('Depot: movements only'): NOPARK.add(m['w']); n += 1
         if m['role'].startswith('Stabling: through'): THROUGH_STABLE.add(m['w']); n += 1
         if m['dir'] in (1, -1): ONEWAY[m['w']] = m['dir']; n += 1
+    # tracks drawn by Giovanni that continue a depot dead end inside the building: the dead end moves to their far end
+    for ti, dt in enumerate(R_.get('tracks', [])):
+        if dt.get('line', line) != line or len(dt.get('points', [])) < 2: continue
+        P = [xy(*q) for q in dt['points']]
+        ends = [n for n in node_pos if len(node_edges[n]) == 1]
+        best = min(((math.hypot(node_pos[n][0] - P[0][0], node_pos[n][1] - P[0][1]), n, P) for n in ends), default=None)
+        best2 = min(((math.hypot(node_pos[n][0] - P[-1][0], node_pos[n][1] - P[-1][1]), n, P[::-1]) for n in ends), default=None)
+        b = min(x for x in (best, best2) if x)
+        if b[0] > 6: continue                       # not continuing a dead end: only drawn
+        _, a, P = b; nid = 200000 + ti; pts = [node_pos[a]] + P[1:]
+        e = dict(a=a, b=nid, pts=pts, len=sum(math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) for i in range(1, len(pts))),
+                 way=edges[node_edges[a][0]]['way'], svc='yard', name=dt.get('name') or 'depot track (inside the building)')
+        ei = len(edges); edges.append(e); node_edges[a].append(ei); node_edges[nid].append(ei); node_pos[nid] = pts[-1]
+        DRAWN_ENDS.add(nid); n += 1
     # "taglio": a point on a track; the piece between the two switches around it is closed to every route
     for sg in R_.get('signals', []) + R_.get('route_cuts', []):
         if sg.get('line', line) != line or sg.get('type') != 'cut': continue

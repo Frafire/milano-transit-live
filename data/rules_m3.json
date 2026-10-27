@@ -167,6 +167,108 @@
     9.256758
    ],
    "note": ""
+  },
+  {
+   "line": "M3",
+   "w": 30,
+   "kind": "yard",
+   "role": "Depot: movements only, no parking",
+   "dir": 0,
+   "dir_meaning": "both",
+   "from": [
+    45.431131,
+    9.255064
+   ],
+   "to": [
+    45.431602,
+    9.255697
+   ],
+   "note": ""
+  },
+  {
+   "line": "M3",
+   "w": 18,
+   "kind": "yard",
+   "role": "Depot: movements only, no parking",
+   "dir": 0,
+   "dir_meaning": "both",
+   "from": [
+    45.432719,
+    9.25697
+   ],
+   "to": [
+    45.43046,
+    9.253745
+   ],
+   "note": ""
+  },
+  {
+   "line": "M3",
+   "w": 31,
+   "kind": "yard",
+   "role": "Depot: movements only, no parking",
+   "dir": 0,
+   "dir_meaning": "both",
+   "from": [
+    45.431287,
+    9.255159
+   ],
+   "to": [
+    45.432381,
+    9.256593
+   ],
+   "note": ""
+  },
+  {
+   "line": "M3",
+   "w": -5,
+   "kind": "yard",
+   "role": "Depot: movements only, no parking",
+   "dir": 0,
+   "dir_meaning": "both",
+   "from": [
+    45.430782,
+    9.25431
+   ],
+   "to": [
+    45.431287,
+    9.255159
+   ],
+   "note": ""
+  },
+  {
+   "line": "M3",
+   "w": 16,
+   "kind": "yard",
+   "role": "Depot: movements only, no parking",
+   "dir": 0,
+   "dir_meaning": "both",
+   "from": [
+    45.430782,
+    9.25431
+   ],
+   "to": [
+    45.429795,
+    9.252001
+   ],
+   "note": ""
+  },
+  {
+   "line": "M3",
+   "w": 44,
+   "kind": "yard",
+   "role": "Depot: movements only, no parking",
+   "dir": 0,
+   "dir_meaning": "both",
+   "from": [
+    45.429874,
+    9.252174
+   ],
+   "to": [
+    45.43081,
+    9.254516
+   ],
+   "note": ""
   }
  ],
  "signals": [
@@ -1788,6 +1890,57 @@
   },
   {
    "line": "M3",
+   "w": 117,
+   "lat": 45.428704,
+   "lon": 9.25478,
+   "on_track": [
+    45.428694,
+    9.254792
+   ],
+   "offset_m": 1.5,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "stop",
+   "name": "2ª fermata di prova dell'anello",
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 76,
+   "lat": 45.431309,
+   "lon": 9.253471,
+   "on_track": [
+    45.4313,
+    9.253486
+   ],
+   "offset_m": 1.5,
+   "side": "left",
+   "heading": 221,
+   "dir": -1,
+   "type": "block",
+   "name": "Anello di prova",
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 65,
+   "lat": 45.429506,
+   "lon": 9.256148,
+   "on_track": [
+    45.429498,
+    9.256155
+   ],
+   "offset_m": 1,
+   "side": "right",
+   "heading": 50,
+   "dir": -1,
+   "type": "block",
+   "name": "Anello di prova",
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
    "w": -16,
    "lat": 45.43209,
    "lon": 9.25544,
@@ -2411,6 +2564,15 @@
      14,
      45
     ]
+   },
+   {
+    "name": "Anello di prova: rossi, verdi solo per il treno che entra o esce",
+    "signals": [
+     46,
+     47,
+     97,
+     98
+    ]
    }
   ],
   "manual": [
@@ -2434,118 +2596,11 @@
    "87": "Comasina tronchetto 2"
   }
  },
- "pending": {
-  "_about": "Waiting for a decision: with these the depot has 15 places for 20 trains at night (see the conversation of 28 Oct)",
-  "marks": [
-   {
-    "line": "M3",
-    "w": 30,
-    "kind": "yard",
-    "role": "Depot: movements only, no parking",
-    "dir": 0,
-    "dir_meaning": "both",
-    "from": [
-     45.431131,
-     9.255064
-    ],
-    "to": [
-     45.431602,
-     9.255697
-    ],
-    "note": ""
-   },
-   {
-    "line": "M3",
-    "w": 18,
-    "kind": "yard",
-    "role": "Depot: movements only, no parking",
-    "dir": 0,
-    "dir_meaning": "both",
-    "from": [
-     45.432719,
-     9.25697
-    ],
-    "to": [
-     45.43046,
-     9.253745
-    ],
-    "note": ""
-   },
-   {
-    "line": "M3",
-    "w": 31,
-    "kind": "yard",
-    "role": "Depot: movements only, no parking",
-    "dir": -1,
-    "dir_meaning": "opposite to OSM way",
-    "from": [
-     45.431287,
-     9.255159
-    ],
-    "to": [
-     45.432381,
-     9.256593
-    ],
-    "note": ""
-   },
-   {
-    "line": "M3",
-    "w": -5,
-    "kind": "yard",
-    "role": "Depot: movements only, no parking",
-    "dir": -1,
-    "dir_meaning": "opposite to OSM way",
-    "from": [
-     45.430782,
-     9.25431
-    ],
-    "to": [
-     45.431287,
-     9.255159
-    ],
-    "note": ""
-   },
-   {
-    "line": "M3",
-    "w": 16,
-    "kind": "yard",
-    "role": "Depot: movements only, no parking",
-    "dir": 1,
-    "dir_meaning": "same as OSM way",
-    "from": [
-     45.430782,
-     9.25431
-    ],
-    "to": [
-     45.429795,
-     9.252001
-    ],
-    "note": ""
-   },
-   {
-    "line": "M3",
-    "w": 44,
-    "kind": "yard",
-    "role": "Depot: movements only, no parking",
-    "dir": 0,
-    "dir_meaning": "both",
-    "from": [
-     45.429874,
-     9.252174
-    ],
-    "to": [
-     45.43081,
-     9.254516
-    ],
-    "note": ""
-   }
-  ],
-  "depot_unused": {
-   "_about": "Depot places not used by M3 trains (binari di accantonamento, D16 and D17): OSM node ids",
-   "nodes": [
-    73,
-    77
-   ]
-  }
+ "depot_unused": {
+  "_about": "Depot places not used by M3 trains (binari di accantonamento, D16 and D17): OSM node ids",
+  "nodes": [
+   73,
+   77
+  ]
  }
 }
