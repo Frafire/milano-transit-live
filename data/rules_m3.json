@@ -2602,5 +2602,74 @@
    9.257352
   ]
  ],
- "removed_signals_about": "#A42 (exit from the depot towards the station): Giovanni, it protects nothing (28 Oct). Numbers of the others do not change."
+ "removed_signals_about": "#A42 (exit from the depot towards the station): Giovanni, it protects nothing (28 Oct). Numbers of the others do not change.",
+ "depot_through": {
+  "_about": "Tracks through the depot building (OSM node pairs joined across the building). Fixed (Giovanni, 28 Oct): the build no longer looks for them. Their order matters: flags on them refer to it (w -1 is the first).",
+  "pairs": [
+   [
+    3,
+    48
+   ],
+   [
+    33,
+    58
+   ],
+   [
+    69,
+    87
+   ],
+   [
+    53,
+    80
+   ],
+   [
+    36,
+    71
+   ],
+   [
+    158,
+    159
+   ],
+   [
+    34,
+    60
+   ],
+   [
+    105,
+    106
+   ],
+   [
+    57,
+    82
+   ],
+   [
+    97,
+    111
+   ],
+   [
+    62,
+    91
+   ],
+   [
+    66,
+    92
+   ],
+   [
+    103,
+    110
+   ],
+   [
+    67,
+    88
+   ],
+   [
+    56,
+    83
+   ],
+   [
+    55,
+    74
+   ]
+  ]
+ }
 }

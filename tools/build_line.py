@@ -62,7 +62,11 @@ STORE_SAME = set()    # through tracks left by the end the train came in
 STORE_WAY = {}        # depot place -> OSM way of its track (for numbering and names)
 LINKS_BY_MID = {}
 if CFG.get('through'):
-    auto_links(CFG['depot_box'], CFG['skip_dead'])
+    _fixed = (json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rules_%s.json' % LINE.lower()) else {}).get('depot_through', {}).get('pairs')
+    if _fixed:                       # fixed by Giovanni: part of the depot
+        for _a, _b in _fixed:
+            if _a in node_pos and _b in node_pos: add_link(_a, _b)
+    else: auto_links(CFG['depot_box'], CFG['skip_dead'])
     print('depot through tracks:', len(LINKS))
     LINKS_BY_MID = {m: (a, b) for a, b, m in LINKS}
 storage = []
@@ -107,8 +111,11 @@ _router.THROUGH_ALLOWED = set()          # from now on no route may cut through 
 # The train arrives from STORE_ARR_FROM[m] and stops with its nose at m: m goes where that puts the train's end at the flag
 def _place_link(li, a_, b_, m):
     f = _router.LINK_FLAG.get(li); came = STORE_ARR_FROM.get(m)
-    if not f or came is None: return
+    if came is None: return
     (ax, ay), (bx, by) = node_pos[a_], node_pos[b_]; L_ = math.hypot(bx - ax, by - ay) or 1; ux, uy = (bx - ax) / L_, (by - ay) / L_
+    if not f:                       # no flag on it: the end of the train 8 m inside the north-east end (as the flagged ones)
+        ne_b = ux * math.sin(math.radians(50)) + uy * math.cos(math.radians(50)) > 0
+        fx, fy = (bx - ux * 8, by - uy * 8) if ne_b else (ax + ux * 8, ay + uy * 8); f = (fx, fy, 50)
     t = (f[0] - ax) * ux + (f[1] - ay) * uy                      # flag along a_ -> b_
     hx, hy = math.sin(math.radians(f[2])), math.cos(math.radians(f[2]))
     toward_b = hx * ux + hy * uy > 0                               # the flagged end of the train is towards b_
@@ -1257,7 +1264,8 @@ if os.path.exists(_rules):
     def _sortpos(n, q):        # numbering: the middle of the track (through tracks), so it does not change when a place moves
         if n in LINK_ENDS: (ax, ay), (bx, by) = node_pos[LINK_ENDS[n][0]], node_pos[LINK_ENDS[n][1]]; return ll((ax + bx) / 2, (ay + by) / 2)
         return q
-    _pl.sort(key=lambda x: (lambda q: (q[1] - 9.25) * 78000 * math.cos(math.radians(130)) - (q[0] - 45.43) * 111000 * math.sin(math.radians(130)))(_sortpos(*x)))
+    # numbering (Giovanni): from the top of the map down, across the tracks (they run north-east)
+    _pl.sort(key=lambda x: (lambda q: (q[1] - 9.25) * 78000 * math.sin(math.radians(140)) + (q[0] - 45.43) * 111000 * math.cos(math.radians(140)))(_sortpos(*x)))
     _pl = [(n, _place_pos(n, i) or q) for i, (n, q) in enumerate(_pl)]
     NET['depot'] = [{'node': n, 'lat': q[0], 'lon': q[1], 'way': STORE_WAY.get(n, -1), 'out': 'through' if n in STORE_EXIT and n not in STORE_SAME else 'same end',
                      'name': _dn.get(str(n), 'Deposito binario %d' % (i + 1))} for i, (n, q) in enumerate(_pl)]
