@@ -2371,6 +2371,118 @@
    "dir": 1,
    "type": "nose2",
    "name": "collegato A90"
+  },
+  {
+   "line": "M3",
+   "w": 71,
+   "lat": 45.433182,
+   "lon": 9.257754,
+   "on_track": [
+    45.43318,
+    9.257757
+   ],
+   "offset_m": 0.3,
+   "side": "right",
+   "heading": 50,
+   "dir": -1,
+   "type": "block",
+   "name": ""
+  },
+  {
+   "line": "M3",
+   "w": 72,
+   "lat": 45.433167,
+   "lon": 9.257819,
+   "on_track": [
+    45.433169,
+    9.257817
+   ],
+   "offset_m": 0.2,
+   "side": "right",
+   "heading": 50,
+   "dir": 1,
+   "type": "block",
+   "name": ""
+  },
+  {
+   "line": "M3",
+   "w": 2,
+   "lat": 45.428679,
+   "lon": 9.253675,
+   "on_track": [
+    45.428679,
+    9.253681
+   ],
+   "offset_m": 0.5,
+   "side": "left",
+   "heading": 13,
+   "dir": 1,
+   "type": "shunt",
+   "name": ""
+  },
+  {
+   "line": "M3",
+   "w": 12,
+   "lat": 45.429513,
+   "lon": 9.254166,
+   "on_track": [
+    45.4295,
+    9.25418
+   ],
+   "offset_m": 1.8,
+   "side": "left",
+   "heading": 231,
+   "dir": -1,
+   "type": "shunt",
+   "name": ""
+  },
+  {
+   "line": "M3",
+   "w": 72,
+   "lat": 45.428679,
+   "lon": 9.253557,
+   "on_track": [
+    45.428678,
+    9.253574
+   ],
+   "offset_m": 1.4,
+   "side": "left",
+   "heading": 13,
+   "dir": 1,
+   "type": "shunt",
+   "name": ""
+  },
+  {
+   "line": "M3",
+   "w": 1,
+   "lat": 45.428664,
+   "lon": 9.25361,
+   "on_track": [
+    45.428662,
+    9.253624
+   ],
+   "offset_m": 1.1,
+   "side": "left",
+   "heading": 13,
+   "dir": 1,
+   "type": "shunt",
+   "name": ""
+  },
+  {
+   "line": "M3",
+   "w": 4,
+   "lat": 45.429572,
+   "lon": 9.254061,
+   "on_track": [
+    45.429571,
+    9.254063
+   ],
+   "offset_m": 0.2,
+   "side": "right",
+   "heading": 210,
+   "dir": 1,
+   "type": "shunt",
+   "name": ""
   }
  ],
  "speeds": {
@@ -2653,6 +2765,13 @@
      47,
      96,
      97
+    ]
+   },
+   {
+    "name": "Ingresso deposito da w71/w72: due treni paralleli, passa uno alla volta",
+    "signals": [
+     98,
+     99
     ]
    }
   ],

@@ -55,7 +55,7 @@
       const plan = planOf(m), legs = [];
       for (; j < plan.length; j++) {
         const s = plan[j], sts = stopsOf(s), leg = legOfSeg(s, fromD); fromD = null;
-        if (!sts.length) { legs.push(leg); if (s[1] === 'to_depot') { legs.push({ kind: 'depot' }); return legs; } continue; }
+        if (!sts.length) { legs.push(leg); if (s[1] === 'to_depot') { legs.push({ kind: 'park' }); return legs; } continue; }
         if (!P) { legs.push(leg); continue; }
         const k = leg.stops.findIndex(z => z.st < P[0] || z.st > P[1]);
         if (k < 0) { leg.arrive = { at: leg.stops.length ? leg.stops[leg.stops.length - 1].st : null, dir: leg.dir }; legs.push(leg); continue; }
@@ -78,6 +78,13 @@
       return legs;
     }
     // shuttle legs after arriving at the end of the part: a.at (station), a.arr (direction it came)
+    // San Donato (the depot end of the line) and the last passenger departure of the day
+    const DEPOT_END = Math.max(0, G.names.findIndex(n => /SAN DONATO/i.test(n)));
+    let lastDep_ = null;
+    function lastDeparture() {
+      if (lastDep_ == null) { lastDep_ = 0; for (let m = 0; m < nTrains(); m++) for (const z of planOf(m)) if (z[1] === 'service') lastDep_ = Math.max(lastDep_, z[3][0]); }
+      return lastDep_;
+    }
     function nextShuttleLegs(a) {
       const P = a.part, X = a.at, dir = a.arr, o2 = opp(dir), T = o2 === 'N' ? P[1] : P[0], out = [];
       const run = (pid, off, firstD) => {
@@ -103,6 +110,12 @@
           const r = run(outP.pid, 0, stopP(outP, o2, X));
           r.stops.forEach(z => { z.d = stopP(outP, o2, z.st); }); r.end = r.stops[r.stops.length - 1].d;
           if (S.reopened) withTimetable(r, X, o2);
+          // after reopening, once the timetable has no more runs for it (end of the service): empty to San Donato and
+          // into the depot, where it is switched off
+          if (S.reopened && !r.timed && S.t > lastDeparture() - 600) {
+            if (X === DEPOT_END) { out.length = 0; out.push({ kind: 'depot' }); return out; }
+            r.status = 'empty'; r.stops = [r.stops[0], r.stops[r.stops.length - 1]];
+          }
           out.push(r);
         }
         return out;
@@ -159,7 +172,7 @@
     function nextPlanLeg(a) {
       const plan = planOf(a.k), prev = plan[a.si];
       a.si++;
-      if (a.si >= plan.length) { a.mode = 'static'; a.status = prev && prev[1] === 'to_depot' ? 'parked' : 'held'; return; }
+      if (a.si >= plan.length) { a.mode = 'static'; a.status = 'parked'; return; }      // its day is over: switched off where it stands
       const s = plan[a.si], gap = prev ? s[3][0] - prev[3][prev[3].length - 1] : 0;
       a.wait = Math.max(s[3][0], S.t + Math.min(Math.max(gap, 0), reverse));
       if (prev && prev[1] === 'to_depot') a.status = 'parked';
@@ -181,7 +194,7 @@
       S.parts = []; if (cl.a > 0) S.parts.push([0, cl.a]); if (cl.b < last) S.parts.push([cl.b, last]);
       S.lockCl = cl; setResources(o.resources.concat(o.locks ? o.locks(cl) : []));
       S.agents = pos.map((p, k) => {
-        const a = { k, pid: p.pid, d: p.d, v: 0, status: p.status === 'parked' ? 'parked' : 'held', legs: [], stopAt: null, wait: 0, mode: 'static', part: null, red: null };
+        const a = { k, pid: p.pid, d: p.d, v: 0, status: p.status === 'parked' ? 'parked' : 'held', legs: [], stopAt: null, wait: 0, mode: 'static', part: null, red: null, seg0: p.seg };
         const plan = planOf(k);
         if (p.seg < 0 || p.seg >= plan.length || p.status === 'parked') return a;
         const s = plan[p.seg], sts = stopsOf(s);
@@ -212,8 +225,10 @@
         }
         if (P) { a.mode = 'shuttle'; a.part = P; a.legs = legsFromPlan(k, p.seg, P, p.d); return a; }
         // its next run starts on the closed side: what is moving finishes, then it waits there
-        if (p.v > 0.1 && s[1] !== 'from_depot') { a.mode = 'held'; a.legs = [legOfSeg(s, p.d), { kind: 'held' }]; }
-        else a.status = 'held';
+        // (a train going into the depot finishes the move and is switched off there; one standing in the depot stays off)
+        const inDepot = s[1] === 'to_depot' || s[1] === 'from_depot' || s.length > 5 && s[5] != null;
+        if (p.v > 0.1 && s[1] !== 'from_depot') { a.mode = 'held'; a.legs = [legOfSeg(s, p.d), { kind: inDepot ? 'park' : 'held' }]; }
+        else a.status = inDepot ? 'parked' : 'held';
         return a;
       });
     }
@@ -284,7 +299,7 @@
         // it stops before the signal first (a station, or the end of this move): it asks when it leaves from there
         const next = leg.stops && leg.stops.length && a.stopAt == null ? leg.stops[0].d : leg.end;
         if (next != null && next < c.d - half) break;
-        if (IL.request(S.il, a.k, c.si, c.d, nose, lim + half)) continue;
+        if (IL.request(S.il, a.k, c.si, c.d, nose, lim + half, a.pid)) continue;
         lim = stop; why = { sig: c.si }; break;
       }
       return { lim, why };
@@ -376,6 +391,7 @@
     function marker(a, m) {
       if (m.kind === 'boundary') { a.legs.unshift(...nextShuttleLegs(a)); return true; }
       if (m.kind === 'held') { a.mode = 'static'; a.status = 'held'; return false; }
+      if (m.kind === 'park') { a.mode = 'static'; a.status = 'parked'; a.v = 0; return false; }
       if (m.kind === 'stopped') { a.status = 'stopped'; a.stoppedSince = S.t; return false; }
       if (m.kind === 'depot') { a.hidden = true; a.mode = 'static'; a.status = 'depot'; return false; }
       if (m.kind === 'assign') { assign(a); return a.legs.length > 0; }
@@ -574,6 +590,7 @@
       S.reopened = t; S.cl = null; S.parts = [[0, last]];
       setResources(o.resources.concat(S.lockCl && o.locks ? o.locks(S.lockCl) : [])); claimed.clear(); usedRuns.clear();
       for (const a of S.agents) {
+        if (a.status === 'parked' && !a.hidden && a.mode === 'static') { resumeDay(a, t); continue; }
         if (a.hidden || a.status === 'parked') continue;
         a.slowUntil = t + 120;                        // 20 km/h for 2 minutes
         a.part = [0, last];
@@ -600,6 +617,15 @@
         } else if (a.status === 'stopped' || a.mode === 'inside' || a.status === 'held' || a.mode === 'held') {
           a.status = a.status === 'stopped' ? 'service' : a.status; a.legs = [{ kind: 'assign' }]; a.mode = 'shuttle';
         }
+      }
+    }
+    // after reopening, a train switched off in the depot: its next run out of the depot (the ones missed are gone)
+    function resumeDay(a, t) {
+      const plan = planOf(a.k); if (a.seg0 == null) return;
+      for (let j = Math.max(0, a.seg0); j < plan.length; j++) {
+        const s = plan[j]; if (s[3][0] < t - 60) continue;
+        if (s[1] !== 'from_depot' && !(s[1] === 'empty' && s.length > 5 && s[5] != null) && !(s[3][0] >= 29 * 3600)) continue;
+        a.mode = 'plan'; a.si = j - 1; a.legs = []; a.wait = 0; a.status = 'parked'; return;
       }
     }
     // the station it stands at (or is about to reach) and which way it goes on

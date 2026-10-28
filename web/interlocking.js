@@ -19,7 +19,8 @@
 
   function create(o) {
     // o: { groups: [[si, ...], ...], manual: [si, ...], sigpos: { pid: [[d, si], ...] }, half }
-    const groupOf = new Map(), manual = new Set(o.manual || []), half = o.half, hold = new Set(o.hold || []);
+    const groupOf = new Map(), manual = new Set(o.manual || []), half = o.half, hold = new Set(o.hold || []), section = new Set(o.section || []);
+    const SECTION_MAX = 600;   // a depot / loop signal: the track up to the next signal (at most this far) must be free
     (o.groups || []).forEach((g, gi) => g.forEach(si => groupOf.set(si, gi)));
     const controlled = si => groupOf.has(si) || manual.has(si);
 
@@ -32,11 +33,18 @@
       return out;
     }
     // may train k pass signal si now? freeTo: how far (front of the train) the track behind the signal is free
-    function request(st, k, si, d, nose, freeTo) {
+    // the block section behind signal si on path pid: up to the next signal facing the train (or SECTION_MAX)
+    function sectionEnd(pid, si, d) {
+      const sp = o.sigpos && o.sigpos[pid]; let e = d + SECTION_MAX;
+      if (sp) for (const [d2, s2] of sp) if (d2 > d + 5 && s2 !== si) { e = Math.min(e, d2); break; }
+      return e;
+    }
+    function request(st, k, si, d, nose, freeTo, pid) {
       if (st.grant[si] === k) return true;
       if (st.grant[si] != null) return false;
       if (d - nose > NEAR) return false;
       if (freeTo < d + 30) return false;                                        // the track behind it is not free
+      if (section.has(si) && pid != null && freeTo < sectionEnd(pid, si, d)) return false;   // its block section is not free
       const g = groupOf.get(si);
       if (g != null) for (const [s2, k2] of Object.entries(st.grant)) if (k2 !== k && groupOf.get(+s2) === g) return false;
       if (manual.has(si) && !st.auto) { if (!(st.pass[si] > 0)) return false; st.pass[si]--; }
@@ -58,7 +66,7 @@
     // the player clears a manual signal for the next train
     function clear(st, si) { if (!manual.has(si)) return false; st.pass[si] = (st.pass[si] || 0) + 1; return true; }
     function aspect(st, si) { return st.grant[si] != null ? 'go' : 'stop'; }
-    return { fresh, ahead, request, release, clear, aspect, controlled, isManual: si => manual.has(si), groupOf: si => groupOf.get(si) };
+    return { fresh, ahead, request, release, clear, aspect, controlled, sectionEnd, isManual: si => manual.has(si), groupOf: si => groupOf.get(si) };
   }
 
   const api = { create, NEAR, PASS };

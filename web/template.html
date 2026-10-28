@@ -1481,7 +1481,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (!T.trip[p]) return `<div class="picker"><div class="label">Anello di prova</div><p class="note">Da questo posto non c'è una via per l'anello di prova.</p></div>`;
     const L = loopState(F), who = L.holder != null && L.holder !== k ? `<p class="note">Ora l'anello è del treno ${trainNo(F, F.trains[L.holder])}: al #A94 dovrà aspettare.</p>` : '';
     return `<div class="picker"><div class="label">Anello di prova</div>
-      <div class="row"><button data-loop="one">1 giro</button><button data-loop="until">Fino alla prossima corsa</button></div>${who}
+      <div class="row">${[1, 2, 5, 10].map(n => `<button data-loop="${n}">${n === 1 ? '1 giro' : n + ' giri'}</button>`).join('')}<button data-loop="until">Fino al prossimo turno</button></div>${who}
       ${loopMsg ? `<p class="note">${loopMsg}</p>` : '<p class="note">Va al segnale #A94, chiede l\'anello, fa i giri, esce dal #A96 e si ferma dopo il #A94: lì il deposito gli dà un posto.</p>'}</div>`;
   }
   // the legs of the trip as moves of its day: [pid, kind, -1, [t0, t1], [d0, d1], place, 'loop:<role>']
@@ -1508,8 +1508,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const idx = a.mode === 'static' ? tr.segs.length : a.si, next = tr.segs[idx], t0 = Math.round(state.t) + 20;
     const deadline = next ? next[3][0] - 600 : 27 * 3600, lapT = T.lap / T.v_lap;
     const dry = loopSegs(F, p, t0, 0), room = deadline - dry.end;
-    const laps = how === 'one' ? 1 : Math.floor(room / lapT);
-    if (laps < 1 || how !== 'one' && room < lapT) { loopMsg = 'Non c\'è tempo per un giro prima della prossima corsa' + (next ? ' (esce dal deposito alle ' + fmt(next[3][0]) + ')' : '') + '.'; return; }
+    const laps = how === 'until' ? Math.floor(room / lapT) : +how || 1;
+    if (laps < 1 || how === 'until' && room < lapT) { loopMsg = 'Non c\'è tempo per un giro prima della prossima corsa' + (next ? ' (esce dal deposito alle ' + fmt(next[3][0]) + ')' : '') + '.'; return; }
     const { segs, end } = loopSegs(F, p, t0, laps);
     tr.segs.splice(idx, 0, ...segs); shiftRefs(tr, idx - 1, segs.length); tr.starts = tr.segs.map(x => x[3][0]);
     a.mode = 'plan'; a.si = idx - 1; a.legs = []; a.wait = 0; a.status = 'parked';
@@ -1517,6 +1517,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     say('PC', `Treno ${no}, dal ${depotName(F, p)} vai al segnale #A94 e chiedi l'anello di prova: ${laps === 1 ? 'un giro' : laps + ' giri'}. Passo.`, 'pc');
     say('T' + no, `Ricevuto PC, ${laps === 1 ? 'un giro' : laps + ' giri'} sull'anello di prova, vado al #A94. Passo.`, 'dr');
     loopMsg = (laps === 1 ? '1 giro' : laps + ' giri') + ', di ritorno verso le ' + fmt(end) + ' (se l\'anello è libero).';
+    if (next && next[3][0] < 29 * 3600 && end > next[3][0] - 300) loopMsg += ' Attenzione: il prossimo turno parte alle ' + fmt(next[3][0]) + ', sarà in ritardo.';
   }
   // the agents ask before each move of the day: the move into the loop waits for the loop, the way home for a place
   function loopHoldAt(F, k, si) {

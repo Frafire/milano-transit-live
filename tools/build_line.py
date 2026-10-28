@@ -344,6 +344,10 @@ for nm_, g_ in zip(('Deposito lato est: una manovra alla volta', 'Deposito lato 
     INTERLOCKING['groups'].append(g_); INTERLOCKING['group_names'].append(nm_)
 # with the depot on manual the player opens every shunting signal too (one train each)
 INTERLOCKING['manual'] = sorted(set(INTERLOCKING['manual']) | {i for g_ in _sides for i in g_})
+# block sections in the depot and on the test loop (Giovanni, 28 Oct): a depot or loop signal clears only when the
+# track from it to the next signal on the train's way is free (on the line the block sections do this already)
+INTERLOCKING['section'] = sorted(set(INTERLOCKING['manual']) | {i for g_, nm_ in zip(INTERLOCKING['groups'], INTERLOCKING['group_names'])
+                                                                if 'anello' in nm_.lower() or 'deposito' in nm_.lower() for i in g_})
 for _t in (COM_TAILS if CFG.get('tail_at_signal') else []):
     _e = edges[node_edges[_t][0]]; _P = _e['pts'] if _e['b'] == _t else _e['pts'][::-1]; _P = _P[::-1]   # from the tail end
     _best = None
