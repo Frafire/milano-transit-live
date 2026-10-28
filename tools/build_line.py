@@ -821,6 +821,24 @@ else:
     TEST = None
 
 
+# ---------------- depot paths for the page's depot manager (places are given live, Giovanni 28 Oct) ----------------
+# in: from San Donato platform 3 (the train has unloaded there, signal #A40) to the place; out[p]: from the place to
+# departure platform p and on to the junction; positions: the stop on platform 3, the parked train, the platform stop
+DEPOT_PATHS = {}
+if LINE == 'M3':
+    for p_ in storage:
+        try:
+            pin = leg_path(CFG['IN_VIA'][1], CFG['IN_VIA'][2:], p_); cin = paths[pin][1]
+            d_in, _ = project(paths[pin][0], cin, *SD_STOP, 0, None)
+            rec = {'in': pin, 'in_stop': round(d_in, 1), 'in_end': round(end_off(p_, cin[-1]), 1), 'out': {}}
+            for pl in CFG['PLATS']:
+                pout = leg_path(p_, [SD_DEP[pl]], SD_OUT_NODE); cout = paths[pout][1]
+                d_pl_, _ = project(paths[pout][0], cout, *SD_STOP, 0, None)
+                rec['out'][str(pl)] = {'pid': pout, 'start': round(start_off(p_), 1), 'plat': round(d_pl_, 1)}
+            DEPOT_PATHS[str(p_)] = rec
+        except RuntimeError as e_: print('depot paths: no route for place', p_, e_)
+    print('depot paths for the live depot manager:', len(DEPOT_PATHS), 'places')
+
 # ---------------- real trains (M3 fleet list from Giovanni) ----------------
 STOCK, DUTIES = [], [[] for _ in out]
 if LINE in ('M3', 'M4'):
@@ -1440,6 +1458,23 @@ for text, way, metres, side in CFG.get('labels', []):
     f = (target - cc[i]) / ((cc[i + 1] - cc[i]) or 1)
     la_, lo_ = ll(pp[i][0] + (pp[i + 1][0] - pp[i][0]) * f, pp[i][1] + (pp[i + 1][1] - pp[i][1]) * f)
     PLAT_LABELS.append({'t': text, 'la': la_, 'lo': lo_, 's': side})
+# depot places that get in each other's way: a train parked at p stands on track that the way in or out of q uses
+def _cover(pid, lo, hi):
+    out = []
+    for ei, dr, x0, x1 in PATH_EDGES[pid]['e']:
+        if x1 < lo or x0 > hi: continue
+        a_, b_ = max(lo, x0), min(hi, x1)
+        out.append((ei, a_ - x0, b_ - x0) if dr > 0 else (ei, x1 - b_, x1 - a_))
+    return out
+for p_, rec in DEPOT_PATHS.items():
+    park = _cover(rec['in'], rec['in_end'] - TRAIN_HALF - 3, rec['in_end'] + TRAIN_HALF + 3)
+    blocks = []
+    for q_, rq in DEPOT_PATHS.items():
+        if q_ == p_: continue
+        ways = [_cover(rq['in'], rq['in_stop'], rq['in_end'] - TRAIN_HALF)] + [_cover(o['pid'], o['start'] + TRAIN_HALF, o['plat']) for o in rq['out'].values()]
+        if any(e1 == e2 and a1 < b2 - 0.5 and a2 < b1 - 0.5 for (e1, a1, b1) in park for w in ways for (e2, a2, b2) in w): blocks.append(q_)
+    rec['blocks'] = blocks
+print('depot places in the way of others when occupied:', {k: v['blocks'] for k, v in DEPOT_PATHS.items() if v.get('blocks')})
 json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in paths],
            'trains': [tl.segs for tl in out],
            'where': [[tl.start_where, tl.end_where] for tl in out],
@@ -1450,7 +1485,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'labels': PLAT_LABELS,
            'platmap': PLATMAP,
            'boards': boards_out(),
-           'stock': STOCK, 'duties': DUTIES, 'test': TEST,
+           'stock': STOCK, 'duties': DUTIES, 'test': TEST, 'depot_paths': DEPOT_PATHS,
            'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'blocks': BLOCKS, 'degraded': DEGRADED, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))

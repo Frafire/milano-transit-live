@@ -677,7 +677,7 @@
         if (a.stopAt != null && fresh.stops.length && Math.abs(fresh.stops[0].d - a.d) > 1) a.stopAt = null; a.legs = [fresh]; a.red = null; }
       return true;
     }
-    return { S, TL, IL, il: () => S.il, start, close, step, seek, event, order, reopen, replan, state, nextOf, snapshot, agents: () => S.agents, resources: () => R };
+    return { S, TL, IL, il: () => S.il, start, close, step, seek, event, order, reopen, replan, state, nextOf, snapshot, mapTo, agents: () => S.agents, resources: () => R };
   }
 
   const api = { create, HEADWAY, DT };

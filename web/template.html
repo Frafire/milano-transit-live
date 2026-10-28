@@ -521,7 +521,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   if (dayPick > 5) dayPick = 1;
   const syncDay = () => {
     document.querySelectorAll('.dayb').forEach(b => b.setAttribute('aria-pressed', +b.dataset.d === dayPick));
-    document.getElementById('day').textContent = 'Orario feriale · ' + DAYS[dayPick] + ' · giornata 03:00–02:59';
+    let after = false; try { after = state.t >= 24 * 3600; } catch (e) {}           // before the clock exists: the day itself
+    const cal = after ? (dayPick % 7) + 1 : dayPick;
+    document.getElementById('day').textContent = 'Orario feriale · ' + DAYS[cal] + (after ? ' (notte, orario di ' + DAYS[dayPick] + ')' : '') + ' · giornata 03:30–02:59';
   };
   document.querySelectorAll('.dayb').forEach(b => b.onclick = () => { if (b.disabled) return; dayPick = +b.dataset.d; try { localStorage.setItem('mtl-day', dayPick); } catch (e) {} syncDay(); });
   syncDay();
@@ -667,7 +669,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const fleet = { li, boards, line: F.line, look, trips: F.mode === 'trips', bus: F.mode === 'bus', name: F.mode === 'bus' ? routes[li].n : F.line, pulls: F.pulls || [], home: F.home, far: F.far, carLen: 2 * F.half / look.cars,
       paths: F.paths.map(p => { const pts = decodeFlat(p.p); return { lat: pts.map(x => x[0]), lon: pts.map(x => x[1]), d: p.d }; }) };
     fleet.stops = busStops; fleet.display = !!F.display; fleet.heads = F.heads || [];
-    fleet.stock = F.stock || []; fleet.test = F.test || null; fleet.platmap = F.platmap || null;
+    fleet.stock = F.stock || []; fleet.test = F.test || null; fleet.platmap = F.platmap || null; fleet.depotPaths = F.depot_paths || null;
     // test platforms on the anello di prova (fermate di prova): shown like the station platforms
     ((F.test && F.test.platforms) || []).forEach(tp => L.polyline(tp.pts, { color: '#d9d4c7', weight: 7, opacity: .85, lineCap: 'butt', interactive: true })
       .bindTooltip(tp.name + ' · banchina di prova', { className: 'st', direction: 'top' }).addTo(platLayer));
@@ -1030,9 +1032,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
           if (CARS === 2) { const J = pts[1]; ctx.beginPath(); ctx.arc(J.x, J.y, w * .42, 0, 7); ctx.fillStyle = '#1b1b1b'; ctx.fill(); }
         }
         ctx.font = '700 11px Barlow Condensed, sans-serif';
-        const lab = F.trips ? F.line : st.status === 'parked' ? num : F.name + ' · ' + num, tw = ctx.measureText(lab).width + 8, ly = p.y - w / 2 - 12;
-        ctx.fillStyle = '#0b0b0b'; ctx.beginPath(); ctx.roundRect(p.x - tw / 2, ly - 8, tw, 16, 4); ctx.fill();
-        ctx.fillStyle = st.status === 'service' ? F.look.color : '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, p.x, ly + 1);
+        const lab = F.trips ? F.line : st.status === 'parked' ? num : F.name + ' · ' + num, tw = ctx.measureText(lab).width + 8;
+        const lp = NC < CARS ? { x: (pts[0].x + pts[NC].x) / 2, y: (pts[0].y + pts[NC].y) / 2 } : p, ly = lp.y - w / 2 - 12;   // a short train: label over its middle
+        ctx.fillStyle = '#0b0b0b'; ctx.beginPath(); ctx.roundRect(lp.x - tw / 2, ly - 8, tw, 16, 4); ctx.fill();
+        ctx.fillStyle = st.status === 'service' ? F.look.color : '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, lp.x, ly + 1);
         if (state.sel === key) { ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(18, half / mpp + 6), 0, 7); ctx.strokeStyle = '#ffcf3f'; ctx.lineWidth = 2.5; ctx.stroke(); }
         continue;
       }
@@ -1997,6 +2000,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function makeAgents(F) {
     const E_ = F.engine, G = E_.G;
+    F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
       resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, interlocking: E_.net.interlocking,
@@ -2013,6 +2017,117 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   };
   function syncDepotAuto() { const F = fleets.find(f => f.ag), b = document.getElementById('depotAuto'); if (!F || !F.ag.il()) return;
     const on = !!F.ag.il().auto; if (b.getAttribute('aria-pressed') !== String(on)) { b.setAttribute('aria-pressed', String(on)); b.textContent = 'Deposito: ' + (on ? 'automatico' : 'manuale'); } }
+  // ================= DEPOT MANAGER (Giovanni, 28 Oct) =================
+  // Trains have no fixed depot place: when a train leaves San Donato platform 3 for the depot (#A40 towards #A04) the
+  // depot gives it a free place; until it passes #A04/#A05 the player can change it by radio. Its next run out of the
+  // depot starts from that place. At the end of the service day the trains keep their places for the next day.
+  const V_YARD = 15 / 3.6;
+  const placeOf = s => s && s.length > 5 && s[5] != null ? String(s[5]) : null;
+  function depotInit(F, keep) {
+    if (!F.depotPaths) return;
+    F.depot = { at: {}, target: {}, seg: {}, done: {}, pending: {} };
+    // who stands in the depot now: a train waiting to start a run that begins at a place (or a reserve train)
+    F.trains.forEach((tr, k) => { const a = F.ag.agents()[k], i = a && Math.min(a.si, tr.segs.length - 1), s = a && tr.segs[i]; if (a && s && standsAt(a, s, tr, i)) F.depot.at[k] = placeOf(s); });
+  }
+  const depotTaken = F => new Set([...Object.values(F.depot.at), ...Object.values(F.depot.target)].filter(Boolean));
+  // the next run out of the depot after seg i (from_depot or an empty run that starts at a place)
+  const nextOut = (tr, i) => { for (let j = i + 1; j < tr.segs.length; j++) { const s = tr.segs[j]; if ((s[1] === 'from_depot' || s[1] === 'empty') && placeOf(s)) return j; if (s[1] === 'service') return -1; } return -1; };
+  function shiftRefs(tr, j, by) { ['alts', 'arr2', 'calts'].forEach(key => (tr[key] || []).forEach(x => { if (x.i != null && x.i > j) x.i += by; })); }
+  // the run out of place q replacing the one out of the old place (same time at the platform)
+  function rewriteOut(F, tr, j, q) {
+    const s = tr.segs[j], P = F.depotPaths[q]; if (!P) return;
+    const oldPid = s[0], ag = F.ag;
+    let best = null;
+    for (const [pl, o] of Object.entries(P.out)) { const m = ag.mapTo(o.pid, o.plat, oldPid); if (m != null && (s[1] !== 'from_depot' || Math.abs(m - s[4][s[4].length - 1]) < 40)) { best = { pl, o, m }; if (s[1] !== 'from_depot' || pl === '1') break; } }
+    if (!best) return;
+    const o = best.o, run = Math.max(0, o.plat - o.start) / V_YARD;
+    if (s[1] === 'from_depot') { const tP = s[3][s[3].length - 1]; tr.segs[j] = [o.pid, 'from_depot', -1, [Math.round(tP - run), tP], [o.start, o.plat], +q]; }
+    else {                    // an empty run on through the station (to Comasina): out of the place to platform 1, then on as planned
+      const t0 = s[3][0], tP = Math.round(t0 + run), tE = s[3][s[3].length - 1], dE = s[4][s[4].length - 1];
+      tr.segs.splice(j, 1, [o.pid, 'empty', -1, [t0, tP], [o.start, o.plat], +q], [oldPid, 'empty', -1, [tP, Math.max(tP + 1, tE)], [best.m, dE]]); shiftRefs(tr, j, 1);
+    }
+    tr.starts = tr.segs.map(x => x[3][0]);
+  }
+  // give train k place q for the run it is on now (it must already be on the way in, on San Donato platform 3)
+  function depotAssign(F, k, q) {
+    const tr = F.trains[k], a = F.ag.agents()[k], si = a.si, s = tr.segs[si], P = F.depotPaths[q]; if (!P || !s) return false;
+    const d = F.ag.mapTo(a.pid, a.d, P.in); if (d == null) return false;
+    const t0 = s[3][0], d0 = Math.min(d, P.in_end), t1 = Math.round(t0 + Math.max(1, P.in_end - d0) / V_YARD);
+    tr.segs[si] = [P.in, s[1], -1, [t0, Math.max(t0 + 1, t1)], [d0, P.in_end], +q];
+    const j = nextOut(tr, si); if (j >= 0) rewriteOut(F, tr, j, q);
+    tr.starts = tr.segs.map(x => x[3][0]);
+    F.depot.target[k] = q; F.ag.replan(k); return true;
+  }
+  // the free place the depot gives: the quickest way in and out again
+  function depotPick(F, k) {
+    const taken = depotTaken(F), tr = F.trains[k], a = F.ag.agents()[k];
+    const cand = Object.keys(F.depotPaths).filter(q => !taken.has(q) && F.ag.mapTo(a.pid, a.d, F.depotPaths[q].in) != null);
+    cand.sort((p, q) => { const P = F.depotPaths[p], Q = F.depotPaths[q], o = x => Math.min(...Object.values(x.out).map(v => v.plat - v.start));
+      return (P.in_end + o(P)) - (Q.in_end + o(Q)); });
+    return cand[0] || null;
+  }
+  const depotName = (F, q) => { const i = (F.engine.net.depot || []).findIndex(d => String(d.node) === String(q)); return i >= 0 ? (F.engine.net.depot[i].name || '').replace('Deposito binario ', 'D') : 'posto ' + q; };
+  function depotPickAny(F) { const taken = depotTaken(F); return Object.keys(F.depotPaths).find(q => !taken.has(q)) || null; }
+  // past #A04/#A05 (the depot entrance) the place can no longer be changed
+  function pastEntrance(F, k) {
+    const a = F.ag.agents()[k], sp = F.engine.net.sigpos[a.pid] || [], sig = F.engine.net.signals;
+    const e = sp.find(([d, i]) => sig[i] && (sig[i].n === 4 || sig[i].n === 5)); return e ? a.d + F.engine.half > e[0] : false;
+  }
+  function depotTick(F) {
+    if (!F.depotPaths || !F.ag) return;
+    if (!F.depot) depotInit(F);
+    F.ag.agents().forEach((a, k) => {
+      const tr = F.trains[k], si = Math.min(a.si, tr.segs.length - 1), s = tr.segs[si]; if (!s || a.hidden || a.mode !== 'plan' && a.mode !== 'static') return;   // after its last run: the last one
+      // leaving its place: the place is free again
+      let at = F.depot.at[k];
+      if (at != null && !(placeOf(s) === at && standsAt(a, s, tr, si))) { delete F.depot.at[k]; at = null; }     // it has left its place
+      if (at == null && F.depot.target[k] == null && standsAt(a, s, tr, si) && !depotTaken(F).has(placeOf(s))) { at = F.depot.at[k] = placeOf(s); }
+      // on the way in: a place, given once (on platform 3, #A40)
+      const inRun = placeOf(s) && !isOut(tr, si) && s[3][0] < 29 * 3600;
+      if (inRun && F.depot.target[k] == null && at == null && F.depot.done[k] !== a.si) {
+        // the place is decided when the run in starts; the train is sent there once it is on the common way in (platform 3)
+        const free = q => !depotTaken(F).has(q);
+        const q = depotPick(F, k);
+        if (q != null && depotAssign(F, k, q)) F.depot.seg[k] = a.si;
+        else { const q2 = free(placeOf(s)) ? placeOf(s) : depotPickAny(F); F.depot.target[k] = q2; F.depot.seg[k] = a.si; if (q2 !== placeOf(s)) F.depot.pending[k] = q2; }
+      } else if (F.depot.pending[k] != null && F.depot.seg[k] === a.si && !pastEntrance(F, k)) {
+        const q = F.depot.pending[k]; delete F.depot.target[k];
+        if (depotAssign(F, k, q)) delete F.depot.pending[k]; else F.depot.target[k] = q;
+      }
+      // arrived: it stands in its place
+      const g = F.depot.seg[k];
+      if (F.depot.target[k] != null && (a.si > g || a.si === g && a.v === 0 && Math.abs(a.d - s[4][s[4].length - 1]) < 3)) {
+        F.depot.at[k] = F.depot.target[k]; delete F.depot.target[k]; F.depot.done[k] = g; }
+    });
+  }
+  const ag_moved = (a, s) => a.pid === s[0] && Math.abs(a.d - s[4][0]) > 5 && !(F_WAIT(a));
+  const F_WAIT = a => { const F = fleets.find(f => f.ag); return F && F.ag.S.t < a.wait; };
+  // a train stands in the place of its current run: about to leave it (not moved yet), or a reserve train (run at 30:00)
+  // a run out of a place: the first run of the day, or a run right after one into the same place; the others go in
+  const isOut = (tr, i) => !!placeOf(tr.segs[i]) && tr.segs[i][1] !== 'to_depot' && (i === 0 || placeOf(tr.segs[i - 1]) != null);
+  const standsAt = (a, s, tr, i) => !!placeOf(s) && (s[3][0] >= 29 * 3600 || isOut(tr, i) && !ag_moved(a, s)
+    || !isOut(tr, i) && a.pid === s[0] && Math.abs(a.d - s[4][s[4].length - 1]) < 3);   // arrived in it
+  // a new service day: the trains start from the places they stand in (Friday stays Friday until the weekend timetables)
+  function newServiceDay() {
+    if (dayPick < 5) { dayPick++; try { localStorage.setItem('mtl-day', dayPick); } catch (e) {} } syncDay();
+    const F = fleets.find(f => f.ag); if (!F) return;
+    const keep = F.depot ? Object.assign({}, F.depot.at, F.depot.target) : null;
+    F.trains.forEach(tr => { tr.segs = JSON.parse(JSON.stringify(tr.segs0)); tr.starts = tr.segs.map(x => x[3][0]); tr.live = null;
+      if (tr.alts0) tr.alts = JSON.parse(JSON.stringify(tr.alts0)); if (tr.arr20) tr.arr2 = JSON.parse(JSON.stringify(tr.arr20)); if (tr.calts0) tr.calts = JSON.parse(JSON.stringify(tr.calts0)); });
+    F.depot = null; makeAgents(F);
+    if (keep && F.depotPaths) {           // each train out of the place it stood in last night
+      F.depot = { at: {}, target: {}, seg: {}, done: {}, pending: {} }; const used = new Set();
+      F.trains.forEach((tr, k) => { const p = keep[k], s = tr.segs[0]; if (p == null || !placeOf(s) || used.has(p)) return;
+        if (placeOf(s) !== p && (s[1] === 'from_depot' || s[1] === 'empty')) rewriteOut(F, tr, 0, p);
+        else if (s[1] === 'to_depot' && placeOf(s) !== p) return;           // reserve trains keep their own places
+        F.depot.at[k] = p; used.add(p); });
+      F.trains.forEach((tr, k) => { const s = tr.segs[0]; if (F.depot.at[k] != null || !placeOf(s) || s[1] === 'service') return;
+        let p = placeOf(s);
+        if (used.has(p)) { p = Object.keys(F.depotPaths).find(q => !used.has(q)); if (p == null) return; rewriteOut(F, tr, 0, p); }   // its usual place is taken
+        F.depot.at[k] = p; used.add(p); });
+      F.ag.start(DAY_START, bookedPositions(F, DAY_START)); F.ag.snapshot();
+    }
+  }
   // the closure that applies now, from the events of the time line
   function closureNow(F) {
     if (!F || !F.ag) return null;
@@ -2227,6 +2342,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // San Donato: platform 2 taken by a train reversing there, this one waits in the tail (a call: open)
     const cp = tr.agentK != null && CALLS[tr.agentK] && CALLS[tr.agentK].p2;
     if (cp && tr.alts[cp.ai]) h += radioSec('p2', 'Binario 2 occupato', `<div class="row"><button id="p2Wait">Resta fermo e attendi</button><button id="p2Divert">Devia al binario 1</button></div>`, 'retrocessione', true);
+    // the depot place given to a train coming in: the PC can change it until #A04/#A05
+    const tq = tr.agentK != null && F.depot && F.depot.target[tr.agentK];
+    if (tq != null && !pastEntrance(F, tr.agentK)) {
+      const taken = depotTaken(F), opts = Object.keys(F.depotPaths).filter(q => q === tq || !taken.has(q)).sort((p, q) => depotName(F, p).localeCompare(depotName(F, q), undefined, { numeric: true }));
+      h += radioSec('place', 'Posto in deposito', `<div class="lbl">Assegnato ${depotName(F, tq)}</div><div class="row"><select id="placeSel" aria-label="Posto">${opts.map(q => `<option value="${q}" ${q === tq ? 'selected' : ''}>${depotName(F, q)}</option>`).join('')}</select><button id="placeGo" class="send">▶ Cambia posto</button></div>`, depotName(F, tq), true);
+    }
     // depot on manual: open the signal the train is waiting for
     const dq = tr.agentK != null ? depotAsk(F, tr.agentK) : null;
     if (dq) h += radioSec('dep', 'Segnale del deposito', dq.open ? `<div class="lbl">${sigNo(F, dq.si)} aperto: il treno può partire</div>`
@@ -2279,6 +2400,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
                        `Copiato, Posto Centrale. A ${cap(n.name)} tengo le porte aperte ${durTxt(radioStopSel)}. Passo e chiudo.`,
                        `Ricevuto. Fermata prolungata a ${cap(n.name)}, ${durTxt(radioStopSel)}. Passo.`]));
     };
+    const pGo = document.getElementById('placeGo');
+    if (pGo) pGo.onclick = () => { const q = document.getElementById('placeSel').value, k = tr.agentK; if (q === F.depot.target[k]) return;
+      const old = F.depot.target[k]; delete F.depot.target[k];
+      if (!pastEntrance(F, k) && depotAssign(F, k, q)) { say('PC', `Treno ${radioTrain.no}, cambio posto in deposito: vai in ${depotName(F, q)}. Passo.`, 'pc'); driverSays(`Ricevuto PC, vado in ${depotName(F, q)}. Passo.`); }
+      else { F.depot.target[k] = old; say('PC', `Treno ${radioTrain.no}, vai in ${depotName(F, q)}. Passo.`, 'pc'); driverSays('Negativo PC, ho già passato l\'ingresso del deposito. Passo.'); }
+      radioCmdHtml = ''; drawRadioCmds(); };
     const dOpen = document.getElementById('depOpen');
     if (dOpen) dOpen.onclick = () => { const q = depotAsk(F, tr.agentK); if (!q) return;
       say('PC', `Treno ${radioTrain.no}, apro il segnale ${sigNo(F, q.si)}, via libera per ${q.what}. Passo.`, 'pc');
@@ -2767,13 +2894,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const dt = Math.min(0.25, (now - last) / 1000); last = now;
     if (state.playing) {
       state.t += dt * state.speed;
-      if (state.t > +slider.max) state.t = DAY_START;
+      if (state.t > +slider.max) { state.t = DAY_START; newServiceDay(); }
       slider.value = state.t;
     }
     { const FE = m3fleet(); if (FE && FE.engine && state.engine) {
         if (!FE.ag) makeAgents(FE);
         FE.ag.seek(state.t, 600);                                   // back: from the last saved state; forward: drive
         if (Math.abs(state.t - FE.ag.S.t) > 1) state.t = FE.ag.S.t;  // a big jump takes a few frames: the clock follows
+        depotTick(FE);                                              // the depot gives places as trains come in (every frame)
         slider.value = state.t; } }
     const [hm, ss] = fmt(state.t, true);
     document.getElementById('clock').innerHTML = hm + '<span class="s">' + ss + (state.t >= 86400 ? ' +1' : '') + '</span>';
@@ -2784,7 +2912,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; renderPanel(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
+    if (now - lastPanel > 1000) { lastPanel = now; if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
