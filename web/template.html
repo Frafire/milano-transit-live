@@ -1466,32 +1466,113 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <div class="row"><button data-arr2="${k}" ${busy ? 'disabled' : ''}>Arrive on platform 2 and reverse</button></div>
       ${busy ? `<div class="warn">Platform 2 is occupied by ${trName(F, busy, t)}.</div>` : ''}${p2Msg ? `<p class="note">${p2Msg}</p>` : ''}</div>`;
   }
-  // ---- test loop (anello di prova) on demand for a train resting in the depot ----
+  // ---- test loop (anello di prova) on demand for a train resting in the depot (Giovanni, 28 Oct) ----
+  // The train goes to #A94 and asks to go in (west side: after a change of cab beyond #A94; east side: after a change
+  // of cab at the turning point on w71). One train at a time on the loop: while one has asked for it or is on it, the
+  // others are told to wait at #A94. It leaves the loop by #A96 and stops beyond #A94: it reports the loop free, the
+  // depot gives it a place, and it goes there (straight on or after a change of cab).
   let loopMsg = '';
+  const loopRole = s => s && typeof s[6] === 'string' && s[6].startsWith('loop:') ? s[6].slice(5) : null;
+  const loopState = F => F.loop || (F.loop = { holder: null, queue: [], asked: {} });
+  function loopBusy(tr) { return tr.segs.some(loopRole); }
   function testLoopBox(F, tr, st) {
-    if (!F.test || st.status !== 'parked' || st.store === undefined) return '';
-    if (!F.test.by_store[String(st.store)]) return `<div class="picker"><div class="label">Anello di prova</div><p class="note">This depot track has no route to the test loop.</p></div>`;
+    const T = F.test, k = tr.agentK; if (!T || !T.trip || !F.ag || k == null || !F.depot) return '';
+    const p = F.depot.at[k]; if (p == null || loopBusy(tr)) return loopBusy(tr) ? `<div class="picker"><div class="label">Anello di prova</div><p class="note">${loopMsg || 'In giro sull\'anello di prova.'}</p></div>` : '';
+    if (!T.trip[p]) return `<div class="picker"><div class="label">Anello di prova</div><p class="note">Da questo posto non c'è una via per l'anello di prova.</p></div>`;
+    const L = loopState(F), who = L.holder != null && L.holder !== k ? `<p class="note">Ora l'anello è del treno ${trainNo(F, F.trains[L.holder])}: al #A94 dovrà aspettare.</p>` : '';
     return `<div class="picker"><div class="label">Anello di prova</div>
-      <div class="row"><button data-loop="one">1 giro</button><button data-loop="until">Until its next run</button></div>
-      ${loopMsg ? `<p class="note">${loopMsg}</p>` : '<p class="note">Sends this train round the test loop and back to the same depot track.</p>'}</div>`;
+      <div class="row"><button data-loop="one">1 giro</button><button data-loop="until">Fino alla prossima corsa</button></div>${who}
+      ${loopMsg ? `<p class="note">${loopMsg}</p>` : '<p class="note">Va al segnale #A94, chiede l\'anello, fa i giri, esce dal #A96 e si ferma dopo il #A94: lì il deposito gli dà un posto.</p>'}</div>`;
+  }
+  // the legs of the trip as moves of its day: [pid, kind, -1, [t0, t1], [d0, d1], place, 'loop:<role>']
+  function loopSegs(F, p, t0, laps) {
+    const T = F.test, R = T.trip[p], V = T.v_yard, segs = []; let t = t0;
+    const add = (pid, d0, d1, kind, role, v, place) => { const dur = Math.max(2, Math.abs(d1 - d0) / v);
+      segs.push([pid, kind, -1, [Math.round(t), Math.round(t + dur)], [Math.round(d0 * 10) / 10, Math.round(d1 * 10) / 10], place, 'loop:' + role]); t += dur; };
+    R.legs.forEach((l, i) => {
+      const place = i === 0 ? +p : null, last = i === R.legs.length - 1;
+      if (last && R.gate != null && R.gate > l[1] + 2) { add(l[0], l[1], R.gate, 'training', 'in', V, place); t += 20; add(l[0], R.gate, l[2], 'training', 'gate', V, null); }
+      else add(l[0], l[1], l[2], 'training', last ? 'gate' : 'in', V, place);
+      if (l[3]) t += T.reverse;
+    });
+    for (let n = 0; n < laps; n++) add(T.cycle, 0, T.lap, 'training', 'lap', T.v_lap, null);
+    add(T.ret[0], T.ret[1], T.ret[2], 'training', 'ret', V, null);
+    t += 20; add(T.ret[0], T.ret[2], T.ret[2] + 0.1, 'to_depot', 'homewait', V, null);    // waits beyond #A94 for a place
+    return { segs, end: t };
   }
   function sendToTestLoop(F, tr, how) {
-    const t0 = Math.round(state.t) + 20, st = trainState(F, tr, state.t), T = F.test, r = T.by_store[String(st.store)];
-    const nextIdx = st.seg + 1, next = tr.segs[nextIdx];
-    const deadline = next ? next[3][0] - 600 : 27 * 3600;
-    const [pin, pback, off] = r, Lin = F.paths[pin].d[F.paths[pin].d.length - 1], Lb = F.paths[pback].d[F.paths[pback].d.length - 1];
-    const tIn = (Lin - off) / T.v_yard, lapT = T.lap / T.v_lap, tBack = (Lb - off) / T.v_yard;
-    const room = deadline - t0 - tIn - T.reverse - tBack;
-    let laps = how === 'one' ? 1 : Math.floor(room / lapT);
-    if (laps < 1 || room < lapT) { loopMsg = 'No time for a lap before its next run' + (next ? ' (leaves the depot at ' + fmt(next[3][0]) + ')' : '') + '.'; return; }
-    const segs = []; let t = t0;
-    segs.push([pin, 'training', -1, [t, t + tIn], [off, Lin]]); t += tIn;
-    for (let k = 0; k < laps; k++) { segs.push([T.cycle, 'training', -1, [t, t + lapT], [0, T.lap]]); t += lapT; }
-    t += T.reverse;
-    segs.push([pback, 'to_depot', -1, [t, t + tBack], [0, Lb - off], st.store]); t += tBack;
-    tr.segs.splice(nextIdx, 0, ...segs.map(x => x.map(v => Array.isArray(v) ? v.map(Math.round) : v)));
-    tr.starts = tr.segs.map(x => x[3][0]); relive(tr);
-    loopMsg = laps + (laps === 1 ? ' lap' : ' laps') + ', back in the depot at ' + fmt(t) + '.';
+    const T = F.test, k = tr.agentK, a = F.ag && F.ag.agents()[k], p = F.depot && F.depot.at[k];
+    if (!a || p == null || !T.trip[p] || loopBusy(tr)) return;
+    const inWay = ((T.trip_blocks || {})[p] || []).filter(x => depotTaken(F).has(x));
+    if (inWay.length) { loopMsg = 'La via per l\'anello passa da ' + inWay.map(x => depotName(F, x)).join(', ') + ', occupato.'; return; }
+    const idx = a.mode === 'static' ? tr.segs.length : a.si, next = tr.segs[idx], t0 = Math.round(state.t) + 20;
+    const deadline = next ? next[3][0] - 600 : 27 * 3600, lapT = T.lap / T.v_lap;
+    const dry = loopSegs(F, p, t0, 0), room = deadline - dry.end;
+    const laps = how === 'one' ? 1 : Math.floor(room / lapT);
+    if (laps < 1 || how !== 'one' && room < lapT) { loopMsg = 'Non c\'è tempo per un giro prima della prossima corsa' + (next ? ' (esce dal deposito alle ' + fmt(next[3][0]) + ')' : '') + '.'; return; }
+    const { segs, end } = loopSegs(F, p, t0, laps);
+    tr.segs.splice(idx, 0, ...segs); shiftRefs(tr, idx - 1, segs.length); tr.starts = tr.segs.map(x => x[3][0]);
+    a.mode = 'plan'; a.si = idx - 1; a.legs = []; a.wait = 0; a.status = 'parked';
+    const no = trainNo(F, tr);
+    say('PC', `Treno ${no}, dal ${depotName(F, p)} vai al segnale #A94 e chiedi l'anello di prova: ${laps === 1 ? 'un giro' : laps + ' giri'}. Passo.`, 'pc');
+    say('T' + no, `Ricevuto PC, ${laps === 1 ? 'un giro' : laps + ' giri'} sull'anello di prova, vado al #A94. Passo.`, 'dr');
+    loopMsg = (laps === 1 ? '1 giro' : laps + ' giri') + ', di ritorno verso le ' + fmt(end) + ' (se l\'anello è libero).';
+  }
+  // the agents ask before each move of the day: the move into the loop waits for the loop, the way home for a place
+  function loopHoldAt(F, k, si) {
+    const r = loopRole(F.trains[k].segs[si]); if (r !== 'gate' && r !== 'homewait') return false;
+    const L = loopState(F); if (!L.asked[k] || L.asked[k].si !== si) L.asked[k] = { si, since: F.ag.S.t, r, said: false };
+    return true;
+  }
+  function loopTick(F) {
+    if (!F.test || !F.test.trip || !F.ag || !F.depot) return;
+    const L = loopState(F), ag = F.ag, t = ag.S.t;
+    const call = (tr, text) => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + trainNo(F, tr), text, 'call'); };
+    const go = (k, si, role) => { const tr = F.trains[k], s = tr.segs[si], a = ag.agents()[k], sh = Math.round(t + 5) - s[3][0];
+      for (let j = si; j < tr.segs.length && loopRole(tr.segs[j]); j++) tr.segs[j][3] = tr.segs[j][3].map(x => x + sh);
+      s[6] = 'loop:' + role; tr.starts = tr.segs.map(x => x[3][0]); delete L.asked[k];
+      a.si = si - 1; a.legs = []; a.wait = 0; a.why = null; };
+    if (L.holder != null) { const tr = F.trains[L.holder]; if (!tr || !loopBusy(tr)) L.holder = null; }
+    for (const [ks, w] of Object.entries(L.asked)) {
+      const k = +ks, tr = F.trains[k], a = ag.agents()[k], no = trainNo(F, tr);
+      if (!a || a.si !== w.si || loopRole(tr.segs[w.si]) !== w.r) { delete L.asked[k]; continue; }
+      if (w.r === 'gate' && !w.said) {
+        w.said = true; const hi = (Math.floor(t / 3600) % 24) >= 5 && (Math.floor(t / 3600) % 24) < 14 ? 'Buongiorno' : 'Buonasera';
+        call(tr, `${hi} PC, qui treno ${no}, fermo al segnale #A94: chiedo l'autorizzazione per entrare nell'anello di prova. Passo.`);
+        if (L.holder == null || L.holder === k) { L.holder = k; const man = ag.il() && !ag.il().auto;
+          say('PC', man ? `Treno ${no}, autorizzato: l'anello di prova è tuo, attendi l'apertura del #A94. Passo.` : `Treno ${no}, autorizzato: via libera al #A94, entra nell'anello di prova. Passo.`, 'pc');
+          say('T' + no, man ? 'Ricevuto, attendo il segnale ed entro nell\'anello. Passo.' : 'Ricevuto, entro nell\'anello. Passo.', 'dr'); go(k, w.si, 'in2'); }
+        else { if (!L.queue.includes(k)) L.queue.push(k); say('PC', `Negativo treno ${no}: l'anello di prova è occupato dal treno ${trainNo(F, F.trains[L.holder])}. Resta fermo al #A94, ti richiamo io. Passo.`, 'pc'); say('T' + no, 'Ricevuto, resto fermo al #A94. Passo.', 'dr'); }
+      } else if (w.r === 'homewait') {
+        // out of the loop by #A96, standing beyond #A94: the loop is free again; the depot gives a place
+        if (L.holder === k) L.holder = null; L.queue = L.queue.filter(x => x !== k);
+        const cur = F.depot.at[k]; if (cur != null) delete F.depot.at[k];
+        const jn = nextOut(tr, w.si), sOut = jn >= 0 ? tr.segs[jn] : null;      // its next run out must start from the place
+        const taken = depotTaken(F), home = F.test.home, cand = Object.keys(home).filter(q => !taken.has(q) && F.depotPaths[q] && !((F.test.home_blocks || {})[q] || []).some(x => taken.has(x)) && (!sOut || placeOf(sOut) === q || outChoice(F, sOut, q)));
+        const len = q => home[q].reduce((x, l) => x + Math.abs(l[2] - l[1]), 0) + (home[q].length > 1 ? 400 : 0);
+        cand.sort((p, q) => len(p) - len(q)); const q = cand[0];
+        call(tr, `PC, qui treno ${no}: sono uscito dall'anello dal #A96, fermo dopo il #A94. Anello di prova libero. Passo.`);
+        if (q == null) { say('PC', `Treno ${no}, ricevuto. Nessun posto libero in deposito: resta fermo lì. Passo.`, 'pc'); w.r = 'nowhere'; continue; }
+        say('PC', `Ricevuto treno ${no}, grazie. Vai in ${depotName(F, q)}. Passo.`, 'pc');
+        say('T' + no, `Vado in ${depotName(F, q)}${home[q][0][1] !== F.test.ret[2] ? ', cambio banco' : ''}. Passo.`, 'dr');
+        const si = w.si, t0 = Math.round(t + (home[q][0][1] !== F.test.ret[2] ? F.test.reverse : 5)); let tt = t0;
+        const segs = home[q].map((l, i) => { const dur = Math.max(2, Math.abs(l[2] - l[1]) / F.test.v_yard), last = i === home[q].length - 1;
+          const sg = [l[0], 'to_depot', -1, [Math.round(tt), Math.round(tt + dur)], [l[1], l[2]], last ? +q : null, 'loop:home']; tt += dur + (l[3] ? F.test.reverse : 0); return sg; });
+        tr.segs.splice(si, 1, ...segs); shiftRefs(tr, si, segs.length - 1); tr.starts = tr.segs.map(x => x[3][0]);
+        const g = si + segs.length - 1; F.depot.target[k] = q; F.depot.seg[k] = g;
+        const j = nextOut(tr, g); if (j >= 0 && placeOf(tr.segs[j]) !== q) rewriteOut(F, tr, j, q);
+        // a reserve train (no more runs today): it stands in the new place
+        const hl = segs[segs.length - 1];
+        for (let i = g + 1; i < tr.segs.length; i++) { const x = tr.segs[i]; if (x[3][0] >= 29 * 3600 && placeOf(x) && placeOf(x) !== q)
+          tr.segs[i] = [hl[0], 'to_depot', -1, [x[3][0], x[3][0] + 1], [hl[4][1], hl[4][1]], +q]; }
+        delete L.asked[k]; const a2 = ag.agents()[k]; a2.si = si - 1; a2.legs = []; a2.wait = 0; a2.why = null;
+        loopMsg = '';
+        // the loop is free: the next train waiting at #A94 goes in
+        const nx = L.queue.shift();
+        if (nx != null && L.asked[nx] && L.asked[nx].r === 'gate') { const n2 = trainNo(F, F.trains[nx]); L.holder = nx;
+          say('PC', `Treno ${n2}, l'anello di prova è libero: via libera al #A94, entra. Passo.`, 'pc'); say('T' + n2, 'Ricevuto, entro nell\'anello. Passo.', 'dr'); go(nx, L.asked[nx].si, 'in2'); }
+      }
+    }
   }
   map.on('click', e => {
     if (drawing) return;
@@ -2005,7 +2086,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
       resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
-      initAt: t => bookedPositions(F, t),
+      initAt: t => bookedPositions(F, t), holdAt: (k, si) => loopHoldAt(F, k, si),
       locks: cl => MTLEngine.blockResources(MTLEngine.turnLocks(G, cl), E_.pathEdges, E_.net.edges).map(r => Object.assign(r, { lock: true })) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
   }
@@ -2034,11 +2115,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const nextOut = (tr, i) => { for (let j = i + 1; j < tr.segs.length; j++) { const s = tr.segs[j]; if ((s[1] === 'from_depot' || s[1] === 'empty') && placeOf(s)) return j; if (s[1] === 'service') return -1; } return -1; };
   function shiftRefs(tr, j, by) { ['alts', 'arr2', 'calts'].forEach(key => (tr[key] || []).forEach(x => { if (x.i != null && x.i > j) x.i += by; })); }
   // the run out of place q replacing the one out of the old place (same time at the platform)
-  function rewriteOut(F, tr, j, q) {
-    const s = tr.segs[j], P = F.depotPaths[q]; if (!P) return;
-    const oldPid = s[0], ag = F.ag;
+  function outChoice(F, s, q) {
+    const P = F.depotPaths[q]; if (!P) return null;
     let best = null;
-    for (const [pl, o] of Object.entries(P.out)) { const m = ag.mapTo(o.pid, o.plat, oldPid); if (m != null && (s[1] !== 'from_depot' || Math.abs(m - s[4][s[4].length - 1]) < 40)) { best = { pl, o, m }; if (s[1] !== 'from_depot' || pl === '1') break; } }
+    for (const [pl, o] of Object.entries(P.out)) { const m = F.ag.mapTo(o.pid, o.plat, s[0]); if (m != null && (s[1] !== 'from_depot' || Math.abs(m - s[4][s[4].length - 1]) < 40)) { best = { pl, o, m }; if (s[1] !== 'from_depot' || pl === '1') break; } }
+    return best;
+  }
+  function rewriteOut(F, tr, j, q) {
+    const s = tr.segs[j], oldPid = s[0], best = outChoice(F, s, q);
     if (!best) return;
     const o = best.o, run = Math.max(0, o.plat - o.start) / V_YARD;
     if (s[1] === 'from_depot') { const tP = s[3][s[3].length - 1]; tr.segs[j] = [o.pid, 'from_depot', -1, [Math.round(tP - run), tP], [o.start, o.plat], +q]; }
@@ -2168,7 +2252,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   CLOSURES.forEach((c, i) => { const b = document.createElement('button'); b.textContent = c[2]; b.onclick = () => closeStretch(i); clGrid.appendChild(b); });
   reopenBtn.onclick = reopenStretch; normalBtn.onclick = backToTimetable;
   const AGLABEL = { service: 'In servizio', stopped: 'Fermo in stazione: tratta interrotta', held: 'Trattenuto: tratta chiusa', turnback: 'In manovra (cambio banco)', empty: 'Vuoto, senza passeggeri', depot: 'Rientrato in deposito', parked: 'In deposito' };
-  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC', pc: ' · trattenuto dal PC' };
+  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC', pc: ' · trattenuto dal PC', anello: ' · attende al #A94 (anello di prova)' };
   // the line under the train name: the agents' service (shuttles carry passengers: reduced service)
   function cardSub(st) {
     const a = st.agent;
@@ -2562,12 +2646,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const a = ag.agents()[k]; if (!a || a.hidden || a.mode !== 'plan') return null;
     const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, pid = leg ? leg.pid : a.pid, from = leg && leg.start != null && pid !== a.pid ? leg.start : a.d;
     const c = IL.ahead(pid, from + F.engine.half, 900).find(x => IL.isManual(x.si) && il.grant[x.si] !== k); if (!c) return null;
-    const st = leg ? leg.status : a.status, n = (F.engine.net.signals[c.si] || {}).n;
+    const st = leg ? leg.status : a.status, n = (F.engine.net.signals[c.si] || {}).n, lr = loopRole(F.trains[k].segs[a.si]);
     // #A02/#A03: from the depot onto the line; #A04/#A05: from the line into the depot; shunting signals: depot moves
-    const what = n === 2 || n === 3 ? 'entrata in linea' : n === 4 || n === 5 ? 'entrata in deposito'
+    const what = lr === 'in' || lr === 'in2' || lr === 'gate' ? 'uscita verso l\'anello di prova' : lr === 'home' ? 'rientro in deposito dall\'anello di prova'
+      : n === 2 || n === 3 ? 'entrata in linea' : n === 4 || n === 5 ? 'entrata in deposito'
       : st === 'from_depot' || st === 'empty' && (pid !== a.pid || ag.S.t < a.wait || a.status === 'parked') ? 'uscita dal deposito' : 'manovra in deposito';
     return { si: c.si, open: il.pass[c.si] > 0, what, dist: c.d - (from + F.engine.half),
-             due: ag.S.t < a.wait ? a.wait : null, red: a.red && a.red.why && a.red.why.sig === c.si ? a.red.since : null };
+             due: ag.S.t < a.wait ? a.wait : null, red: a.red && a.red.why && a.red.why.sig === c.si ? a.red.since : null, loop: !!lr };
   }
   function emergencyCalls(F) {
     const G = F.engine.G, ag = F.ag, R_ = ag.resources(), em = { ag };
@@ -2579,6 +2664,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (dq && !dq.open) {
         const t = ag.S.t, h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? 'Buongiorno' : 'Buonasera', key = dq.si + ':' + (dq.due || 'r');
         const atSig = dq.red != null || dq.due != null && dq.dist < 40;           // standing in front of it
+        if (dq.loop) {          // going to (or back from) the test loop: it asks after 2 minutes at the red signal, again after 7
+          const w = dq.red != null ? t - dq.red : -1;
+          if (c.depKey !== key && w >= 120) { c.depKey = key; c.depAgain = false;
+            call(`${hi} PC, qui treno ${no}: sono fermo da 2 minuti al segnale ${sigNo(F, dq.si)}, richiesta apertura per ${dq.what}. Passo.`); }
+          else if (c.depKey === key && !c.depAgain && w >= 420) { c.depAgain = true;
+            call(`PC, qui treno ${no}, sono fermo da 7 minuti al segnale ${sigNo(F, dq.si)}: attendo ancora l'apertura per ${dq.what}. Passo.`); }
+        } else
         if (c.depKey !== key && atSig && (dq.due == null || t >= dq.due - 120)) { c.depKey = key; c.depAgain = false;
           call(`${hi} PC, qui treno ${no}: richiesta apertura segnale ${sigNo(F, dq.si)} per ${dq.what}. Passo.`); }
         else if (c.depKey === key && !c.depAgain && (dq.due != null ? t >= dq.due + 60 : dq.red != null && t - dq.red >= 60)) { c.depAgain = true;
@@ -2589,7 +2681,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         call(`PC, qui treno ${no}, fermo a ${cap(at)}: la linea davanti è interrotta. Attendo istruzioni. Passo.`);
       }
       if (a.status !== 'stopped') c.stopped = false;
-      if (a.red && em.ag.S.t - a.red.since >= 300 && !c.red) {
+      if (a.red && em.ag.S.t - a.red.since >= 300 && !c.red && !(dq && !dq.open && dq.red != null)) {   // (depot signals on manual: their own calls)
         c.red = true; const w = a.red.why || {};
         const what = w.sig != null ? 'al segnale ' + sigNo(F, w.sig) : w.res != null ? 'al segnale ' + (R_[w.res].name.replace(/^blocco /, '').replace(/^(N|S) /, '')) : 'dietro al treno ' + trainNo(F, F.trains[w.train] || tr);
         call(`PC, qui treno ${no}, sono fermo ${what} da 5 minuti, via impedita. Chiedo spiegazioni. Passo.`);
@@ -2902,6 +2994,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         FE.ag.seek(state.t, 600);                                   // back: from the last saved state; forward: drive
         if (Math.abs(state.t - FE.ag.S.t) > 1) state.t = FE.ag.S.t;  // a big jump takes a few frames: the clock follows
         depotTick(FE);                                              // the depot gives places as trains come in (every frame)
+        loopTick(FE);                                               // the test loop: one train at a time, asked at #A94
         slider.value = state.t; } }
     const [hm, ss] = fmt(state.t, true);
     document.getElementById('clock').innerHTML = hm + '<span class="s">' + ss + (state.t >= 86400 ? ' +1' : '') + '</span>';

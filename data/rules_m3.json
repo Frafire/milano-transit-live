@@ -2775,5 +2775,16 @@
    ]
   ],
   "_fix": "28 Oct, Giovanni: inside the building #A79 joins #A48 (w36-w21), #A80 #A49 (w38-w20), #A81 #A50 (w39-w22); w33 (#A78) ends like w32 and w34"
+ },
+ "loop_turn": {
+  "w": 71,
+  "lat": 45.433308,
+  "lon": 9.257961,
+  "on_track": [
+   45.433308,
+   9.257961
+  ],
+  "name": "Girare per andare anello di prova",
+  "note": "punto non fisico: qui cambiano banco i treni del lato A48-A65 diretti all'anello"
  }
 }

@@ -772,29 +772,133 @@ if CFG['training']:
     cyc = route_nodes(157, 157, via=[144, 145, 162, 78])
     # Giovanni decides when an idle train goes round the test loop: routes from every depot track
     pcy = make_path(('cycle',), cyc)
-    depot_nodes = [n for n in node_pos if in_depot(n) and len(node_edges[n]) >= 2]
-    def via_reversal(a, b):
-        """one reversal inside the depot (normal shunting): a -> X, change cab, X -> b"""
-        best = None
-        for x in depot_nodes:
-            r1 = route_nodes(a, x)
-            if not r1: continue
-            r2 = route_nodes(x, b)
-            if not r2: continue
-            L_ = plen(path_poly(r1)) + plen(path_poly(r2))
-            if best is None or L_ < best[0]: best = (L_, r1 + r2)
-        return best[1] if best else None
-    TEST = {'cycle': pcy, 'lap': round(paths[pcy][1][-1]), 'v_lap': 8.0, 'v_yard': V_YARD, 'reverse': REVERSE, 'by_store': {}}
+    TEST = {'cycle': pcy, 'lap': round(paths[pcy][1][-1]), 'v_lap': 8.0, 'v_yard': V_YARD, 'reverse': REVERSE}
     _solo = [u['node'] for u in getattr(__import__('fleet_' + LINE.lower()), 'SOLO', [])] if LINE == 'M3' else []
-    for p in storage + _solo:
-        _router.THROUGH_ALLOWED = {p} if p in STORE_EXIT else set()
-        r_in = (route_nodes(STORE_ARR_FROM[p], 157, via=[p], first=p) if fwd_place(p) else route_nodes(p, 157, first=STORE_EXIT.get(p))) or route_nodes(p, 157) or via_reversal(p, 157)
-        r_back = route_nodes(157, p, first=78) or route_nodes(157, p) or via_reversal(157, p)
+    # ---- the way to the loop as Giovanni describes it (28 Oct): every train asks at #A94 to go in (one train at a time);
+    # west side: to #A94, change cab, ask; middle (#A93-#A75): to #A94 and ask; east side (#A48-#A65): change cab at
+    # the turning point on w71 (east of the red line), then through #A93 to #A94 and ask. Back: out by #A96, stop
+    # beyond #A94, a place is given, on (straight or after a change of cab) to it.
+    _sig = {s_['_n']: s_ for s_ in _rules_['signals'] if s_.get('_n')}
+    _A94 = _sig.get(94)
+    _TURN71 = _rules_.get('loop_turn')
+    def _proj(pid, x, y):
+        p_, c_ = paths[pid]; best = None
+        for i in range(len(p_) - 1):
+            (a1, b1), (a2, b2) = p_[i], p_[i + 1]; dx, dy = a2 - a1, b2 - b1; L2 = dx * dx + dy * dy
+            if not L2: continue
+            u = max(0, min(1, ((x - a1) * dx + (y - b1) * dy) / L2)); e = math.hypot(x - a1 - u * dx, y - b1 - u * dy)
+            if best is None or e < best[0]: best = (e, c_[i] + u * math.sqrt(L2), math.degrees(math.atan2(dx, dy)) % 360)
+        return best
+    def _pt(pid, d):
+        p_, c_ = paths[pid]; i = max(0, min(bisect.bisect_right(c_, d) - 1, len(c_) - 2)); f = (d - c_[i]) / ((c_[i + 1] - c_[i]) or 1)
+        return p_[i][0] + (p_[i + 1][0] - p_[i][0]) * f, p_[i][1] + (p_[i + 1][1] - p_[i][1]) * f
+    def _passes_a94(pid):
+        if not _A94: return True
+        b_ = _proj(pid, *xy(*_A94['on_track'])); return b_ and b_[0] < 3 and abs((b_[2] - _A94['heading'] + 180) % 360 - 180) < 60
+    def _turn(pid1, d1, pid2):
+        """the train standing with its centre at d1 on pid1, on pid2 (after a change of cab): its centre there, if it
+        stands on the same track (both ends match), else None"""
+        ends = [_proj(pid2, *_pt(pid1, d1 + k_ * TRAIN_HALF)) for k_ in (-1, 0, 1)]
+        if any(e_ is None or e_[0] > 1.5 for e_ in ends): return None
+        return ends[1][1]
+    _mk = lambda key, st: make_path(key, st)
+    def _start(p_):        # the path out of place p_ and the train's centre on it
+        if fwd_place(p_): return STORE_ARR_FROM[p_], [p_], p_
+        return p_, [], STORE_EXIT.get(p_)
+    def loop_trip(p_):
+        _router.THROUGH_ALLOWED = {p_} if p_ in STORE_EXIT else set()
+        a_, v_, f_ = _start(p_); legs = None
+        r = route_nodes(a_, 157, via=v_, first=f_)
+        if r:
+            pid = _mk(('ltrip', p_, 'd'), r)
+            if _passes_a94(pid): legs = [[pid, start_off(p_), paths[pid][1][-1], 0]]
+        if legs is None:                 # one change of cab: beyond #A94 (west side) or at the w71 turning point (east side)
+            cands = [8, 9, 6, 23]
+            for X in cands:
+                r1 = route_nodes(a_, X, via=v_, first=f_); r2 = route_nodes(X, 157, via=[7]) if X != 7 else None
+                if not r1 or not r2: continue
+                p1, p2 = _mk(('ltrip', p_, 1, X), r1), _mk(('ltrip', p_, 2, X), r2)
+                if not _passes_a94(p2): continue
+                d1 = paths[p1][1][-1] - TRAIN_HALF; d2 = _turn(p1, d1, p2)
+                if d2 is None: continue
+                legs = [[p1, start_off(p_), d1, 1], [p2, d2, paths[p2][1][-1], 0]]; break
+        if legs is None and _TURN71:
+            tx, ty = xy(*_TURN71['on_track'])
+            for X in (154, 114, 115, 43, 42):
+                if X not in node_pos: continue
+                r1 = route_nodes(a_, X, via=v_, first=f_); r2 = route_nodes(X, 157, via=[8, 7])
+                if not r1 or not r2: continue
+                p1, p2 = _mk(('ltrip', p_, 1, X), r1), _mk(('ltrip', p_, 2, X), r2)
+                b1 = _proj(p1, tx, ty)
+                if not b1 or b1[0] > 4 or not _passes_a94(p2): continue
+                d1 = b1[1] + TRAIN_HALF + 3                     # the whole train past the turning point
+                if d1 > paths[p1][1][-1]: continue
+                d2 = _turn(p1, d1, p2)
+                if d2 is None: continue
+                legs = [[p1, start_off(p_), d1, 1], [p2, d2, paths[p2][1][-1], 0]]; break
         _router.THROUGH_ALLOWED = set()
-        if r_in and r_back and end_node(*r_in[-1]) == 157:
-            TEST['by_store'][str(p)] = [make_path(('tin', p), r_in), make_path(('tback', p), r_back),
-                                        start_off(p) if r_in and start_node(*r_in[0]) == (STORE_ARR_FROM.get(p) if fwd_place(p) else p) else TRAIN_HALF]
-    print('test loop reachable from', len(TEST['by_store']), 'of', len(storage), 'depot places')
+        return legs
+    TEST['trip'] = {}; _no = []
+    for p_ in storage + _solo:
+        L_ = loop_trip(p_)
+        if not L_: _no.append(p_); continue
+        # the stop in front of #A94 on the last leg, where the train asks to go in (its centre; None: it asks where it
+        # stands, right after its change of cab beyond #A94)
+        pl_, s_, e_, _r = L_[-1]; b_ = _proj(pl_, *xy(*_A94['on_track'])) if _A94 else None
+        gate = b_[1] - TRAIN_HALF - 8 if b_ else None
+        if gate is not None and gate <= s_ + 2: gate = None
+        TEST['trip'][str(p_)] = {'legs': [[a, round(b, 1), round(c, 1), d] for a, b, c, d in L_], 'gate': round(gate, 1) if gate else None}
+    # back: from the loop out by #A96, the train stops beyond #A94 (its rear past node 8's switch), there it gets a place
+    # and goes on to it: straight on, after a change of cab, or (east side) after a change of cab and a second one at
+    # the w71 turning point
+    # out of the loop by #A96 and through the junction onto the w72 track (not the w1 track where the next train waits
+    # at #A94): it stops with its rear past the switch at node 94, then goes on to its place
+    r_ret = route_nodes(157, 31, via=[94], first=78)
+    print('loop exit:', [(_e, _dd) for _e, _dd in r_ret] if r_ret else None)
+    TEST['ret'] = None; TEST['home'] = {}
+    def home_legs(pr, dr, q_):
+        _router.THROUGH_ALLOWED = {q_} if q_ in STORE_EXIT else set()
+        try:
+            sx, sy = _pt(pr, dr)
+            cont = lambda r_: r_ret + r_ if r_ and r_[0][0] != r_ret[-1][0] else None   # straight on from the stop
+            r = cont(route_nodes(31, q_))
+            if r:
+                ph = make_path(('lhome', q_, 's'), r); return [[ph, dr, end_off(q_, paths[ph][1][-1]), 0]]
+            r = route_nodes(31, q_, first=94)                       # change of cab beyond #A94 (back the way it came)
+            if r:
+                ph = make_path(('lhome', q_, 'r'), r); d_ = _turn(pr, dr, ph)
+                if d_ is not None: return [[ph, d_, end_off(q_, paths[ph][1][-1]), 0]]
+            if _TURN71:                                              # change of cab, then again at the w71 turning point
+                tx, ty = xy(*_TURN71['on_track'])
+                for X in (154, 114, 115, 43, 42):
+                    r1 = cont(route_nodes(31, X)) or route_nodes(31, X, first=94); r2 = route_nodes(X, q_)
+                    if not r1 or not r2: continue
+                    if r1[:len(r_ret)] == r_ret: p1 = make_path(('lhome', q_, '1s', X), r1); d0 = dr
+                    else: p1 = make_path(('lhome', q_, 1, X), r1); d0 = _turn(pr, dr, p1)
+                    p2 = make_path(('lhome', q_, 2, X), r2); b1 = _proj(p1, tx, ty)
+                    if d0 is None or not b1 or b1[0] > 4: continue
+                    d1 = b1[1] + TRAIN_HALF + 3
+                    if d1 > paths[p1][1][-1]: continue
+                    d2 = _turn(p1, d1, p2)
+                    if d2 is None: continue
+                    return [[p1, d0, d1, 1], [p2, d2, end_off(q_, paths[p2][1][-1]), 0]]
+            return None
+        finally:
+            _router.THROUGH_ALLOWED = set()
+    _nohome = []
+    if r_ret:
+        pr = make_path(('lret',), r_ret)
+        _d94 = None; _acc = 0.0
+        for _e, _dd in r_ret:
+            if start_node(_e, _dd) == 94: _d94 = _acc; break
+            _acc += plen(path_poly([(_e, _dd)]))
+        dr = min(paths[pr][1][-1] - TRAIN_HALF, (_d94 if _d94 is not None else paths[pr][1][-1]) + TRAIN_HALF + 15)
+        TEST['ret'] = [pr, 0, round(dr, 1)]
+        for q_ in storage + _solo:
+            L_ = home_legs(pr, dr, q_)
+            if L_: TEST['home'][str(q_)] = [[a, round(b, 1), round(c, 1), d] for a, b, c, d in L_]
+            else: _nohome.append(q_)
+    print('test loop trips (Giovanni\'s way in by #A94):', len(TEST['trip']), 'places | no way for', _no, '| way back to', len(TEST['home']), 'places, not to', _nohome)
     # test platforms (fermate di prova): 110 m of platform ending at each stopping-point signal on the loop
     TEST['platforms'] = []
     _pp, _pc = paths[pcy]
@@ -1475,6 +1579,15 @@ for p_, rec in DEPOT_PATHS.items():
         if any(e1 == e2 and a1 < b2 - 0.5 and a2 < b1 - 0.5 for (e1, a1, b1) in park for w in ways for (e2, a2, b2) in w): blocks.append(q_)
     rec['blocks'] = blocks
 print('depot places in the way of others when occupied:', {k: v['blocks'] for k, v in DEPOT_PATHS.items() if v.get('blocks')})
+# the test loop: places a train going to or coming back from the loop would run over (they must be free)
+if TEST and TEST.get('trip'):
+    _park = {p_: _cover(rec['in'], rec['in_end'] - TRAIN_HALF - 3, rec['in_end'] + TRAIN_HALF + 3) for p_, rec in DEPOT_PATHS.items()}
+    def _over(legs, own):
+        cov = [c for i_, (pid, d0, d1, _r) in enumerate(legs) for c in _cover(pid, min(d0, d1) + (TRAIN_HALF if i_ == 0 else 0), max(d0, d1) - (TRAIN_HALF if i_ == len(legs) - 1 else 0))]
+        return [q_ for q_, pk in _park.items() if q_ != own and any(e1 == e2 and a1 < b2 - 0.5 and a2 < b1 - 0.5 for (e1, a1, b1) in pk for (e2, a2, b2) in cov)]
+    TEST['trip_blocks'] = {p_: _over(v['legs'], p_) for p_, v in TEST['trip'].items()}
+    TEST['home_blocks'] = {q_: _over(v, q_) for q_, v in TEST['home'].items()}
+    print('test loop: places in the way, going', {k: v for k, v in TEST['trip_blocks'].items() if v}, '| coming back', {k: v for k, v in TEST['home_blocks'].items() if v})
 json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in paths],
            'trains': [tl.segs for tl in out],
            'where': [[tl.start_where, tl.end_where] for tl in out],
@@ -1539,3 +1652,5 @@ if __name__ == '__main__' and os.environ.get('REPORT'):
     svc = sorted([(tr['dep'], 1) for tr in trips] + [(tr['arr'], -1) for tr in trips]); c = m = 0
     for t, d in svc: c += d; m = max(m, c)
     print('trains in passenger service at the busiest moment:', m, '| trains out of the depot at the busiest moment:', mx)
+
+

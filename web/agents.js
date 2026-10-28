@@ -384,6 +384,8 @@
     }
     function stepAgent(a) {
       if (a.mode === 'static' || a.hidden || a.status === 'stopped' || S.t < a.wait) return;
+      // held where it stands before this move of its day (test loop: waiting at #A94 for the loop, or for a depot place)
+      if (a.mode === 'plan' && o.holdAt && o.holdAt(a.k, a.si, a)) { a.v = 0; a.why = 'anello'; return; }
       let leg = a.legs[0];
       while (leg && leg.kind) { a.legs.shift(); if (!marker(a, leg)) return; leg = a.legs[0]; }
       if (!leg) {
