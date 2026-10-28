@@ -2947,7 +2947,8 @@
      6,
      7,
      8
-    ]
+    ],
+    "section": true
    },
    {
     "name": "Comasina: tronchetti",
@@ -2970,14 +2971,16 @@
      47,
      96,
      97
-    ]
+    ],
+    "section": true
    },
    {
     "name": "Ingresso deposito da w71/w72: due treni paralleli, passa uno alla volta",
     "signals": [
      98,
      99
-    ]
+    ],
+    "section": true
    }
   ],
   "manual": [
@@ -2990,7 +2993,17 @@
   "depot_sides": {
    "_about": "Shunting signals east and west of this longitude: one movement at a time on each side",
    "lon": 9.2552
-  }
+  },
+  "zones": [
+   {
+    "name": "anello di prova",
+    "entry": [
+     94
+    ],
+    "_about": "one train at a time on the test loop: #A94 clears only for the train holding it (it asks by radio at #A94)"
+   }
+  ],
+  "_model": "One model: groups (one signal at a time; hold = the grant stays until the movement is over; section = block section to the next signal), manual (worked by the player when the depot is on manual; all shunting signals are manual too), depot_sides (shunting signals east/west of lon: one movement at a time per side), zones (one train at a time, entry signals). Signals by their fixed #A number."
  },
  "names": {
   "_about": "Names of tracks by OSM way (w number in the editor). Shown on the map and used by the radio.",

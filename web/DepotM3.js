@@ -132,7 +132,10 @@
     }
 
     // ---------- test loop ----------
-    const L = () => F.loop || (F.loop = { holder: null, queue: [], asked: {}, exit: {} });
+    const L = () => F.loop || (F.loop = { asked: {}, exit: {} });
+    // the loop is a zone of the interlocking (one train at a time, entry #A94): who holds it lives in its state
+    const IL = () => F.ag.IL, ZI = () => IL() ? IL().zoneOf('anello di prova') : null;
+    const holder = () => ZI() != null ? IL().zoneHolder(F.ag.il(), ZI()) : null;
     const no = k => env.trainNo(F.trains[k]);
     // a loop trip still ahead of the train (the trips done stay in its day, they do not count)
     const loopAhead = k => { const tr = F.trains[k], a = F.ag && F.ag.agents()[k], from = a ? Math.min(a.si, tr.segs.length) : 0; for (let i = from; i < tr.segs.length; i++) if (loopRole(tr.segs[i])) return true; return false; };
@@ -143,7 +146,7 @@
       if (loopAhead(k)) return { onLoop: true, note: D.loopMsg || 'In giro sull\'anello di prova.' };
       if (p == null) return null;
       if (!T.trip[p]) return { can: false, note: 'Da questo posto non c\'è una via per l\'anello di prova.' };
-      const h = L().holder; return { can: true, holder: h != null && h !== k ? no(h) : null, note: D.loopMsg };
+      const h = holder(); return { can: true, holder: h != null && h !== k ? no(h) : null, note: D.loopMsg };
     }
     // the trip as moves of its day: to the loop (asking at #A94), the laps, and a stand-in for the way out (decided
     // before it leaves the loop)
@@ -198,7 +201,7 @@
       a.si = si - 1; a.legs = []; a.wait = 0; a.why = null;
     }
     function grant(k, si, again) {
-      const S = L(), man = F.ag.il() && !F.ag.il().auto; S.holder = k;
+      const man = F.ag.il() && !F.ag.il().auto;
       env.say('PC', again ? `Treno ${no(k)}, l'anello di prova è libero: ${man ? 'attendi l\'apertura del #A94 ed' : 'via libera al #A94,'} entra. Passo.`
         : man ? `Treno ${no(k)}, autorizzato: l'anello di prova è tuo, attendi l'apertura del #A94. Passo.` : `Treno ${no(k)}, autorizzato: via libera al #A94, entra nell'anello di prova. Passo.`, 'pc');
       env.say('T' + no(k), 'Ricevuto, entro nell\'anello. Passo.', 'dr'); release(k, si, 'in2');
@@ -226,12 +229,13 @@
     function loopTick() {
       if (!F.test || !F.test.trip) return;
       const S = L(), ag = F.ag, t = ag.S.t, T = F.test, half = F.engine.half;
-      if (S.holder != null && !loopAhead(S.holder)) S.holder = null;
+      const zi = ZI(), il = ag.il(); if (zi == null) return;
+      if (holder() != null && !loopAhead(holder())) IL().zoneFree(il, zi, holder());
       // the loop is free when the train's tail is past the flag beyond #A95: a notice, then the next one goes in
       const freed = k => {
-        if (S.holder === k) S.holder = null; S.queue = S.queue.filter(x => x !== k); delete S.exit[k];
+        delete S.exit[k];
         env.say('T' + no(k), `PC, qui treno ${no(k)}: sono fuori dall'anello, dopo il #A95. Anello di prova libero. Passo.`, 'ok');
-        const nx = S.queue.shift(); if (nx != null && S.asked[nx] && S.asked[nx].r === 'gate') grant(nx, S.asked[nx].si, true);
+        const nx = IL().zoneFree(il, zi, k); if (nx != null && S.asked[nx] && S.asked[nx].r === 'gate') grant(nx, S.asked[nx].si, true);
       };
       // before leaving the loop: it says it has finished and gets its place
       ag.agents().forEach((a, k) => {
@@ -258,8 +262,8 @@
         if (w.r === 'gate' && !w.said) {
           w.said = true; const h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? 'Buongiorno' : 'Buonasera';
           env.call(tr, `${hi} PC, qui treno ${no(k)}, fermo al segnale #A94: chiedo l'autorizzazione per entrare nell'anello di prova. Passo.`);
-          if (S.holder == null || S.holder === k) grant(k, w.si, false);
-          else { if (!S.queue.includes(k)) S.queue.push(k); env.say('PC', `Negativo treno ${no(k)}: l'anello di prova è occupato dal treno ${no(S.holder)}. Resta fermo al #A94, ti richiamo io. Passo.`, 'pc'); env.say('T' + no(k), 'Ricevuto, resto fermo al #A94. Passo.', 'dr'); }
+          if (IL().zoneAsk(il, zi, k)) grant(k, w.si, false);
+          else { env.say('PC', `Negativo treno ${no(k)}: l'anello di prova è occupato dal treno ${no(holder())}. Resta fermo al #A94, ti richiamo io. Passo.`, 'pc'); env.say('T' + no(k), 'Ricevuto, resto fermo al #A94. Passo.', 'dr'); }
         } else if (w.r === 'homewait') {
           // standing past #A95 without a place (none was free before it left the loop): try again
           const q = placeForExit(k, w.si); if (q == null) continue;

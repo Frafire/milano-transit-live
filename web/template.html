@@ -2590,8 +2590,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   // interlocking notes for a signal's tooltip
   function ilNote(F, si) {
     const IL = F.ag && F.ag.IL, net = F.engine.net; if (!IL || si < 0) return '';
-    const g = IL.groupOf(si), names = net.interlocking && net.interlocking.group_names || [];
-    return (g != null ? ' · uno alla volta: ' + (names[g] || 'gruppo ' + (g + 1)) : '') + (IL.isManual(si) ? ' · manovrato dal giocatore (clic = via libera)' : '');
+    return IL.describe(si);
   }
   function clearManual(F, si, tag) {
     if (sigDel) return;

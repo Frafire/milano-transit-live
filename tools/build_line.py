@@ -339,19 +339,20 @@ def _sig_index(n):     # #A number (as shown on the map) -> index in the list of
 _IL = _rules_.get('interlocking', {})
 _side_lon = _IL.get('depot_sides', {}).get('lon')
 _sides = [[i for i, sg in enumerate(_rules_['signals']) if sg.get('type') == 'shunt' and (sg['lon'] > _side_lon) == east] for east in (True, False)] if _side_lon else []
-INTERLOCKING = {'groups': [[i for i in (_sig_index(n) for n in g['signals']) if i is not None] for g in _IL.get('groups', [])],
-                'group_names': [g.get('name', '') for g in _IL.get('groups', [])],
-                'manual': [i for i in (_sig_index(n) for n in _IL.get('manual', [])) if i is not None]}
+# ---- interlocking: one model (web/interlocking.js). Groups, depot sides, manual signals, block sections, zones ----
+_ix = lambda ns: [i for i in (_sig_index(n) for n in ns) if i is not None]
+_G = [{'name': g.get('name', ''), 'signals': _ix(g['signals']), 'hold': bool(g.get('hold')), 'section': bool(g.get('section'))} for g in _IL.get('groups', [])]
 # the depot: one movement at a time on each side (the signal stays given until the train stops or has gone 400 m)
 for nm_, g_ in zip(('Deposito lato est: una manovra alla volta', 'Deposito lato ovest: una manovra alla volta'), _sides):
-    INTERLOCKING['hold'] = INTERLOCKING.get('hold', []) + [len(INTERLOCKING['groups'])]
-    INTERLOCKING['groups'].append(g_); INTERLOCKING['group_names'].append(nm_)
-# with the depot on manual the player opens every shunting signal too (one train each)
-INTERLOCKING['manual'] = sorted(set(INTERLOCKING['manual']) | {i for g_ in _sides for i in g_})
-# block sections in the depot and on the test loop (Giovanni, 28 Oct): a depot or loop signal clears only when the
-# track from it to the next signal on the train's way is free (on the line the block sections do this already)
-INTERLOCKING['section'] = sorted(set(INTERLOCKING['manual']) | {i for g_, nm_ in zip(INTERLOCKING['groups'], INTERLOCKING['group_names'])
-                                                                if 'anello' in nm_.lower() or 'deposito' in nm_.lower() for i in g_})
+    _G.append({'name': nm_, 'signals': g_, 'hold': True, 'section': True})
+_manual = set(_ix(_IL.get('manual', []))) | {i for g_ in _sides for i in g_}      # with the depot on manual the player opens every shunting signal
+_section = _manual | {i for g in _G if g['section'] for i in g['signals']}
+_Z = [{'name': z['name'], 'entry': _ix(z['entry'])} for z in _IL.get('zones', [])]
+_ctl = sorted(_manual | _section | {i for g in _G for i in g['signals']} | {i for z in _Z for i in z['entry']})
+INTERLOCKING = {'signals': {str(i): {'n': _rules_['signals'][i]['_n'], 'manual': i in _manual, 'section': i in _section} for i in _ctl},
+                'groups': [{k: v for k, v in g.items() if k != 'section'} for g in _G], 'zones': _Z, 'manual': sorted(_manual)}
+print('interlocking: %d controlled signals, %d groups, %d zones, %d worked by the player, %d with a block section' % (
+    len(_ctl), len(_G), len(_Z), len(_manual), len(_section)))
 for _t in (COM_TAILS if CFG.get('tail_at_signal') else []):
     _e = edges[node_edges[_t][0]]; _P = _e['pts'] if _e['b'] == _t else _e['pts'][::-1]; _P = _P[::-1]   # from the tail end
     _best = None
@@ -1447,7 +1448,7 @@ if os.path.exists(_rules):
     NET['depot'] = [{'node': n, 'lat': q[0], 'lon': q[1], 'way': STORE_WAY.get(n, -1), 'out': 'through' if n in STORE_EXIT and n not in STORE_SAME else 'same end',
                      'name': _dn.get(str(n), 'Deposito binario %d' % (i + 1))} for i, (n, q) in enumerate(_pl)]
     NET['names'] = {k: v for k, v in _rules_.get('names', {}).get('ways', {}).items()}
-    print('interlocking groups:', INTERLOCKING['groups'], '| depot signals worked by the player:', INTERLOCKING['manual'])
+    print('interlocking groups:', [(g['name'], ['A%02d' % _rules_['signals'][i]['_n'] for i in g['signals']]) for g in INTERLOCKING['groups']])
 # where each placed signal is on every path that goes over it facing it: trains stop just before it, and it shows
 # the state of the junction / tail / section right behind it. sigpos[pid] = [[d, signal index], ...]
 SIGPOS = {}
