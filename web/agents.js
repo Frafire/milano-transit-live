@@ -423,6 +423,9 @@
         }
         a.cWait = null;
       }
+      // a path that goes round (the test loop, twice round): the next hop starts one lap back, at the same place
+      const cyc = o.cyclic && o.cyclic[leg.pid];
+      if (cyc && leg.pid === a.pid && a.v === 0 && leg.start != null && Math.abs(Math.abs(a.d - leg.start) - cyc) < 8) a.d = leg.start;
       if (leg.pid !== a.pid || leg.rev) {                     // new path from a standing start (same place)
         const rev = leg.rev; leg.rev = false;
         a.pid = leg.pid; a.d = leg.start != null ? leg.start : a.d; a.v = 0;

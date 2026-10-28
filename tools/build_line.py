@@ -780,8 +780,14 @@ if CFG['training']:
     r1 = route_nodes(78, 78, via=[157, 144, 145, 162])
     cyc = route_nodes(157, 157, via=[144, 145, 162, 78])
     # Giovanni decides when an idle train goes round the test loop: routes from every depot track
-    pcy = make_path(('cycle',), cyc)
-    TEST = {'cycle': pcy, 'lap': round(paths[pcy][1][-1]), 'v_lap': 8.0, 'v_yard': V_YARD, 'reverse': REVERSE}
+    # the loop path goes round twice: a train between two test stops (or across #A95's junction at 157) is always on it
+    # in one piece, never past its ends (Giovanni 28 Oct: trains were drawn bent at the seam). Laps run from stop to stop.
+    _lap1 = make_path(('cycle1',), cyc); _L1 = paths[_lap1][1][-1]
+    pcy = make_path(('cycle',), cyc + cyc)
+    _CYC_E = {ei for ei, _ in cyc}                    # all of it is the loop's own track (also the 19 m piece 157-144)
+    TEST = {'cycle': pcy, 'lap': round(_L1, 1), 'v_lap': 8.0, 'v_yard': V_YARD, 'reverse': REVERSE, 'cyclic': True,
+            'acc': OPS['acceleration_ms2'], 'brk': OPS['braking_ms2'],
+            'v_run': (OPS.get('line_max_kmh', 80) - OPS.get('curve_minus_kmh', 0)) / 3.6, 'dwell': 15}
     _solo = [u['node'] for u in getattr(__import__('fleet_' + LINE.lower()), 'SOLO', [])] if LINE == 'M3' else []
     # ---- the way to the loop as Giovanni describes it (28 Oct): every train asks at #A94 to go in (one train at a time);
     # west side: to #A94, change cab, ask; middle (#A93-#A75): to #A94 and ask; east side (#A48-#A65): change cab at
@@ -915,8 +921,8 @@ if CFG['training']:
             else: _nohome.append(q_)
     print('test loop trips (Giovanni\'s way in by #A94):', len(TEST['trip']), 'places | no way for', _no, '| way back to', len(TEST['home']), 'places, not to', _nohome)
     # test platforms (fermate di prova): 110 m of platform ending at each stopping-point signal on the loop
-    TEST['platforms'] = []
-    _pp, _pc = paths[pcy]
+    TEST['platforms'] = []; TEST['stops'] = []
+    _pp, _pc = paths[_lap1]
     for sg in _rules_.get('signals', []):
         if (sg.get('type') != 'stop' and not sg.get('test_stop')) or sg.get('line', LINE) != LINE: continue
         x0, y0 = xy(*(sg.get('on_track') or (sg['lat'], sg['lon']))); best = None
@@ -935,6 +941,9 @@ if CFG['training']:
             L_ = math.hypot(bx - ax, by - ay) or 1; nx, ny = (by - ay) / L_ * side, -(bx - ax) / L_ * side   # to the signal's side
             la_, lo_ = ll(ax + (bx - ax) * f + nx * 3.2, ay + (by - ay) * f + ny * 3.2); pts_.append([round(la_, 6), round(lo_, 6)])
         TEST['platforms'].append({'name': sg.get('test_stop_name') or sg.get('name') or 'Fermata di prova', 'pts': pts_})
+        TEST['stops'].append(round(((d0 + d1) / 2) % _pc[-1], 1))       # the train stops with its centre mid-platform
+    TEST['stops'].sort()
+    print('test stops on the loop (centre of the train, m from 157):', TEST['stops'], '| lap', TEST['lap'])
     print('test platforms:', [t['name'] for t in TEST['platforms']])
 else:
     TEST = None
@@ -1179,8 +1188,9 @@ def _edge_kmh(e, cat):
     if e['a'] in _tails or e['b'] in _tails: return OPS['tail_speed_kmh']
     return OPS.get('line_max_kmh', 80)
 NET = {'nodes': {}, 'edges': [], 'signals': []}
+_CYC_E = globals().get('_CYC_E', set())
 for ei, e in enumerate(edges):
-    cat = _edge_cat(e)
+    cat = 'test' if ei in _CYC_E else _edge_cat(e)
     for n in (e['a'], e['b']):
         if n not in NET['nodes']: NET['nodes'][n] = [round(v, 6) for v in ll(*node_pos[n])]
     NET['edges'].append({'a': e['a'], 'b': e['b'], 'len': round(e['len'], 1), 'way': e['way'] if 'mid' not in e else -1,

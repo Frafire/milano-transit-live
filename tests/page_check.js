@@ -4,9 +4,10 @@
 // - manual: depot on manual, a train going to the loop calls at a red depot signal after 2 and after 7 minutes
 // - twice: a train goes round the loop, comes back, and can go again
 // - radio: the radio on a train in service: a longer stop, a speed limit, a free message, the answers
+// - laps: two laps; it stops a few seconds at each test stop and nowhere else on the loop, faster than 15 km/h
 // - place: a train on its way into the depot gets a place; the player changes it by radio
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
-// Usage: node tests/page_check.js [loop|twice|manual|place|radio ...]   (no argument: all of them). Exit code 1 if one fails.
+// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html');
@@ -80,6 +81,29 @@ const SCENARIOS = {
       out.free = /Hulk|riparliamo/.test(log());
       st.playing = true; st.speed = 60; await sleep(3000); st.playing = false;
       return { ok: out.stop && out.speed && out.free, out, log: log().split('\n').slice(-6) };
+    });
+  },
+  async laps(p) {      // two laps: round without a stop at the junction, a few seconds at each test stop, faster than 15 km/h
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.depotPaths), T = F.test;
+      st.playing = false; st.t = 11.5 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      const at = Object.entries(F.depot.at).map(([k, q]) => [+k, q]), A = at.find(([, q]) => F.test.trip[q] && q.startsWith('2000')) || at[0], k = A[0];
+      st.sel = 'f' + M.fleets.indexOf(F) + ':' + k; M.renderCard(); await sleep(200);
+      const b = document.querySelector('[data-loop="2"]'); if (!b) return { ok: false, why: 'no 2-lap button' }; b.click(); await sleep(200);
+      st.playing = true; st.speed = 30; const t0 = Date.now(), stops = [], role = a => { const s = F.trains[k].segs[a.si]; return s && typeof s[6] === 'string' ? s[6] : ''; };
+      let vmax = 0, was = null, lapsSeen = 0;
+      while (Date.now() - t0 < 150000) {
+        await sleep(100); const a = F.ag.agents()[k]; if (!a) break; const r = role(a);
+        if (r === 'loop:lap' && a.pid === T.cycle) { vmax = Math.max(vmax, a.v); lapsSeen++;
+          const here = Math.round(((a.d % T.lap) + T.lap) % T.lap); if (a.v === 0 && was !== 0) stops.push(here); was = a.v; }
+        else was = null;
+        if (lapsSeen && !(F.dm.loopInfo(k) || {}).onLoop && F.depot.target[k] == null) break;
+      }
+      st.playing = false;
+      const near = (x, y) => Math.min(Math.abs(x - y), T.lap - Math.abs(x - y)) < 12;
+      const atStops = stops.filter(x => T.stops.some(y => near(x, y))).length, other = stops.filter(x => !T.stops.some(y => near(x, y)) && !near(x, 0));
+      return { ok: atStops >= 4 && other.length === 0 && vmax * 3.6 > 30, train: k, stops, other, vmaxKmh: Math.round(vmax * 3.6), place: F.depot.at[k] };
     });
   },
   async place(p) {

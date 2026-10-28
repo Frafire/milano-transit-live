@@ -714,6 +714,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   };
   function trackAt(F, pid, d) {
     const sh = F.paths[pid], sd = sh.d; let a = 0, b = sd.length - 1;
+    if (F.test && F.test.cyclic && pid === F.test.cycle) { const L = sd[b]; d = ((d % L) + L) % L; }   // the test loop closes on itself
     // beyond either end: carry on in the same direction, so a parked train keeps all its cars
     const ext = (i, j, over) => { const L = (sd[j] - sd[i]) || 1, f = over / L;
       return [sh.lat[j] + (sh.lat[j] - sh.lat[i]) * f, sh.lon[j] + (sh.lon[j] - sh.lon[i]) * f]; };
@@ -1992,7 +1993,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
       resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
-      initAt: t => bookedPositions(F, t), holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)),
+      initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)),
       locks: cl => MTLEngine.blockResources(MTLEngine.turnLocks(G, cl), E_.pathEdges, E_.net.edges).map(r => Object.assign(r, { lock: true })) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
   }

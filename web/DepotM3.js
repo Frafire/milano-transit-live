@@ -150,17 +150,34 @@
     }
     // the trip as moves of its day: to the loop (asking at #A94), the laps, and a stand-in for the way out (decided
     // before it leaves the loop)
+    // time to run len metres from a stop to a stop on the loop (accelerate, run, brake), a little slack
+    function runTime(len) {
+      const T = F.test, a = T.acc || 1, b = T.brk || 1, v = T.v_run || T.v_lap, xa = v * v / (2 * a), xb = v * v / (2 * b);
+      if (len <= xa + xb) { const vp = Math.sqrt(2 * len * a * b / (a + b)); return Math.max(2, (vp / a + vp / b) * 1.1); }
+      return Math.max(2, (v / a + v / b + (len - xa - xb) / v) * 1.1);
+    }
     function loopSegs(p, t0, laps) {
       const T = F.test, R = T.trip[p], V = T.v_yard, segs = []; let t = t0;
       const add = (pid, d0, d1, kind, role, v, place) => { const dur = Math.max(2, Math.abs(d1 - d0) / v);
         segs.push([pid, kind, -1, [Math.round(t), Math.round(t + dur)], [Math.round(d0 * 10) / 10, Math.round(d1 * 10) / 10], place, 'loop:' + role]); t += dur; };
+      const addT = (pid, d0, d1, role, dur) => { segs.push([pid, 'training', -1, [Math.round(t), Math.round(t + dur)], [Math.round(d0 * 10) / 10, Math.round(d1 * 10) / 10], null, 'loop:' + role]); t += dur; };
       R.legs.forEach((l, i) => {
         const place = i === 0 ? +p : null, last = i === R.legs.length - 1;
         if (last && R.gate != null && R.gate > l[1] + 2) { add(l[0], l[1], R.gate, 'training', 'in', V, place); t += 20; add(l[0], R.gate, l[2], 'training', 'gate', V, null); }
         else add(l[0], l[1], l[2], 'training', last ? 'gate' : 'in', V, place);
         if (l[3]) t += T.reverse;
       });
-      for (let n = 0; n < laps; n++) add(T.cycle, 0, T.lap, 'training', 'lap', T.v_lap, null);
+      // the laps: from #A95's junction (157) round, stopping a few seconds at each test stop (doors closed), back to 157.
+      // The loop path goes round twice, so each hop is on it in one piece; at a stop the train is put back by one lap
+      // (same place) when the next hop starts there (agents.js, cyclic paths).
+      const Lp = T.lap, st = (T.stops || []).filter(x => x > 1 && x < Lp - 1), us = [0];
+      for (let n = 0; n < laps; n++) st.forEach(x => us.push(n * Lp + x));
+      us.push(laps * Lp);
+      for (let i = 1; i < us.length; i++) {
+        const len = us[i] - us[i - 1], d0 = us[i - 1] % Lp;
+        addT(T.cycle, d0, d0 + len, 'lap', runTime(len));
+        if (i < us.length - 1 && us[i] % Lp) t += T.dwell || 15;
+      }
       add(T.ret[0], T.ret[1], T.ret[2], 'training', 'ret', V, null);
       t += 20; add(T.ret[0], T.ret[2], T.ret[2] + 0.1, 'to_depot', 'homewait', V, null);
       return { segs, end: t };
@@ -172,7 +189,7 @@
       const inWay = ((T.trip_blocks || {})[p] || []).filter(x => taken().has(x));
       if (inWay.length) { D.loopMsg = 'La via per l\'anello passa da ' + inWay.map(name).join(', ') + ', occupato.'; return false; }
       const idx = a.mode === 'static' ? tr.segs.length : a.si, next = tr.segs[idx], t0 = Math.round(F.ag.S.t) + 20;
-      const deadline = next ? next[3][0] - 600 : 27 * 3600, lapT = T.lap / T.v_lap;
+      const deadline = next ? next[3][0] - 600 : 27 * 3600, lapT = loopSegs(p, t0, 1).end - loopSegs(p, t0, 0).end;
       const room = deadline - loopSegs(p, t0, 0).end;
       const laps = how === 'until' ? Math.floor(room / lapT) : +how || 1;
       if (laps < 1) { D.loopMsg = 'Non c\'è tempo per un giro prima della prossima corsa' + (next ? ' (esce dal deposito alle ' + env.fmt(next[3][0]) + ')' : '') + '.'; return false; }
