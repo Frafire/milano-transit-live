@@ -2821,7 +2821,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       return best && (best.vx * -uy + best.vy * ux) > 0 ? 1 : -1;
     }
-    const NPL = Math.max(0, ...(F.engine.net.signals || []).map((x, i) => x.n || i + 1)), tagOf = n => '#A' + String(n).padStart(2, '0');
+    // block signals computed along the line (not placed on the map) are numbered from #A201: fixed, they do not move when
+    // a signal is placed
+    const NPL = 200, tagOf = n => '#A' + String(n).padStart(2, '0');
     const place = (pid, other, d, sgn, tip, blockIdx) => {
       const tag = tagOf(NPL + blockIdx + 1); tip = tag + ' · ' + tip;
       const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);

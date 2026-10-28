@@ -287,7 +287,8 @@
    "dir": 1,
    "type": "stop",
    "name": "Fermata di prova (superficie)",
-   "kind": "stop"
+   "kind": "stop",
+   "n": 1
   },
   {
    "line": "M3",
@@ -304,7 +305,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 2
   },
   {
    "line": "M3",
@@ -321,7 +323,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 3
   },
   {
    "line": "M3",
@@ -338,7 +341,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 4
   },
   {
    "line": "M3",
@@ -355,7 +359,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 5
   },
   {
    "line": "M3",
@@ -372,7 +377,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 6
   },
   {
    "line": "M3",
@@ -389,7 +395,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 7
   },
   {
    "line": "M3",
@@ -406,7 +413,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 8
   },
   {
    "line": "M3",
@@ -423,7 +431,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 9
   },
   {
    "line": "M3",
@@ -440,7 +449,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 10
   },
   {
    "line": "M3",
@@ -457,7 +467,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 11
   },
   {
    "line": "M3",
@@ -474,7 +485,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 12
   },
   {
    "line": "M3",
@@ -492,7 +504,8 @@
    "type": "entry",
    "name": "",
    "kind": "atp",
-   "note": "this signal protects both tracks 2 and 3"
+   "note": "this signal protects both tracks 2 and 3",
+   "n": 13
   },
   {
    "line": "M3",
@@ -509,7 +522,8 @@
    "dir": 1,
    "type": "entry",
    "name": "Partenza binario 1",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 14
   },
   {
    "line": "M3",
@@ -526,7 +540,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 15
   },
   {
    "line": "M3",
@@ -543,7 +558,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 16
   },
   {
    "line": "M3",
@@ -560,7 +576,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 17
   },
   {
    "line": "M3",
@@ -577,7 +594,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 18
   },
   {
    "line": "M3",
@@ -594,7 +612,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 19
   },
   {
    "line": "M3",
@@ -611,7 +630,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 20
   },
   {
    "line": "M3",
@@ -628,7 +648,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 21
   },
   {
    "line": "M3",
@@ -645,7 +666,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 22
   },
   {
    "line": "M3",
@@ -662,7 +684,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 23
   },
   {
    "line": "M3",
@@ -679,7 +702,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 24
   },
   {
    "line": "M3",
@@ -696,7 +720,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 25
   },
   {
    "line": "M3",
@@ -713,7 +738,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 26
   },
   {
    "line": "M3",
@@ -730,7 +756,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 27
   },
   {
    "line": "M3",
@@ -747,7 +774,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 28
   },
   {
    "line": "M3",
@@ -764,7 +792,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 29
   },
   {
    "line": "M3",
@@ -781,7 +810,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 30
   },
   {
    "line": "M3",
@@ -798,7 +828,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 31
   },
   {
    "line": "M3",
@@ -815,7 +846,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 32
   },
   {
    "line": "M3",
@@ -832,7 +864,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 33
   },
   {
    "line": "M3",
@@ -849,7 +882,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 34
   },
   {
    "line": "M3",
@@ -866,7 +900,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 35
   },
   {
    "line": "M3",
@@ -883,7 +918,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 36
   },
   {
    "line": "M3",
@@ -900,7 +936,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 37
   },
   {
    "line": "M3",
@@ -917,7 +954,8 @@
    "dir": -1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 38
   },
   {
    "line": "M3",
@@ -934,7 +972,8 @@
    "dir": 1,
    "type": "entry",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 39
   },
   {
    "line": "M3",
@@ -951,7 +990,8 @@
    "dir": 1,
    "type": "block",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 40
   },
   {
    "line": "M3",
@@ -968,7 +1008,8 @@
    "dir": -1,
    "type": "block",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 41
   },
   {
    "line": "M3",
@@ -985,7 +1026,8 @@
    "dir": 1,
    "type": "block",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 42
   },
   {
    "line": "M3",
@@ -1002,7 +1044,8 @@
    "dir": 1,
    "type": "block",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 43
   },
   {
    "line": "M3",
@@ -1019,7 +1062,8 @@
    "dir": -1,
    "type": "block",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 44
   },
   {
    "line": "M3",
@@ -1036,7 +1080,8 @@
    "dir": 1,
    "type": "entry",
    "name": "Partenza binario 2",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 45
   },
   {
    "line": "M3",
@@ -1055,7 +1100,8 @@
    "name": "Anello di prova",
    "kind": "atp",
    "test_stop": true,
-   "test_stop_name": "2ª fermata di prova dell'anello"
+   "test_stop_name": "2ª fermata di prova dell'anello",
+   "n": 46
   },
   {
    "line": "M3",
@@ -1072,7 +1118,8 @@
    "dir": 1,
    "type": "block",
    "name": "Anello di prova",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 47
   },
   {
    "line": "M3",
@@ -1089,7 +1136,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 48
   },
   {
    "line": "M3",
@@ -1106,7 +1154,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 49
   },
   {
    "line": "M3",
@@ -1123,7 +1172,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 50
   },
   {
    "line": "M3",
@@ -1140,7 +1190,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 51
   },
   {
    "line": "M3",
@@ -1157,7 +1208,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 52
   },
   {
    "line": "M3",
@@ -1174,7 +1226,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 53
   },
   {
    "line": "M3",
@@ -1191,7 +1244,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 54
   },
   {
    "line": "M3",
@@ -1208,7 +1262,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 55
   },
   {
    "line": "M3",
@@ -1225,7 +1280,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 56
   },
   {
    "line": "M3",
@@ -1242,7 +1298,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 57
   },
   {
    "line": "M3",
@@ -1259,7 +1316,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 58
   },
   {
    "line": "M3",
@@ -1276,7 +1334,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 59
   },
   {
    "line": "M3",
@@ -1293,7 +1352,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 60
   },
   {
    "line": "M3",
@@ -1310,7 +1370,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 61
   },
   {
    "line": "M3",
@@ -1327,7 +1388,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 62
   },
   {
    "line": "M3",
@@ -1344,7 +1406,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 63
   },
   {
    "line": "M3",
@@ -1361,7 +1424,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 64
   },
   {
    "line": "M3",
@@ -1378,7 +1442,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 65
   },
   {
    "line": "M3",
@@ -1395,7 +1460,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 66
   },
   {
    "line": "M3",
@@ -1412,7 +1478,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 67
   },
   {
    "line": "M3",
@@ -1429,7 +1496,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 68
   },
   {
    "line": "M3",
@@ -1446,7 +1514,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 69
   },
   {
    "line": "M3",
@@ -1463,7 +1532,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 70
   },
   {
    "line": "M3",
@@ -1480,7 +1550,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 71
   },
   {
    "line": "M3",
@@ -1497,7 +1568,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 72
   },
   {
    "line": "M3",
@@ -1514,7 +1586,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 73
   },
   {
    "line": "M3",
@@ -1531,7 +1604,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 74
   },
   {
    "line": "M3",
@@ -1548,7 +1622,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 75
   },
   {
    "line": "M3",
@@ -1565,7 +1640,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 76
   },
   {
    "line": "M3",
@@ -1582,7 +1658,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 77
   },
   {
    "line": "M3",
@@ -1599,7 +1676,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 78
   },
   {
    "line": "M3",
@@ -1616,7 +1694,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 79
   },
   {
    "line": "M3",
@@ -1633,7 +1712,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 80
   },
   {
    "line": "M3",
@@ -1650,7 +1730,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 81
   },
   {
    "line": "M3",
@@ -1667,7 +1748,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 82
   },
   {
    "line": "M3",
@@ -1684,7 +1766,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 83
   },
   {
    "line": "M3",
@@ -1701,7 +1784,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 84
   },
   {
    "line": "M3",
@@ -1718,7 +1802,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 85
   },
   {
    "line": "M3",
@@ -1735,7 +1820,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 86
   },
   {
    "line": "M3",
@@ -1752,7 +1838,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 87
   },
   {
    "line": "M3",
@@ -1769,7 +1856,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 88
   },
   {
    "line": "M3",
@@ -1786,7 +1874,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 89
   },
   {
    "line": "M3",
@@ -1803,7 +1892,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 90
   },
   {
    "line": "M3",
@@ -1820,7 +1910,8 @@
    "dir": 1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 91
   },
   {
    "line": "M3",
@@ -1837,7 +1928,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 92
   },
   {
    "line": "M3",
@@ -1854,7 +1946,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 93
   },
   {
    "line": "M3",
@@ -1871,7 +1964,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 94
   },
   {
    "line": "M3",
@@ -1888,7 +1982,8 @@
    "dir": -1,
    "type": "shunt",
    "name": "",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 95
   },
   {
    "line": "M3",
@@ -1905,7 +2000,8 @@
    "dir": -1,
    "type": "block",
    "name": "Anello di prova",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 96
   },
   {
    "line": "M3",
@@ -1922,7 +2018,8 @@
    "dir": -1,
    "type": "block",
    "name": "Anello di prova",
-   "kind": "atp"
+   "kind": "atp",
+   "n": 97
   },
   {
    "line": "M3",
@@ -2310,22 +2407,6 @@
   },
   {
    "line": "M3",
-   "w": -2,
-   "lat": 45.430677,
-   "lon": 9.253565,
-   "on_track": [
-    45.43067,
-    9.253574
-   ],
-   "offset_m": 1.1,
-   "side": "left",
-   "heading": 230,
-   "dir": -1,
-   "type": "nose2",
-   "name": "A84 riferimento"
-  },
-  {
-   "line": "M3",
    "w": 43,
    "lat": 45.430566,
    "lon": 9.253624,
@@ -2375,118 +2456,6 @@
   {
    "line": "M3",
    "w": 71,
-   "lat": 45.433182,
-   "lon": 9.257754,
-   "on_track": [
-    45.43318,
-    9.257757
-   ],
-   "offset_m": 0.3,
-   "side": "right",
-   "heading": 50,
-   "dir": -1,
-   "type": "block",
-   "name": ""
-  },
-  {
-   "line": "M3",
-   "w": 72,
-   "lat": 45.433167,
-   "lon": 9.257819,
-   "on_track": [
-    45.433169,
-    9.257817
-   ],
-   "offset_m": 0.2,
-   "side": "right",
-   "heading": 50,
-   "dir": 1,
-   "type": "block",
-   "name": ""
-  },
-  {
-   "line": "M3",
-   "w": 2,
-   "lat": 45.428679,
-   "lon": 9.253675,
-   "on_track": [
-    45.428679,
-    9.253681
-   ],
-   "offset_m": 0.5,
-   "side": "left",
-   "heading": 13,
-   "dir": 1,
-   "type": "shunt",
-   "name": ""
-  },
-  {
-   "line": "M3",
-   "w": 12,
-   "lat": 45.429513,
-   "lon": 9.254166,
-   "on_track": [
-    45.4295,
-    9.25418
-   ],
-   "offset_m": 1.8,
-   "side": "left",
-   "heading": 231,
-   "dir": -1,
-   "type": "shunt",
-   "name": ""
-  },
-  {
-   "line": "M3",
-   "w": 72,
-   "lat": 45.428679,
-   "lon": 9.253557,
-   "on_track": [
-    45.428678,
-    9.253574
-   ],
-   "offset_m": 1.4,
-   "side": "left",
-   "heading": 13,
-   "dir": 1,
-   "type": "shunt",
-   "name": ""
-  },
-  {
-   "line": "M3",
-   "w": 1,
-   "lat": 45.428664,
-   "lon": 9.25361,
-   "on_track": [
-    45.428662,
-    9.253624
-   ],
-   "offset_m": 1.1,
-   "side": "left",
-   "heading": 13,
-   "dir": 1,
-   "type": "shunt",
-   "name": ""
-  },
-  {
-   "line": "M3",
-   "w": 4,
-   "lat": 45.429572,
-   "lon": 9.254061,
-   "on_track": [
-    45.429571,
-    9.254063
-   ],
-   "offset_m": 0.2,
-   "side": "right",
-   "heading": 210,
-   "dir": 1,
-   "type": "shunt",
-   "name": ""
-  },
-  {
-   "line": "M3",
-   "w": 71,
    "lat": 45.433193,
    "lon": 9.257779,
    "on_track": [
@@ -2498,7 +2467,9 @@
    "heading": 230,
    "dir": 1,
    "type": "block",
-   "name": ""
+   "name": "Ingresso deposito",
+   "n": 98,
+   "kind": "atp"
   },
   {
    "line": "M3",
@@ -2514,7 +2485,99 @@
    "heading": 230,
    "dir": -1,
    "type": "block",
-   "name": ""
+   "name": "Ingresso deposito",
+   "n": 99,
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 2,
+   "lat": 45.428679,
+   "lon": 9.253675,
+   "on_track": [
+    45.428679,
+    9.253681
+   ],
+   "offset_m": 0.5,
+   "side": "left",
+   "heading": 13,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "n": 100,
+   "kind": "shunt"
+  },
+  {
+   "line": "M3",
+   "w": 12,
+   "lat": 45.429513,
+   "lon": 9.254166,
+   "on_track": [
+    45.4295,
+    9.25418
+   ],
+   "offset_m": 1.8,
+   "side": "left",
+   "heading": 231,
+   "dir": -1,
+   "type": "shunt",
+   "name": "",
+   "n": 101,
+   "kind": "shunt"
+  },
+  {
+   "line": "M3",
+   "w": 72,
+   "lat": 45.428679,
+   "lon": 9.253557,
+   "on_track": [
+    45.428678,
+    9.253574
+   ],
+   "offset_m": 1.4,
+   "side": "left",
+   "heading": 13,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "n": 102,
+   "kind": "shunt"
+  },
+  {
+   "line": "M3",
+   "w": 1,
+   "lat": 45.428664,
+   "lon": 9.25361,
+   "on_track": [
+    45.428662,
+    9.253624
+   ],
+   "offset_m": 1.1,
+   "side": "left",
+   "heading": 13,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "n": 103,
+   "kind": "shunt"
+  },
+  {
+   "line": "M3",
+   "w": 4,
+   "lat": 45.429572,
+   "lon": 9.254061,
+   "on_track": [
+    45.429571,
+    9.254063
+   ],
+   "offset_m": 0.2,
+   "side": "right",
+   "heading": 210,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "n": 104,
+   "kind": "shunt"
   },
   {
    "line": "M3",
@@ -2611,6 +2674,20 @@
    "dir": 1,
    "type": "nose2",
    "name": "A81"
+  },
+  {
+   "w": -2,
+   "lat": 45.43067,
+   "lon": 9.253574,
+   "on_track": [
+    45.43067,
+    9.253574
+   ],
+   "heading": 230,
+   "dir": -1,
+   "type": "nose2",
+   "name": "A85",
+   "line": "M3"
   }
  ],
  "speeds": {
@@ -2901,13 +2978,6 @@
      98,
      99
     ]
-   },
-   {
-    "name": "Uscita deposito verso w71/w72: un treno alla volta",
-    "signals": [
-     105,
-     106
-    ]
    }
   ],
   "manual": [
@@ -3040,5 +3110,6 @@
   ],
   "name": "Girare per andare anello di prova",
   "note": "punto non fisico: qui cambiano banco i treni del lato A48-A65 diretti all'anello"
- }
+ },
+ "_signal_numbers": "Every signal keeps its number 'n' (#A..): removing one leaves a gap, a new one gets the next free number."
 }

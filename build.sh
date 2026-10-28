@@ -37,3 +37,5 @@ echo "== normal day for the page"
 node "$ROOT/tools/precompute_live.js"
 echo "== page"
 python3 "$ROOT/tools/assemble.py"
+echo "== the page in a browser (depot, test loop, radio)"
+if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/page_check.js"; else echo "(skipped: Playwright not installed)"; fi

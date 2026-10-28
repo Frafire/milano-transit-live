@@ -324,9 +324,13 @@ def _gone(sg):
     return any(math.hypot((sg['lat'] - la) * 111000, (sg['lon'] - lo) * 78000) < 3 for la, lo in _rules_.get('removed_signals', []))
 _all_signals = _rules_.get('signals', [])
 # every signal keeps its #A number (its place in the rules, flags and cut points not counted) even when others are removed
-_n = 0
+# #A numbers are fixed in the rules ('n'); a signal without one (just added with the editor) gets the next free number
+_n = max([_sg.get('n', 0) for _sg in _all_signals] + [0])
 for _sg in _all_signals:
-    if _sg.get('type') not in ('nose', 'nose2', 'cut'): _n += 1; _sg['_n'] = _n
+    if _sg.get('type') in ('nose', 'nose2', 'cut'): continue
+    if not _sg.get('n'): _n += 1; _sg['n'] = _n; print('new signal numbered #A%02d' % _n, _sg.get('w'), _sg.get('on_track'))
+    _sg['_n'] = _sg['n']
+    if not _sg.get('kind'): _sg['kind'] = 'shunt' if _sg.get('type') == 'shunt' else 'atp'      # (drawn on the map)
 _rules_['signals'] = [sg for sg in _all_signals if not _gone(sg) and sg.get('type') not in ('cut', 'nose', 'nose2')]
 NOSE_FLAGS = [sg for sg in _all_signals if sg.get('type') == 'nose']        # where the nose stops (stations, depot)
 # interlocking groups and depot signals name signals by their #A number in rules (1 = first): to indexes after removals
@@ -1457,6 +1461,20 @@ for si_, sg in enumerate(NET['signals']):
             SIGPOS.setdefault(str(pid), []).append([round(best[1], 1), si_])
 for v in SIGPOS.values(): v.sort()
 NET['sigpos'] = SIGPOS
+# a depot place is called by the signal in front of it (Giovanni: easier for maintenance), e.g. "A78"
+if LINE == 'M3' and NET.get('depot'):
+    _used = set()
+    for dp in NET['depot']:
+        if str(dp['node']) in _rules_.get('names', {}).get('depot', {}): continue
+        r_ = DEPOT_PATHS.get(str(dp['node']))
+        if not r_: continue
+        o_ = r_['out'][str(CFG['PLATS'][0])]
+        ahead = [(d, si) for d, si in SIGPOS.get(str(o_['pid']), []) if o_['start'] <= d <= o_['start'] + TRAIN_HALF + 60]
+        if not ahead: continue
+        nm = 'A%02d' % NET['signals'][ahead[0][1]]['n']
+        if nm in _used: nm += '-2'
+        _used.add(nm); dp['name'] = nm
+    print('depot places named after the signal in front:', [dp['name'] for dp in NET['depot']])
 print('network for the live engine:', len(NET['nodes']), 'nodes,', len(NET['edges']), 'track pieces,', len(NET['signals']), 'signals')
 # ---------------- block sections along the line (fixed block, one train per section) ----------------
 # A section runs from a station's departure signal (end of the platform, direction of travel) to the next station's.
