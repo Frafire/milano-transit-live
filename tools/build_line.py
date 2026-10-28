@@ -687,7 +687,8 @@ if CFG['training']:
             if best is None or L_ < best[0]: best = (L_, r1 + r2)
         return best[1] if best else None
     TEST = {'cycle': pcy, 'lap': round(paths[pcy][1][-1]), 'v_lap': 8.0, 'v_yard': V_YARD, 'reverse': REVERSE, 'by_store': {}}
-    for p in storage:
+    _solo = [u['node'] for u in getattr(__import__('fleet_' + LINE.lower()), 'SOLO', [])] if LINE == 'M3' else []
+    for p in storage + _solo:
         _router.THROUGH_ALLOWED = {p} if p in STORE_EXIT else set()
         r_in = route_nodes(p, 157, first=STORE_EXIT.get(p)) or route_nodes(p, 157) or via_reversal(p, 157)
         r_back = route_nodes(157, p, first=78) or route_nodes(157, p) or via_reversal(157, p)
@@ -765,6 +766,14 @@ if LINE in ('M3', 'M4'):
     print('trains needed at the busiest moment:', m_, 'at %02d:%02d' % (at_ // 3600 % 24, at_ // 60 % 60))
     for d in duties: DUTIES[d[2]].append([d[0], min(d[1], 10 ** 6), d[3]])
     print('real fleet:', len(STOCK), 'trains | stretches out of the depot:', len(duties), '| not covered by a real train:', short)
+    # units standing alone in the depot (no service): a train of their own that never leaves (test loop only)
+    for u in getattr(__import__('fleet_' + LINE.lower()), 'SOLO', []):
+        n_ = u['node']; pid_ = leg_path(CFG['AFTER_ARR'], [], n_); c_ = paths[pid_][1]
+        tl = TL(len(out)); d_ = c_[-1] - TRAIN_HALF
+        tl.add(pid_, 'to_depot', [30 * 3600, 30 * 3600 + 1], [d_, d_]); tl.segs[-1].append(n_)
+        tl.start_where = tl.end_where = 'depot'; out.append(tl)
+        STOCK.append({k: v for k, v in u.items() if k != 'node'}); DUTIES.append([[0, 10 ** 6, len(STOCK) - 1]])
+        print('unit standing alone in the depot:', u['units'], 'at node', n_)
 
 # ---------------- report ----------------
 print('trains', len(trains), 'storage tracks', len(storage), 'paths', len(paths))

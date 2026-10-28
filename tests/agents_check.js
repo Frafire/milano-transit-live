@@ -26,7 +26,7 @@ for (const ci of which) {
   const ag = A.create({ G, ops: M.ops, reverse: M.reverse_s, half: M.half, prof, pathEdges: M.path_edges, netEdges: M.net.edges,
     resources: R, locks, plans0: M.trains, stopsOf, sigpos: M.net.sigpos, interlocking: M.net.interlocking, zones: E.platformZones(G) });
   const pos = base.res.map((r, k) => { const s = E.stateAt(r.segs, TC); const sg = r.segs[Math.min(s.si, r.segs.length - 1)];
-    return { pid: sg[0], d: s.d != null ? s.d : sg[4][sg[4].length - 1], v: s.v, seg: s.si, status: s.si >= r.segs.length || s.before && sg[1] === 'from_depot' ? 'parked' : sg[1] }; });
+    return { pid: sg[0], d: s.d != null ? s.d : sg[4][sg[4].length - 1], v: s.v, seg: s.si, status: s.si >= r.segs.length || s.before && (sg[1] === 'from_depot' || s.si === 0) ? 'parked' : sg[1] }; });
   const t0 = Date.now();
   ag.close(TC, cl, pos);
   const modes = {}; ag.agents().forEach(a => (modes[a.mode] = (modes[a.mode] || 0) + 1));
