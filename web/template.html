@@ -2579,7 +2579,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const q = pts[Math.floor(pts.length / 2)];
       L.marker(q, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="trkname">${net.names[w]}</span>` }) }).addTo(trkNameLayer);
     }
-    (net.depot || []).forEach(dp => L.marker([dp.lat, dp.lon], { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="trkname dep">${dp.name.replace('Deposito binario ', 'D')} · w${dp.way}${dp.out === 'through' ? ' ⇄' : ' ↩'}</span>` }) }).addTo(trkNameLayer));
+    (net.depot || []).forEach(dp => L.marker([dp.lat, dp.lon], { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="trkname dep">${dp.name.replace('Deposito binario ', 'D')}</span>` }) }).addTo(trkNameLayer));
   }
   function buildSignals(F) {
     if (!RT) RT = stretches(F);

@@ -2275,6 +2275,54 @@
    "dir": 1,
    "type": "nose",
    "name": ""
+  },
+  {
+   "line": "M3",
+   "w": -1,
+   "lat": 45.430726,
+   "lon": 9.253514,
+   "on_track": [
+    45.430728,
+    9.25351
+   ],
+   "offset_m": 0.4,
+   "side": "right",
+   "heading": 230,
+   "dir": -1,
+   "type": "nose2",
+   "name": "A83 è riferimento"
+  },
+  {
+   "line": "M3",
+   "w": -9,
+   "lat": 45.430748,
+   "lon": 9.253444,
+   "on_track": [
+    45.430748,
+    9.253444
+   ],
+   "offset_m": 0,
+   "side": "left",
+   "heading": 230,
+   "dir": 1,
+   "type": "nose2",
+   "name": "A82 riferimento"
+  },
+  {
+   "line": "M3",
+   "w": -2,
+   "lat": 45.430677,
+   "lon": 9.253565,
+   "on_track": [
+    45.43067,
+    9.253574
+   ],
+   "offset_m": 1.1,
+   "side": "left",
+   "heading": 230,
+   "dir": -1,
+   "type": "nose2",
+   "name": "A84 riferimento"
   }
  ],
  "speeds": {
@@ -2593,8 +2641,11 @@
   ]
  },
  "avoid_ways": {
-  "_about": "Wrong-way (illegal) depot access track: routes use it only if there is no other way (extra metres of cost)",
-  "71": 3000
+  "_about": "Wrong-way (illegal) depot access track, only the part east of the red line (Giovanni, 28 Oct): used only if there is no other way",
+  "71": {
+   "cost": 3000,
+   "east_of_lon": 9.2576
+  }
  },
  "removed_signals": [
   [
@@ -2620,7 +2671,7 @@
    ],
    [
     53,
-    80
+    83
    ],
    [
     36,
@@ -2664,12 +2715,13 @@
    ],
    [
     56,
-    83
+    84
    ],
    [
     55,
-    74
+    80
    ]
-  ]
+  ],
+  "_fix": "28 Oct, Giovanni: inside the building #A79 joins #A48 (w36-w21), #A80 #A49 (w38-w20), #A81 #A50 (w39-w22); w33 (#A78) ends like w32 and w34"
  }
 }

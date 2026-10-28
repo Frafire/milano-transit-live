@@ -125,7 +125,45 @@ def _place_link(li, a_, b_, m):
     for ei in node_edges[m]:
         e = edges[ei]; P0, P1 = node_pos[e['a']], node_pos[e['b']]; n_ = max(2, int(math.hypot(P1[0] - P0[0], P1[1] - P0[1]) / 10) + 1)
         e['pts'] = [(P0[0] + (P1[0] - P0[0]) * i / (n_ - 1), P0[1] + (P1[1] - P0[1]) * i / (n_ - 1)) for i in range(n_)]; e['len'] = plen(e['pts'])
+# two trains on one through track (Giovanni's "Bandiera 2"): the first stands at the shunting signals end and uses that end
+# only; the second stands at the other end and uses the other end (with the small loop to get to the station)
+def _ne_end(a_, b_):
+    (ax, ay), (bx, by) = node_pos[a_], node_pos[b_]
+    return b_ if (bx - ax) * math.sin(math.radians(50)) + (by - ay) * math.cos(math.radians(50)) > 0 else a_
+SECOND = {}                     # link index -> second place node
+for li_, (a_, b_, m_) in enumerate(LINKS):
+    if li_ not in _router.LINK_FLAG2 or m_ not in STORE_EXIT: continue
+    ne_ = _ne_end(a_, b_)
+    _router.THROUGH_ALLOWED = {m_}
+    if not route_nodes(CFG['AFTER_ARR'], m_, via=[ne_]) or not route_nodes(m_, SD_OUT_NODE, via=[SD_DEP[1]], first=ne_):
+        print('second place on through track', li_, 'skipped: its first train cannot use the shunting-signal end only'); continue
+    STORE_ARR_FROM[m_] = ne_; STORE_EXIT[m_] = ne_; STORE_SAME.add(m_); SECOND[li_] = None
+_router.THROUGH_ALLOWED = set()
 for li_, (a_, b_, m_) in enumerate(LINKS): _place_link(li_, a_, b_, m_)
+for li_ in list(SECOND):
+    a_, b_, m_ = LINKS[li_]; ne_ = _ne_end(a_, b_); sw_ = a_ if ne_ == b_ else b_
+    fx, fy, _h = _router.LINK_FLAG2[li_]
+    (sx, sy), (mx, my) = node_pos[sw_], node_pos[m_]; L_ = math.hypot(mx - sx, my - sy) or 1; ux, uy = (mx - sx) / L_, (my - sy) / L_
+    t2 = (fx - sx) * ux + (fy - sy) * uy + 2 * TRAIN_HALF        # it arrives from the far end: its nose 105 m past the flag
+    gap = L_ - t2                                                 # the first train stands beyond m (it came in by the other end)
+    print('second place on through track', li_, ': room between the two trains', round(gap), 'm')
+    if gap < -1: print('   skipped: they would touch'); del SECOND[li_]; continue
+    t2 = min(t2, L_ - 1)
+    m2 = 300000 + li_; node_pos[m2] = (sx + ux * t2, sy + uy * t2)
+    e = next(e for e in node_edges[m_] if sw_ in (edges[e]['a'], edges[e]['b']))
+    node_edges[sw_].remove(e)
+    for x_, y_, mid_, reuse in ((m_, m2, m_, e), (m2, sw_, m2, None)):     # the old piece becomes the first half
+        P0, P1 = node_pos[x_], node_pos[y_]; n_ = max(2, int(math.hypot(P1[0] - P0[0], P1[1] - P0[1]) / 10) + 1)
+        pts = [(P0[0] + (P1[0] - P0[0]) * i / (n_ - 1), P0[1] + (P1[1] - P0[1]) * i / (n_ - 1)) for i in range(n_)]
+        ne_e = dict(a=x_, b=y_, pts=pts, len=plen(pts), way=-1, svc='yard', name='through track', mid=mid_)
+        if reuse is not None: edges[reuse] = ne_e; node_edges[m2].append(reuse); continue
+        ei = len(edges); edges.append(ne_e); node_edges[x_].append(ei); node_edges[y_].append(ei)
+    _router.THROUGH_ALLOWED = {m2}
+    if route_nodes(CFG['AFTER_ARR'], m2, via=[sw_]) and route_nodes(m2, SD_OUT_NODE, via=[SD_DEP[1]], first=sw_):
+        storage.append((0, m2)); STORE_EXIT[m2] = sw_; STORE_SAME.add(m2); STORE_ARR_FROM[m2] = sw_; STORE_WAY[m2] = STORE_WAY.get(m_, -1); SECOND[li_] = m2
+        print('second place on through track', li_, '(D place with two trains): node', m2)
+    else: print('second place on through track', li_, 'skipped: no route to it from its own end')
+    _router.THROUGH_ALLOWED = set()
 storage = [n for _, n in sorted(storage, key=lambda x: x[0])]
 _unused = set((json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rules_%s.json' % LINE.lower()) else {}).get('depot_unused', {}).get('nodes', []))
 if _unused: storage = [n for n in storage if n not in _unused]; print('depot places not used (accantonamento):', sorted(_unused))
