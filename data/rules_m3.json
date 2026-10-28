@@ -2688,6 +2688,78 @@
    "type": "nose2",
    "name": "A85",
    "line": "M3"
+  },
+  {
+   "line": "M3",
+   "w": 87,
+   "lat": 45.531015,
+   "lon": 9.162383,
+   "on_track": [
+    45.531018,
+    9.162401
+   ],
+   "offset_m": 1.4,
+   "side": "right",
+   "heading": 168,
+   "dir": 1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 105
+  },
+  {
+   "line": "M3",
+   "w": 87,
+   "lat": 45.530852,
+   "lon": 9.162429,
+   "on_track": [
+    45.530855,
+    9.16245
+   ],
+   "offset_m": 1.7,
+   "side": "right",
+   "heading": 348,
+   "dir": -1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 106
+  },
+  {
+   "line": "M3",
+   "w": 88,
+   "lat": 45.530925,
+   "lon": 9.162485,
+   "on_track": [
+    45.530924,
+    9.16248
+   ],
+   "offset_m": 0.4,
+   "side": "right",
+   "heading": 349,
+   "dir": 1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 107
+  },
+  {
+   "line": "M3",
+   "w": 88,
+   "lat": 45.530991,
+   "lon": 9.162458,
+   "on_track": [
+    45.530991,
+    9.162461
+   ],
+   "offset_m": 0.2,
+   "side": "left",
+   "heading": 169,
+   "dir": -1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 108
   }
  ],
  "speeds": {
