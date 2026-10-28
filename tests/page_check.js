@@ -3,9 +3,10 @@
 //   reports the loop free; both get a depot place on the way back (never the same one)
 // - manual: depot on manual, a train going to the loop calls at a red depot signal after 2 and after 7 minutes
 // - twice: a train goes round the loop, comes back, and can go again
+// - radio: the radio on a train in service: a longer stop, a speed limit, a free message, the answers
 // - place: a train on its way into the depot gets a place; the player changes it by radio
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
-// Usage: node tests/page_check.js [loop|twice|manual|place ...]   (no argument: all of them). Exit code 1 if one fails.
+// Usage: node tests/page_check.js [loop|twice|manual|place|radio ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html');
@@ -60,6 +61,25 @@ const SCENARIOS = {
       st.playing = false;
       const log = document.getElementById('radioLog').innerText;
       return { ok: /da 2 minuti/.test(log) && /da 7 minuti/.test(log) && !/da 5 minuti, via impedita/.test(log), calls: log.split('\n').filter(l => /minuti/.test(l)).slice(0, 4) };
+    });
+  },
+  async radio(p) {      // the radio on a train in service: stop order, speed limit, free text, the driver's answers
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.depotPaths);
+      st.playing = false; st.t = 10 * 3600; await sleep(2500); st.playing = true; st.speed = 20; await sleep(2500); st.playing = false; await sleep(300);
+      const k = F.trains.findIndex(tr => { const s = M.trainState(F, tr, st.t); return s.trip >= 0 && s.agent && s.agent.mode === 'plan' && s.agent.status === 'service'; });
+      if (k < 0) return { ok: false, why: 'no train in service' };
+      st.sel = 'f' + M.fleets.indexOf(F) + ':' + k; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(400);
+      const out = {}, log = () => document.getElementById('radioLog').innerText;
+      const stop = document.getElementById('radioSendStop'); if (stop) { stop.click(); await sleep(2200); }
+      out.stop = /sosta di/.test(log());
+      const sp = document.getElementById('radioSendSpeed'); if (sp) { sp.click(); await sleep(2200); }
+      out.speed = /limita la velocità/.test(log()) && /km\/h/.test(log());
+      document.getElementById('radioText').value = 'scendi e spingi'; document.getElementById('radioFree').requestSubmit(); await sleep(2200);
+      out.free = /Hulk|riparliamo/.test(log());
+      st.playing = true; st.speed = 60; await sleep(3000); st.playing = false;
+      return { ok: out.stop && out.speed && out.free, out, log: log().split('\n').slice(-6) };
     });
   },
   async place(p) {
