@@ -465,7 +465,7 @@
         // events whose time has come (again, after going back in time)
         for (const e of TL.events) if (!e.done && e.t <= S.t + DT) { e.done = true; apply(e); }
         S.t += DT; refresh();
-        for (const a of S.agents) { const p0 = a.pid, n0 = a.d + half; stepAgent(a); if (IL) IL.release(S.il, a.k, a.pid, a.d + half, a.hidden || a.status === 'parked', a.pid === p0 ? n0 : null); }
+        for (const a of S.agents) { const p0 = a.pid, n0 = a.d + half; stepAgent(a); if (IL) IL.release(S.il, a.k, a.pid, a.d + half, a.hidden || a.status === 'parked', a.pid === p0 ? n0 : null, a.v); }
         if (Math.floor(S.t / SNAP) !== Math.floor((S.t - DT) / SNAP)) snapshot();
       }
       return S.t;
@@ -495,7 +495,7 @@
       else if (e.kind === 'reopen') reopen(S.t);
       else if (e.kind === 'order') lastResult = order(e.k, e.what, e.arg);
       else if (e.kind === 'normal') start(S.t, o.initAt(S.t));
-      else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si); else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
+      else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
     }
     // a new event now: what was planned after this moment is dropped (a new branch of the day)
     function event(e) {

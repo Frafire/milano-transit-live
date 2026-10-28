@@ -19,7 +19,7 @@
 
   function create(o) {
     // o: { groups: [[si, ...], ...], manual: [si, ...], sigpos: { pid: [[d, si], ...] }, half }
-    const groupOf = new Map(), manual = new Set(o.manual || []), half = o.half;
+    const groupOf = new Map(), manual = new Set(o.manual || []), half = o.half, hold = new Set(o.hold || []);
     (o.groups || []).forEach((g, gi) => g.forEach(si => groupOf.set(si, gi)));
     const controlled = si => groupOf.has(si) || manual.has(si);
 
@@ -43,14 +43,16 @@
       st.grant[si] = k; return true;
     }
     // back to red behind the train (or when it went another way / left the line)
-    function release(st, k, pid, nose, gone, prevNose) {
+    // hold groups (the depot sides): the signal stays given until the movement is over (stopped, or 400 m beyond)
+    function release(st, k, pid, nose, gone, prevNose, v) {
       // check: a front that went over a controlled signal must have had via libera (counted for the tests)
       if (!gone && prevNose != null && nose > prevNose) for (const c of ahead(pid, prevNose + 12, nose - prevNose))
         if (c.d > prevNose && c.d <= nose) { st.passed = (st.passed || 0) + 1; if (st.grant[c.si] !== k) st.viol = (st.viol || 0) + 1; }
       for (const [s, k2] of Object.entries(st.grant)) {
         if (k2 !== k) continue;
         const si = +s, sp = o.sigpos && o.sigpos[pid], hit = sp && sp.find(x => x[1] === si);
-        if (gone || !hit || nose > hit[0] + PASS) delete st.grant[si];
+        const over = hold.has(groupOf.get(si)) ? nose > hit?.[0] + PASS && (v === 0 || nose > hit[0] + 400) : nose > hit?.[0] + PASS;
+        if (gone || !hit || over) delete st.grant[si];
       }
     }
     // the player clears a manual signal for the next train

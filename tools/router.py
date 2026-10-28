@@ -84,7 +84,7 @@ def route(start_states, goal_node, avoid=()):
             return out[::-1]
         for t in successors(*s):
             if t[0] in avoid: continue
-            nc = c + edges[t[0]]['len']
+            nc = c + edges[t[0]]['len'] + WAY_COST.get(edges[t[0]]['way'], 0)
             if nc < best.get(t, 1e18): best[t] = nc; prev[t] = s; heapq.heappush(pq, (nc, t))
     return None
 
@@ -181,6 +181,8 @@ def add_link(a, b):
 ONEWAY, BANNED = {}, set()
 NOPARK = set()      # depot tracks used to move trains around, never to park (Giovanni's X marks)
 BANNED_EDGES = set()    # pieces of track (between two switches) no route may use: Giovanni's "taglio" points
+WAY_COST = {}           # extra cost (m) for tracks to use only when there is no other way (wrong-way depot access)
+LINK_FLAG = {}          # through track index -> (x, y, heading) of Giovanni's flag: the train's end stands there
 DRAWN_ENDS = set()      # far ends of tracks drawn inside the depot building (never joined across the building)
 THROUGH_STABLE = set()  # depot tracks marked as through: in at one end, out at the other (the others: same end)
 def load_rules(path, line):
@@ -192,6 +194,10 @@ def load_rules(path, line):
         if m['role'].startswith('Depot: movements only'): NOPARK.add(m['w']); n += 1
         if m['role'].startswith('Stabling: through'): THROUGH_STABLE.add(m['w']); n += 1
         if m['dir'] in (1, -1): ONEWAY[m['w']] = m['dir']; n += 1
+    for sg in R_.get('signals', []):
+        if sg.get('line', line) == line and sg.get('type') == 'nose' and sg.get('w', 0) < 0:
+            LINK_FLAG[-1 - sg['w']] = (*xy(*(sg.get('on_track') or (sg['lat'], sg['lon']))), sg.get('heading', 0))
+    WAY_COST.update({int(k): v for k, v in R_.get('avoid_ways', {}).items() if not k.startswith('_')})
     # tracks drawn by Giovanni that continue a depot dead end inside the building: the dead end moves to their far end
     for ti, dt in enumerate(R_.get('tracks', [])):
         if dt.get('line', line) != line or len(dt.get('points', [])) < 2: continue

@@ -1053,7 +1053,9 @@
    "dir": 1,
    "type": "block",
    "name": "Anello di prova",
-   "kind": "atp"
+   "kind": "atp",
+   "test_stop": true,
+   "test_stop_name": "2ª fermata di prova dell'anello"
   },
   {
    "line": "M3",
@@ -1890,23 +1892,6 @@
   },
   {
    "line": "M3",
-   "w": 117,
-   "lat": 45.428704,
-   "lon": 9.25478,
-   "on_track": [
-    45.428694,
-    9.254792
-   ],
-   "offset_m": 1.5,
-   "side": "right",
-   "heading": 230,
-   "dir": 1,
-   "type": "stop",
-   "name": "2ª fermata di prova dell'anello",
-   "kind": "atp"
-  },
-  {
-   "line": "M3",
    "w": 76,
    "lat": 45.431309,
    "lon": 9.253471,
@@ -2570,8 +2555,8 @@
     "signals": [
      46,
      47,
-     97,
-     98
+     96,
+     97
     ]
    }
   ],
@@ -2581,7 +2566,11 @@
    4,
    5
   ],
-  "_manual_about": "#A02 (from the depot towards the line, up to #A06) and #A04 (from the line into the depot): legal direction. #A03 and #A05: wrong direction. All red until the player clears them, unless the depot is on automatic."
+  "_manual_about": "#A02 (from the depot towards the line, up to #A06) and #A04 (from the line into the depot): legal direction. #A03 and #A05: wrong direction. All red until the player clears them, unless the depot is on automatic.",
+  "depot_sides": {
+   "_about": "Shunting signals east and west of this longitude: one movement at a time on each side",
+   "lon": 9.2552
+  }
  },
  "names": {
   "_about": "Names of tracks by OSM way (w number in the editor). Shown on the map and used by the radio.",
@@ -2602,5 +2591,9 @@
    73,
    77
   ]
+ },
+ "avoid_ways": {
+  "_about": "Wrong-way (illegal) depot access track: routes use it only if there is no other way (extra metres of cost)",
+  "71": 3000
  }
 }

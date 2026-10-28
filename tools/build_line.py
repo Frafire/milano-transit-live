@@ -57,6 +57,7 @@ depot_dead = [n for n in node_pos if len(node_edges[n]) == 1]
 def in_depot(n):
     la, lo = ll(*node_pos[n]); b = CFG['depot_box']; return b[0] < la < b[1] and b[2] < lo < b[3]
 STORE_EXIT = {}       # through-track middle node -> node to leave by (the far end, or the same end: cambio banco)
+STORE_ARR_FROM = {}   # through-track place -> the end trains come in by
 STORE_SAME = set()    # through tracks left by the end the train came in
 STORE_WAY = {}        # depot place -> OSM way of its track (for numbering and names)
 LINKS_BY_MID = {}
@@ -86,6 +87,7 @@ for a_, b_, m in LINKS:
         if not (here & _router.THROUGH_STABLE) and route_nodes(m, SD_OUT_NODE, via=[SD_DEP[1]], first=came_from): ex = came_from
         STORE_WAY[m] = min(here) if here else -1
         if ex == came_from: STORE_SAME.add(m)
+        STORE_ARR_FROM[m] = came_from
         r_out = route_nodes(m, SD_OUT_NODE, via=[SD_DEP[1]], first=ex)
         if r_out: storage.append((0, m)); STORE_EXIT[m] = ex
         break
@@ -97,6 +99,22 @@ for n in depot_dead:
     a = route_nodes(CFG['AFTER_ARR'], n); b = route_nodes(n, SD_OUT_NODE, via=[SD_DEP[1]])
     if a and b: storage.append((plen(path_poly(b)), n)); STORE_WAY[n] = edges[node_edges[n][0]]['way']
 _router.THROUGH_ALLOWED = set()          # from now on no route may cut through a through track...
+# Giovanni's flags on the through tracks: the end of the parked train stands a few metres before the shunting signal.
+# The train arrives from STORE_ARR_FROM[m] and stops with its nose at m: m goes where that puts the train's end at the flag
+def _place_link(li, a_, b_, m):
+    f = _router.LINK_FLAG.get(li); came = STORE_ARR_FROM.get(m)
+    if not f or came is None: return
+    (ax, ay), (bx, by) = node_pos[a_], node_pos[b_]; L_ = math.hypot(bx - ax, by - ay) or 1; ux, uy = (bx - ax) / L_, (by - ay) / L_
+    t = (f[0] - ax) * ux + (f[1] - ay) * uy                      # flag along a_ -> b_
+    hx, hy = math.sin(math.radians(f[2])), math.cos(math.radians(f[2]))
+    toward_b = hx * ux + hy * uy > 0                               # the flagged end of the train is towards b_
+    arr_to_b = came == a_                                          # moving towards b_ when arriving
+    tm = t if toward_b == arr_to_b else (t - 2 * TRAIN_HALF if toward_b else t + 2 * TRAIN_HALF)
+    tm = max(8, min(L_ - 8, tm)); node_pos[m] = (ax + ux * tm, ay + uy * tm)
+    for ei in node_edges[m]:
+        e = edges[ei]; P0, P1 = node_pos[e['a']], node_pos[e['b']]; n_ = max(2, int(math.hypot(P1[0] - P0[0], P1[1] - P0[1]) / 10) + 1)
+        e['pts'] = [(P0[0] + (P1[0] - P0[0]) * i / (n_ - 1), P0[1] + (P1[1] - P0[1]) * i / (n_ - 1)) for i in range(n_)]; e['len'] = plen(e['pts'])
+for li_, (a_, b_, m_) in enumerate(LINKS): _place_link(li_, a_, b_, m_)
 storage = [n for _, n in sorted(storage, key=lambda x: x[0])]
 _unused = set((json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rules_%s.json' % LINE.lower()) else {}).get('depot_unused', {}).get('nodes', []))
 if _unused: storage = [n for n in storage if n not in _unused]; print('depot places not used (accantonamento):', sorted(_unused))
@@ -243,9 +261,15 @@ NOSE_FLAGS = [sg for sg in _all_signals if sg.get('type') == 'nose']        # wh
 def _sig_index(n):     # #A number as shown on the map (after removed signals and cut points are taken out)
     return n - 1 if 0 < n <= len(_rules_['signals']) else None
 _IL = _rules_.get('interlocking', {})
+_side_lon = _IL.get('depot_sides', {}).get('lon')
+_sides = [[i for i, sg in enumerate(_rules_['signals']) if sg.get('type') == 'shunt' and (sg['lon'] > _side_lon) == east] for east in (True, False)] if _side_lon else []
 INTERLOCKING = {'groups': [[i for i in (_sig_index(n) for n in g['signals']) if i is not None] for g in _IL.get('groups', [])],
                 'group_names': [g.get('name', '') for g in _IL.get('groups', [])],
                 'manual': [i for i in (_sig_index(n) for n in _IL.get('manual', [])) if i is not None]}
+# the depot: one movement at a time on each side (the signal stays given until the train stops or has gone 400 m)
+for nm_, g_ in zip(('Deposito lato est: una manovra alla volta', 'Deposito lato ovest: una manovra alla volta'), _sides):
+    INTERLOCKING['hold'] = INTERLOCKING.get('hold', []) + [len(INTERLOCKING['groups'])]
+    INTERLOCKING['groups'].append(g_); INTERLOCKING['group_names'].append(nm_)
 for _t in (COM_TAILS if CFG.get('tail_at_signal') else []):
     _e = edges[node_edges[_t][0]]; _P = _e['pts'] if _e['b'] == _t else _e['pts'][::-1]; _P = _P[::-1]   # from the tail end
     _best = None
@@ -592,7 +616,7 @@ for k, chain in enumerate(trains):
                 # pull out: depot -> platform 1 in 5 min, wait 2 min, depart
                 start = STORE_BEFORE.get(tr['ti'], loc[1]); via = [SD_DEP[1], SD_OUT_NODE]
                 pid0 = leg_path(start, via, ctail); d_pl, _ = project(paths[pid0][0], paths[pid0][1], *SD_STOP, 0, None)
-                d0 = TRAIN_HALF if len(node_edges[start]) == 1 else 0
+                d0 = TRAIN_HALF if len(node_edges[start]) == 1 or start in STORE_SAME else 0
                 run = max(PULL_OUT if LINE == 'M4' else 0, (d_pl - d0) / V_YARD)     # M3: at 15 km/h all the way
                 t_plat = PULL_PLAT[tr['ti']]; t_leave = t_plat - run
                 com_seg0 = len(tl.segs)
@@ -695,13 +719,13 @@ if CFG['training']:
         _router.THROUGH_ALLOWED = set()
         if r_in and r_back and end_node(*r_in[-1]) == 157:
             TEST['by_store'][str(p)] = [make_path(('tin', p), r_in), make_path(('tback', p), r_back),
-                                        TRAIN_HALF if len(node_edges[p]) == 1 else 0]
+                                        TRAIN_HALF if len(node_edges[p]) == 1 or p in STORE_SAME else 0]
     print('test loop reachable from', len(TEST['by_store']), 'of', len(storage), 'depot places')
     # test platforms (fermate di prova): 110 m of platform ending at each stopping-point signal on the loop
     TEST['platforms'] = []
     _pp, _pc = paths[pcy]
     for sg in _rules_.get('signals', []):
-        if sg.get('type') != 'stop' or sg.get('line', LINE) != LINE: continue
+        if (sg.get('type') != 'stop' and not sg.get('test_stop')) or sg.get('line', LINE) != LINE: continue
         x0, y0 = xy(*(sg.get('on_track') or (sg['lat'], sg['lon']))); best = None
         for i in range(len(_pp) - 1):
             (ax, ay), (bx, by) = _pp[i], _pp[i + 1]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
@@ -717,7 +741,7 @@ if CFG['training']:
             f = (d_ - _pc[i]) / ((_pc[i + 1] - _pc[i]) or 1); (ax, ay), (bx, by) = _pp[i], _pp[i + 1]
             L_ = math.hypot(bx - ax, by - ay) or 1; nx, ny = (by - ay) / L_ * side, -(bx - ax) / L_ * side   # to the signal's side
             la_, lo_ = ll(ax + (bx - ax) * f + nx * 3.2, ay + (by - ay) * f + ny * 3.2); pts_.append([round(la_, 6), round(lo_, 6)])
-        TEST['platforms'].append({'name': sg.get('name') or 'Fermata di prova', 'pts': pts_})
+        TEST['platforms'].append({'name': sg.get('test_stop_name') or sg.get('name') or 'Fermata di prova', 'pts': pts_})
     print('test platforms:', [t['name'] for t in TEST['platforms']])
 else:
     TEST = None
@@ -774,6 +798,19 @@ if LINE in ('M3', 'M4'):
         tl.start_where = tl.end_where = 'depot'; out.append(tl)
         STOCK.append({k: v for k, v in u.items() if k != 'node'}); DUTIES.append([[0, 10 ** 6, len(STOCK) - 1]])
         print('unit standing alone in the depot:', u['units'], 'at node', n_)
+    # every real train on the map: the units that are not running at a given moment stand in the depot. The 24 trains of
+    # the timetable carry the units they run; the units left over are shown on these depot places (nobody else uses them)
+    _used = {sg[5] for tl in out for sg in tl.segs if len(sg) > 5 and sg[5] is not None}
+    _unused_cfg = (json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rules_%s.json' % LINE.lower()) else {}).get('depot_unused', {}).get('nodes', [])
+    _free_places = [p for p in storage if p not in _used] + [p for p in _unused_cfg if p not in _used]
+    n_extra = len(STOCK) - len(out); RESERVE_NODES = []
+    for _ in range(max(0, n_extra)):
+        if not _free_places: print('no free depot place for a reserve train'); break
+        n_ = _free_places.pop(0); pid_ = leg_path(CFG['AFTER_ARR'], [], n_); c_ = paths[pid_][1]
+        tl = TL(len(out)); d_ = c_[-1] - TRAIN_HALF
+        tl.add(pid_, 'to_depot', [30 * 3600, 30 * 3600 + 1], [d_, d_]); tl.segs[-1].append(n_)
+        tl.start_where = tl.end_where = 'depot'; out.append(tl); DUTIES.append([]); RESERVE_NODES.append(n_)
+    print('depot places for the units not running (reserve):', RESERVE_NODES, '| trains on the map:', len(out), 'units:', len(STOCK))
 
 # ---------------- report ----------------
 print('trains', len(trains), 'storage tracks', len(storage), 'paths', len(paths))

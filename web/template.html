@@ -2530,8 +2530,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function clearManual(F, si, tag) {
     if (sigDel) return;
-    if (F.ag.il().auto) { flashNote(tag + ': il deposito è in automatico'); return; }
-    F.ag.event({ kind: 'il', what: 'clear', si }); flashNote(tag + ': via libera al prossimo treno');
+    const il = F.ag.il();
+    if (il.auto) { F.ag.event({ kind: 'il', what: 'auto', on: false }); syncDepotAuto(); }      // a click on a depot signal: manual
+    if (F.ag.il().pass[si] > 0) { F.ag.event({ kind: 'il', what: 'unclear', si }); flashNote(tag + ': via libera tolta'); }
+    else { F.ag.event({ kind: 'il', what: 'clear', si }); flashNote(tag + ': via libera al prossimo treno (deposito in manuale)'); }
+    if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals();
   }
   function flashNote(t) { const n = document.getElementById('ilNote'); if (!n) return; n.textContent = t; n.hidden = false; clearTimeout(flashNote.h); flashNote.h = setTimeout(() => n.hidden = true, 4000); }
   // names of tracks (tails, platforms) and depot places, with the signals
@@ -2682,7 +2685,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       else if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
       // interlocking signals: via libera only when cleared for a train
-      if (sg.si != null && F.ag && F.ag.IL && F.ag.IL.controlled(sg.si)) busy = F.ag.il().grant[sg.si] == null;
+      if (sg.si != null && F.ag && F.ag.IL && F.ag.IL.controlled(sg.si)) { const il = F.ag.il();
+        busy = il.grant[sg.si] == null && !(F.ag.IL.isManual(sg.si) && !il.auto && il.pass[sg.si] > 0); }   // cleared by the player: red + white
       const a = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
       if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${sg.shunt ? ' sh' : ''}" alt="" src="${SIGURL[a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
     });
