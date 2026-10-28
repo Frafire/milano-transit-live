@@ -39,12 +39,14 @@
       if (sp) for (const [d2, s2] of sp) if (d2 > d + 5 && s2 !== si) { e = Math.min(e, d2); break; }
       return e;
     }
-    function request(st, k, si, d, nose, freeTo, pid) {
+    function request(st, k, si, d, nose, freeTo, pid, freeTrains) {
       if (st.grant[si] === k) return true;
       if (st.grant[si] != null) return false;
       if (d - nose > NEAR) return false;
       if (freeTo < d + 30) return false;                                        // the track behind it is not free
-      if (section.has(si) && pid != null && freeTo < sectionEnd(pid, si, d)) return false;   // its block section is not free
+      // its block section (up to the next signal) must have no train in it; what lies beyond the next signal is that
+      // signal's business (#A02 protects only up to #A06: the line beyond does not keep it red)
+      if (section.has(si) && pid != null && (freeTrains != null ? freeTrains : freeTo) < sectionEnd(pid, si, d) - 5) return false;
       const g = groupOf.get(si);
       if (g != null) for (const [s2, k2] of Object.entries(st.grant)) if (k2 !== k && groupOf.get(+s2) === g) return false;
       if (manual.has(si) && !st.auto) { if (!(st.pass[si] > 0)) return false; st.pass[si]--; }

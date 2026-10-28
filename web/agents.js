@@ -274,6 +274,7 @@
           if (x < lim) { lim = x; why = { train: bk }; }
         }
       }
+      const limTrains = lim;      // how far the track is free of other trains (block sections of the depot signals)
       // signals: block sections, junctions, tails, crossovers for turning back
       const skipBlocks = leg.status === 'turnback' || (leg.noBlocksUntil != null && a.d < leg.noBlocksUntil) || (leg.noBlocksAfter != null && a.d > leg.noBlocksAfter);
       const list = byPid[a.pid] || [];
@@ -299,7 +300,7 @@
         // it stops before the signal first (a station, or the end of this move): it asks when it leaves from there
         const next = leg.stops && leg.stops.length && a.stopAt == null ? leg.stops[0].d : leg.end;
         if (next != null && next < c.d - half) break;
-        if (IL.request(S.il, a.k, c.si, c.d, nose, lim + half, a.pid)) continue;
+        if (IL.request(S.il, a.k, c.si, c.d, nose, lim + half, a.pid, limTrains + half)) continue;
         lim = stop; why = { sig: c.si }; break;
       }
       return { lim, why };
