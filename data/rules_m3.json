@@ -2483,6 +2483,134 @@
    "dir": 1,
    "type": "shunt",
    "name": ""
+  },
+  {
+   "line": "M3",
+   "w": 71,
+   "lat": 45.433193,
+   "lon": 9.257779,
+   "on_track": [
+    45.433193,
+    9.257779
+   ],
+   "offset_m": 0.1,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "block",
+   "name": ""
+  },
+  {
+   "line": "M3",
+   "w": 72,
+   "lat": 45.433159,
+   "lon": 9.257805,
+   "on_track": [
+    45.433161,
+    9.257804
+   ],
+   "offset_m": 0.2,
+   "side": "right",
+   "heading": 230,
+   "dir": -1,
+   "type": "block",
+   "name": ""
+  },
+  {
+   "line": "M3",
+   "w": 42,
+   "lat": 45.430567,
+   "lon": 9.253562,
+   "on_track": [
+    45.430561,
+    9.253568
+   ],
+   "offset_m": 0.8,
+   "side": "left",
+   "heading": 230,
+   "dir": -1,
+   "type": "nose2",
+   "name": "A87"
+  },
+  {
+   "line": "M3",
+   "w": 15,
+   "lat": 45.430601,
+   "lon": 9.2535,
+   "on_track": [
+    45.430592,
+    9.253513
+   ],
+   "offset_m": 1.4,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "nose2",
+   "name": "A86"
+  },
+  {
+   "line": "M3",
+   "w": 72,
+   "lat": 45.430656,
+   "lon": 9.253463,
+   "on_track": [
+    45.430659,
+    9.253458
+   ],
+   "offset_m": 0.5,
+   "side": "left",
+   "heading": 229,
+   "dir": 1,
+   "type": "nose2",
+   "name": "A84"
+  },
+  {
+   "line": "M3",
+   "w": -16,
+   "lat": 45.430835,
+   "lon": 9.253342,
+   "on_track": [
+    45.430831,
+    9.253348
+   ],
+   "offset_m": 0.6,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "nose2",
+   "name": "A79"
+  },
+  {
+   "line": "M3",
+   "w": 38,
+   "lat": 45.430778,
+   "lon": 9.253323,
+   "on_track": [
+    45.430782,
+    9.25332
+   ],
+   "offset_m": 0.4,
+   "side": "left",
+   "heading": 231,
+   "dir": 1,
+   "type": "nose2",
+   "name": "A80"
+  },
+  {
+   "line": "M3",
+   "w": 39,
+   "lat": 45.430759,
+   "lon": 9.25335,
+   "on_track": [
+    45.430746,
+    9.253365
+   ],
+   "offset_m": 1.9,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "nose2",
+   "name": "A81"
   }
  ],
  "speeds": {
@@ -2772,6 +2900,13 @@
     "signals": [
      98,
      99
+    ]
+   },
+   {
+    "name": "Uscita deposito verso w71/w72: un treno alla volta",
+    "signals": [
+     105,
+     106
     ]
    }
   ],
