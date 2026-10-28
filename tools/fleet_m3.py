@@ -12,7 +12,7 @@ MENEGHINO_NEW = [('941-942', 2009, 'assegnato alla M3'), ('943-944', 2009, 'asse
 YEAR1 = lambda u: 1989 if int(u[:4]) <= 8040 else 1990
 # 8105-8106: stopped, alone, on the depot track after shunting signal #A76 (OSM way 32, dead end node 73)
 SOLO = [{'units': '8105-8106', 'type': 'Tradizionale 2° lotto', 'year': '2003', 'display': 'LED',
-         'note': 'fermo, da solo (senza accoppiamento); solo giri di prova', 'node': 73}]
+         'note': 'fermo, da solo (senza accoppiamento): 3 casse, unico nel suo genere; solo giri di prova', 'cars': 3, 'node': 73}]
 
 def trains():
     out = []

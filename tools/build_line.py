@@ -84,7 +84,11 @@ for a_, b_, m in LINKS:
         # Giovanni: most depot tracks are left by the end the train came in (the driver changes cab);
         # only tracks marked "Stabling: through" are left by the other end
         here = {edges[e]['way'] for x in (a_, b_) for e in node_edges[x] if 'mid' not in edges[e]}
-        if not (here & _router.THROUGH_STABLE) and route_nodes(m, SD_OUT_NODE, via=[SD_DEP[1]], first=came_from): ex = came_from
+        # out by the end it came in (cab change) or straight on through the far end: the shorter way out (Giovanni:
+        # leaving from the front is quicker, so preferable); "Stabling: through" marks force the far end
+        r_same = route_nodes(m, SD_OUT_NODE, via=[SD_DEP[1]], first=came_from)
+        r_fwd = route_nodes(m, SD_OUT_NODE, via=[SD_DEP[1]], first=ex)
+        if not (here & _router.THROUGH_STABLE) and r_same and (not r_fwd or plen(path_poly(r_same)) <= plen(path_poly(r_fwd)) + 50): ex = came_from
         STORE_WAY[m] = min(here) if here else -1
         if ex == came_from: STORE_SAME.add(m)
         STORE_ARR_FROM[m] = came_from
@@ -128,11 +132,27 @@ def make_path(key, states):
     p = path_poly(states); c = cum(p)
     pid = len(paths); paths.append((p, c)); path_key[key] = pid; PATH_STATES[pid] = list(states); return pid
 
+def fwd_place(n): return n in STORE_EXIT and n not in STORE_SAME          # through track left straight on (forward)
+def start_off(n):
+    """where the train's centre is at the start of a path from n"""
+    if len(node_edges[n]) == 1: return tail_off(n)
+    if n in STORE_SAME: return TRAIN_HALF                                     # parked behind the node, leaves backwards
+    if fwd_place(n):                                                          # parked behind the node, leaves forwards
+        e = next(e for e in node_edges[n] if STORE_ARR_FROM[n] in (edges[e]['a'], edges[e]['b']))
+        return edges[e]['len'] - TRAIN_HALF
+    return 0
+def end_off(n, L):
+    """where the train's centre is at the end of a path into n"""
+    if len(node_edges[n]) == 1: return L - tail_off(n)
+    if n in STORE_EXIT: return L - TRAIN_HALF                                 # a depot place: the nose at the node
+    return L
 def leg_path(start, via, end):
     key = ('leg', start, tuple(via), end)
     if key in path_key: return path_key[key]
     _router.THROUGH_ALLOWED = {x for x in (start, end) if x in STORE_EXIT}   # ...except its own parking track
-    st = route_nodes(start, end, via=via, first=STORE_EXIT.get(start))
+    if fwd_place(start):            # parked behind the node: the path starts at the end it came in by, straight through
+        st = route_nodes(STORE_ARR_FROM[start], end, via=[start] + list(via), first=start)
+    else: st = route_nodes(start, end, via=via, first=STORE_EXIT.get(start))
     _router.THROUGH_ALLOWED = set()
     if st is None: raise RuntimeError('no route %s %s %s' % (start, via, end))
     return make_path(key, st)
@@ -255,11 +275,15 @@ _rules_ = json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rul
 def _gone(sg):
     return any(math.hypot((sg['lat'] - la) * 111000, (sg['lon'] - lo) * 78000) < 3 for la, lo in _rules_.get('removed_signals', []))
 _all_signals = _rules_.get('signals', [])
-_rules_['signals'] = [sg for sg in _all_signals if not _gone(sg) and sg.get('type') not in ('cut', 'nose')]
+# every signal keeps its #A number (its place in the rules, flags and cut points not counted) even when others are removed
+_n = 0
+for _sg in _all_signals:
+    if _sg.get('type') not in ('nose', 'nose2', 'cut'): _n += 1; _sg['_n'] = _n
+_rules_['signals'] = [sg for sg in _all_signals if not _gone(sg) and sg.get('type') not in ('cut', 'nose', 'nose2')]
 NOSE_FLAGS = [sg for sg in _all_signals if sg.get('type') == 'nose']        # where the nose stops (stations, depot)
 # interlocking groups and depot signals name signals by their #A number in rules (1 = first): to indexes after removals
-def _sig_index(n):     # #A number as shown on the map (after removed signals and cut points are taken out)
-    return n - 1 if 0 < n <= len(_rules_['signals']) else None
+def _sig_index(n):     # #A number (as shown on the map) -> index in the list of signals in use
+    return next((i for i, x in enumerate(_rules_['signals']) if x.get('_n') == n), None)
 _IL = _rules_.get('interlocking', {})
 _side_lon = _IL.get('depot_sides', {}).get('lon')
 _sides = [[i for i, sg in enumerate(_rules_['signals']) if sg.get('type') == 'shunt' and (sg['lon'] > _side_lon) == east] for east in (True, False)] if _side_lon else []
@@ -270,6 +294,8 @@ INTERLOCKING = {'groups': [[i for i in (_sig_index(n) for n in g['signals']) if 
 for nm_, g_ in zip(('Deposito lato est: una manovra alla volta', 'Deposito lato ovest: una manovra alla volta'), _sides):
     INTERLOCKING['hold'] = INTERLOCKING.get('hold', []) + [len(INTERLOCKING['groups'])]
     INTERLOCKING['groups'].append(g_); INTERLOCKING['group_names'].append(nm_)
+# with the depot on manual the player opens every shunting signal too (one train each)
+INTERLOCKING['manual'] = sorted(set(INTERLOCKING['manual']) | {i for g_ in _sides for i in g_})
 for _t in (COM_TAILS if CFG.get('tail_at_signal') else []):
     _e = edges[node_edges[_t][0]]; _P = _e['pts'] if _e['b'] == _t else _e['pts'][::-1]; _P = _P[::-1]   # from the tail end
     _best = None
@@ -467,8 +493,8 @@ def service_leg(tl, start, via, end, trip, t_leave, plat_stop, end_stop, approac
     """One leg from a reversal point through a full passenger trip to the next reversal point."""
     pid = leg_path(start, via, end); p, c = paths[pid]
     L = c[-1]
-    d_start = tail_off(start) if len(node_edges[start]) == 1 else 0
-    d_end = L - tail_off(end) if len(node_edges[end]) == 1 else L
+    d_start = start_off(start)
+    d_end = end_off(end, L)
     # project passenger stops
     ds, last_d = [], d_start
     for tt, s in trip['ev']:
@@ -616,7 +642,7 @@ for k, chain in enumerate(trains):
                 # pull out: depot -> platform 1 in 5 min, wait 2 min, depart
                 start = STORE_BEFORE.get(tr['ti'], loc[1]); via = [SD_DEP[1], SD_OUT_NODE]
                 pid0 = leg_path(start, via, ctail); d_pl, _ = project(paths[pid0][0], paths[pid0][1], *SD_STOP, 0, None)
-                d0 = TRAIN_HALF if len(node_edges[start]) == 1 or start in STORE_SAME else 0
+                d0 = start_off(start)
                 run = max(PULL_OUT if LINE == 'M4' else 0, (d_pl - d0) / V_YARD)     # M3: at 15 km/h all the way
                 t_plat = PULL_PLAT[tr['ti']]; t_leave = t_plat - run
                 com_seg0 = len(tl.segs)
@@ -658,7 +684,7 @@ for k, chain in enumerate(trains):
                 # early train: empty run from the depot to Comasina tail first
                 ctail, t_ready = EARLY_TAIL[tr['ti']]
                 pidE = leg_path(STORE_BEFORE.get(tr['ti'], loc[1]), [SD_DEP[1], SD_OUT_NODE], ctail); cE = paths[pidE][1]
-                LE = cE[-1]; d0, d1 = TRAIN_HALF, LE - tail_off(ctail)
+                LE = cE[-1]; d0, d1 = start_off(STORE_BEFORE.get(tr['ti'], loc[1])), LE - tail_off(ctail)
                 t0 = t_ready - (d1 - d0) / V_EMPTY - 90 - EMPTY_MARGIN    # leave early: on the way it may wait behind passenger trains
                 tl.add(pidE, 'empty', [t0, t0 + 90, t_ready], [d0, d0 + 200, d1]); tl.segs[-1].append(STORE_BEFORE.get(tr['ti'], loc[1]))
                 loc = ('com', ctail, t_ready)
@@ -714,12 +740,12 @@ if CFG['training']:
     _solo = [u['node'] for u in getattr(__import__('fleet_' + LINE.lower()), 'SOLO', [])] if LINE == 'M3' else []
     for p in storage + _solo:
         _router.THROUGH_ALLOWED = {p} if p in STORE_EXIT else set()
-        r_in = route_nodes(p, 157, first=STORE_EXIT.get(p)) or route_nodes(p, 157) or via_reversal(p, 157)
+        r_in = (route_nodes(STORE_ARR_FROM[p], 157, via=[p], first=p) if fwd_place(p) else route_nodes(p, 157, first=STORE_EXIT.get(p))) or route_nodes(p, 157) or via_reversal(p, 157)
         r_back = route_nodes(157, p, first=78) or route_nodes(157, p) or via_reversal(157, p)
         _router.THROUGH_ALLOWED = set()
         if r_in and r_back and end_node(*r_in[-1]) == 157:
             TEST['by_store'][str(p)] = [make_path(('tin', p), r_in), make_path(('tback', p), r_back),
-                                        TRAIN_HALF if len(node_edges[p]) == 1 or p in STORE_SAME else 0]
+                                        start_off(p) if r_in and start_node(*r_in[0]) == (STORE_ARR_FROM.get(p) if fwd_place(p) else p) else TRAIN_HALF]
     print('test loop reachable from', len(TEST['by_store']), 'of', len(storage), 'depot places')
     # test platforms (fermate di prova): 110 m of platform ending at each stopping-point signal on the loop
     TEST['platforms'] = []
@@ -1214,7 +1240,7 @@ for pid in range(len(paths)):
     PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves})
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
-    NET['signals'] = [{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name')}
+    NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name')}, 'n': sg.get('_n')}
                       for sg in _rules_.get('signals', []) if sg.get('line') == LINE]
     NET['removed'] = _rules_.get('removed_signals', [])
     NET['interlocking'] = INTERLOCKING
@@ -1228,7 +1254,10 @@ if os.path.exists(_rules):
     LINK_ENDS = {m: (a_, b_) for a_, b_, m in LINKS}
     _pl = [(n, NET['nodes'].get(str(n))) for n in storage]; _pl = [(n, q) for n, q in _pl if q]
     _c = math.cos(math.radians(45.43))
-    _pl.sort(key=lambda x: (x[1][1] - 9.25) * 78000 * math.cos(math.radians(130)) * _c / _c - (x[1][0] - 45.43) * 111000 * math.sin(math.radians(130)))
+    def _sortpos(n, q):        # numbering: the middle of the track (through tracks), so it does not change when a place moves
+        if n in LINK_ENDS: (ax, ay), (bx, by) = node_pos[LINK_ENDS[n][0]], node_pos[LINK_ENDS[n][1]]; return ll((ax + bx) / 2, (ay + by) / 2)
+        return q
+    _pl.sort(key=lambda x: (lambda q: (q[1] - 9.25) * 78000 * math.cos(math.radians(130)) - (q[0] - 45.43) * 111000 * math.sin(math.radians(130)))(_sortpos(*x)))
     _pl = [(n, _place_pos(n, i) or q) for i, (n, q) in enumerate(_pl)]
     NET['depot'] = [{'node': n, 'lat': q[0], 'lon': q[1], 'way': STORE_WAY.get(n, -1), 'out': 'through' if n in STORE_EXIT and n not in STORE_SAME else 'same end',
                      'name': _dn.get(str(n), 'Deposito binario %d' % (i + 1))} for i, (n, q) in enumerate(_pl)]

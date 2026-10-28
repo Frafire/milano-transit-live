@@ -412,6 +412,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <option value="shunt">Shunting signal (manovra)</option>
       <option value="stop">Stopping point (fermata), e.g. on the test loop</option>
       <option value="nose">Bandiera: arresto del muso (dove si ferma la testa del treno)</option>
+      <option value="nose2">Bandiera 2: secondo treno sullo stesso binario (dove sta la sua estremità)</option>
       <option value="cut">Taglio: nessun treno passa su questo pezzo di binario (tra i due scambi)</option>
     </select>
     <input type="text" id="sigName" placeholder="Name (optional), e.g. S12">
@@ -1012,10 +1013,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const rt = realTrain(F, F.trains[i], t);
       const col = fleetColors(F, st, F.trains[i]), num = F.trips ? F.line.slice(1) : rt ? (F.line === 'M4' && !rt.missing ? rt.units.slice(-2) : String(rt.n)) : String(F.trains[i].n);
       if (longView) {
-        const w = Math.max(6.8, 2.7 / mpp), pts = [];   // 15% slimmer
-        for (let c = 0; c <= CARS; c++) pts.push(map.latLngToContainerPoint(trackAt(F, st.pid, st.d - half + c * CAR)));
+        const w = Math.max(6.8, 2.7 / mpp), pts = [], NC = rt && rt.cars ? rt.cars : CARS, d0c = NC < CARS ? st.d + half - NC * CAR : st.d - half;
+        for (let c = 0; c <= NC; c++) pts.push(map.latLngToContainerPoint(trackAt(F, st.pid, d0c + c * CAR)));
         ctx.lineCap = 'butt';
-        for (let c = 0; c < CARS; c++) {
+        for (let c = 0; c < NC; c++) {
           const A = pts[c], B = pts[c + 1], dx = B.x - A.x, dy = B.y - A.y, Ln = Math.hypot(dx, dy) || 1, g = Math.min(1.2, Ln * .08);
           const ax = A.x + dx / Ln * g, ay = A.y + dy / Ln * g, bx = B.x - dx / Ln * g, by = B.y - dy / Ln * g;
           ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.strokeStyle = st.status === 'parked' ? col.edge : '#0b0b0b'; ctx.lineWidth = w + 2.5; ctx.stroke();
@@ -1535,7 +1536,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const bearing = (a, b) => (Math.atan2((b[1] - a[1]) * Math.cos(a[0] * Math.PI / 180), b[0] - a[0]) * 180 / Math.PI + 360) % 360;
   const arrowIcon = (deg, color) => L.divIcon({ className: '', iconSize: [0, 0],
     html: `<div class="arrow-ic" style="transform:translate(-50%,-50%) rotate(${deg}deg)"><svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="${color}" stroke="#000" stroke-width="1"/></svg></div>` });
-  const SIGCOL = { block: '#ff3b3b', departure: '#3bd16f', entry: '#ffcf3f', shunt: '#9fb7ff', stop: '#ffffff', nose: '#ff6fd8' };
+  const SIGCOL = { block: '#ff3b3b', departure: '#3bd16f', entry: '#ffcf3f', shunt: '#9fb7ff', stop: '#ffffff', nose: '#ff6fd8', nose2: '#ff9f1c', cut: '#e5383b' };
   const sigIcon = (deg, type, name) => type === 'cut' ? L.divIcon({ className: '', iconSize: [0, 0],
     html: `<div class="sig" style="position:relative"><svg width="22" height="22" viewBox="0 0 22 22" style="transform:translate(-50%,-50%)"><circle cx="11" cy="11" r="9" fill="#e5383b" stroke="#000" stroke-width="1.5"/><path d="M6 6 L16 16 M16 6 L6 16" stroke="#fff" stroke-width="3"/></svg>${name ? `<span>${name}</span>` : ''}</div>` }) : L.divIcon({ className: '', iconSize: [0, 0],
     html: `<div class="sig" style="position:relative"><div style="transform:rotate(${deg}deg)"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M11 2 L18 16 L11 12 L4 16 Z" fill="${SIGCOL[type] || '#fff'}" stroke="#000" stroke-width="1.5"/><circle cx="11" cy="19" r="2.5" fill="#000"/></svg></div>${name ? `<span>${name}</span>` : ''}</div>` });
@@ -2225,6 +2226,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // San Donato: platform 2 taken by a train reversing there, this one waits in the tail (a call: open)
     const cp = tr.agentK != null && CALLS[tr.agentK] && CALLS[tr.agentK].p2;
     if (cp && tr.alts[cp.ai]) h += radioSec('p2', 'Binario 2 occupato', `<div class="row"><button id="p2Wait">Resta fermo e attendi</button><button id="p2Divert">Devia al binario 1</button></div>`, 'retrocessione', true);
+    // depot on manual: open the signal the train is waiting for
+    const dq = tr.agentK != null ? depotAsk(F, tr.agentK) : null;
+    if (dq) h += radioSec('dep', 'Segnale del deposito', dq.open ? `<div class="lbl">${sigNo(F, dq.si)} aperto: il treno può partire</div>`
+      : `<div class="lbl">${sigNo(F, dq.si)} rosso · ${dq.what}</div><div class="row"><button id="depOpen" class="send">▶ Apri ${sigNo(F, dq.si)}</button></div>`, dq.open ? 'aperto' : 'richiesta', !dq.open);
     // longer stop at a station
     if (ns) {
       const had = tr.env && tr.env.extra && tr.env.extra[ns.key] || 0;
@@ -2273,6 +2278,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
                        `Copiato, Posto Centrale. A ${cap(n.name)} tengo le porte aperte ${durTxt(radioStopSel)}. Passo e chiudo.`,
                        `Ricevuto. Fermata prolungata a ${cap(n.name)}, ${durTxt(radioStopSel)}. Passo.`]));
     };
+    const dOpen = document.getElementById('depOpen');
+    if (dOpen) dOpen.onclick = () => { const q = depotAsk(F, tr.agentK); if (!q) return;
+      say('PC', `Treno ${radioTrain.no}, apro il segnale ${sigNo(F, q.si)}, via libera per ${q.what}. Passo.`, 'pc');
+      F.ag.event({ kind: 'il', what: 'clear', si: q.si }); if (SIGS) SIGS.forEach(x => { x.a = null; });
+      driverSays(pick(['Ricevuto PC, segnale aperto, procedo. Passo.', 'Copiato, vedo il bianco. Mi muovo. Passo.'])); radioCmdHtml = ''; drawRadioCmds(); };
     const p2w = document.getElementById('p2Wait'), p2d = document.getElementById('p2Divert');
     if (p2w) p2w.onclick = () => { say('PC', `Treno ${radioTrain.no}, resta fermo sul tronchetto e attendi che il binario 2 si liberi. Passo.`, 'pc');
       driverSays('Ricevuto PC, attendo il via libera per il binario 2. Passo.'); };
@@ -2418,11 +2428,30 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   // emergency: what the drivers say on their own (stopped by the closure, red signal for 5 minutes, very late)
   const CALLS = {};
+  // depot on manual: the next depot signal a train needs (a shunting or depot protection signal still red for it)
+  function depotAsk(F, k) {
+    const ag = F.ag, IL = ag && ag.IL, il = ag && ag.il(); if (!IL || !il || il.auto) return null;
+    const a = ag.agents()[k]; if (!a || a.hidden || a.mode !== 'plan') return null;
+    const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, pid = leg ? leg.pid : a.pid, from = leg && leg.start != null && pid !== a.pid ? leg.start : a.d;
+    const c = IL.ahead(pid, from + F.engine.half, 900).find(x => IL.isManual(x.si) && il.grant[x.si] !== k); if (!c) return null;
+    const st = leg ? leg.status : a.status;
+    return { si: c.si, open: il.pass[c.si] > 0, what: st === 'from_depot' || st === 'empty' && (pid !== a.pid || ag.S.t < a.wait || a.status === 'parked') ? 'uscita dal deposito' : st === 'to_depot' ? 'entrata in deposito' : 'manovra in deposito',
+             due: ag.S.t < a.wait ? a.wait : null, red: a.red && a.red.why && a.red.why.sig === c.si ? a.red.since : null };
+  }
   function emergencyCalls(F) {
     const G = F.engine.G, ag = F.ag, R_ = ag.resources(), em = { ag };
     ag.agents().forEach((a, k) => {
       const tr = F.trains[k], no = trainNo(F, tr), c = CALLS[k] = CALLS[k] || {};
       const call = text => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + no, text, 'call'); };
+      // depot on manual: 2 minutes before moving (or on reaching a red depot signal) the driver asks for it, again after 1 minute
+      const dq = depotAsk(F, k);
+      if (dq && !dq.open) {
+        const t = ag.S.t, h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? 'Buongiorno' : 'Buonasera', key = dq.si + ':' + (dq.due || 'r');
+        if (c.depKey !== key && (dq.due != null && t >= dq.due - 120 || dq.red != null)) { c.depKey = key; c.depAgain = false;
+          call(`${hi} PC, qui treno ${no}: richiesta apertura segnale ${sigNo(F, dq.si)} per ${dq.what}. Passo.`); }
+        else if (c.depKey === key && !c.depAgain && (dq.due != null ? t >= dq.due + 60 : dq.red != null && t - dq.red >= 60)) { c.depAgain = true;
+          call(`PC, qui treno ${no}, sono ancora in attesa dell'apertura del segnale ${sigNo(F, dq.si)} per ${dq.what}. Passo.`); }
+      } else if (!dq) c.depKey = null;
       if (a.status === 'stopped' && !c.stopped) {
         c.stopped = true; const at = a.inside ? G.names[a.inside.stops[a.inside.q].st] : '';
         call(`PC, qui treno ${no}, fermo a ${cap(at)}: la linea davanti è interrotta. Attendo istruzioni. Passo.`);
@@ -2430,7 +2459,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (a.status !== 'stopped') c.stopped = false;
       if (a.red && em.ag.S.t - a.red.since >= 300 && !c.red) {
         c.red = true; const w = a.red.why || {};
-        const what = w.sig != null ? 'al segnale #A' + String(w.sig + 1).padStart(2, '0') : w.res != null ? 'al segnale ' + (R_[w.res].name.replace(/^blocco /, '').replace(/^(N|S) /, '')) : 'dietro al treno ' + trainNo(F, F.trains[w.train] || tr);
+        const what = w.sig != null ? 'al segnale ' + sigNo(F, w.sig) : w.res != null ? 'al segnale ' + (R_[w.res].name.replace(/^blocco /, '').replace(/^(N|S) /, '')) : 'dietro al treno ' + trainNo(F, F.trains[w.train] || tr);
         call(`PC, qui treno ${no}, sono fermo ${what} da 5 minuti, via impedita. Chiedo spiegazioni. Passo.`);
       }
       if (!a.red && c.red) { c.red = false; say('T' + no, `Qui ${no}, via libera. Ripartito, passo. Buona giornata.`, 'dr'); }
@@ -2522,6 +2551,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const sigLayer = L.layerGroup(); let showSigs = false, SIGS = null;
   try { showSigs = localStorage.getItem('mtl-sigs') === '1'; } catch (e) {}
   const tagHtml = tag => `<span class="sigtag admin-only">${tag}</span>`;   // #AXX, shown in admin mode only
+  const sigNo = (F, si) => '#A' + String(((F.engine.net.signals || [])[si] || {}).n || si + 1).padStart(2, '0');
   // interlocking notes for a signal's tooltip
   function ilNote(F, si) {
     const IL = F.ag && F.ag.IL, net = F.engine.net; if (!IL || si < 0) return '';
@@ -2566,7 +2596,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       return best && (best.vx * -uy + best.vy * ux) > 0 ? 1 : -1;
     }
-    const NPL = (F.engine.net.signals || []).length, tagOf = n => '#A' + String(n).padStart(2, '0');
+    const NPL = Math.max(0, ...(F.engine.net.signals || []).map((x, i) => x.n || i + 1)), tagOf = n => '#A' + String(n).padStart(2, '0');
     const place = (pid, other, d, sgn, tip, blockIdx) => {
       const tag = tagOf(NPL + blockIdx + 1); tip = tag + ' · ' + tip;
       const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);
@@ -2586,7 +2616,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     });
     // the other signals placed on the map (terminal junctions, tails, depot): state from the track just ahead of them
     sectionAhead(F).forEach(x => {
-      const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt', tag = tagOf((F.engine.net.signals || []).indexOf(x.sg) + 1);
+      const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt', tag = tagOf(x.sg.n || (F.engine.net.signals || []).indexOf(x.sg) + 1);
       const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${shunt ? ' sh' : ''}" alt="" src="${SIGURL[shunt ? 'sstop' : 'stop']}">${tagHtml(tag)}` }) })
         .bindTooltip(tag + ' · ' + (shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ilNote(F, (F.engine.net.signals || []).indexOf(x.sg)) + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
       // where it is on the paths that go over it: it shows the section right behind it (junction, tail, block)

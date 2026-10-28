@@ -2595,5 +2595,12 @@
  "avoid_ways": {
   "_about": "Wrong-way (illegal) depot access track: routes use it only if there is no other way (extra metres of cost)",
   "71": 3000
- }
+ },
+ "removed_signals": [
+  [
+   45.430106,
+   9.257352
+  ]
+ ],
+ "removed_signals_about": "#A42 (exit from the depot towards the station): Giovanni, it protects nothing (28 Oct). Numbers of the others do not change."
 }
