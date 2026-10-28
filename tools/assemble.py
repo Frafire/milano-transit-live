@@ -11,7 +11,8 @@ t = t.replace('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></s
 t = t.replace('<script src="engine.js"></script>', '<script>' + open(os.path.join(web, 'engine.js')).read() + '</script>')
 t = t.replace('<script src="interlocking.js"></script>', '<script>' + open(os.path.join(web, 'interlocking.js')).read() + '</script>')
 t = t.replace('<script src="agents.js"></script>', '<script>' + open(os.path.join(web, 'agents.js')).read() + '</script>')
-assert 'unpkg' not in t and 'src="engine.js"' not in t and 'src="agents.js"' not in t and 'src="interlocking.js"' not in t
+t = t.replace('<script src="DepotM3.js"></script>', '<script>' + open(os.path.join(web, 'DepotM3.js')).read() + '</script>')
+assert 'unpkg' not in t and 'src="engine.js"' not in t and 'src="agents.js"' not in t and 'src="interlocking.js"' not in t and 'src="DepotM3.js"' not in t
 d = base64.b64encode(open('data.json.gz', 'rb').read()).decode()
 # M3 only for now (the page shows only M3); ALL_LINES=1 packs every line again
 fleets = [json.load(open(f)) for f in (('m1.json', 'm3.json', 'm4.json', 'b130.json', 'b64.json') if os.environ.get('ALL_LINES') else ('m3.json',))]

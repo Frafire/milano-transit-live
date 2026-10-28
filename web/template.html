@@ -138,6 +138,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .log .m { white-space: pre-wrap; }
 .radio .log .pc { color: #ffd23f; }
 .radio .log .call { color: #ff6b6b; }
+.radio .log .ok { color: #5fd38d; }
 .radio .free { display: flex; gap: 6px; padding: 6px 10px 10px; }
 .radio .free input { flex: 1; min-width: 0; background: #0d1d12; color: #8dff9e; border: 2px solid #3b5e45; font: inherit; font-size: 18px; padding: 1px 8px; }
 .radio .free button.send { background: #ffd23f; color: #1a1200; border: 2px solid #ffd23f; font: inherit; font-size: 18px; font-weight: 700; padding: 1px 10px; cursor: pointer; }
@@ -458,6 +459,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 <script src="engine.js"></script>
 <script src="interlocking.js"></script>
 <script src="agents.js"></script>
+<script src="DepotM3.js"></script>
 <script id="payload" type="application/octet-stream">__DATA__</script>
 <script id="m3payload" type="application/octet-stream">__M3__</script>
 <script id="livepayload" type="application/octet-stream">__LIVE__</script>
@@ -1010,10 +1012,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     for (const [st, i] of items) {
       if (F.trips || F.bus) { const tr = F.trains[i], segs = tr.segs, e = segs[segs.length - 1][3]; if (t < tr.starts[0] || t > e[e.length - 1]) continue; }
       if (st.status === 'parked' && z < 14) continue;
-      const p = map.latLngToContainerPoint(st.pos);
+      const rt = realTrain(F, F.trains[i], t), NC0 = rt && rt.cars ? rt.cars : CARS;
+      // a short unit (train 28, 3 cars) stands at the front of the 6-car space: its marker over its own middle
+      const p = map.latLngToContainerPoint(NC0 < CARS && st.pid != null ? trackAt(F, st.pid, st.d + half - NC0 * CAR / 2) : st.pos);
       if (p.x < -80 || p.y < -80 || p.x > s.x + 80 || p.y > s.y + 80) continue;
       const key = 'f' + fi + ':' + i; drawn.push([p.x, p.y, key]);
-      const rt = realTrain(F, F.trains[i], t);
       const col = fleetColors(F, st, F.trains[i]), num = F.trips ? F.line.slice(1) : rt ? (F.line === 'M4' && !rt.missing ? rt.units.slice(-2) : String(rt.n)) : String(F.trains[i].n);
       if (longView) {
         const w = Math.max(6.8, 2.7 / mpp), pts = [], NC = rt && rt.cars ? rt.cars : CARS, d0c = NC < CARS ? st.d + half - NC * CAR : st.d - half;
@@ -1033,10 +1036,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         }
         ctx.font = '700 11px Barlow Condensed, sans-serif';
         const lab = F.trips ? F.line : st.status === 'parked' ? num : F.name + ' · ' + num, tw = ctx.measureText(lab).width + 8;
-        const lp = NC < CARS ? { x: (pts[0].x + pts[NC].x) / 2, y: (pts[0].y + pts[NC].y) / 2 } : p, ly = lp.y - w / 2 - 12;   // a short train: label over its middle
+        const lp = p, ly = lp.y - w / 2 - 12;   // a short train: label over its middle
         ctx.fillStyle = '#0b0b0b'; ctx.beginPath(); ctx.roundRect(lp.x - tw / 2, ly - 8, tw, 16, 4); ctx.fill();
         ctx.fillStyle = st.status === 'service' ? F.look.color : '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(lab, lp.x, ly + 1);
-        if (state.sel === key) { ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(18, half / mpp + 6), 0, 7); ctx.strokeStyle = '#ffcf3f'; ctx.lineWidth = 2.5; ctx.stroke(); }
+        if (state.sel === key) { ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(18, half * NC / CARS / mpp + 6), 0, 7); ctx.strokeStyle = '#ffcf3f'; ctx.lineWidth = 2.5; ctx.stroke(); }
         continue;
       }
       const rad = st.status === 'parked' ? 5 : (z >= 13 ? 7.6 : 6.8);
@@ -1466,115 +1469,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <div class="row"><button data-arr2="${k}" ${busy ? 'disabled' : ''}>Arrive on platform 2 and reverse</button></div>
       ${busy ? `<div class="warn">Platform 2 is occupied by ${trName(F, busy, t)}.</div>` : ''}${p2Msg ? `<p class="note">${p2Msg}</p>` : ''}</div>`;
   }
-  // ---- test loop (anello di prova) on demand for a train resting in the depot (Giovanni, 28 Oct) ----
-  // The train goes to #A94 and asks to go in (west side: after a change of cab beyond #A94; east side: after a change
-  // of cab at the turning point on w71). One train at a time on the loop: while one has asked for it or is on it, the
-  // others are told to wait at #A94. It leaves the loop by #A96 and stops beyond #A94: it reports the loop free, the
-  // depot gives it a place, and it goes there (straight on or after a change of cab).
-  let loopMsg = '';
-  const loopRole = s => s && typeof s[6] === 'string' && s[6].startsWith('loop:') ? s[6].slice(5) : null;
-  const loopState = F => F.loop || (F.loop = { holder: null, queue: [], asked: {} });
-  function loopBusy(tr) { return tr.segs.some(loopRole); }
+  // ---- test loop (anello di prova): the logic is in DepotM3.js; here only the card ----
   function testLoopBox(F, tr, st) {
-    const T = F.test, k = tr.agentK; if (!T || !T.trip || !F.ag || k == null || !F.depot) return '';
-    const p = F.depot.at[k]; if (p == null || loopBusy(tr)) return loopBusy(tr) ? `<div class="picker"><div class="label">Anello di prova</div><p class="note">${loopMsg || 'In giro sull\'anello di prova.'}</p></div>` : '';
-    if (!T.trip[p]) return `<div class="picker"><div class="label">Anello di prova</div><p class="note">Da questo posto non c'è una via per l'anello di prova.</p></div>`;
-    const L = loopState(F), who = L.holder != null && L.holder !== k ? `<p class="note">Ora l'anello è del treno ${trainNo(F, F.trains[L.holder])}: al #A94 dovrà aspettare.</p>` : '';
+    const I = F.dm && tr.agentK != null ? F.dm.loopInfo(tr.agentK) : null; if (!I) return '';
+    if (I.onLoop || !I.can) return `<div class="picker"><div class="label">Anello di prova</div><p class="note">${I.note}</p></div>`;
     return `<div class="picker"><div class="label">Anello di prova</div>
-      <div class="row">${[1, 2, 5, 10].map(n => `<button data-loop="${n}">${n === 1 ? '1 giro' : n + ' giri'}</button>`).join('')}<button data-loop="until">Fino al prossimo turno</button></div>${who}
-      ${loopMsg ? `<p class="note">${loopMsg}</p>` : '<p class="note">Va al segnale #A94, chiede l\'anello, fa i giri, esce dal #A96 e si ferma dopo il #A94: lì il deposito gli dà un posto.</p>'}</div>`;
+      <div class="row">${[1, 2, 5, 10].map(n => `<button data-loop="${n}">${n === 1 ? '1 giro' : n + ' giri'}</button>`).join('')}<button data-loop="until">Fino al prossimo turno</button></div>
+      ${I.holder != null ? `<p class="note">Ora l'anello è del treno ${I.holder}: al #A94 dovrà aspettare.</p>` : ''}
+      <p class="note">${I.note || 'Va al #A94 e chiede l\'anello; prima di uscire dice di aver finito e il deposito gli dà un posto: ci va diritto, o si ferma dopo il #A95 e cambia banco.'}</p></div>`;
   }
-  // the legs of the trip as moves of its day: [pid, kind, -1, [t0, t1], [d0, d1], place, 'loop:<role>']
-  function loopSegs(F, p, t0, laps) {
-    const T = F.test, R = T.trip[p], V = T.v_yard, segs = []; let t = t0;
-    const add = (pid, d0, d1, kind, role, v, place) => { const dur = Math.max(2, Math.abs(d1 - d0) / v);
-      segs.push([pid, kind, -1, [Math.round(t), Math.round(t + dur)], [Math.round(d0 * 10) / 10, Math.round(d1 * 10) / 10], place, 'loop:' + role]); t += dur; };
-    R.legs.forEach((l, i) => {
-      const place = i === 0 ? +p : null, last = i === R.legs.length - 1;
-      if (last && R.gate != null && R.gate > l[1] + 2) { add(l[0], l[1], R.gate, 'training', 'in', V, place); t += 20; add(l[0], R.gate, l[2], 'training', 'gate', V, null); }
-      else add(l[0], l[1], l[2], 'training', last ? 'gate' : 'in', V, place);
-      if (l[3]) t += T.reverse;
-    });
-    for (let n = 0; n < laps; n++) add(T.cycle, 0, T.lap, 'training', 'lap', T.v_lap, null);
-    add(T.ret[0], T.ret[1], T.ret[2], 'training', 'ret', V, null);
-    t += 20; add(T.ret[0], T.ret[2], T.ret[2] + 0.1, 'to_depot', 'homewait', V, null);    // waits beyond #A94 for a place
-    return { segs, end: t };
-  }
-  function sendToTestLoop(F, tr, how) {
-    const T = F.test, k = tr.agentK, a = F.ag && F.ag.agents()[k], p = F.depot && F.depot.at[k];
-    if (!a || p == null || !T.trip[p] || loopBusy(tr)) return;
-    const inWay = ((T.trip_blocks || {})[p] || []).filter(x => depotTaken(F).has(x));
-    if (inWay.length) { loopMsg = 'La via per l\'anello passa da ' + inWay.map(x => depotName(F, x)).join(', ') + ', occupato.'; return; }
-    const idx = a.mode === 'static' ? tr.segs.length : a.si, next = tr.segs[idx], t0 = Math.round(state.t) + 20;
-    const deadline = next ? next[3][0] - 600 : 27 * 3600, lapT = T.lap / T.v_lap;
-    const dry = loopSegs(F, p, t0, 0), room = deadline - dry.end;
-    const laps = how === 'until' ? Math.floor(room / lapT) : +how || 1;
-    if (laps < 1 || how === 'until' && room < lapT) { loopMsg = 'Non c\'è tempo per un giro prima della prossima corsa' + (next ? ' (esce dal deposito alle ' + fmt(next[3][0]) + ')' : '') + '.'; return; }
-    const { segs, end } = loopSegs(F, p, t0, laps);
-    tr.segs.splice(idx, 0, ...segs); shiftRefs(tr, idx - 1, segs.length); tr.starts = tr.segs.map(x => x[3][0]);
-    a.mode = 'plan'; a.si = idx - 1; a.legs = []; a.wait = 0; a.status = 'parked';
-    const no = trainNo(F, tr);
-    say('PC', `Treno ${no}, dal ${depotName(F, p)} vai al segnale #A94 e chiedi l'anello di prova: ${laps === 1 ? 'un giro' : laps + ' giri'}. Passo.`, 'pc');
-    say('T' + no, `Ricevuto PC, ${laps === 1 ? 'un giro' : laps + ' giri'} sull'anello di prova, vado al #A94. Passo.`, 'dr');
-    loopMsg = (laps === 1 ? '1 giro' : laps + ' giri') + ', di ritorno verso le ' + fmt(end) + ' (se l\'anello è libero).';
-    if (next && next[3][0] < 29 * 3600 && end > next[3][0] - 300) loopMsg += ' Attenzione: il prossimo turno parte alle ' + fmt(next[3][0]) + ', sarà in ritardo.';
-  }
-  // the agents ask before each move of the day: the move into the loop waits for the loop, the way home for a place
-  function loopHoldAt(F, k, si) {
-    const r = loopRole(F.trains[k].segs[si]); if (r !== 'gate' && r !== 'homewait') return false;
-    const L = loopState(F); if (!L.asked[k] || L.asked[k].si !== si) L.asked[k] = { si, since: F.ag.S.t, r, said: false };
-    return true;
-  }
-  function loopTick(F) {
-    if (!F.test || !F.test.trip || !F.ag || !F.depot) return;
-    const L = loopState(F), ag = F.ag, t = ag.S.t;
-    const call = (tr, text) => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + trainNo(F, tr), text, 'call'); };
-    const go = (k, si, role) => { const tr = F.trains[k], s = tr.segs[si], a = ag.agents()[k], sh = Math.round(t + 5) - s[3][0];
-      for (let j = si; j < tr.segs.length && loopRole(tr.segs[j]); j++) tr.segs[j][3] = tr.segs[j][3].map(x => x + sh);
-      s[6] = 'loop:' + role; tr.starts = tr.segs.map(x => x[3][0]); delete L.asked[k];
-      a.si = si - 1; a.legs = []; a.wait = 0; a.why = null; };
-    if (L.holder != null) { const tr = F.trains[L.holder]; if (!tr || !loopBusy(tr)) L.holder = null; }
-    for (const [ks, w] of Object.entries(L.asked)) {
-      const k = +ks, tr = F.trains[k], a = ag.agents()[k], no = trainNo(F, tr);
-      if (!a || a.si !== w.si || loopRole(tr.segs[w.si]) !== w.r) { delete L.asked[k]; continue; }
-      if (w.r === 'gate' && !w.said) {
-        w.said = true; const hi = (Math.floor(t / 3600) % 24) >= 5 && (Math.floor(t / 3600) % 24) < 14 ? 'Buongiorno' : 'Buonasera';
-        call(tr, `${hi} PC, qui treno ${no}, fermo al segnale #A94: chiedo l'autorizzazione per entrare nell'anello di prova. Passo.`);
-        if (L.holder == null || L.holder === k) { L.holder = k; const man = ag.il() && !ag.il().auto;
-          say('PC', man ? `Treno ${no}, autorizzato: l'anello di prova è tuo, attendi l'apertura del #A94. Passo.` : `Treno ${no}, autorizzato: via libera al #A94, entra nell'anello di prova. Passo.`, 'pc');
-          say('T' + no, man ? 'Ricevuto, attendo il segnale ed entro nell\'anello. Passo.' : 'Ricevuto, entro nell\'anello. Passo.', 'dr'); go(k, w.si, 'in2'); }
-        else { if (!L.queue.includes(k)) L.queue.push(k); say('PC', `Negativo treno ${no}: l'anello di prova è occupato dal treno ${trainNo(F, F.trains[L.holder])}. Resta fermo al #A94, ti richiamo io. Passo.`, 'pc'); say('T' + no, 'Ricevuto, resto fermo al #A94. Passo.', 'dr'); }
-      } else if (w.r === 'homewait') {
-        // out of the loop by #A96, standing beyond #A94: the loop is free again; the depot gives a place
-        if (L.holder === k) L.holder = null; L.queue = L.queue.filter(x => x !== k);
-        const cur = F.depot.at[k]; if (cur != null) delete F.depot.at[k];
-        const jn = nextOut(tr, w.si), sOut = jn >= 0 ? tr.segs[jn] : null;      // its next run out must start from the place
-        const taken = depotTaken(F), home = F.test.home, cand = Object.keys(home).filter(q => !taken.has(q) && F.depotPaths[q] && !((F.test.home_blocks || {})[q] || []).some(x => taken.has(x)) && (!sOut || placeOf(sOut) === q || outChoice(F, sOut, q)));
-        const len = q => home[q].reduce((x, l) => x + Math.abs(l[2] - l[1]), 0) + (home[q].length > 1 ? 400 : 0);
-        cand.sort((p, q) => len(p) - len(q)); const q = cand[0];
-        call(tr, `PC, qui treno ${no}: sono uscito dall'anello dal #A96, fermo dopo il #A94. Anello di prova libero. Passo.`);
-        if (q == null) { say('PC', `Treno ${no}, ricevuto. Nessun posto libero in deposito: resta fermo lì. Passo.`, 'pc'); w.r = 'nowhere'; continue; }
-        say('PC', `Ricevuto treno ${no}, grazie. Vai in ${depotName(F, q)}. Passo.`, 'pc');
-        say('T' + no, `Vado in ${depotName(F, q)}${home[q][0][1] !== F.test.ret[2] ? ', cambio banco' : ''}. Passo.`, 'dr');
-        const si = w.si, t0 = Math.round(t + (home[q][0][1] !== F.test.ret[2] ? F.test.reverse : 5)); let tt = t0;
-        const segs = home[q].map((l, i) => { const dur = Math.max(2, Math.abs(l[2] - l[1]) / F.test.v_yard), last = i === home[q].length - 1;
-          const sg = [l[0], 'to_depot', -1, [Math.round(tt), Math.round(tt + dur)], [l[1], l[2]], last ? +q : null, 'loop:home']; tt += dur + (l[3] ? F.test.reverse : 0); return sg; });
-        tr.segs.splice(si, 1, ...segs); shiftRefs(tr, si, segs.length - 1); tr.starts = tr.segs.map(x => x[3][0]);
-        const g = si + segs.length - 1; F.depot.target[k] = q; F.depot.seg[k] = g;
-        const j = nextOut(tr, g); if (j >= 0 && placeOf(tr.segs[j]) !== q) rewriteOut(F, tr, j, q);
-        // a reserve train (no more runs today): it stands in the new place
-        const hl = segs[segs.length - 1];
-        for (let i = g + 1; i < tr.segs.length; i++) { const x = tr.segs[i]; if (x[3][0] >= 29 * 3600 && placeOf(x) && placeOf(x) !== q)
-          tr.segs[i] = [hl[0], 'to_depot', -1, [x[3][0], x[3][0] + 1], [hl[4][1], hl[4][1]], +q]; }
-        delete L.asked[k]; const a2 = ag.agents()[k]; a2.si = si - 1; a2.legs = []; a2.wait = 0; a2.why = null;
-        loopMsg = '';
-        // the loop is free: the next train waiting at #A94 goes in
-        const nx = L.queue.shift();
-        if (nx != null && L.asked[nx] && L.asked[nx].r === 'gate') { const n2 = trainNo(F, F.trains[nx]); L.holder = nx;
-          say('PC', `Treno ${n2}, l'anello di prova è libero: via libera al #A94, entra. Passo.`, 'pc'); say('T' + n2, 'Ricevuto, entro nell\'anello. Passo.', 'dr'); go(nx, L.asked[nx].si, 'in2'); }
-      }
-    }
-  }
+  function sendToTestLoop(F, tr, how) { if (F.dm && tr.agentK != null) F.dm.sendToLoop(tr.agentK, how); }
   map.on('click', e => {
     if (drawing) return;
     if (sigDel && SIGS) {             // remove the signal clicked on (both computed and placed ones)
@@ -2087,7 +1991,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
       resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
-      initAt: t => bookedPositions(F, t), holdAt: (k, si) => loopHoldAt(F, k, si),
+      initAt: t => bookedPositions(F, t), holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)),
       locks: cl => MTLEngine.blockResources(MTLEngine.turnLocks(G, cl), E_.pathEdges, E_.net.edges).map(r => Object.assign(r, { lock: true })) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
   }
@@ -2099,99 +2003,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   };
   function syncDepotAuto() { const F = fleets.find(f => f.ag), b = document.getElementById('depotAuto'); if (!F || !F.ag.il()) return;
     const on = !!F.ag.il().auto; if (b.getAttribute('aria-pressed') !== String(on)) { b.setAttribute('aria-pressed', String(on)); b.textContent = 'Deposito: ' + (on ? 'automatico' : 'manuale'); } }
-  // ================= DEPOT MANAGER (Giovanni, 28 Oct) =================
-  // Trains have no fixed depot place: when a train leaves San Donato platform 3 for the depot (#A40 towards #A04) the
-  // depot gives it a free place; until it passes #A04/#A05 the player can change it by radio. Its next run out of the
-  // depot starts from that place. At the end of the service day the trains keep their places for the next day.
-  const V_YARD = 15 / 3.6;
-  const placeOf = s => s && s.length > 5 && s[5] != null ? String(s[5]) : null;
-  function depotInit(F, keep) {
-    if (!F.depotPaths) return;
-    F.depot = { at: {}, target: {}, seg: {}, done: {}, pending: {} };
-    // who stands in the depot now: a train waiting to start a run that begins at a place (or a reserve train)
-    F.trains.forEach((tr, k) => { const a = F.ag.agents()[k], i = a && Math.min(a.si, tr.segs.length - 1), s = a && tr.segs[i]; if (a && s && standsAt(a, s, tr, i)) F.depot.at[k] = placeOf(s); });
+  // ================= DEPOT (web/DepotM3.js: places and test loop) =================
+  function depotOf(F) {
+    if (!F.depotPaths || !F.ag) return null;
+    if (!F.dm) F.dm = MTLDepotM3.create(F, { say, fmt: t => fmt(t), trainNo: tr => trainNo(F, tr),
+      call: (tr, text) => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + trainNo(F, tr), text, 'call'); } });
+    return F.dm;
   }
-  const depotTaken = F => new Set([...Object.values(F.depot.at), ...Object.values(F.depot.target)].filter(Boolean));
-  // the next run out of the depot after seg i (from_depot or an empty run that starts at a place)
-  const nextOut = (tr, i) => { for (let j = i + 1; j < tr.segs.length; j++) { const s = tr.segs[j]; if ((s[1] === 'from_depot' || s[1] === 'empty') && placeOf(s)) return j; if (s[1] === 'service') return -1; } return -1; };
-  function shiftRefs(tr, j, by) { ['alts', 'arr2', 'calts'].forEach(key => (tr[key] || []).forEach(x => { if (x.i != null && x.i > j) x.i += by; })); }
-  // the run out of place q replacing the one out of the old place (same time at the platform)
-  function outChoice(F, s, q) {
-    const P = F.depotPaths[q]; if (!P) return null;
-    let best = null;
-    for (const [pl, o] of Object.entries(P.out)) { const m = F.ag.mapTo(o.pid, o.plat, s[0]); if (m != null && (s[1] !== 'from_depot' || Math.abs(m - s[4][s[4].length - 1]) < 40)) { best = { pl, o, m }; if (s[1] !== 'from_depot' || pl === '1') break; } }
-    return best;
-  }
-  function rewriteOut(F, tr, j, q) {
-    const s = tr.segs[j], oldPid = s[0], best = outChoice(F, s, q);
-    if (!best) return;
-    const o = best.o, run = Math.max(0, o.plat - o.start) / V_YARD;
-    if (s[1] === 'from_depot') { const tP = s[3][s[3].length - 1]; tr.segs[j] = [o.pid, 'from_depot', -1, [Math.round(tP - run), tP], [o.start, o.plat], +q]; }
-    else {                    // an empty run on through the station (to Comasina): out of the place to platform 1, then on as planned
-      const t0 = s[3][0], tP = Math.round(t0 + run), tE = s[3][s[3].length - 1], dE = s[4][s[4].length - 1];
-      tr.segs.splice(j, 1, [o.pid, 'empty', -1, [t0, tP], [o.start, o.plat], +q], [oldPid, 'empty', -1, [tP, Math.max(tP + 1, tE)], [best.m, dE]]); shiftRefs(tr, j, 1);
-    }
-    tr.starts = tr.segs.map(x => x[3][0]);
-  }
-  // give train k place q for the run it is on now (it must already be on the way in, on San Donato platform 3)
-  function depotAssign(F, k, q) {
-    const tr = F.trains[k], a = F.ag.agents()[k], si = a.si, s = tr.segs[si], P = F.depotPaths[q]; if (!P || !s) return false;
-    const d = F.ag.mapTo(a.pid, a.d, P.in); if (d == null) return false;
-    const t0 = s[3][0], d0 = Math.min(d, P.in_end), t1 = Math.round(t0 + Math.max(1, P.in_end - d0) / V_YARD);
-    tr.segs[si] = [P.in, s[1], -1, [t0, Math.max(t0 + 1, t1)], [d0, P.in_end], +q];
-    const j = nextOut(tr, si); if (j >= 0) rewriteOut(F, tr, j, q);
-    tr.starts = tr.segs.map(x => x[3][0]);
-    F.depot.target[k] = q; F.ag.replan(k); return true;
-  }
-  // the free place the depot gives: the quickest way in and out again
-  function depotPick(F, k) {
-    const taken = depotTaken(F), tr = F.trains[k], a = F.ag.agents()[k];
-    const cand = Object.keys(F.depotPaths).filter(q => !taken.has(q) && F.ag.mapTo(a.pid, a.d, F.depotPaths[q].in) != null);
-    cand.sort((p, q) => { const P = F.depotPaths[p], Q = F.depotPaths[q], o = x => Math.min(...Object.values(x.out).map(v => v.plat - v.start));
-      return (P.in_end + o(P)) - (Q.in_end + o(Q)); });
-    return cand[0] || null;
-  }
-  const depotName = (F, q) => { const i = (F.engine.net.depot || []).findIndex(d => String(d.node) === String(q)); return i >= 0 ? (F.engine.net.depot[i].name || '').replace('Deposito binario ', 'D') : 'posto ' + q; };
-  function depotPickAny(F) { const taken = depotTaken(F); return Object.keys(F.depotPaths).find(q => !taken.has(q)) || null; }
-  // past #A04/#A05 (the depot entrance) the place can no longer be changed
-  function pastEntrance(F, k) {
-    const a = F.ag.agents()[k], sp = F.engine.net.sigpos[a.pid] || [], sig = F.engine.net.signals;
-    const e = sp.find(([d, i]) => sig[i] && (sig[i].n === 4 || sig[i].n === 5)); return e ? a.d + F.engine.half > e[0] : false;
-  }
-  function depotTick(F) {
-    if (!F.depotPaths || !F.ag) return;
-    if (!F.depot) depotInit(F);
-    F.ag.agents().forEach((a, k) => {
-      const tr = F.trains[k], si = Math.min(a.si, tr.segs.length - 1), s = tr.segs[si]; if (!s || a.hidden || a.mode !== 'plan' && a.mode !== 'static') return;   // after its last run: the last one
-      // leaving its place: the place is free again
-      let at = F.depot.at[k];
-      if (at != null && !(placeOf(s) === at && standsAt(a, s, tr, si))) { delete F.depot.at[k]; at = null; }     // it has left its place
-      if (at == null && F.depot.target[k] == null && standsAt(a, s, tr, si) && !depotTaken(F).has(placeOf(s))) { at = F.depot.at[k] = placeOf(s); }
-      // on the way in: a place, given once (on platform 3, #A40)
-      const inRun = placeOf(s) && !isOut(tr, si) && s[3][0] < 29 * 3600;
-      if (inRun && F.depot.target[k] == null && at == null && F.depot.done[k] !== a.si) {
-        // the place is decided when the run in starts; the train is sent there once it is on the common way in (platform 3)
-        const free = q => !depotTaken(F).has(q);
-        const q = depotPick(F, k);
-        if (q != null && depotAssign(F, k, q)) F.depot.seg[k] = a.si;
-        else { const q2 = free(placeOf(s)) ? placeOf(s) : depotPickAny(F); F.depot.target[k] = q2; F.depot.seg[k] = a.si; if (q2 !== placeOf(s)) F.depot.pending[k] = q2; }
-      } else if (F.depot.pending[k] != null && F.depot.seg[k] === a.si && !pastEntrance(F, k)) {
-        const q = F.depot.pending[k]; delete F.depot.target[k];
-        if (depotAssign(F, k, q)) delete F.depot.pending[k]; else F.depot.target[k] = q;
-      }
-      // arrived: it stands in its place
-      const g = F.depot.seg[k];
-      if (F.depot.target[k] != null && (a.si > g || a.si === g && a.v === 0 && Math.abs(a.d - s[4][s[4].length - 1]) < 3)) {
-        F.depot.at[k] = F.depot.target[k]; delete F.depot.target[k]; F.depot.done[k] = g; }
-    });
-  }
-  const ag_moved = (a, s) => a.pid === s[0] && Math.abs(a.d - s[4][0]) > 5 && !(F_WAIT(a));
-  const F_WAIT = a => { const F = fleets.find(f => f.ag); return F && F.ag.S.t < a.wait; };
-  // a train stands in the place of its current run: about to leave it (not moved yet), or a reserve train (run at 30:00)
-  // a run out of a place: the first run of the day, or a run right after one into the same place; the others go in
-  const isOut = (tr, i) => !!placeOf(tr.segs[i]) && tr.segs[i][1] !== 'to_depot' && (i === 0 || placeOf(tr.segs[i - 1]) != null);
-  const standsAt = (a, s, tr, i) => !!placeOf(s) && (s[3][0] >= 29 * 3600 || isOut(tr, i) && !ag_moved(a, s)
-    || !isOut(tr, i) && a.pid === s[0] && Math.abs(a.d - s[4][s[4].length - 1]) < 3);   // arrived in it
+  function depotTick(F) { const D = depotOf(F); if (D) D.tick(); }
+  const depotTaken = F => F.dm.taken(), depotName = (F, q) => F.dm.name(q), pastEntrance = (F, k) => F.dm.pastEntrance(k), depotAssign = (F, k, q) => F.dm.assign(k, q);
+  const loopRole = s => s && typeof s[6] === 'string' && s[6].startsWith('loop:') ? s[6].slice(5) : null;
   // a new service day: the trains start from the places they stand in (Friday stays Friday until the weekend timetables)
   function newServiceDay() {
     if (dayPick < 5) { dayPick++; try { localStorage.setItem('mtl-day', dayPick); } catch (e) {} } syncDay();
@@ -2199,19 +2020,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const keep = F.depot ? Object.assign({}, F.depot.at, F.depot.target) : null;
     F.trains.forEach(tr => { tr.segs = JSON.parse(JSON.stringify(tr.segs0)); tr.starts = tr.segs.map(x => x[3][0]); tr.live = null;
       if (tr.alts0) tr.alts = JSON.parse(JSON.stringify(tr.alts0)); if (tr.arr20) tr.arr2 = JSON.parse(JSON.stringify(tr.arr20)); if (tr.calts0) tr.calts = JSON.parse(JSON.stringify(tr.calts0)); });
-    F.depot = null; makeAgents(F);
-    if (keep && F.depotPaths) {           // each train out of the place it stood in last night
-      F.depot = { at: {}, target: {}, seg: {}, done: {}, pending: {} }; const used = new Set();
-      F.trains.forEach((tr, k) => { const p = keep[k], s = tr.segs[0]; if (p == null || !placeOf(s) || used.has(p)) return;
-        if (placeOf(s) !== p && (s[1] === 'from_depot' || s[1] === 'empty')) rewriteOut(F, tr, 0, p);
-        else if (s[1] === 'to_depot' && placeOf(s) !== p) return;           // reserve trains keep their own places
-        F.depot.at[k] = p; used.add(p); });
-      F.trains.forEach((tr, k) => { const s = tr.segs[0]; if (F.depot.at[k] != null || !placeOf(s) || s[1] === 'service') return;
-        let p = placeOf(s);
-        if (used.has(p)) { p = Object.keys(F.depotPaths).find(q => !used.has(q)); if (p == null) return; rewriteOut(F, tr, 0, p); }   // its usual place is taken
-        F.depot.at[k] = p; used.add(p); });
-      F.ag.start(DAY_START, bookedPositions(F, DAY_START)); F.ag.snapshot();
-    }
+    F.depot = null; F.loop = null; F.dm = null; makeAgents(F);
+    if (keep && F.depotPaths) { depotOf(F).newDay(keep); F.ag.start(DAY_START, bookedPositions(F, DAY_START)); F.ag.snapshot(); }
   }
   // the closure that applies now, from the events of the time line
   function closureNow(F) {
@@ -2997,7 +2807,6 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         FE.ag.seek(state.t, 600);                                   // back: from the last saved state; forward: drive
         if (Math.abs(state.t - FE.ag.S.t) > 1) state.t = FE.ag.S.t;  // a big jump takes a few frames: the clock follows
         depotTick(FE);                                              // the depot gives places as trains come in (every frame)
-        loopTick(FE);                                               // the test loop: one train at a time, asked at #A94
         slider.value = state.t; } }
     const [hm, ss] = fmt(state.t, true);
     document.getElementById('clock').innerHTML = hm + '<span class="s">' + ss + (state.t >= 86400 ? ' +1' : '') + '</span>';

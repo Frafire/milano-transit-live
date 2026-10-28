@@ -84,7 +84,7 @@ def route(start_states, goal_node, avoid=()):
             return out[::-1]
         for t in successors(*s):
             if t[0] in avoid: continue
-            nc = c + edges[t[0]]['len'] + EDGE_COST.get(t[0], 0)
+            nc = c + edges[t[0]]['len'] + EDGE_COST.get(t[0], 0) + EDGE_COST.get(t, 0)
             if nc < best.get(t, 1e18): best[t] = nc; prev[t] = s; heapq.heappush(pq, (nc, t))
     return None
 
@@ -210,7 +210,12 @@ def load_rules(path, line):
         for ei, e in enumerate(edges):
             if e['way'] != int(k): continue
             if east is not None and ll(*e['pts'][len(e['pts']) // 2])[1] < east: continue
-            EDGE_COST[ei] = cost
+            hd = v.get('heading') if isinstance(v, dict) else None
+            if hd is None: EDGE_COST[ei] = cost; continue
+            # only one way is wrong-way: the cost applies when the track is run in that direction
+            for d_ in (1, -1):
+                P_ = poly(ei, d_); (x0, y0), (x1, y1) = P_[0], P_[-1]
+                if abs((math.degrees(math.atan2(x1 - x0, y1 - y0)) - hd + 180) % 360 - 180) < 90: EDGE_COST[(ei, d_)] = cost
     # tracks drawn by Giovanni that continue a depot dead end inside the building: the dead end moves to their far end
     for ti, dt in enumerate(R_.get('tracks', [])):
         if dt.get('line', line) != line or len(dt.get('points', [])) < 2: continue

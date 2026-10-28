@@ -853,7 +853,9 @@ if CFG['training']:
         # the stop in front of #A94 on the last leg, where the train asks to go in (its centre; None: it asks where it
         # stands, right after its change of cab beyond #A94)
         pl_, s_, e_, _r = L_[-1]; b_ = _proj(pl_, *xy(*_A94['on_track'])) if _A94 else None
-        gate = b_[1] - TRAIN_HALF - 8 if b_ else None
+        _w = _rules_.get('loop_wait'); _bw = _proj(pl_, *xy(*_w['on_track'])) if _w else None
+        if _bw and _bw[0] < 3: gate = _bw[1] - TRAIN_HALF                      # its nose at Giovanni's flag in front of #A94
+        else: gate = b_[1] - TRAIN_HALF - 8 if b_ else None
         if gate is not None and gate <= s_ + 2: gate = None
         TEST['trip'][str(p_)] = {'legs': [[a, round(b, 1), round(c, 1), d] for a, b, c, d in L_], 'gate': round(gate, 1) if gate else None}
     # back: from the loop out by #A96, the train stops beyond #A94 (its rear past node 8's switch), there it gets a place
@@ -871,7 +873,7 @@ if CFG['training']:
             cont = lambda r_: r_ret + r_ if r_ and r_[0][0] != r_ret[-1][0] else None   # straight on from the stop
             r = cont(route_nodes(31, q_))
             if r:
-                ph = make_path(('lhome', q_, 's'), r); return [[ph, dr, end_off(q_, paths[ph][1][-1]), 0]]
+                ph = make_path(('lhome', q_, 's'), r); return [[ph, 0, end_off(q_, paths[ph][1][-1]), 0]]   # from the loop, no stop
             r = route_nodes(31, q_, first=94)                       # change of cab beyond #A94 (back the way it came)
             if r:
                 ph = make_path(('lhome', q_, 'r'), r); d_ = _turn(pr, dr, ph)
@@ -881,7 +883,7 @@ if CFG['training']:
                 for X in (154, 114, 115, 43, 42):
                     r1 = cont(route_nodes(31, X)) or route_nodes(31, X, first=94); r2 = route_nodes(X, q_)
                     if not r1 or not r2: continue
-                    if r1[:len(r_ret)] == r_ret: p1 = make_path(('lhome', q_, '1s', X), r1); d0 = dr
+                    if r1[:len(r_ret)] == r_ret: p1 = make_path(('lhome', q_, '1s', X), r1); d0 = 0
                     else: p1 = make_path(('lhome', q_, 1, X), r1); d0 = _turn(pr, dr, p1)
                     p2 = make_path(('lhome', q_, 2, X), r2); b1 = _proj(p1, tx, ty)
                     if d0 is None or not b1 or b1[0] > 4: continue
@@ -901,10 +903,14 @@ if CFG['training']:
             if start_node(_e, _dd) == 94: _d94 = _acc; break
             _acc += plen(path_poly([(_e, _dd)]))
         dr = min(paths[pr][1][-1] - TRAIN_HALF, (_d94 if _d94 is not None else paths[pr][1][-1]) + TRAIN_HALF + 15)
+        _x = _rules_.get('loop_exit_stop'); _bx = _proj(pr, *xy(*_x['on_track'])) if _x else None
+        if _bx and _bx[0] < 3: dr = _bx[1] + TRAIN_HALF          # the trains that turn back: their tail end at Giovanni's flag past #A95
+        print('loop exit stop: flag', _bx and (round(_bx[0], 1), round(_bx[1])), '| d94', _d94 and round(_d94), '| stop centre', round(dr))
+        TEST['free_at'] = round(dr, 1)                           # the loop is free when the tail of the train is past here
         TEST['ret'] = [pr, 0, round(dr, 1)]
         for q_ in storage + _solo:
             L_ = home_legs(pr, dr, q_)
-            if L_: TEST['home'][str(q_)] = [[a, round(b, 1), round(c, 1), d] for a, b, c, d in L_]
+            if L_: TEST['home'][str(q_)] = {'legs': [[a, round(b, 1), round(c, 1), d] for a, b, c, d in L_], 'straight': L_[0][1] == 0}
             else: _nohome.append(q_)
     print('test loop trips (Giovanni\'s way in by #A94):', len(TEST['trip']), 'places | no way for', _no, '| way back to', len(TEST['home']), 'places, not to', _nohome)
     # test platforms (fermate di prova): 110 m of platform ending at each stopping-point signal on the loop
@@ -1608,7 +1614,7 @@ if TEST and TEST.get('trip'):
         cov = [c for i_, (pid, d0, d1, _r) in enumerate(legs) for c in _cover(pid, min(d0, d1) + (TRAIN_HALF if i_ == 0 else 0), max(d0, d1) - (TRAIN_HALF if i_ == len(legs) - 1 else 0))]
         return [q_ for q_, pk in _park.items() if q_ != own and any(e1 == e2 and a1 < b2 - 0.5 and a2 < b1 - 0.5 for (e1, a1, b1) in pk for (e2, a2, b2) in cov)]
     TEST['trip_blocks'] = {p_: _over(v['legs'], p_) for p_, v in TEST['trip'].items()}
-    TEST['home_blocks'] = {q_: _over(v, q_) for q_, v in TEST['home'].items()}
+    TEST['home_blocks'] = {q_: _over(v['legs'], q_) for q_, v in TEST['home'].items()}
     print('test loop: places in the way, going', {k: v for k, v in TEST['trip_blocks'].items() if v}, '| coming back', {k: v for k, v in TEST['home_blocks'].items() if v})
 json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in paths],
            'trains': [tl.segs for tl in out],

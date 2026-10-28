@@ -2,9 +2,10 @@
 // - loop: two trains from the depot to the test loop; the second is told to wait at #A94 and goes in when the first
 //   reports the loop free; both get a depot place on the way back (never the same one)
 // - manual: depot on manual, a train going to the loop calls at a red depot signal after 2 and after 7 minutes
+// - twice: a train goes round the loop, comes back, and can go again
 // - place: a train on its way into the depot gets a place; the player changes it by radio
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
-// Usage: node tests/page_check.js [loop|manual|place ...]   (no argument: all three). Exit code 1 if one fails.
+// Usage: node tests/page_check.js [loop|twice|manual|place ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html');
@@ -25,6 +26,20 @@ const SCENARIOS = {
       const log = document.getElementById('radioLog').innerText, places = [A, B].map(([k]) => F.depot.at[k]);
       const ok = /Negativo treno/.test(log) && /anello di prova è libero/.test(log) && places.every(q => q != null) && places[0] !== places[1];
       return { ok, trains: [A[0], B[0]], from: [A[1], B[1]], places, log: log.split('\n').filter(l => /anello|#A94|Vai in/.test(l)).slice(-8) };
+    });
+  },
+  async twice(p) {      // after a trip round the loop the train can go again (the trips done do not block it)
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.depotPaths);
+      st.playing = false; st.t = 11 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      const at = Object.entries(F.depot.at).map(([k, q]) => [+k, q]), A = at.find(([, q]) => F.test.trip[q] && q.startsWith('2000')) || at[0], k = A[0];
+      const go = async () => { st.sel = 'f' + M.fleets.indexOf(F) + ':' + k; M.renderCard(); const b = document.querySelector('[data-loop="1"]'); if (!b) return false; b.click(); await sleep(200);
+        st.playing = true; st.speed = 60; const t0 = Date.now(); await sleep(1000);
+        while (Date.now() - t0 < 120000 && (F.dm.loopInfo(k) || {}).onLoop || F.depot.target[k] != null) await sleep(250);
+        st.playing = false; await sleep(200); return F.depot.at[k] != null; };
+      const first = await go(), second = first && await go();
+      return { ok: first && second, train: k, first, second, place: F.depot.at[k] };
     });
   },
   async manual(p) {

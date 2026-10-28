@@ -3006,17 +3006,20 @@
   }
  },
  "depot_unused": {
-  "_about": "Depot places not used by M3 trains (binari di accantonamento, D16 and D17): OSM node ids",
-  "nodes": [
-   73,
-   77
-  ]
+  "_about": "No unused depot places any more: the places after #A76 (train 28), #A77 and #A78 are given only when nothing else is free (Giovanni, 28 Oct)",
+  "nodes": []
  },
  "avoid_ways": {
-  "_about": "Wrong-way (illegal) depot access track, only the part east of the red line (Giovanni, 28 Oct): used only if there is no other way",
+  "_about": "w71 east of the red line: wrong way only out of the depot (heading 50); into the depot by #A04-#A98 it is the preferred way (Giovanni, 28 Oct) | w72 east of the red line into the depot: a small extra so that trains coming in take #A04-#A98 (w71) and leave the w72 track (#A99) free for the trains going out",
   "71": {
    "cost": 3000,
-   "east_of_lon": 9.2576
+   "east_of_lon": 9.2576,
+   "heading": 50
+  },
+  "72": {
+   "cost": 200,
+   "east_of_lon": 9.2576,
+   "heading": 230
   }
  },
  "removed_signals": [
@@ -3111,5 +3114,23 @@
   "name": "Girare per andare anello di prova",
   "note": "punto non fisico: qui cambiano banco i treni del lato A48-A65 diretti all'anello"
  },
- "_signal_numbers": "Every signal keeps its number 'n' (#A..): removing one leaves a gap, a new one gets the next free number."
+ "_signal_numbers": "Every signal keeps its number 'n' (#A..): removing one leaves a gap, a new one gets the next free number.",
+ "loop_wait": {
+  "w": 1,
+  "on_track": [
+   45.429512,
+   9.251436
+  ],
+  "heading": 50,
+  "name": "Muso treni che aspettano di entrare nell'anello"
+ },
+ "loop_exit_stop": {
+  "w": 72,
+  "on_track": [
+   45.429486,
+   9.251474
+  ],
+  "heading": 51,
+  "name": "Dove si ferma il muso di coda dei treni che escono dall'anello"
+ }
 }
