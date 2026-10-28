@@ -2023,6 +2023,276 @@
   },
   {
    "line": "M3",
+   "w": 71,
+   "lat": 45.433193,
+   "lon": 9.257779,
+   "on_track": [
+    45.433193,
+    9.257779
+   ],
+   "offset_m": 0.1,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "block",
+   "name": "Ingresso deposito",
+   "n": 98,
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 72,
+   "lat": 45.433159,
+   "lon": 9.257805,
+   "on_track": [
+    45.433161,
+    9.257804
+   ],
+   "offset_m": 0.2,
+   "side": "right",
+   "heading": 230,
+   "dir": -1,
+   "type": "block",
+   "name": "Ingresso deposito",
+   "n": 99,
+   "kind": "atp"
+  },
+  {
+   "line": "M3",
+   "w": 2,
+   "lat": 45.428679,
+   "lon": 9.253675,
+   "on_track": [
+    45.428679,
+    9.253681
+   ],
+   "offset_m": 0.5,
+   "side": "left",
+   "heading": 13,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "n": 100,
+   "kind": "shunt"
+  },
+  {
+   "line": "M3",
+   "w": 12,
+   "lat": 45.429513,
+   "lon": 9.254166,
+   "on_track": [
+    45.4295,
+    9.25418
+   ],
+   "offset_m": 1.8,
+   "side": "left",
+   "heading": 231,
+   "dir": -1,
+   "type": "shunt",
+   "name": "",
+   "n": 101,
+   "kind": "shunt"
+  },
+  {
+   "line": "M3",
+   "w": 72,
+   "lat": 45.428679,
+   "lon": 9.253557,
+   "on_track": [
+    45.428678,
+    9.253574
+   ],
+   "offset_m": 1.4,
+   "side": "left",
+   "heading": 13,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "n": 102,
+   "kind": "shunt"
+  },
+  {
+   "line": "M3",
+   "w": 1,
+   "lat": 45.428664,
+   "lon": 9.25361,
+   "on_track": [
+    45.428662,
+    9.253624
+   ],
+   "offset_m": 1.1,
+   "side": "left",
+   "heading": 13,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "n": 103,
+   "kind": "shunt"
+  },
+  {
+   "line": "M3",
+   "w": 4,
+   "lat": 45.429572,
+   "lon": 9.254061,
+   "on_track": [
+    45.429571,
+    9.254063
+   ],
+   "offset_m": 0.2,
+   "side": "right",
+   "heading": 210,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "n": 104,
+   "kind": "shunt"
+  },
+  {
+   "line": "M3",
+   "w": 87,
+   "lat": 45.53079,
+   "lon": 9.16245,
+   "on_track": [
+    45.530793,
+    9.162469
+   ],
+   "offset_m": 1.5,
+   "side": "right",
+   "heading": 168,
+   "dir": 1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 105
+  },
+  {
+   "line": "M3",
+   "w": 87,
+   "lat": 45.530796,
+   "lon": 9.162488,
+   "on_track": [
+    45.530793,
+    9.162469
+   ],
+   "offset_m": 1.5,
+   "side": "right",
+   "heading": 348,
+   "dir": -1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 106
+  },
+  {
+   "line": "M3",
+   "w": 88,
+   "lat": 45.530802,
+   "lon": 9.162535,
+   "on_track": [
+    45.5308,
+    9.162516
+   ],
+   "offset_m": 1.5,
+   "side": "right",
+   "heading": 349,
+   "dir": 1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 107
+  },
+  {
+   "line": "M3",
+   "w": 88,
+   "lat": 45.530797,
+   "lon": 9.162497,
+   "on_track": [
+    45.5308,
+    9.162516
+   ],
+   "offset_m": 1.5,
+   "side": "right",
+   "heading": 169,
+   "dir": -1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 108
+  },
+  {
+   "line": "M3",
+   "w": 87,
+   "lat": 45.531769,
+   "lon": 9.162192,
+   "on_track": [
+    45.531766,
+    9.162173
+   ],
+   "offset_m": 1.5,
+   "side": "right",
+   "heading": 348,
+   "dir": -1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 110
+  },
+  {
+   "line": "M3",
+   "w": 87,
+   "lat": 45.531763,
+   "lon": 9.162154,
+   "on_track": [
+    45.531766,
+    9.162173
+   ],
+   "offset_m": 1.5,
+   "side": "right",
+   "heading": 168,
+   "dir": 1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 109
+  },
+  {
+   "line": "M3",
+   "w": 88,
+   "lat": 45.531772,
+   "lon": 9.162216,
+   "on_track": [
+    45.531775,
+    9.162235
+   ],
+   "offset_m": 1.5,
+   "side": "right",
+   "heading": 169,
+   "dir": -1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 112
+  },
+  {
+   "line": "M3",
+   "w": 88,
+   "lat": 45.531778,
+   "lon": 9.162254,
+   "on_track": [
+    45.531775,
+    9.162235
+   ],
+   "offset_m": 1.5,
+   "side": "right",
+   "heading": 349,
+   "dir": 1,
+   "type": "block",
+   "name": "",
+   "kind": "atp",
+   "n": 111
+  },
+  {
+   "line": "M3",
    "w": -16,
    "lat": 45.43209,
    "lon": 9.25544,
@@ -2455,132 +2725,6 @@
   },
   {
    "line": "M3",
-   "w": 71,
-   "lat": 45.433193,
-   "lon": 9.257779,
-   "on_track": [
-    45.433193,
-    9.257779
-   ],
-   "offset_m": 0.1,
-   "side": "right",
-   "heading": 230,
-   "dir": 1,
-   "type": "block",
-   "name": "Ingresso deposito",
-   "n": 98,
-   "kind": "atp"
-  },
-  {
-   "line": "M3",
-   "w": 72,
-   "lat": 45.433159,
-   "lon": 9.257805,
-   "on_track": [
-    45.433161,
-    9.257804
-   ],
-   "offset_m": 0.2,
-   "side": "right",
-   "heading": 230,
-   "dir": -1,
-   "type": "block",
-   "name": "Ingresso deposito",
-   "n": 99,
-   "kind": "atp"
-  },
-  {
-   "line": "M3",
-   "w": 2,
-   "lat": 45.428679,
-   "lon": 9.253675,
-   "on_track": [
-    45.428679,
-    9.253681
-   ],
-   "offset_m": 0.5,
-   "side": "left",
-   "heading": 13,
-   "dir": 1,
-   "type": "shunt",
-   "name": "",
-   "n": 100,
-   "kind": "shunt"
-  },
-  {
-   "line": "M3",
-   "w": 12,
-   "lat": 45.429513,
-   "lon": 9.254166,
-   "on_track": [
-    45.4295,
-    9.25418
-   ],
-   "offset_m": 1.8,
-   "side": "left",
-   "heading": 231,
-   "dir": -1,
-   "type": "shunt",
-   "name": "",
-   "n": 101,
-   "kind": "shunt"
-  },
-  {
-   "line": "M3",
-   "w": 72,
-   "lat": 45.428679,
-   "lon": 9.253557,
-   "on_track": [
-    45.428678,
-    9.253574
-   ],
-   "offset_m": 1.4,
-   "side": "left",
-   "heading": 13,
-   "dir": 1,
-   "type": "shunt",
-   "name": "",
-   "n": 102,
-   "kind": "shunt"
-  },
-  {
-   "line": "M3",
-   "w": 1,
-   "lat": 45.428664,
-   "lon": 9.25361,
-   "on_track": [
-    45.428662,
-    9.253624
-   ],
-   "offset_m": 1.1,
-   "side": "left",
-   "heading": 13,
-   "dir": 1,
-   "type": "shunt",
-   "name": "",
-   "n": 103,
-   "kind": "shunt"
-  },
-  {
-   "line": "M3",
-   "w": 4,
-   "lat": 45.429572,
-   "lon": 9.254061,
-   "on_track": [
-    45.429571,
-    9.254063
-   ],
-   "offset_m": 0.2,
-   "side": "right",
-   "heading": 210,
-   "dir": 1,
-   "type": "shunt",
-   "name": "",
-   "n": 104,
-   "kind": "shunt"
-  },
-  {
-   "line": "M3",
    "w": 42,
    "lat": 45.430567,
    "lon": 9.253562,
@@ -2688,78 +2832,6 @@
    "type": "nose2",
    "name": "A85",
    "line": "M3"
-  },
-  {
-   "line": "M3",
-   "w": 87,
-   "lat": 45.531015,
-   "lon": 9.162383,
-   "on_track": [
-    45.531018,
-    9.162401
-   ],
-   "offset_m": 1.4,
-   "side": "right",
-   "heading": 168,
-   "dir": 1,
-   "type": "block",
-   "name": "",
-   "kind": "atp",
-   "n": 105
-  },
-  {
-   "line": "M3",
-   "w": 87,
-   "lat": 45.530852,
-   "lon": 9.162429,
-   "on_track": [
-    45.530855,
-    9.16245
-   ],
-   "offset_m": 1.7,
-   "side": "right",
-   "heading": 348,
-   "dir": -1,
-   "type": "block",
-   "name": "",
-   "kind": "atp",
-   "n": 106
-  },
-  {
-   "line": "M3",
-   "w": 88,
-   "lat": 45.530925,
-   "lon": 9.162485,
-   "on_track": [
-    45.530924,
-    9.16248
-   ],
-   "offset_m": 0.4,
-   "side": "right",
-   "heading": 349,
-   "dir": 1,
-   "type": "block",
-   "name": "",
-   "kind": "atp",
-   "n": 107
-  },
-  {
-   "line": "M3",
-   "w": 88,
-   "lat": 45.530991,
-   "lon": 9.162458,
-   "on_track": [
-    45.530991,
-    9.162461
-   ],
-   "offset_m": 0.2,
-   "side": "left",
-   "heading": 169,
-   "dir": -1,
-   "type": "block",
-   "name": "",
-   "kind": "atp",
-   "n": 108
   }
  ],
  "speeds": {
@@ -3243,5 +3315,15 @@
    "A74",
    "A75"
   ]
+ },
+ "tail_slots": {
+  "_about": "Giovanni 28 Oct: the Comasina tails hold three trains each at the end of service (110 m a position: the new trains are 108 m, the old ones 105 m, couplers not counted). The tail track, from its dead end to the switch, is made 3 x 110 m long (the dead end moves); the first position is the deepest, centred 55 m from the end. Signals sit between the positions (one each way, at 110 m and 220 m from the end).",
+  "line": "M3",
+  "nodes": [
+   183,
+   179
+  ],
+  "positions": 3,
+  "slot_m": 110
  }
 }

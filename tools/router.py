@@ -261,7 +261,23 @@ def load_rules(path, line):
                 dd = math.hypot(px - ax - u * dx, py - ay - u * dy)
                 if best is None or dd < best[0]: best = (dd, ei)
         if best and best[0] < 5: BANNED_EDGES.add(best[1]); n += 1
+    # Giovanni 28 Oct: the Comasina tails hold three trains each (110 m a position: the new trains are 108 m, the old 105 m):
+    # the tail track, from its dead end to the first switch, is made at least positions * slot_m long (the dead end moves)
+    ts = R_.get('tail_slots')
+    if ts and ts.get('line', line) == line: n += extend_dead_ends(ts['nodes'], ts['positions'] * ts['slot_m'])
     return n
+def extend_dead_ends(nodes, length):
+    """lengthen the track piece ending in each dead end node to `length` m by carrying it straight on past the end"""
+    done = 0
+    for nd in nodes:
+        if len(node_edges[nd]) != 1: continue
+        ei = node_edges[nd][0]; e = edges[ei]; P = e['pts']
+        if e['len'] >= length - 0.5: continue
+        at_end = e['b'] == nd; pts = P if at_end else P[::-1]
+        ux, uy = tangent(pts, False); add = length - e['len']; k = max(1, int(add / 10 + 0.999)); x0, y0 = pts[-1]
+        pts = pts + [(x0 + ux * add * (i + 1) / k, y0 + uy * add * (i + 1) / k) for i in range(k)]
+        e['pts'] = pts if at_end else pts[::-1]; e['len'] = plen(e['pts']); node_pos[nd] = pts[-1]; done += 1
+    return done
 THROUGH_ALLOWED = None      # set of through-track middles a route may use (None = all)
 def allowed(ei, d):
     if THROUGH_ALLOWED is not None and 'mid' in edges[ei] and edges[ei]['mid'] not in THROUGH_ALLOWED: return False

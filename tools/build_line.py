@@ -368,7 +368,9 @@ for _t in (COM_TAILS if CFG.get('tail_at_signal') else []):
             if math.hypot(_x - _ax - _u * _dx, _y - _ay - _u * _dy) < 4 and (_best is None or _acc + _u * math.sqrt(_L2) > _best):
                 _best = _acc + _u * math.sqrt(_L2)
             _acc += math.sqrt(_L2)
-    if _best: TAIL_STOP[_t] = max(TRAIN_HALF, _best - TRAIN_HALF - 5)
+    _ts = _rules_.get('tail_slots')
+    if _ts and _t in _ts['nodes']: TAIL_STOP[_t] = _ts['slot_m'] / 2         # first position: the deepest, centred in its 110 m
+    elif _best: TAIL_STOP[_t] = max(TRAIN_HALF, _best - TRAIN_HALF - 5)
 print('tail stop positions from signals (m from the end):', {k: round(v) for k, v in TAIL_STOP.items()})
 def tail_off(n): return TAIL_STOP.get(n, TRAIN_HALF)
 # running times measured on the real tracks
@@ -592,6 +594,11 @@ def when_leave(t_in_tail, tr, d_pl):
         t_plat = max(tr['dep'] - DWELL_MIN, t_leave + 25)   # drive in a little quicker
     return t_leave, t_plat
 
+DEPOT_ARRIVALS = []        # when trains reach the depot yard: two never come in together (one waits at the tail / on the way)
+def depot_gap(t, hold=90):
+    """first time >= t that is at least `hold` s from every other arrival into the depot"""
+    while any(abs(t - x) < hold for x in DEPOT_ARRIVALS): t += 15
+    DEPOT_ARRIVALS.append(t); return t
 ALTS = collections.defaultdict(list)
 BOARD = collections.defaultdict(lambda: collections.defaultdict(list))
 def station_key(name):
@@ -735,6 +742,7 @@ for k, chain in enumerate(trains):
                     pidE = leg_path(ctail, CFG['DEPOT_IN_VIA'], store); cE = paths[pidE][1]
                     d0, d1 = tail_off(ctail), cE[-1] - TRAIN_HALF
                     t0 = TE.get(('end', tr['ti']), t_end + REVERSE)
+                    _dur = (d1 - d0 - 900) / V_EMPTY + 900 / V_YARD; t0 += depot_gap(t0 + _dur) - (t0 + _dur)
                     t1 = t0 + (d1 - d0 - 900) / V_EMPTY
                     tl.add(pidE, 'empty', [t0, t1, t1 + 900 / V_YARD], [d0, d1 - 900, d1]); tl.segs[-1].append(store)
                     loc = ('depot', store)
@@ -765,7 +773,7 @@ for k, chain in enumerate(trains):
             if CFG.get('ARR2') and not go_depot and nxt is not None and nxt['out'] and not (nxt is None and k in NIGHT_SD_END):
                 pending = dict(i=seg_in0, tr=tr, ctail=ctail, t_leave=t_leave, t_plat=t_plat)
             if go_depot:
-                t_end = move(tl, pid, d_arr, d_end, t_arr + DWELL_END, V_YARD, 'to_depot'); tl.segs[-1].append(end)
+                t_end = move(tl, pid, d_arr, d_end, depot_gap(t_arr + DWELL_END + (d_end - d_arr) / V_YARD) - (d_end - d_arr) / V_YARD, V_YARD, 'to_depot'); tl.segs[-1].append(end)
                 loc = ('depot', end)
                 # midday layover: comes back out later from the depot (handled by next OUT trip)
             else:
