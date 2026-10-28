@@ -182,6 +182,7 @@ ONEWAY, BANNED = {}, set()
 NOPARK = set()      # depot tracks used to move trains around, never to park (Giovanni's X marks)
 BANNED_EDGES = set()    # pieces of track (between two switches) no route may use: Giovanni's "taglio" points
 EDGE_COST = {}          # extra cost (m) for track pieces to use only when there is no other way (wrong-way depot access)
+LINK_FLAG2_W = {}       # second-train flags placed on the OSM track just outside the building (by way)
 LINK_FLAG2 = {}         # through track index -> flag of a second train (the end of that train stands there)
 LINK_FLAG = {}          # through track index -> (x, y, heading) of Giovanni's flag: the train's end stands there
 DRAWN_ENDS = set()      # far ends of tracks drawn inside the depot building (never joined across the building)
@@ -198,8 +199,10 @@ def load_rules(path, line):
     for sg in R_.get('signals', []):
         if sg.get('line', line) == line and sg.get('type') == 'nose' and sg.get('w', 0) < 0:
             LINK_FLAG[-1 - sg['w']] = (*xy(*(sg.get('on_track') or (sg['lat'], sg['lon']))), sg.get('heading', 0))
-        if sg.get('line', line) == line and sg.get('type') == 'nose2' and sg.get('w', 0) < 0:
-            LINK_FLAG2[-1 - sg['w']] = (*xy(*(sg.get('on_track') or (sg['lat'], sg['lon']))), sg.get('heading', 0))
+        if sg.get('line', line) == line and sg.get('type') == 'nose2':
+            f2 = (*xy(*(sg.get('on_track') or (sg['lat'], sg['lon']))), sg.get('heading', 0))
+            if sg.get('w', 0) < 0: LINK_FLAG2[-1 - sg['w']] = f2
+            else: LINK_FLAG2_W[sg['w']] = f2          # on the track leading to a through track: matched later
     # Giovanni: only the access part is wrong-way (east of the given longitude); inside the depot it is a normal track
     for k, v in R_.get('avoid_ways', {}).items():
         if k.startswith('_'): continue

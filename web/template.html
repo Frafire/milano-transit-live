@@ -2435,8 +2435,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const a = ag.agents()[k]; if (!a || a.hidden || a.mode !== 'plan') return null;
     const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, pid = leg ? leg.pid : a.pid, from = leg && leg.start != null && pid !== a.pid ? leg.start : a.d;
     const c = IL.ahead(pid, from + F.engine.half, 900).find(x => IL.isManual(x.si) && il.grant[x.si] !== k); if (!c) return null;
-    const st = leg ? leg.status : a.status;
-    return { si: c.si, open: il.pass[c.si] > 0, what: st === 'from_depot' || st === 'empty' && (pid !== a.pid || ag.S.t < a.wait || a.status === 'parked') ? 'uscita dal deposito' : st === 'to_depot' ? 'entrata in deposito' : 'manovra in deposito',
+    const st = leg ? leg.status : a.status, n = (F.engine.net.signals[c.si] || {}).n;
+    // #A02/#A03: from the depot onto the line; #A04/#A05: from the line into the depot; shunting signals: depot moves
+    const what = n === 2 || n === 3 ? 'entrata in linea' : n === 4 || n === 5 ? 'entrata in deposito'
+      : st === 'from_depot' || st === 'empty' && (pid !== a.pid || ag.S.t < a.wait || a.status === 'parked') ? 'uscita dal deposito' : 'manovra in deposito';
+    return { si: c.si, open: il.pass[c.si] > 0, what, dist: c.d - (from + F.engine.half),
              due: ag.S.t < a.wait ? a.wait : null, red: a.red && a.red.why && a.red.why.sig === c.si ? a.red.since : null };
   }
   function emergencyCalls(F) {
@@ -2448,7 +2451,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const dq = depotAsk(F, k);
       if (dq && !dq.open) {
         const t = ag.S.t, h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? 'Buongiorno' : 'Buonasera', key = dq.si + ':' + (dq.due || 'r');
-        if (c.depKey !== key && (dq.due != null && t >= dq.due - 120 || dq.red != null)) { c.depKey = key; c.depAgain = false;
+        const atSig = dq.red != null || dq.due != null && dq.dist < 40;           // standing in front of it
+        if (c.depKey !== key && atSig && (dq.due == null || t >= dq.due - 120)) { c.depKey = key; c.depAgain = false;
           call(`${hi} PC, qui treno ${no}: richiesta apertura segnale ${sigNo(F, dq.si)} per ${dq.what}. Passo.`); }
         else if (c.depKey === key && !c.depAgain && (dq.due != null ? t >= dq.due + 60 : dq.red != null && t - dq.red >= 60)) { c.depAgain = true;
           call(`PC, qui treno ${no}, sono ancora in attesa dell'apertura del segnale ${sigNo(F, dq.si)} per ${dq.what}. Passo.`); }

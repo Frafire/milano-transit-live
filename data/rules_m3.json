@@ -2323,6 +2323,54 @@
    "dir": -1,
    "type": "nose2",
    "name": "A84 riferimento"
+  },
+  {
+   "line": "M3",
+   "w": 43,
+   "lat": 45.430566,
+   "lon": 9.253624,
+   "on_track": [
+    45.430558,
+    9.253634
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 232,
+   "dir": 1,
+   "type": "nose2",
+   "name": "Collegato A88"
+  },
+  {
+   "line": "M3",
+   "w": 40,
+   "lat": 45.43053,
+   "lon": 9.253672,
+   "on_track": [
+    45.430525,
+    9.253678
+   ],
+   "offset_m": 0.7,
+   "side": "left",
+   "heading": 230,
+   "dir": -1,
+   "type": "nose2",
+   "name": "A89 collegato"
+  },
+  {
+   "line": "M3",
+   "w": -14,
+   "lat": 45.430515,
+   "lon": 9.253712,
+   "on_track": [
+    45.430509,
+    9.25372
+   ],
+   "offset_m": 0.9,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "nose2",
+   "name": "collegato A90"
   }
  ],
  "speeds": {
@@ -2651,9 +2699,13 @@
   [
    45.430106,
    9.257352
+  ],
+  [
+   45.430758,
+   9.258747
   ]
  ],
- "removed_signals_about": "#A42 (exit from the depot towards the station): Giovanni, it protects nothing (28 Oct). Numbers of the others do not change.",
+ "removed_signals_about": "#A42 (exit from the depot towards the station): Giovanni, it protects nothing (28 Oct). Numbers of the others do not change. #A43 duplicate of #A07 (28 Oct).",
  "depot_through": {
   "_about": "Tracks through the depot building (OSM node pairs joined across the building). Fixed (Giovanni, 28 Oct): the build no longer looks for them. Their order matters: flags on them refer to it (w -1 is the first).",
   "pairs": [

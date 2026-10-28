@@ -131,6 +131,9 @@ def _ne_end(a_, b_):
     (ax, ay), (bx, by) = node_pos[a_], node_pos[b_]
     return b_ if (bx - ax) * math.sin(math.radians(50)) + (by - ay) * math.cos(math.radians(50)) > 0 else a_
 SECOND = {}                     # link index -> second place node
+for _w, _f in _router.LINK_FLAG2_W.items():      # flags on the track just outside the building: the through track it leads to
+    for _li, (_a, _b, _m) in enumerate(LINKS):
+        if any(edges[e]['way'] == _w for x in (_a, _b) for e in node_edges[x] if 'mid' not in edges[e]): _router.LINK_FLAG2.setdefault(_li, _f)
 for li_, (a_, b_, m_) in enumerate(LINKS):
     if li_ not in _router.LINK_FLAG2 or m_ not in STORE_EXIT: continue
     ne_ = _ne_end(a_, b_)
