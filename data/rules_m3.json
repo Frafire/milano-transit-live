@@ -3145,5 +3145,31 @@
   ],
   "heading": 51,
   "name": "Dove si ferma il muso di coda dei treni che escono dall'anello"
+ },
+ "avoid_signals": {
+  "_about": "Giovanni 28 Oct: #A60 eastbound and #A91 westbound are the usual way; #A61 and #A92 are used only when convenient (the one-way tracks are a preference, not a ban). Cost added to the track under the signal, in its direction.",
+  "61": 500,
+  "92": 500
+ },
+ "depot_places_add": {
+  "_about": "Dead ends that are depot places even if their last piece is a little short. 200002: the track behind #A73 (w0).",
+  "nodes": [
+   200002
+  ]
+ },
+ "loop_exit_a94": {
+  "_about": "Giovanni 28 Oct: from beyond #A95 these places cannot be reached; a train given one of them leaves the test loop back through #A94 (only if no train waits at #A94).",
+  "places": [
+   "A66",
+   "A67",
+   "A68",
+   "A69",
+   "A70",
+   "A71",
+   "A72",
+   "A73",
+   "A74",
+   "A75"
+  ]
  }
 }

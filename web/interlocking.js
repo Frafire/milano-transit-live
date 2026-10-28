@@ -7,8 +7,10 @@
 //   signals[si] = { n, manual, section, groups: [gi], zone }   every controlled signal, what applies to it
 //   groups[gi]  = { name, signals: [si], hold }                 only one signal of a group at via libera at a time;
 //                                                                hold: the grant stays until the movement is over
-//   zones[zi]   = { name, entry: [si] }                         a stretch for one train at a time (the test loop):
-//                                                                its entry clears only for the train holding the zone
+//   zones[zi]   = { name, entry: [si], paths: [pid] }           a stretch for one train at a time (the test loop):
+//                                                                its entry clears only for the train holding the zone,
+//                                                                for the trains going into it (paths); for the others
+//                                                                the entry is an ordinary signal
 // Rules for one controlled signal si, asked by train k standing d - nose metres before it:
 //   - the train is near (NEAR) and the track just behind the signal is free;
 //   - section: no train between it and the next signal on the train's way (at most SECTION_MAX);
@@ -30,6 +32,10 @@
     for (const [si, x] of Object.entries(o.signals || {})) sig.set(+si, Object.assign({ groups: [] }, x));
     groups.forEach((g, gi) => g.signals.forEach(si => { if (!sig.has(si)) sig.set(si, { groups: [] }); const x = sig.get(si); if (!x.groups.includes(gi)) x.groups.push(gi); }));
     zones.forEach((z, zi) => z.entry.forEach(si => { if (!sig.has(si)) sig.set(si, { groups: [] }); sig.get(si).zone = zi; }));
+    // a zone's entry holds only the trains going into the zone (#A94: into the test loop); for the others it is an
+    // ordinary signal (no list of paths: every train)
+    const zpaths = zones.map(z => z.paths ? new Set(z.paths.map(Number)) : null);
+    const intoZone = (zi, pid) => !zpaths[zi] || pid == null || zpaths[zi].has(+pid);
     const controlled = si => sig.has(si);
     const isManual = si => !!(sig.get(si) || {}).manual;
     const groupOf = si => { const x = sig.get(si); return x && x.groups.length ? x.groups[0] : null; };
@@ -58,7 +64,7 @@
       if (freeTo < d + 30) return false;
       if (x.section && pid != null && (freeTrains != null ? freeTrains : freeTo) < sectionEnd(pid, si, d) - 5) return false;
       for (const gi of x.groups) for (const [s2, k2] of Object.entries(st.grant)) if (k2 !== k && (sig.get(+s2) || { groups: [] }).groups.includes(gi)) return false;
-      if (x.zone != null && zoneHolder(st, x.zone) !== k) return false;
+      if (x.zone != null && intoZone(x.zone, pid) && zoneHolder(st, x.zone) !== k) return false;
       if (x.manual && !st.auto) { if (!(st.pass[si] > 0)) return false; st.pass[si]--; }
       st.grant[si] = k; return true;
     }
@@ -92,7 +98,7 @@
     function describe(si) {
       const x = sig.get(si); if (!x) return '';
       return x.groups.map(gi => ' · uno alla volta: ' + (groups[gi].name || 'gruppo ' + (gi + 1))).join('')
-        + (x.zone != null ? ' · ingresso ' + zones[x.zone].name + ': un treno alla volta' : '')
+        + (x.zone != null ? ' · ingresso ' + zones[x.zone].name + ': un treno alla volta (per gli altri treni è un segnale del deposito)' : '')
         + (x.section ? ' · via libera solo col binario libero fino al segnale successivo' : '')
         + (x.manual ? ' · manovrato dal giocatore (clic = via libera)' : '');
     }

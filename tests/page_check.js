@@ -5,9 +5,10 @@
 // - twice: a train goes round the loop, comes back, and can go again
 // - radio: the radio on a train in service: a longer stop, a speed limit, a free message, the answers
 // - laps: two laps; it stops a few seconds at each test stop and nowhere else on the loop, faster than 15 km/h
+// - a94: a train given a west shed leaves the loop back through #A94; meanwhile no other train is sent to the loop
 // - place: a train on its way into the depot gets a place; the player changes it by radio
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
-// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps ...]   (no argument: all of them). Exit code 1 if one fails.
+// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94 ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html');
@@ -104,6 +105,34 @@ const SCENARIOS = {
       const near = (x, y) => Math.min(Math.abs(x - y), T.lap - Math.abs(x - y)) < 12;
       const atStops = stops.filter(x => T.stops.some(y => near(x, y))).length, other = stops.filter(x => !T.stops.some(y => near(x, y)) && !near(x, 0));
       return { ok: atStops >= 4 && other.length === 0 && vmax * 3.6 > 30, train: k, stops, other, vmaxKmh: Math.round(vmax * 3.6), place: F.depot.at[k] };
+    });
+  },
+  async a94(p) {        // a train given a west shed (A66-A75) leaves the loop back through #A94; meanwhile no train may go to #A94
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.depotPaths), T = F.test;
+      const west = q => (T.a94_places || []).includes(F.dm.name(q));
+      st.playing = false; st.t = 11.5 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      const at = Object.entries(F.depot.at).map(([k, q]) => [+k, q]), A = at.find(([, q]) => T.trip[q] && q.startsWith('1000')) || at[0];
+      // every other free place that is not a west shed is taken (stand-ins), so the depot can only give a west shed
+      const tk = F.dm.taken(); Object.keys(F.depotPaths).filter(q => !tk.has(q) && !west(q)).forEach((q, i) => { F.depot.target[9000 + i] = q; });
+      const B = at.find(([k, q]) => k !== A[0] && T.trip[q] && !west(q));
+      const k = A[0]; st.sel = 'f' + M.fleets.indexOf(F) + ':' + k; M.renderCard(); await sleep(200);
+      document.querySelector('[data-loop="1"]').click(); await sleep(200);
+      st.playing = true; st.speed = 30; const t0 = Date.now(); let refused = null, tried = false;
+      while (Date.now() - t0 < 150000) {
+        await sleep(200);
+        const log = document.getElementById('radioLog').innerText;
+        if (!tried && /passando dal #A94/.test(log) && B) {          // the exit via #A94 is decided: another train may not go now
+          tried = true; st.playing = false; st.sel = 'f' + M.fleets.indexOf(F) + ':' + B[0]; M.renderCard(); await sleep(200);
+          const b = document.querySelector('[data-loop="1"]'); if (b) b.click(); await sleep(200);
+          refused = !(F.dm.loopInfo(B[0]) || {}).onLoop; st.playing = true; }
+        if (tried && !(F.dm.loopInfo(k) || {}).onLoop && F.depot.target[k] == null) break;
+      }
+      st.playing = false;
+      const log = document.getElementById('radioLog').innerText, q = F.depot.at[k];
+      return { ok: /passando dal #A94/.test(log) && /dopo il #A94/.test(log) && q != null && west(q) && refused === true, train: k, from: F.dm.name(A[1]), to: q && F.dm.name(q), refused,
+               log: log.split('\n').filter(l => /A94|anello/.test(l)).slice(-5) };
     });
   },
   async place(p) {

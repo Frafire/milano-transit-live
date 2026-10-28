@@ -216,6 +216,25 @@ def load_rules(path, line):
             for d_ in (1, -1):
                 P_ = poly(ei, d_); (x0, y0), (x1, y1) = P_[0], P_[-1]
                 if abs((math.degrees(math.atan2(x1 - x0, y1 - y0)) - hd + 180) % 360 - 180) < 90: EDGE_COST[(ei, d_)] = cost
+    # Giovanni 28 Oct: one-way tracks in the depot are a preference, not a ban (#A60 eastbound and #A91 westbound; #A61
+    # and #A92 only when it is convenient). A cost on the piece of track under a signal, run in the signal's direction
+    for k, cost in R_.get('avoid_signals', {}).items():
+        if k.startswith('_'): continue
+        sg = next((x for x in R_.get('signals', []) if x.get('n') == int(k) and x.get('line', line) == line), None)
+        if not sg: continue
+        px, py = xy(*(sg.get('on_track') or (sg['lat'], sg['lon']))); best = None
+        for ei, e in enumerate(edges):
+            for (ax, ay), (bx, by) in zip(e['pts'], e['pts'][1:]):
+                dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+                u = 0 if L2 == 0 else max(0, min(1, ((px - ax) * dx + (py - ay) * dy) / L2))
+                dd = math.hypot(px - ax - u * dx, py - ay - u * dy)
+                if best is None or dd < best[0]: best = (dd, ei)
+        if not best or best[0] > 5: continue
+        for d_ in (1, -1):
+            P_ = poly(best[1], d_); (x0, y0), (x1, y1) = P_[0], P_[-1]
+            if abs((math.degrees(math.atan2(x1 - x0, y1 - y0)) - sg.get('heading', 0) + 180) % 360 - 180) < 90:
+                EDGE_COST[(best[1], d_)] = EDGE_COST.get((best[1], d_), 0) + cost
+                print('route cost: #A%s run in its direction (track piece %d) +%d m' % (k, best[1], cost))
     # tracks drawn by Giovanni that continue a depot dead end inside the building: the dead end moves to their far end
     for ti, dt in enumerate(R_.get('tracks', [])):
         if dt.get('line', line) != line or len(dt.get('points', [])) < 2: continue

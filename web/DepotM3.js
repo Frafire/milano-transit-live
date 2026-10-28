@@ -186,6 +186,8 @@
     function sendToLoop(k, how) {
       const T = F.test, tr = F.trains[k], a = F.ag && F.ag.agents()[k], p = F.depot && F.depot.at[k];
       if (!a || p == null || !T.trip[p] || loopAhead(k)) return false;
+      const S = L();
+      if (S.a94 != null && S.a94 !== k) { D.loopMsg = `Attendi: il treno ${no(S.a94)} sta uscendo dall'anello passando dal #A94 verso ${F.depot.target[S.a94] != null ? name(F.depot.target[S.a94]) : 'il deposito'}.`; return false; }
       const inWay = ((T.trip_blocks || {})[p] || []).filter(x => taken().has(x));
       if (inWay.length) { D.loopMsg = 'La via per l\'anello passa da ' + inWay.map(name).join(', ') + ', occupato.'; return false; }
       const idx = a.mode === 'static' ? tr.segs.length : a.si, next = tr.segs[idx], t0 = Math.round(F.ag.S.t) + 20;
@@ -225,12 +227,34 @@
     }
     // the place for the way out of the loop, and the moves to it (replacing the stand-in at index si, and the move out
     // of the loop before it at si - 1 when it goes straight on)
-    function placeForExit(k, si) {
-      const T = F.test, tr = F.trains[k], home = T.home, tk = taken();
+    // Giovanni 28 Oct: the west sheds (A66-A75) cannot be reached from beyond #A95; a train given one of them leaves
+    // the loop back through #A94 on w1, which is possible only while no other train is going to #A94 or waiting there
+    const viaA94 = q => (F.test.a94_places || []).includes(name(q)) && !!(F.test.home94 || {})[q];
+    const westShed = q => (F.test.a94_places || []).includes(name(q));
+    const goingToA94 = (j, k) => { if (j === k || !loopAhead(j)) return false; const tr = F.trains[j], a = F.ag.agents()[j];
+      for (let i = a ? a.si : 0; i < tr.segs.length; i++) { const r = loopRole(tr.segs[i]); if (r === 'in2' || r === 'lap') return false; if (r === 'in' || r === 'gate') return true; } return false; };
+    const a94Busy = k => F.ag.agents().some((_, j) => goingToA94(j, k));
+    // past94: the train already stands beyond #A95 (it can no longer go back through #A94)
+    function placeForExit(k, si, past94) {
+      const T = F.test, tr = F.trains[k], home = T.home, tk = taken(), by94 = !past94 && !a94Busy(k);
       const jn = nextOut(tr, si), sOut = jn >= 0 ? tr.segs[jn] : null;
-      const cand = Object.keys(home).filter(q => !tk.has(q) && F.depotPaths[q] && !((T.home_blocks || {})[q] || []).some(x => tk.has(x)) && (!sOut || placeOf(sOut) === q || outChoice(sOut, q)));
-      const len = q => home[q].legs.reduce((x, l) => x + Math.abs(l[2] - l[1]), 0) + (home[q].legs.length > 1 ? 400 : 0) + (home[q].straight ? 0 : 300) + (low(q) ? 1e5 : 0);
-      cand.sort((p, q) => len(p) - len(q)); return cand[0] || null;
+      const ok = q => !tk.has(q) && F.depotPaths[q] && (!sOut || placeOf(sOut) === q || outChoice(sOut, q));
+      const cand = Object.keys(home).filter(q => ok(q) && !westShed(q) && !((T.home_blocks || {})[q] || []).some(x => tk.has(x)))
+        .concat(by94 ? Object.keys(T.home94 || {}).filter(q => ok(q) && viaA94(q)) : []);
+      const len = q => viaA94(q) && by94 ? T.home94[q].legs.reduce((x, l) => x + Math.abs(l[2] - l[1]), 0)
+        : home[q].legs.reduce((x, l) => x + Math.abs(l[2] - l[1]), 0) + (home[q].legs.length > 1 ? 400 : 0) + (home[q].straight ? 0 : 300);
+      const cost = q => len(q) + (low(q) ? 1e5 : 0);
+      cand.sort((p, q) => cost(p) - cost(q)); return cand[0] || null;
+    }
+    // back through #A94 (west sheds): the move out of the loop and the stand-in are replaced by one move to the place
+    function routeOut94(k, si, q) {
+      const T = F.test, tr = F.trains[k], H = T.home94[q], ret = tr.segs[si - 1];
+      let t = Math.max(ret[3][0], Math.round(F.ag.S.t));
+      const segs = H.legs.map((l, i) => { const dur = Math.max(2, Math.abs(l[2] - l[1]) / T.v_yard), last = i === H.legs.length - 1;
+        const sg = [l[0], 'to_depot', -1, [Math.round(t), Math.round(t + dur)], [l[1], l[2]], last ? +q : null, 'loop:' + (i === 0 ? 'out94' : 'home')]; t += dur + (l[3] ? T.reverse : 0); return sg; });
+      tr.segs.splice(si - 1, 2, ...segs); shiftRefs(tr, si - 1, segs.length - 2); restamp(tr);
+      const g = si - 1 + segs.length - 1, hl = segs[segs.length - 1];
+      F.depot.target[k] = q; F.depot.seg[k] = g; followPlace(tr, g, q, hl[0], hl[4][1]);
     }
     function routeOut(k, si, q) {
       const T = F.test, tr = F.trains[k], H = T.home[q], ret = tr.segs[si - 1], straight = H.straight && loopRole(ret) === 'ret';
@@ -248,10 +272,11 @@
       const S = L(), ag = F.ag, t = ag.S.t, T = F.test, half = F.engine.half;
       const zi = ZI(), il = ag.il(); if (zi == null) return;
       if (holder() != null && !loopAhead(holder())) IL().zoneFree(il, zi, holder());
+      if (S.a94 != null && !loopAhead(S.a94)) delete S.a94;          // back in its west shed: #A94 is open again
       // the loop is free when the train's tail is past the flag beyond #A95: a notice, then the next one goes in
       const freed = k => {
-        delete S.exit[k];
-        env.say('T' + no(k), `PC, qui treno ${no(k)}: sono fuori dall'anello, dopo il #A95. Anello di prova libero. Passo.`, 'ok');
+        const by94 = S.exit[k] && S.exit[k].a94; delete S.exit[k];
+        env.say('T' + no(k), `PC, qui treno ${no(k)}: sono fuori dall'anello, dopo il ${by94 ? '#A94' : '#A95'}. Anello di prova libero. Passo.`, 'ok');
         const nx = IL().zoneFree(il, zi, k); if (nx != null && S.asked[nx] && S.asked[nx].r === 'gate') grant(nx, S.asked[nx].si, true);
       };
       // before leaving the loop: it says it has finished and gets its place
@@ -263,13 +288,20 @@
           S.exit[k] = { q };
           env.say('T' + no(k), `PC, qui treno ${no(k)}: giri finiti, esco dall'anello dal #A96. Passo.`, 'ok');
           if (q == null) { env.say('PC', `Ricevuto treno ${no(k)}: nessun posto libero, fermati dopo il #A95 e attendi. Passo.`, 'pc'); return; }
+          if (viaA94(q)) {                 // west sheds: back through #A94 (nobody is going there now: kept so until it is in)
+            routeOut94(k, si, q); S.exit[k].a94 = true; S.a94 = k;
+            env.say('PC', `Ricevuto treno ${no(k)}, vai in ${name(q)}: esci dall'anello passando dal #A94. Passo.`, 'pc');
+            env.say('T' + no(k), `Vado in ${name(q)} dal #A94. Passo.`, 'dr'); return;
+          }
           const straight = routeOut(k, si, q);
           env.say('PC', `Ricevuto treno ${no(k)}, vai in ${name(q)}${straight ? '' : ': fermati dopo il #A95 e cambia banco'}. Passo.`, 'pc');
           env.say('T' + no(k), `Vado in ${name(q)}. Passo.`, 'dr');
         }
         const ex = S.exit[k];
         if (ex && ex.q != null && !ex.free) {
-          const out = r === 'out' && a.d - half > T.free_at - half && a.d >= T.free_at, back = r === 'home' || (r == null && !loopAhead(k));
+          const H94 = ex.a94 && (T.home94 || {})[ex.q];
+          const out = r === 'out' && a.d - half > T.free_at - half && a.d >= T.free_at || r === 'out94' && H94 && a.d >= H94.free_at,
+            back = r === 'home' || (r == null && !loopAhead(k));
           if (out || back) { ex.free = true; freed(k); }
         }
       });
@@ -283,7 +315,7 @@
           else { env.say('PC', `Negativo treno ${no(k)}: l'anello di prova è occupato dal treno ${no(holder())}. Resta fermo al #A94, ti richiamo io. Passo.`, 'pc'); env.say('T' + no(k), 'Ricevuto, resto fermo al #A94. Passo.', 'dr'); }
         } else if (w.r === 'homewait') {
           // standing past #A95 without a place (none was free before it left the loop): try again
-          const q = placeForExit(k, w.si); if (q == null) continue;
+          const q = placeForExit(k, w.si, true); if (q == null) continue;
           if (S.exit[k] && !S.exit[k].free) { S.exit[k].free = true; freed(k); }
           env.say('PC', `Treno ${no(k)}, vai in ${name(q)}. Passo.`, 'pc');
           const tr2 = F.trains[k], s = tr2.segs[w.si], H = T.home[q], tt = Math.round(t + (H.straight ? 5 : T.reverse)); let x = tt;

@@ -100,9 +100,12 @@ for a_, b_, m in LINKS:
         if r_out: storage.append((0, m)); STORE_EXIT[m] = ex
         break
 _router.THROUGH_ALLOWED = set()          # a dead-end track must be reachable without cutting through a parked train
+# Giovanni 28 Oct: dead ends that are places even if their last piece is a little short (#A73: the track goes on beyond
+# the next node without a switch)
+_FORCE = set((json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rules_%s.json' % LINE.lower()) else {}).get('depot_places_add', {}).get('nodes', []))
 for n in depot_dead:
     if not in_depot(n) or n in CFG['skip_dead'] or len(node_edges[n]) != 1: continue
-    if edges[node_edges[n][0]]['len'] < FIT: too_short += 1; continue
+    if edges[node_edges[n][0]]['len'] < FIT and n not in _FORCE: too_short += 1; continue
     if edges[node_edges[n][0]]['way'] in NOPARK: no_park += 1; continue
     a = route_nodes(CFG['AFTER_ARR'], n); b = route_nodes(n, SD_OUT_NODE, via=[SD_DEP[1]])
     if a and b: storage.append((plen(path_poly(b)), n)); STORE_WAY[n] = edges[node_edges[n][0]]['way']
@@ -919,6 +922,19 @@ if CFG['training']:
             L_ = home_legs(pr, dr, q_)
             if L_: TEST['home'][str(q_)] = {'legs': [[a, round(b, 1), round(c, 1), d] for a, b, c, d in L_], 'straight': L_[0][1] == 0}
             else: _nohome.append(q_)
+    # Giovanni 28 Oct: from beyond #A95 the west sheds (A66-A75) cannot be reached: a train given one of them leaves the
+    # loop the other way, back through #A94 on w1 (only when no train is waiting at #A94: the page checks that)
+    TEST['home94'] = {}; TEST['a94_places'] = _rules_.get('loop_exit_a94', {}).get('places', [])
+    _a94 = xy(*_A94['on_track']) if _A94 else None
+    for q_ in storage + _solo:
+        _router.THROUGH_ALLOWED = {q_} if q_ in STORE_EXIT else set()
+        r_ = route_nodes(157, q_, first=78, via=[7])
+        _router.THROUGH_ALLOWED = set()
+        if not r_ or any(start_node(e_, d_) in (93, 94) for e_, d_ in r_): continue
+        ph = make_path(('lhome94', q_), r_); b_ = _proj(ph, *_a94) if _a94 else None
+        if not b_ or b_[0] > 3: continue
+        TEST['home94'][str(q_)] = {'legs': [[ph, 0, round(end_off(q_, paths[ph][1][-1]), 1), 0]], 'free_at': round(b_[1] + TRAIN_HALF + 5, 1)}
+    print('loop exit back through #A94 possible to', len(TEST['home94']), 'places')
     print('test loop trips (Giovanni\'s way in by #A94):', len(TEST['trip']), 'places | no way for', _no, '| way back to', len(TEST['home']), 'places, not to', _nohome)
     # test platforms (fermate di prova): 110 m of platform ending at each stopping-point signal on the loop
     TEST['platforms'] = []; TEST['stops'] = []
@@ -1478,6 +1494,12 @@ for si_, sg in enumerate(NET['signals']):
             SIGPOS.setdefault(str(pid), []).append([round(best[1], 1), si_])
 for v in SIGPOS.values(): v.sort()
 NET['sigpos'] = SIGPOS
+# a zone's entry signal holds only the trains whose path goes on into the zone (#A94: the way into the test loop; for
+# the trains going elsewhere it is an ordinary depot signal). zone paths: [pid, ...]
+for _z in INTERLOCKING['zones']:
+    _z['paths'] = sorted(int(pid) for pid, lst in SIGPOS.items() for d, si in lst if si in _z['entry']
+                         and any(NET['edges'][ei]['cat'] == 'test' and d1 > d for ei, dr, d0, d1 in PATH_EDGES[int(pid)]['e']))
+    print('zone', _z['name'], ': entry', _z['entry'], 'holds the trains on', len(_z['paths']), 'paths (into the zone)')
 # a depot place is called by the signal in front of it (Giovanni: easier for maintenance), e.g. "A78"
 if LINE == 'M3' and NET.get('depot'):
     _used = set()
