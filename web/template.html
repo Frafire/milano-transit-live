@@ -1758,14 +1758,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         [seg[0], seg[seg.length - 1]].forEach(q => L.circleMarker(q, { radius: 3, color: '#000', weight: 1, fillColor: '#fff', fillOpacity: 1, interactive: false }).addTo(m3platLayer));
       });
     }
-    // turnback places: crossovers (X), dead-end tails along the line (coda), the M2-M3 link tunnel at Centrale
+    // the M2-M3 link tunnel at Centrale (the orange X on crossovers is gone: it hid the junction)
     const E_ = F.engine.net.edges, deg = {};
     E_.forEach(e => { deg[e.a] = (deg[e.a] || 0) + 1; deg[e.b] = (deg[e.b] || 0) + 1; });
     const P_ = netPts(F), mark = (ll, cls, txt, tip) => L.marker(ll, { keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="tbmark ${cls}">${txt}</div>` }) }).bindTooltip(tip, { className: 'st', direction: 'top' }).addTo(m3platLayer);
     E_.forEach((e, i) => {
       const mid = P_[i][Math.floor(P_[i].length / 2)];
-      if (e.cat === 'crossover') mark(mid, '', 'X', 'Crossover (comunicazione): turning back possible');
-      else if (/Raccordo/i.test(e.nm || '')) { if (e.len > 150) mark(mid, 'link', 'M2', 'Raccordo M2–M3: link tunnel to the green line'); }
+      if (/Raccordo/i.test(e.nm || '')) { if (e.len > 150) mark(mid, 'link', 'M2', 'Raccordo M2–M3: link tunnel to the green line'); }
     });
     m3platLayer.addTo(map);
   }
