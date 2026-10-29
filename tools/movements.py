@@ -117,7 +117,6 @@ def rg(i, lab, wps, legal, start, end, lim, stops_end=False, note=''):
 
 ROGM = [
     rg('RG-1', 'Da SD sul binario nord, dritto alla banchina nord (normale)', [165, 137, 166], True, 'A290 (b)', 'ferma in banchina nord; poi A204', 'normale', True),
-    rg('RG-2', 'Da SD sul binario nord, incrocio -> banchina sud (contromano)', [165, 137, 136, 152], False, 'A290 (b)', 'ferma in banchina sud; poi A348', '15 km/h', True),
     rg('RG-3', 'Da SD sul binario sud (contromano), dritto alla banchina sud', [153, 136, 152], False, 'A301 (b illegale)', 'ferma in banchina sud; poi A348', 'normale (contromano)', True),
     rg('RG-4', 'Da SD sul binario sud (contromano), incrocio -> banchina nord', [153, 136, 137, 166], True, 'A301 (b illegale)', 'ferma in banchina nord; poi A204', '15 km/h', True),
     rg('RG-5', 'Dalla banchina sud verso SD, dritto sul binario sud (normale)', [152, 136, 153], True, 'A285 (d)', 'A13 (entrata SD)', 'normale'),
@@ -157,7 +156,6 @@ def ld(i, lab, wps, legal, start, end, lim, stops_end=False, note=''):
 
 LODM = [
     ld('LD-1', 'Da Brenta sul binario nord, dritto alla banchina nord (normale)', [137, 166, 167], True, 'A211 (b)', 'ferma in banchina nord; poi A212', 'normale', True),
-    ld('LD-2', 'Da Brenta sul binario nord, incrocio -> banchina sud (contromano)', [137, 166, 150, 149], False, 'A211 (b)', 'ferma in banchina sud; poi A344', '15 km/h', True),
     ld('LD-3', 'Da Brenta sul binario sud (contromano), dritto alla banchina sud', [151, 150, 149], False, 'A308 (b illegale)', 'ferma in banchina sud; poi A344', 'normale (contromano)', True),
     ld('LD-4', 'Da Brenta sul binario sud (contromano), incrocio -> banchina nord', [151, 150, 166, 167], True, 'A308 (b illegale)', 'ferma in banchina nord; poi A212', '15 km/h', True),
     ld('LD-5', 'Dalla banchina sud verso Brenta, dritto (normale)', [149, 150, 151], True, 'A276 (d)', 'A277 (b)', 'normale'),
@@ -172,8 +170,8 @@ REVERSE = {'SD-14': 'binario 1', 'SD-15': 'binario 3', 'SD-16': 'binario 2', 'SD
            'RG-3': 'binario 1 di San Donato (SD-14)', 'RG-4': 'binario 1 di San Donato (SD-14)', 'RG-7': 'banchina nord di Rogoredo', 'RG-8': 'banchina nord di Rogoredo',
            'BR-4': 'tronchetto', 'BR-5': 'banchina di Brenta', 'BR-6': 'banchina di Brenta',
            'LD-3': 'tronchetto/banchina di Brenta (BR-5)', 'LD-7': 'banchina nord di Lodi', 'LD-8': 'banchina nord di Lodi'}
-# i movimenti contromano che NON hanno bisogno di inversione perche' il treno e' gia' in marcia (arrivo in banchina dopo un incrocio): RG-2, LD-2
-NO_REVERSE = {'RG-2', 'LD-2'}
+# nessun movimento contromano e' esente: anche l'arrivo in banchina dopo un incrocio richiede il cambio banco (RG-2 e LD-2 tolti)
+NO_REVERSE = set()
 
 
 def export(path):

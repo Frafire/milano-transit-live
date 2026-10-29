@@ -1064,48 +1064,6 @@
    ]
   },
   {
-   "id": "RG-2",
-   "group": "ROG",
-   "label": "Da SD sul binario nord, incrocio -> banchina sud (contromano)",
-   "legal": false,
-   "start_signal": 290,
-   "start": "A290 (b)",
-   "end": "ferma in banchina sud; poi A348",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": true,
-   "stops_end": true,
-   "edges": [
-    [
-     175,
-     165,
-     137
-    ],
-    [
-     127,
-     137,
-     136
-    ],
-    [
-     141,
-     136,
-     152
-    ]
-   ],
-   "switches": [
-    [
-     137,
-     175,
-     127
-    ],
-    [
-     136,
-     127,
-     141
-    ]
-   ]
-  },
-  {
    "id": "RG-3",
    "group": "ROG",
    "label": "Da SD sul binario sud (contromano), dritto alla banchina sud",
@@ -1556,48 +1514,6 @@
      166,
      176,
      177
-    ]
-   ]
-  },
-  {
-   "id": "LD-2",
-   "group": "LOD",
-   "label": "Da Brenta sul binario nord, incrocio -> banchina sud (contromano)",
-   "legal": false,
-   "start_signal": 211,
-   "start": "A211 (b)",
-   "end": "ferma in banchina sud; poi A344",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": true,
-   "stops_end": true,
-   "edges": [
-    [
-     176,
-     137,
-     166
-    ],
-    [
-     205,
-     166,
-     150
-    ],
-    [
-     138,
-     150,
-     149
-    ]
-   ],
-   "switches": [
-    [
-     166,
-     176,
-     205
-    ],
-    [
-     150,
-     205,
-     138
     ]
    ]
   },

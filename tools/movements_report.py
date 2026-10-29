@@ -3,9 +3,9 @@ import json, html, sys
 D = json.load(open(sys.argv[1])); head = open(sys.argv[2]).read().split('<main>')[0]; h = html.escape
 notes = {
  'SD': ['A14 (binario 3) e A45 (binario 2) sono di tipo e: mai verdi insieme, rossi fino a 30 s prima della partenza.', 'SD-14 (A349, tipo d) e possibile come navetta ma congestiona il tunnel.', 'A41 e A44 sono rossi di norma e controllano scambi e partenza verso deposito e tronchetti (SD-15 ... SD-20).'],
- 'ROG': ["L'incrocio e' sul lato San Donato: si usa solo come cambio banco. Chi parte da A285 non puo' usarlo direttamente: deve andare a A301, invertire e ripartire da li.", 'Chiunque usi il deviatoio passa a 15 km/h.'],
+ 'ROG': ["L'incrocio e' sul lato San Donato: si usa solo come cambio banco. Chi parte da A285 non puo' usarlo direttamente: deve andare a A301, invertire e ripartire da li. Dalla linea legale non si passa alla banchina opposta senza un cambio banco (RG-2 tolto).", 'Chiunque usi il deviatoio passa a 15 km/h.'],
  'BRE': ['I due monconi non si usano (troppo corti).', 'A19 e A20 sono manuali: riaperti solo dal PC dopo aver controllato le sezioni.'],
- 'LOD': ["A276 puo' usare l'incrocio solo dopo un cambio banco a A308 (LD-4).", "A314 (tipo d) puo' instradare sull'altro binario a 15 km/h (LD-8)."]}
+ 'LOD': ["A276 puo' usare l'incrocio solo dopo un cambio banco a A308 (LD-4).", "Dal binario legale non si passa alla banchina sud senza un cambio banco a Lodi (LD-2 tolto). A314 (tipo d) puo' instradare sull'altro binario a 15 km/h (LD-8)."]}
 def cell(v):
     k = v[0]
     return '<td class="par">libero</td>' if k == 'par' else '<td class="ex">attende</td>' if k == 'excl' else '<td class="sq">%d m</td>' % v[1]
