@@ -2230,13 +2230,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
           if (!best || dd < best.dd) { const brg = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360, diff = Math.abs(((brg - (sg.heading || 0)) % 360 + 540) % 360 - 180);
             best = { dd, ei, l: (seg[i] + u * Math.sqrt(L2)) * E_[ei].len / (geo || 1), dir: diff < 90 ? 1 : -1 }; } }
       });
-      return best && best.dd < 2 ? best : null;
+      return best && best.dd < (sg.legal === false ? 7 : 2) ? best : null;
     };
     const sigs = (net.signals || []).filter(sg => sg.kind === 'atp' || sg.kind === 'shunt' || sg.type === 'shunt').map(sg => ({ sg, at: locate(sg) })).filter(x => x.at);
     // block signals are drawn from the block sections already
     const blk = (F.engine.blocks || []).filter(b => b.pid != null).map(b => trackAt(F, b.pid, b.signal_d));
     const near = (a, b) => Math.hypot((a[1] - b[1]) * KXs, (a[0] - b[0]) * KYs);
-    return sigs.filter(x => !blk.some(q => near(q, [x.sg.lat, x.sg.lon]) < 30)).map(x => {
+    return sigs.filter(x => !blk.some(q => near(q, [x.sg.lat, x.sg.lon]) < 2.5)).map(x => {
       const parts = [], LIM = 300; let total = 0;
       const stopsHere = (ei, from, to, dir) => sigs.filter(y => y !== x && y.at.ei === ei && y.at.dir === dir && (dir > 0 ? y.at.l > from + 5 && y.at.l <= to : y.at.l < from - 5 && y.at.l >= to)).map(y => y.at.l);
       const walk = (ei, l, dir, used, depth) => {

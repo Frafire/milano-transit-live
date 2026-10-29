@@ -365,14 +365,14 @@
   {
    "line": "M3",
    "w": 64,
-   "lat": 45.430991,
-   "lon": 9.258886,
+   "lat": 45.431057,
+   "lon": 9.259031,
    "on_track": [
-    45.430986,
-    9.25889
+    45.431063,
+    9.259023
    ],
-   "offset_m": 0.6,
-   "side": "right",
+   "offset_m": 0.9,
+   "side": "left",
    "heading": 230,
    "dir": 1,
    "type": "entry",
@@ -523,7 +523,9 @@
    "type": "entry",
    "name": "Partenza binario 3",
    "kind": "atp",
-   "n": 14
+   "n": 14,
+   "stype": "e",
+   "legal": true
   },
   {
    "line": "M3",
@@ -3697,7 +3699,8 @@
  "illegal_types": {
   "N|illegal|ROGOREDO FS → SAN DONATO": "d",
   "N|illegal|LODI T.I.B.B. → BRENTA": "d",
-  "S|illegal|BRENTA → LODI T.I.B.B.": "d"
+  "S|illegal|BRENTA → LODI T.I.B.B.": "d",
+  "S|illegal|SAN DONATO → ROGOREDO FS": "e"
  },
  "block_types": {
   "S|departure|ROGOREDO FS → SAN DONATO": "d",
