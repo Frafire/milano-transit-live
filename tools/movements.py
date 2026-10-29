@@ -93,9 +93,13 @@ SDM = [
     sdm('SD-11', 'Deposito -> binario 2 (mai visto, possibile)', [141, 120], True, 'A06', 'ferma in banchina b2; poi attende A45', '15 km/h', last=(225, 120, 196), stops_end=True),
     sdm('SD-12', 'Binario 3 -> linea Rogoredo (partenza normale)', [143, 'DEPL'], True, 'A14 (e)', 'A290 (prossimo segnale in linea)', 'normale'),
     sdm('SD-13', 'Binario 2 -> linea Rogoredo (partenza normale)', [120, 196, 165, 'DEPL'], True, 'A45 (e)', 'A290 (prossimo segnale in linea)', 'normale'),
-    sdm('SD-14', 'Binario 1 -> linea Rogoredo (ILLEGALE, binario arrivi)', [160, 153, 'ARRL'], False, 'A349 (e, rosso)', 'primo segnale in linea contromano', '15 km/h sulla comunicazione se usata', first=None),
-    sdm('SD-15', 'Binario 3 guasto -> deposito (ILLEGALE)', [143, 141], False, 'da definire', 'A06 lato deposito', 'deposito/15 km/h', first=(173, 165, 143)),
-    sdm('SD-16', 'Binario 2 guasto -> deposito (ILLEGALE)', [196, 120, 119, 118, 117, 142, 141], False, 'da definire', 'A06 lato deposito', '15 km/h', first=None),
+    sdm('SD-14', 'Binario 1 -> linea Rogoredo (ILLEGALE, navetta: possibile ma congestiona il tunnel)', [160, 153, 'ARRL'], False, 'A349 (d, rosso)', 'primo segnale in linea contromano (A310 a Rogoredo)', '15 km/h sulla comunicazione se usata', first=None),
+    sdm('SD-15', 'Binario 3 guasto -> deposito (ILLEGALE)', [143, 141], False, 'A41', 'A06 lato deposito', 'deposito/15 km/h', first=(173, 165, 143)),
+    sdm('SD-16', 'Binario 2 guasto -> deposito (ILLEGALE)', [196, 120, 119, 118, 117, 142, 141], False, 'A44', 'A06 lato deposito', '15 km/h', first=None),
+    sdm('SD-17', 'Binario 3 -> tronchetto 1 (cambio banco, poi inverte)', [165, 143, 163], False, 'A41', 'ferma al tronchetto 1', '15 km/h', stops_end=True),
+    sdm('SD-18', 'Binario 3 -> tronchetto 2 (cambio banco, poi inverte)', [165, 143, 116], False, 'A41', 'ferma al tronchetto 2', '15 km/h', stops_end=True),
+    sdm('SD-19', 'Binario 2 -> tronchetto 1 (cambio banco, poi inverte)', [196, 120, 163], False, 'A44', 'ferma al tronchetto 1', '15 km/h', stops_end=True),
+    sdm('SD-20', 'Binario 2 -> tronchetto 2 (cambio banco, poi inverte)', [196, 120, 116], False, 'A44', 'ferma al tronchetto 2', '15 km/h', stops_end=True),
 ]
 # SD-14: la partenza contromano dal binario 1 parte dal fondo banchina verso la gola
 for m in SDM:
@@ -117,7 +121,6 @@ ROGM = [
     rg('RG-3', 'Da SD sul binario sud (contromano), dritto alla banchina sud', [153, 136, 152], False, 'A301 (b illegale)', 'ferma in banchina sud; poi A348', 'normale (contromano)', True),
     rg('RG-4', 'Da SD sul binario sud (contromano), incrocio -> banchina nord', [153, 136, 137, 166], True, 'A301 (b illegale)', 'ferma in banchina nord; poi A204', '15 km/h', True),
     rg('RG-5', 'Dalla banchina sud verso SD, dritto sul binario sud (normale)', [152, 136, 153], True, 'A285 (d)', 'A13 (entrata SD)', 'normale'),
-    rg('RG-6', 'Dalla banchina sud verso SD, incrocio -> binario nord (contromano)', [152, 136, 137, 165], False, 'A285 (d)', 'primo segnale contromano su binario nord', '15 km/h'),
     rg('RG-7', 'Dalla banchina nord verso SD, dritto sul binario nord (contromano)', [166, 137, 165], False, 'A310 (d illegale)', 'primo segnale contromano su binario nord', 'normale (contromano)'),
     rg('RG-8', 'Dalla banchina nord verso SD, incrocio -> binario sud (normale)', [166, 137, 136, 153], True, 'A310 (d illegale)', 'A13 (entrata SD)', '15 km/h'),
 ]
@@ -158,11 +161,31 @@ LODM = [
     ld('LD-3', 'Da Brenta sul binario sud (contromano), dritto alla banchina sud', [151, 150, 149], False, 'A308 (b illegale)', 'ferma in banchina sud; poi A344', 'normale (contromano)', True),
     ld('LD-4', 'Da Brenta sul binario sud (contromano), incrocio -> banchina nord', [151, 150, 166, 167], True, 'A308 (b illegale)', 'ferma in banchina nord; poi A212', '15 km/h', True),
     ld('LD-5', 'Dalla banchina sud verso Brenta, dritto (normale)', [149, 150, 151], True, 'A276 (d)', 'A277 (b)', 'normale'),
-    ld('LD-6', 'Dalla banchina sud verso Brenta, incrocio -> binario nord (contromano)', [149, 150, 166, 137], False, 'A276 (d)', 'segnale contromano su binario nord', '15 km/h'),
     ld('LD-7', 'Dalla banchina nord verso Brenta, dritto (contromano)', [167, 166, 137], False, 'A314 (d illegale)', 'segnale contromano su binario nord', 'normale (contromano)'),
     ld('LD-8', 'Dalla banchina nord verso Brenta, incrocio -> binario sud (normale)', [167, 166, 150, 151], True, 'A314 (d illegale)', 'A277 (b)', '15 km/h'),
 ]
 GROUPS['LOD'] = dict(title='Lodi T.I.B.B.: incrocio (scambi 150 e 166) sul lato Brenta', G=lod, names=LOD_NAMES, moves=LODM)
+
+
+# cambio banco: un treno contromano parte sempre da un segnale che ha davanti dopo aver fermato e invertito la cabina
+REVERSE = {'SD-14': 'binario 1', 'SD-15': 'binario 3', 'SD-16': 'binario 2', 'SD-17': 'binario 3', 'SD-18': 'binario 3', 'SD-19': 'binario 2', 'SD-20': 'binario 2',
+           'RG-3': 'binario 1 di San Donato (SD-14)', 'RG-4': 'binario 1 di San Donato (SD-14)', 'RG-7': 'banchina nord di Rogoredo', 'RG-8': 'banchina nord di Rogoredo',
+           'BR-4': 'tronchetto', 'BR-5': 'banchina di Brenta', 'BR-6': 'banchina di Brenta',
+           'LD-3': 'tronchetto/banchina di Brenta (BR-5)', 'LD-7': 'banchina nord di Lodi', 'LD-8': 'banchina nord di Lodi'}
+# i movimenti contromano che NON hanno bisogno di inversione perche' il treno e' gia' in marcia (arrivo in banchina dopo un incrocio): RG-2, LD-2
+NO_REVERSE = {'RG-2', 'LD-2'}
+
+
+def export(path):
+    import re
+    out = []
+    for key, g in GROUPS.items():
+        for m in g['moves']:
+            sig = re.match(r'A(\d+)', m['start'])
+            out.append(dict(id=m['id'], group=key, label=m['label'], legal=m['legal'], start_signal=int(sig.group(1)) if sig else None, start=m['start'], end=m['end'],
+                            limit=m['lim'], reverse_at=REVERSE.get(m['id']), no_reverse=m['id'] in NO_REVERSE, stops_end=bool(m['stops_end']),
+                            edges=[[k, a, b] for k, a, b in m['steps']], switches=[list(x) for x in m['switches']]))
+    json.dump({'_about': 'Itinerari M3 San Donato-Lodi, generati da tools/movements.py. start_signal: numero #A del segnale che li apre. reverse_at: dove il treno inverte la cabina prima di partire contromano.', 'itineraries': out}, open(path, 'w'), ensure_ascii=False, indent=1, default=str)
 
 
 def matrix(g):
@@ -186,3 +209,4 @@ if __name__ == '__main__':
             print('%-6s' % A['id'], ' '.join('%-6s' % ('.' if A is B else (lambda r: 'par' if r[0] == 'par' else 'EXCL' if r[0] == 'excl' else '%dm' % r[1])(compare(A, B))) for B in ms))
         res[key] = dict(title=g['title'], moves=[{k: m[k] for k in ('id', 'label', 'legal', 'start', 'end', 'lim', 'switches', 'len', 'steps', 'stops_end')} for m in ms], matrix=matrix(g))
     json.dump(res, open(sys.argv[1] if len(sys.argv) > 1 else 'movements.json', 'w'), ensure_ascii=False, indent=1, default=str)
+    if len(sys.argv) > 2: export(sys.argv[2])

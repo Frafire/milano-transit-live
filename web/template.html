@@ -2173,22 +2173,23 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // block signals computed along the line (not placed on the map) have fixed numbers from #A201 (rules block_numbers): they do not move when
     // a signal is placed or taken away
     const NPL = 200, tagOf = n => '#A' + String(n).padStart(2, '0');
-    const place = (pid, other, d, sgn, tip, blockIdx, fixedN, stype, illegal) => {
+    const place = (pid, other, d, sgn, tip, blockIdx, fixedN, stype, illegal, at, si) => {
       const tag = tagOf(fixedN || NPL + blockIdx + 1); tip = tag + (stype ? ' · tipo ' + stype : '') + (illegal ? ' · senso illegale' : '') + ' · ' + tip;
       const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);
       const kx = Math.cos(a[0] * Math.PI / 180), ux = (b[1] - a[1]) * kx, uy = b[0] - a[0], n = Math.hypot(ux, uy) || 1;
       const side = other != null ? outward(other, a, ux / n, uy / n) : 1;
-      const off = 7 / 111000 * side, pos = [a[0] - ux / n * off, a[1] + uy / n * off / kx];
+      const off = 7 / 111000 * side, pos = at || [a[0] - ux / n * off, a[1] + uy / n * off / kx];
       const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL.stop}">${tagHtml(tag)}` }) })
         .bindTooltip(tip, { className: 'st', direction: 'top' });
-      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal });
+      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si });
     };
     // block signals, usual direction: one at the start of every block section (stations and in between)
     (F.engine.blocks || []).forEach((bl, bi) => {
-      if (bl.pid == null) return;
+      if (bl.pid == null || bl.hidden) return;
       const other = pidOf(bl.dir === 'N' ? 'S' : 'N');
       const what = bl.kind === 'entry' ? 'Protezione' : bl.kind === 'departure' ? 'Partenza' : 'Blocco';
-      place(bl.pid, other, bl.signal_d, +1, what + ' · ' + cap(bl.name.slice(2)) + (bl.real ? '' : ' (posizione stimata)'), bi, bl.n, bl.stype);
+      const psi = bl.placed != null ? (F.engine.net.signals || []).findIndex(x => x.n === bl.placed) : -1, psg = psi >= 0 ? F.engine.net.signals[psi] : null;
+      place(bl.pid, other, bl.signal_d, +1, what + ' · ' + cap(bl.name.slice(2)) + (bl.real ? '' : ' (posizione stimata)'), bi, bl.n, bl.stype, false, psg ? [psg.lat, psg.lon] : null, psi >= 0 ? psi : undefined);
     });
     // the other signals placed on the map (terminal junctions, tails, depot): state from the track just ahead of them
     // a placed signal that is the position of a block signal is drawn once, by the block (with the block's fixed number)

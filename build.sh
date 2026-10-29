@@ -32,6 +32,7 @@ node "$ROOT/tests/agents_check.js" 4
 node "$ROOT/tests/day_agents_check.js" 5 24
 node "$ROOT/tests/interlocking_check.js" 5 24
 node "$ROOT/tests/timetable_check.js"
+python3 "$ROOT/tests/itineraries_check.py"
 node "$ROOT/tests/headway_check.js" || echo "WARNING: trains closer than 2 minutes"
 echo "== normal day for the page"
 node "$ROOT/tools/precompute_live.js"

@@ -447,7 +447,7 @@
           leg.stops.shift(); a.stopAt = null; a.legs.shift(); if (leg.arrive) { a.at = leg.arrive.at; a.arr = leg.arrive.dir; } return;
         }
         if (a.pcHold) { a.why = 'pc'; return; }                                                              // held by the PC
-        if (leg.plan && st.dep && S.t < st.dep) { a.why = 'orario'; return; }                               // never early
+        if (leg.plan && st.dep && S.t < st.dep) { if (IL && S.t >= st.dep - 30) authority(a, leg); a.why = 'orario'; return; }     // departure signals: via libera 30 s before leaving                               // never early
         if (leg.timed && !leg.plan && st.dep && S.t < st.dep && S.t - a.dwellUntil < 60) { a.why = 'orario'; return; }   // after reopening: a minute at most
         const key = st.st + ':' + (leg.dir || '');
         const minHeadway = leg.status === 'service' ? HEADWAY : NON_SERVICE_HEADWAY;

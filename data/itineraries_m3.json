@@ -1,0 +1,1785 @@
+{
+ "_about": "Itinerari M3 San Donato-Lodi, generati da tools/movements.py. start_signal: numero #A del segnale che li apre. reverse_at: dove il treno inverte la cabina prima di partire contromano.",
+ "itineraries": [
+  {
+   "id": "SD-1",
+   "group": "SD",
+   "label": "Arrivo sul binario 1",
+   "legal": true,
+   "start_signal": 13,
+   "start": "A13 (f)",
+   "end": "ferma in banchina; poi attende A40",
+   "limit": "normale",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     "ARR",
+     "ARRL",
+     153
+    ],
+    [
+     174,
+     153,
+     160
+    ]
+   ],
+   "switches": [
+    [
+     153,
+     "ARR",
+     174
+    ]
+   ]
+  },
+  {
+   "id": "SD-2",
+   "group": "SD",
+   "label": "Arrivo sul binario 2 con cambio banco (solo ritardi/anomalie)",
+   "legal": true,
+   "start_signal": 13,
+   "start": "A13 (f)",
+   "end": "ferma in banchina b2; poi attende A44/A45",
+   "limit": "15 km/h sulla comunicazione",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     "ARR",
+     "ARRL",
+     153
+    ],
+    [
+     236,
+     153,
+     196
+    ],
+    [
+     225,
+     196,
+     120
+    ]
+   ],
+   "switches": [
+    [
+     153,
+     "ARR",
+     236
+    ],
+    [
+     196,
+     236,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-3",
+   "group": "SD",
+   "label": "Binario 1 -> deposito",
+   "legal": true,
+   "start_signal": 40,
+   "start": "A40",
+   "end": "A04 (ingresso deposito)",
+   "limit": "tronchetto/deposito",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     174,
+     153,
+     160
+    ],
+    [
+     166,
+     160,
+     40
+    ]
+   ],
+   "switches": [
+    [
+     160,
+     174,
+     166
+    ]
+   ]
+  },
+  {
+   "id": "SD-4",
+   "group": "SD",
+   "label": "Binario 1 -> tronchetto 1",
+   "legal": true,
+   "start_signal": 40,
+   "start": "A40",
+   "end": "ferma al tronchetto 1",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     174,
+     153,
+     160
+    ],
+    [
+     209,
+     160,
+     161
+    ],
+    [
+     235,
+     161,
+     156
+    ],
+    [
+     172,
+     156,
+     164
+    ],
+    [
+     171,
+     164,
+     163
+    ]
+   ],
+   "switches": [
+    [
+     160,
+     174,
+     209
+    ],
+    [
+     161,
+     209,
+     235
+    ],
+    [
+     156,
+     235,
+     172
+    ],
+    [
+     164,
+     172,
+     171
+    ]
+   ]
+  },
+  {
+   "id": "SD-5",
+   "group": "SD",
+   "label": "Binario 1 -> tronchetto 2",
+   "legal": true,
+   "start_signal": 40,
+   "start": "A40",
+   "end": "ferma al tronchetto 2",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     174,
+     153,
+     160
+    ],
+    [
+     209,
+     160,
+     161
+    ],
+    [
+     235,
+     161,
+     156
+    ],
+    [
+     146,
+     156,
+     155
+    ],
+    [
+     145,
+     155,
+     117
+    ],
+    [
+     110,
+     117,
+     116
+    ]
+   ],
+   "switches": [
+    [
+     160,
+     174,
+     209
+    ],
+    [
+     161,
+     209,
+     235
+    ],
+    [
+     156,
+     235,
+     146
+    ],
+    [
+     155,
+     146,
+     145
+    ],
+    [
+     117,
+     145,
+     110
+    ]
+   ]
+  },
+  {
+   "id": "SD-6",
+   "group": "SD",
+   "label": "Tronchetto 1 -> binario 3",
+   "legal": true,
+   "start_signal": 8,
+   "start": "A08",
+   "end": "ferma in banchina b3; poi attende A14",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     171,
+     163,
+     164
+    ],
+    [
+     227,
+     164,
+     155
+    ],
+    [
+     228,
+     155,
+     118
+    ],
+    [
+     234,
+     118,
+     143
+    ],
+    [
+     173,
+     143,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     164,
+     171,
+     227
+    ],
+    [
+     155,
+     227,
+     228
+    ],
+    [
+     118,
+     228,
+     234
+    ],
+    [
+     143,
+     234,
+     173
+    ]
+   ]
+  },
+  {
+   "id": "SD-7",
+   "group": "SD",
+   "label": "Tronchetto 1 -> binario 2",
+   "legal": true,
+   "start_signal": 8,
+   "start": "A08",
+   "end": "ferma in banchina b2; poi attende A45",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     171,
+     163,
+     164
+    ],
+    [
+     172,
+     164,
+     156
+    ],
+    [
+     235,
+     156,
+     161
+    ],
+    [
+     167,
+     161,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     164,
+     171,
+     172
+    ],
+    [
+     156,
+     172,
+     235
+    ],
+    [
+     161,
+     235,
+     167
+    ],
+    [
+     120,
+     167,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-8",
+   "group": "SD",
+   "label": "Tronchetto 2 -> binario 3",
+   "legal": true,
+   "start_signal": 7,
+   "start": "A07",
+   "end": "ferma in banchina b3; poi attende A14",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     110,
+     116,
+     117
+    ],
+    [
+     111,
+     117,
+     118
+    ],
+    [
+     234,
+     118,
+     143
+    ],
+    [
+     173,
+     143,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     117,
+     110,
+     111
+    ],
+    [
+     118,
+     111,
+     234
+    ],
+    [
+     143,
+     234,
+     173
+    ]
+   ]
+  },
+  {
+   "id": "SD-9",
+   "group": "SD",
+   "label": "Tronchetto 2 -> binario 2",
+   "legal": true,
+   "start_signal": 7,
+   "start": "A07",
+   "end": "ferma in banchina b2; poi attende A45",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     110,
+     116,
+     117
+    ],
+    [
+     111,
+     117,
+     118
+    ],
+    [
+     112,
+     118,
+     119
+    ],
+    [
+     113,
+     119,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     117,
+     110,
+     111
+    ],
+    [
+     118,
+     111,
+     112
+    ],
+    [
+     120,
+     113,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-10",
+   "group": "SD",
+   "label": "Deposito -> binario 3",
+   "legal": true,
+   "start_signal": 6,
+   "start": "A06",
+   "end": "ferma in banchina b3; poi attende A14",
+   "limit": "deposito/15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     132,
+     141,
+     142
+    ],
+    [
+     133,
+     142,
+     143
+    ],
+    [
+     173,
+     143,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     142,
+     132,
+     133
+    ],
+    [
+     143,
+     133,
+     173
+    ]
+   ]
+  },
+  {
+   "id": "SD-11",
+   "group": "SD",
+   "label": "Deposito -> binario 2 (mai visto, possibile)",
+   "legal": true,
+   "start_signal": 6,
+   "start": "A06",
+   "end": "ferma in banchina b2; poi attende A45",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     132,
+     141,
+     142
+    ],
+    [
+     229,
+     142,
+     117
+    ],
+    [
+     111,
+     117,
+     118
+    ],
+    [
+     112,
+     118,
+     119
+    ],
+    [
+     113,
+     119,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     142,
+     132,
+     229
+    ],
+    [
+     117,
+     229,
+     111
+    ],
+    [
+     118,
+     111,
+     112
+    ],
+    [
+     120,
+     113,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-12",
+   "group": "SD",
+   "label": "Binario 3 -> linea Rogoredo (partenza normale)",
+   "legal": true,
+   "start_signal": 14,
+   "start": "A14 (e)",
+   "end": "A290 (prossimo segnale in linea)",
+   "limit": "normale",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     173,
+     143,
+     165
+    ],
+    [
+     "DEP",
+     165,
+     "DEPL"
+    ]
+   ],
+   "switches": [
+    [
+     165,
+     173,
+     "DEP"
+    ]
+   ]
+  },
+  {
+   "id": "SD-13",
+   "group": "SD",
+   "label": "Binario 2 -> linea Rogoredo (partenza normale)",
+   "legal": true,
+   "start_signal": 45,
+   "start": "A45 (e)",
+   "end": "A290 (prossimo segnale in linea)",
+   "limit": "normale",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     225,
+     120,
+     196
+    ],
+    [
+     226,
+     196,
+     165
+    ],
+    [
+     "DEP",
+     165,
+     "DEPL"
+    ]
+   ],
+   "switches": [
+    [
+     196,
+     225,
+     226
+    ],
+    [
+     165,
+     226,
+     "DEP"
+    ]
+   ]
+  },
+  {
+   "id": "SD-14",
+   "group": "SD",
+   "label": "Binario 1 -> linea Rogoredo (ILLEGALE, navetta: possibile ma congestiona il tunnel)",
+   "legal": false,
+   "start_signal": 349,
+   "start": "A349 (d, rosso)",
+   "end": "primo segnale in linea contromano (A310 a Rogoredo)",
+   "limit": "15 km/h sulla comunicazione se usata",
+   "reverse_at": "binario 1",
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     174,
+     160,
+     153
+    ],
+    [
+     "ARR",
+     153,
+     "ARRL"
+    ]
+   ],
+   "switches": [
+    [
+     153,
+     174,
+     "ARR"
+    ]
+   ]
+  },
+  {
+   "id": "SD-15",
+   "group": "SD",
+   "label": "Binario 3 guasto -> deposito (ILLEGALE)",
+   "legal": false,
+   "start_signal": 41,
+   "start": "A41",
+   "end": "A06 lato deposito",
+   "limit": "deposito/15 km/h",
+   "reverse_at": "binario 3",
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     173,
+     165,
+     143
+    ],
+    [
+     133,
+     143,
+     142
+    ],
+    [
+     132,
+     142,
+     141
+    ]
+   ],
+   "switches": [
+    [
+     143,
+     173,
+     133
+    ],
+    [
+     142,
+     133,
+     132
+    ]
+   ]
+  },
+  {
+   "id": "SD-16",
+   "group": "SD",
+   "label": "Binario 2 guasto -> deposito (ILLEGALE)",
+   "legal": false,
+   "start_signal": 44,
+   "start": "A44",
+   "end": "A06 lato deposito",
+   "limit": "15 km/h",
+   "reverse_at": "binario 2",
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     113,
+     120,
+     119
+    ],
+    [
+     112,
+     119,
+     118
+    ],
+    [
+     111,
+     118,
+     117
+    ],
+    [
+     229,
+     117,
+     142
+    ],
+    [
+     132,
+     142,
+     141
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     113
+    ],
+    [
+     118,
+     112,
+     111
+    ],
+    [
+     117,
+     111,
+     229
+    ],
+    [
+     142,
+     229,
+     132
+    ]
+   ]
+  },
+  {
+   "id": "SD-17",
+   "group": "SD",
+   "label": "Binario 3 -> tronchetto 1 (cambio banco, poi inverte)",
+   "legal": false,
+   "start_signal": 41,
+   "start": "A41",
+   "end": "ferma al tronchetto 1",
+   "limit": "15 km/h",
+   "reverse_at": "binario 3",
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     173,
+     165,
+     143
+    ],
+    [
+     234,
+     143,
+     118
+    ],
+    [
+     228,
+     118,
+     155
+    ],
+    [
+     227,
+     155,
+     164
+    ],
+    [
+     171,
+     164,
+     163
+    ]
+   ],
+   "switches": [
+    [
+     143,
+     173,
+     234
+    ],
+    [
+     118,
+     234,
+     228
+    ],
+    [
+     155,
+     228,
+     227
+    ],
+    [
+     164,
+     227,
+     171
+    ]
+   ]
+  },
+  {
+   "id": "SD-18",
+   "group": "SD",
+   "label": "Binario 3 -> tronchetto 2 (cambio banco, poi inverte)",
+   "legal": false,
+   "start_signal": 41,
+   "start": "A41",
+   "end": "ferma al tronchetto 2",
+   "limit": "15 km/h",
+   "reverse_at": "binario 3",
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     173,
+     165,
+     143
+    ],
+    [
+     234,
+     143,
+     118
+    ],
+    [
+     111,
+     118,
+     117
+    ],
+    [
+     110,
+     117,
+     116
+    ]
+   ],
+   "switches": [
+    [
+     143,
+     173,
+     234
+    ],
+    [
+     118,
+     234,
+     111
+    ],
+    [
+     117,
+     111,
+     110
+    ]
+   ]
+  },
+  {
+   "id": "SD-19",
+   "group": "SD",
+   "label": "Binario 2 -> tronchetto 1 (cambio banco, poi inverte)",
+   "legal": false,
+   "start_signal": 44,
+   "start": "A44",
+   "end": "ferma al tronchetto 1",
+   "limit": "15 km/h",
+   "reverse_at": "binario 2",
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     167,
+     120,
+     161
+    ],
+    [
+     235,
+     161,
+     156
+    ],
+    [
+     172,
+     156,
+     164
+    ],
+    [
+     171,
+     164,
+     163
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     167
+    ],
+    [
+     161,
+     167,
+     235
+    ],
+    [
+     156,
+     235,
+     172
+    ],
+    [
+     164,
+     172,
+     171
+    ]
+   ]
+  },
+  {
+   "id": "SD-20",
+   "group": "SD",
+   "label": "Binario 2 -> tronchetto 2 (cambio banco, poi inverte)",
+   "legal": false,
+   "start_signal": 44,
+   "start": "A44",
+   "end": "ferma al tronchetto 2",
+   "limit": "15 km/h",
+   "reverse_at": "binario 2",
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     113,
+     120,
+     119
+    ],
+    [
+     112,
+     119,
+     118
+    ],
+    [
+     111,
+     118,
+     117
+    ],
+    [
+     110,
+     117,
+     116
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     113
+    ],
+    [
+     118,
+     112,
+     111
+    ],
+    [
+     117,
+     111,
+     110
+    ]
+   ]
+  },
+  {
+   "id": "RG-1",
+   "group": "ROG",
+   "label": "Da SD sul binario nord, dritto alla banchina nord (normale)",
+   "legal": true,
+   "start_signal": 290,
+   "start": "A290 (b)",
+   "end": "ferma in banchina nord; poi A204",
+   "limit": "normale",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     175,
+     165,
+     137
+    ],
+    [
+     176,
+     137,
+     166
+    ]
+   ],
+   "switches": [
+    [
+     137,
+     175,
+     176
+    ]
+   ]
+  },
+  {
+   "id": "RG-2",
+   "group": "ROG",
+   "label": "Da SD sul binario nord, incrocio -> banchina sud (contromano)",
+   "legal": false,
+   "start_signal": 290,
+   "start": "A290 (b)",
+   "end": "ferma in banchina sud; poi A348",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": true,
+   "stops_end": true,
+   "edges": [
+    [
+     175,
+     165,
+     137
+    ],
+    [
+     127,
+     137,
+     136
+    ],
+    [
+     141,
+     136,
+     152
+    ]
+   ],
+   "switches": [
+    [
+     137,
+     175,
+     127
+    ],
+    [
+     136,
+     127,
+     141
+    ]
+   ]
+  },
+  {
+   "id": "RG-3",
+   "group": "ROG",
+   "label": "Da SD sul binario sud (contromano), dritto alla banchina sud",
+   "legal": false,
+   "start_signal": 301,
+   "start": "A301 (b illegale)",
+   "end": "ferma in banchina sud; poi A348",
+   "limit": "normale (contromano)",
+   "reverse_at": "binario 1 di San Donato (SD-14)",
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     142,
+     153,
+     136
+    ],
+    [
+     141,
+     136,
+     152
+    ]
+   ],
+   "switches": [
+    [
+     136,
+     142,
+     141
+    ]
+   ]
+  },
+  {
+   "id": "RG-4",
+   "group": "ROG",
+   "label": "Da SD sul binario sud (contromano), incrocio -> banchina nord",
+   "legal": true,
+   "start_signal": 301,
+   "start": "A301 (b illegale)",
+   "end": "ferma in banchina nord; poi A204",
+   "limit": "15 km/h",
+   "reverse_at": "binario 1 di San Donato (SD-14)",
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     142,
+     153,
+     136
+    ],
+    [
+     127,
+     136,
+     137
+    ],
+    [
+     176,
+     137,
+     166
+    ]
+   ],
+   "switches": [
+    [
+     136,
+     142,
+     127
+    ],
+    [
+     137,
+     127,
+     176
+    ]
+   ]
+  },
+  {
+   "id": "RG-5",
+   "group": "ROG",
+   "label": "Dalla banchina sud verso SD, dritto sul binario sud (normale)",
+   "legal": true,
+   "start_signal": 285,
+   "start": "A285 (d)",
+   "end": "A13 (entrata SD)",
+   "limit": "normale",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     152,
+     136
+    ],
+    [
+     142,
+     136,
+     153
+    ]
+   ],
+   "switches": [
+    [
+     136,
+     141,
+     142
+    ]
+   ]
+  },
+  {
+   "id": "RG-7",
+   "group": "ROG",
+   "label": "Dalla banchina nord verso SD, dritto sul binario nord (contromano)",
+   "legal": false,
+   "start_signal": 310,
+   "start": "A310 (d illegale)",
+   "end": "primo segnale contromano su binario nord",
+   "limit": "normale (contromano)",
+   "reverse_at": "banchina nord di Rogoredo",
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     166,
+     137
+    ],
+    [
+     175,
+     137,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     137,
+     176,
+     175
+    ]
+   ]
+  },
+  {
+   "id": "RG-8",
+   "group": "ROG",
+   "label": "Dalla banchina nord verso SD, incrocio -> binario sud (normale)",
+   "legal": true,
+   "start_signal": 310,
+   "start": "A310 (d illegale)",
+   "end": "A13 (entrata SD)",
+   "limit": "15 km/h",
+   "reverse_at": "banchina nord di Rogoredo",
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     166,
+     137
+    ],
+    [
+     127,
+     137,
+     136
+    ],
+    [
+     142,
+     136,
+     153
+    ]
+   ],
+   "switches": [
+    [
+     137,
+     176,
+     127
+    ],
+    [
+     136,
+     127,
+     142
+    ]
+   ]
+  },
+  {
+   "id": "BR-1",
+   "group": "BRE",
+   "label": "Da Lodi dritto a Brenta (normale)",
+   "legal": true,
+   "start_signal": 277,
+   "start": "A277 (b)",
+   "end": "ferma in banchina Brenta; poi A279",
+   "limit": "normale",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     139,
+     150,
+     151
+    ],
+    [
+     140,
+     151,
+     152
+    ],
+    [
+     141,
+     152,
+     136
+    ]
+   ],
+   "switches": [
+    [
+     151,
+     139,
+     140
+    ],
+    [
+     152,
+     140,
+     141
+    ]
+   ]
+  },
+  {
+   "id": "BR-2",
+   "group": "BRE",
+   "label": "Da Lodi deviato sul tronchetto",
+   "legal": true,
+   "start_signal": 277,
+   "start": "A277 (b)",
+   "end": "ferma nel tronchetto (A19/A20 manuali)",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     139,
+     150,
+     151
+    ],
+    [
+     241,
+     151,
+     199
+    ],
+    [
+     239,
+     199,
+     197
+    ]
+   ],
+   "switches": [
+    [
+     151,
+     139,
+     241
+    ],
+    [
+     199,
+     241,
+     239
+    ]
+   ]
+  },
+  {
+   "id": "BR-3",
+   "group": "BRE",
+   "label": "Dal tronchetto a Brenta (uscita con A20)",
+   "legal": true,
+   "start_signal": 20,
+   "start": "A20 (manuale)",
+   "end": "ferma in banchina Brenta; poi A279",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     237,
+     197,
+     152
+    ],
+    [
+     141,
+     152,
+     136
+    ]
+   ],
+   "switches": [
+    [
+     152,
+     237,
+     141
+    ]
+   ]
+  },
+  {
+   "id": "BR-4",
+   "group": "BRE",
+   "label": "Dal tronchetto verso Lodi (uscita con A19, contromano)",
+   "legal": false,
+   "start_signal": 19,
+   "start": "A19 (manuale)",
+   "end": "segnale illegale di Lodi (A308)",
+   "limit": "15 km/h",
+   "reverse_at": "tronchetto",
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     239,
+     197,
+     199
+    ],
+    [
+     241,
+     199,
+     151
+    ],
+    [
+     139,
+     151,
+     150
+    ]
+   ],
+   "switches": [
+    [
+     199,
+     239,
+     241
+    ],
+    [
+     151,
+     241,
+     139
+    ]
+   ]
+  },
+  {
+   "id": "BR-5",
+   "group": "BRE",
+   "label": "Da Brenta verso Lodi dritto (contromano)",
+   "legal": false,
+   "start_signal": 345,
+   "start": "A345 (d illegale)",
+   "end": "segnale illegale di Lodi (A308)",
+   "limit": "normale (contromano)",
+   "reverse_at": "banchina di Brenta",
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     136,
+     152
+    ],
+    [
+     140,
+     152,
+     151
+    ],
+    [
+     139,
+     151,
+     150
+    ]
+   ],
+   "switches": [
+    [
+     152,
+     141,
+     140
+    ],
+    [
+     151,
+     140,
+     139
+    ]
+   ]
+  },
+  {
+   "id": "BR-6",
+   "group": "BRE",
+   "label": "Da Brenta deviato sul tronchetto (contromano)",
+   "legal": false,
+   "start_signal": 345,
+   "start": "A345 (d illegale)",
+   "end": "ferma nel tronchetto",
+   "limit": "15 km/h",
+   "reverse_at": "banchina di Brenta",
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     141,
+     136,
+     152
+    ],
+    [
+     237,
+     152,
+     197
+    ],
+    [
+     239,
+     197,
+     199
+    ]
+   ],
+   "switches": [
+    [
+     152,
+     141,
+     237
+    ],
+    [
+     197,
+     237,
+     239
+    ]
+   ]
+  },
+  {
+   "id": "LD-1",
+   "group": "LOD",
+   "label": "Da Brenta sul binario nord, dritto alla banchina nord (normale)",
+   "legal": true,
+   "start_signal": 211,
+   "start": "A211 (b)",
+   "end": "ferma in banchina nord; poi A212",
+   "limit": "normale",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     176,
+     137,
+     166
+    ],
+    [
+     177,
+     166,
+     167
+    ]
+   ],
+   "switches": [
+    [
+     166,
+     176,
+     177
+    ]
+   ]
+  },
+  {
+   "id": "LD-2",
+   "group": "LOD",
+   "label": "Da Brenta sul binario nord, incrocio -> banchina sud (contromano)",
+   "legal": false,
+   "start_signal": 211,
+   "start": "A211 (b)",
+   "end": "ferma in banchina sud; poi A344",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": true,
+   "stops_end": true,
+   "edges": [
+    [
+     176,
+     137,
+     166
+    ],
+    [
+     205,
+     166,
+     150
+    ],
+    [
+     138,
+     150,
+     149
+    ]
+   ],
+   "switches": [
+    [
+     166,
+     176,
+     205
+    ],
+    [
+     150,
+     205,
+     138
+    ]
+   ]
+  },
+  {
+   "id": "LD-3",
+   "group": "LOD",
+   "label": "Da Brenta sul binario sud (contromano), dritto alla banchina sud",
+   "legal": false,
+   "start_signal": 308,
+   "start": "A308 (b illegale)",
+   "end": "ferma in banchina sud; poi A344",
+   "limit": "normale (contromano)",
+   "reverse_at": "tronchetto/banchina di Brenta (BR-5)",
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     139,
+     151,
+     150
+    ],
+    [
+     138,
+     150,
+     149
+    ]
+   ],
+   "switches": [
+    [
+     150,
+     139,
+     138
+    ]
+   ]
+  },
+  {
+   "id": "LD-4",
+   "group": "LOD",
+   "label": "Da Brenta sul binario sud (contromano), incrocio -> banchina nord",
+   "legal": true,
+   "start_signal": 308,
+   "start": "A308 (b illegale)",
+   "end": "ferma in banchina nord; poi A212",
+   "limit": "15 km/h",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": true,
+   "edges": [
+    [
+     139,
+     151,
+     150
+    ],
+    [
+     205,
+     150,
+     166
+    ],
+    [
+     177,
+     166,
+     167
+    ]
+   ],
+   "switches": [
+    [
+     150,
+     139,
+     205
+    ],
+    [
+     166,
+     205,
+     177
+    ]
+   ]
+  },
+  {
+   "id": "LD-5",
+   "group": "LOD",
+   "label": "Dalla banchina sud verso Brenta, dritto (normale)",
+   "legal": true,
+   "start_signal": 276,
+   "start": "A276 (d)",
+   "end": "A277 (b)",
+   "limit": "normale",
+   "reverse_at": null,
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     138,
+     149,
+     150
+    ],
+    [
+     139,
+     150,
+     151
+    ]
+   ],
+   "switches": [
+    [
+     150,
+     138,
+     139
+    ]
+   ]
+  },
+  {
+   "id": "LD-7",
+   "group": "LOD",
+   "label": "Dalla banchina nord verso Brenta, dritto (contromano)",
+   "legal": false,
+   "start_signal": 314,
+   "start": "A314 (d illegale)",
+   "end": "segnale contromano su binario nord",
+   "limit": "normale (contromano)",
+   "reverse_at": "banchina nord di Lodi",
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     177,
+     167,
+     166
+    ],
+    [
+     176,
+     166,
+     137
+    ]
+   ],
+   "switches": [
+    [
+     166,
+     177,
+     176
+    ]
+   ]
+  },
+  {
+   "id": "LD-8",
+   "group": "LOD",
+   "label": "Dalla banchina nord verso Brenta, incrocio -> binario sud (normale)",
+   "legal": true,
+   "start_signal": 314,
+   "start": "A314 (d illegale)",
+   "end": "A277 (b)",
+   "limit": "15 km/h",
+   "reverse_at": "banchina nord di Lodi",
+   "no_reverse": false,
+   "stops_end": false,
+   "edges": [
+    [
+     177,
+     167,
+     166
+    ],
+    [
+     205,
+     166,
+     150
+    ],
+    [
+     139,
+     150,
+     151
+    ]
+   ],
+   "switches": [
+    [
+     166,
+     177,
+     205
+    ],
+    [
+     150,
+     205,
+     139
+    ]
+   ]
+  }
+ ]
+}

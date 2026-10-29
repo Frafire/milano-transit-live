@@ -3336,11 +3336,12 @@
     ]
    },
    {
-    "name": "San Donato: partenze binari 1 e 2",
+    "name": "San Donato: partenze binari 2 e 3 (una alla volta)",
     "signals": [
      14,
      45
-    ]
+    ],
+    "section": true
    },
    {
     "name": "Anello di prova: rossi, verdi solo per il treno che entra o esce",
@@ -3700,7 +3701,7 @@
   "N|illegal|ROGOREDO FS → SAN DONATO": "d",
   "N|illegal|LODI T.I.B.B. → BRENTA": "d",
   "S|illegal|BRENTA → LODI T.I.B.B.": "d",
-  "S|illegal|SAN DONATO → ROGOREDO FS": "e"
+  "S|illegal|SAN DONATO → ROGOREDO FS": "d"
  },
  "block_types": {
   "S|departure|ROGOREDO FS → SAN DONATO": "d",
@@ -3751,5 +3752,10 @@
   "S|illegal|PORTO DI MARE → CORVETTO": 347,
   "S|illegal|ROGOREDO FS → PORTO DI MARE": 348,
   "S|illegal|SAN DONATO → ROGOREDO FS": 349
- }
+ },
+ "hidden_blocks": [
+  "S|entry|SAN DONATO arrivo",
+  "N|entry|COMASINA arrivo"
+ ],
+ "hidden_blocks_about": "Block sections kept for the interlocking and the tests, but without a signal on the map (A289 and A243 do not exist)."
 }

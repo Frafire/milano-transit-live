@@ -1619,6 +1619,7 @@ if CFG.get('blocks'):
         _ps = next((x for x in _rules_['signals'] if x.get('n') and x.get('n') == b_.get('placed')), None)
         b_['stype'] = (_ps or {}).get('stype') or _rules_.get('block_types', {}).get(k_) or {'entry': 'a', 'departure': 'c', 'block': 'a'}[b_['kind']]
         b_['legal'] = True
+        if k_ in _rules_.get('hidden_blocks', []): b_['hidden'] = True      # the block section stays, the signal does not exist
     _IN = _rules_.get('illegal_numbers', {}); _nxt_i = max(list(_IN.values()) + [309]) + 1; NEW_IN = {}
     for x_ in ILLEGAL:
         if x_['key'] in _IN: x_['n'] = _IN[x_['key']]
