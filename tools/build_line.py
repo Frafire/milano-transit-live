@@ -521,6 +521,7 @@ def move(tl, pid, d0, d1, t0, v, status):
 _STOPMARK = [sg for sg in NOSE_FLAGS + _rules_.get('signals', []) if sg.get('line', LINE) == LINE and (sg.get('type') == 'nose' or sg.get('kind') == 'atp')]
 NOSE_GAP = 3.0                       # metres between the nose and the signal
 _marks_cache = {}
+MARK_SIG = {}                         # (path, metres) -> the placed signal standing there
 def stop_marks(pid):
     """Flags and signals that lie on this path and face its direction of travel: [(d, 'nose'|'atp')]."""
     if pid in _marks_cache: return _marks_cache[pid]
@@ -536,6 +537,7 @@ def stop_marks(pid):
                 best = (e, c[i] + u * (c[i + 1] - c[i]), brg)
         if best and abs((best[2] - sg.get('heading', best[2]) + 180) % 360 - 180) < 60:
             out.append((best[1], 'nose' if sg.get('type') == 'nose' else 'atp'))
+            MARK_SIG[(pid, best[1])] = sg
     _marks_cache[pid] = sorted(out); return _marks_cache[pid]
 NOSE_LOG = {}
 def nose_stop(pid, d, name, lo, hi):
@@ -1459,7 +1461,7 @@ for pid in range(len(paths)):
     PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves})
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
-    NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name')}, 'n': sg.get('_n')}
+    NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name', 'stype', 'legal')}, 'n': sg.get('_n')}
                       for sg in _rules_.get('signals', []) if sg.get('line') == LINE]
     NET['removed'] = _rules_.get('removed_signals', [])
     NET['interlocking'] = INTERLOCKING
@@ -1534,6 +1536,7 @@ def removed_near(pid, d, m=8.0):
     x, y = p_[j][0] + (p_[j + 1][0] - p_[j][0]) * f, p_[j][1] + (p_[j + 1][1] - p_[j][1]) * f
     return any(math.hypot(x - xy(la, lo)[0], y - xy(la, lo)[1]) < m for la, lo in REMOVED)
 BLOCKS = []
+ILLEGAL = []                        # departure signals for the wrong way, at the platform end (line banalizzata): always red
 ENTRY_GAP = 15                      # computed entry signal: this far before the platform start
 if CFG.get('blocks'):
     def _parts(pid, x0, x1):
@@ -1567,36 +1570,62 @@ if CFG.get('blocks'):
                 if not real or x - real[-1] > 25: real.append(x)          # one signal each side of the track: count it once
             def snap(d0, lo, hi):
                 c_ = [x for x in real if d0 + lo <= x <= d0 + hi]
-                return (min(c_, key=lambda x: abs(x - d0)), True) if c_ else (d0, False)
+                if not c_: return (d0, False, None)
+                x_ = min(c_, key=lambda x: abs(x - d0)); return (x_, True, MARK_SIG.get((sg[0], x_)))
             last = len(st) - 1
+            for j in range(1, last + 1):
+                ILLEGAL.append({'key': '%s|illegal|%s → %s' % (dr_, names[j], names[j - 1]), 'dir': dr_, 'pid': sg[0], 'd': round(st[j] - TRAIN_HALF - 2.5, 1),
+                                'from': names[j], 'to': names[j - 1]})
             dep = [snap(d + TRAIN_HALF + 2.5, -15, 40) for d in st]
             ent = [None] + [snap(st[j] - TRAIN_HALF - (2.5 if j == last else ENTRY_GAP), -120, 5) for j in range(1, last + 1)]
-            def add(kind, nm, a_, b_, is_real):
+            def add(kind, nm, a_, b_, is_real, psig=None):
                 BLOCKS.append({'name': '%s %s' % (dr_, nm), 'dir': dr_, 'kind': kind, 'parts': _parts(sg[0], a_, b_), 'signal_d': round(a_, 1),
-                               'pid': sg[0], 'station': kind == 'departure', 'real': is_real})
+                               'pid': sg[0], 'station': kind == 'departure', 'real': is_real, 'placed': (psig or {}).get('n') if psig else None})
             # every signal along the run, in order: (position, kind, name, placed by Giovanni)
             bounds = []
             for j in range(last):
                 a_, b_ = dep[j][0], ent[j + 1][0]
-                bounds.append((a_, 'departure', '%s → %s' % (names[j], names[j + 1]), dep[j][1]))
+                bounds.append((a_, 'departure', '%s → %s' % (names[j], names[j + 1]), dep[j][1], dep[j][2]))
                 # signals he placed in the tunnel between the two stations: more block sections
                 for x in real:
-                    if a_ + 60 < x < b_ - 60: bounds.append((x, 'block', '%s → %s (blocco)' % (names[j], names[j + 1]), True))
-                bounds.append((b_, 'entry', '%s%s' % (names[j + 1], ' arrivo' if j + 1 == last else ''), ent[j + 1][1]))
+                    if a_ + 60 < x < b_ - 60: bounds.append((x, 'block', '%s → %s (blocco)' % (names[j], names[j + 1]), True, MARK_SIG.get((sg[0], x))))
+                bounds.append((b_, 'entry', '%s%s' % (names[j + 1], ' arrivo' if j + 1 == last else ''), ent[j + 1][1], ent[j + 1][2]))
             end_d = dep[last][0]
             # signals Giovanni removed with the editor: no signal there, the two sections become one
             gone = [b for b in bounds[1:] if removed_near(sg[0], b[0])]
             if gone: print('  signals removed (%s):' % dr_, [b[2] for b in gone])
+            gone += [b for b in bounds[1:] if '%s|%s|%s' % (dr_, b[1], b[2]) in _rules_.get('removed_blocks', [])]
             bounds = [bounds[0]] + [b for b in bounds[1:] if b not in gone]
-            for q, (x0, kind, nm, is_real) in enumerate(bounds):
+            for q, (x0, kind, nm, is_real, psig_) in enumerate(bounds):
                 x1 = bounds[q + 1][0] if q + 1 < len(bounds) else end_d
                 # exception: a very long stretch with no signal is cut in equal parts (LZB-like)
-                n = max(1, math.ceil((x1 - x0) / CFG.get('block_max_m', 1000))) if kind != 'entry' else 1
+                n = max(1, math.ceil((x1 - x0) / CFG.get('block_max_m', 1000))) if kind != 'entry' and '%s|%s' % (dr_, nm) not in _rules_.get('no_split', []) else 1
                 for r_ in range(n):
                     y0 = x0 + (x1 - x0) * r_ / n; y1 = x0 + (x1 - x0) * (r_ + 1) / n
-                    if r_ == 0: add(kind, nm, y0, y1, is_real)
+                    if r_ == 0: add(kind, nm, y0, y1, is_real, psig_)
                     else: add('block', nm.split(' (')[0] + ' (blocco)', y0, y1, False)
     print('block sections:', len(BLOCKS))
+    # fixed numbers: a block keeps its #A number whatever is added or removed (rules "block_numbers": key -> number);
+    # a block that is new gets the next free number, printed so that it can be written into the rules
+    _BN = _rules_.get('block_numbers', {}); _next_n = max(list(_BN.values()) + [289]) + 1; _seen_k = collections.Counter(); NEW_BN = {}
+    for b_ in BLOCKS:
+        k_ = b_['dir'] + '|' + b_['kind'] + '|' + b_['name'][2:] + ('|%d' % (round(b_['signal_d'] / 10) * 10) if b_['kind'] == 'block' else '')
+        _seen_k[k_] += 1
+        if _seen_k[k_] > 1: k_ += '#%d' % _seen_k[k_]
+        if k_ in _BN: b_['n'] = _BN[k_]
+        else: b_['n'] = _next_n; NEW_BN[k_] = _next_n; _next_n += 1
+        b_['key'] = k_
+        if k_ in _rules_.get('use_placed_number', []) and b_.get('placed'): b_['n'] = b_['placed']      # shown with the number of the signal placed there
+        _ps = next((x for x in _rules_['signals'] if x.get('n') and x.get('n') == b_.get('placed')), None)
+        b_['stype'] = (_ps or {}).get('stype') or _rules_.get('block_types', {}).get(k_) or {'entry': 'a', 'departure': 'c', 'block': 'a'}[b_['kind']]
+        b_['legal'] = True
+    _IN = _rules_.get('illegal_numbers', {}); _nxt_i = max(list(_IN.values()) + [309]) + 1; NEW_IN = {}
+    for x_ in ILLEGAL:
+        if x_['key'] in _IN: x_['n'] = _IN[x_['key']]
+        else: x_['n'] = _nxt_i; NEW_IN[x_['key']] = _nxt_i; _nxt_i += 1
+        x_['stype'] = _rules_.get('illegal_types', {}).get(x_['key'], 'c'); x_['legal'] = False
+    if NEW_IN: print('wrong-way signals with a new number (write them into rules illegal_numbers):', json.dumps(NEW_IN, ensure_ascii=False))
+    if NEW_BN: print('blocks with a new number (write them into rules block_numbers):', json.dumps(NEW_BN, ensure_ascii=False))
 if DEGRADED:
     def _parts2(pid, x0, x1):
         out_ = []
@@ -1668,7 +1697,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'platmap': PLATMAP,
            'boards': boards_out(),
            'stock': STOCK, 'duties': DUTIES, 'test': TEST, 'depot_paths': DEPOT_PATHS,
-           'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'blocks': BLOCKS, 'degraded': DEGRADED, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
+           'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'blocks': BLOCKS, 'illegal': ILLEGAL, 'degraded': DEGRADED, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))
 print(LINE.lower() + '.json written')

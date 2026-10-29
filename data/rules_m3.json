@@ -527,78 +527,6 @@
   },
   {
    "line": "M3",
-   "w": 80,
-   "lat": 45.432691,
-   "lon": 9.239987,
-   "on_track": [
-    45.432683,
-    9.239979
-   ],
-   "offset_m": 1.1,
-   "side": "right",
-   "heading": 305,
-   "dir": 1,
-   "type": "entry",
-   "name": "",
-   "kind": "atp",
-   "n": 15
-  },
-  {
-   "line": "M3",
-   "w": 66,
-   "lat": 45.432629,
-   "lon": 9.240012,
-   "on_track": [
-    45.432629,
-    9.240014
-   ],
-   "offset_m": 0.2,
-   "side": "right",
-   "heading": 306,
-   "dir": -1,
-   "type": "entry",
-   "name": "",
-   "kind": "atp",
-   "n": 16
-  },
-  {
-   "line": "M3",
-   "w": 80,
-   "lat": 45.432926,
-   "lon": 9.239472,
-   "on_track": [
-    45.432927,
-    9.239473
-   ],
-   "offset_m": 0.2,
-   "side": "left",
-   "heading": 124,
-   "dir": -1,
-   "type": "entry",
-   "name": "",
-   "kind": "atp",
-   "n": 17
-  },
-  {
-   "line": "M3",
-   "w": 66,
-   "lat": 45.432862,
-   "lon": 9.23944,
-   "on_track": [
-    45.432889,
-    9.239468
-   ],
-   "offset_m": 3.7,
-   "side": "right",
-   "heading": 124,
-   "dir": 1,
-   "type": "entry",
-   "name": "",
-   "kind": "atp",
-   "n": 18
-  },
-  {
-   "line": "M3",
    "w": 113,
    "lat": 45.444421,
    "lon": 9.215035,
@@ -650,42 +578,6 @@
    "name": "",
    "kind": "atp",
    "n": 21
-  },
-  {
-   "line": "M3",
-   "w": 80,
-   "lat": 45.446104,
-   "lon": 9.211974,
-   "on_track": [
-    45.446099,
-    9.21197
-   ],
-   "offset_m": 0.6,
-   "side": "right",
-   "heading": 309,
-   "dir": 1,
-   "type": "entry",
-   "name": "",
-   "kind": "atp",
-   "n": 22
-  },
-  {
-   "line": "M3",
-   "w": 66,
-   "lat": 45.445993,
-   "lon": 9.212025,
-   "on_track": [
-    45.446005,
-    9.21204
-   ],
-   "offset_m": 1.8,
-   "side": "right",
-   "heading": 309,
-   "dir": -1,
-   "type": "entry",
-   "name": "",
-   "kind": "atp",
-   "n": 23
   },
   {
    "line": "M3",
@@ -2832,6 +2724,346 @@
    "type": "nose2",
    "name": "A85",
    "line": "M3"
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.432252,
+   "lon": 9.240854,
+   "on_track": [
+    45.432247,
+    9.24085
+   ],
+   "offset_m": 0.6,
+   "side": "right",
+   "heading": 306,
+   "dir": 1,
+   "type": "entry",
+   "name": "Segnale di protezione del incrocio e della stazione. Se uno dei due è utilizzato mostra segno a via impedita",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 113
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.432222,
+   "lon": 9.240803,
+   "on_track": [
+    45.432225,
+    9.240807
+   ],
+   "offset_m": 0.5,
+   "side": "right",
+   "heading": 306,
+   "dir": -1,
+   "type": "entry",
+   "name": "Segnale di protezione incrocio e stazione sul illegale. Nel esercizio normale è rosso nel caso un treno che poi prenderà il deviatoio per cambiare binario passsase il computer darà ordine al treno di superare il segnale ad una velocità massima di 15km/h",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 301
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.436654,
+   "lon": 9.231388,
+   "on_track": [
+    45.436642,
+    9.231377
+   ],
+   "offset_m": 1.6,
+   "side": "right",
+   "heading": 303,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia a collegata alla stazione di porto di Mare",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 114
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.434181,
+   "lon": 9.236656,
+   "on_track": [
+    45.434193,
+    9.236667
+   ],
+   "offset_m": 1.6,
+   "side": "right",
+   "heading": 123,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia a legale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 115
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.434198,
+   "lon": 9.236737,
+   "on_track": [
+    45.434197,
+    9.236734
+   ],
+   "offset_m": 0.2,
+   "side": "right",
+   "heading": 123,
+   "dir": -1,
+   "type": "entry",
+   "name": "Tipologia a illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 302
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.436636,
+   "lon": 9.231278,
+   "on_track": [
+    45.436641,
+    9.231282
+   ],
+   "offset_m": 0.7,
+   "side": "right",
+   "heading": 303,
+   "dir": -1,
+   "type": "entry",
+   "name": "Segnale di tipologia a collegato a porto di mare illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 303
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.439756,
+   "lon": 9.224916,
+   "on_track": [
+    45.439735,
+    9.224898
+   ],
+   "offset_m": 2.7,
+   "side": "right",
+   "heading": 304,
+   "dir": 1,
+   "type": "entry",
+   "name": "Tipologia A, collegato a Corvetto, Legale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 116
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.437579,
+   "lon": 9.229237,
+   "on_track": [
+    45.437578,
+    9.229237
+   ],
+   "offset_m": 0.1,
+   "side": "left",
+   "heading": 123,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia A collegato a porto di mare binario legale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 117
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.437622,
+   "lon": 9.229267,
+   "on_track": [
+    45.437625,
+    9.22927
+   ],
+   "offset_m": 0.5,
+   "side": "left",
+   "heading": 124,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia a collegati a porto di mare illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 304
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.439662,
+   "lon": 9.22482,
+   "on_track": [
+    45.439664,
+    9.22482
+   ],
+   "offset_m": 0.2,
+   "side": "right",
+   "heading": 304,
+   "dir": -1,
+   "type": "entry",
+   "name": "Tipologia A, collegato a corvetto, Illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 305
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.441047,
+   "lon": 9.221944,
+   "on_track": [
+    45.441043,
+    9.221939
+   ],
+   "offset_m": 0.6,
+   "side": "left",
+   "heading": 125,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia a, collegato alla stazione di corvetto legale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 118
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.442191,
+   "lon": 9.219868,
+   "on_track": [
+    45.442178,
+    9.219856
+   ],
+   "offset_m": 1.8,
+   "side": "right",
+   "heading": 305,
+   "dir": 1,
+   "type": "entry",
+   "name": "Tipologia a, collegato alla stazione di Brenta, legale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 119
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.441119,
+   "lon": 9.222019,
+   "on_track": [
+    45.441119,
+    9.222022
+   ],
+   "offset_m": 0.2,
+   "side": "left",
+   "heading": 125,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia a, Protezione a corvetto, illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 306
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.442127,
+   "lon": 9.219734,
+   "on_track": [
+    45.442119,
+    9.219723
+   ],
+   "offset_m": 1.3,
+   "side": "left",
+   "heading": 305,
+   "dir": -1,
+   "type": "entry",
+   "name": "Tipologia a, collegato alla stazione di brenta illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 307
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.445885,
+   "lon": 9.212366,
+   "on_track": [
+    45.445882,
+    9.212363
+   ],
+   "offset_m": 0.4,
+   "side": "right",
+   "heading": 308,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia b, collegato alla stazione di Lodi TIBB",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 120
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.445853,
+   "lon": 9.212272,
+   "on_track": [
+    45.445866,
+    9.212287
+   ],
+   "offset_m": 1.8,
+   "side": "right",
+   "heading": 309,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia b, collegato alla stazione di Lodi TIBB, se il treno usa lo scambio supera il semaforo a 15km/h",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 308
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.44356,
+   "lon": 9.217005,
+   "on_track": [
+    45.443562,
+    9.217005
+   ],
+   "offset_m": 0.2,
+   "side": "left",
+   "heading": 125,
+   "dir": -1,
+   "type": "entry",
+   "name": "segnale tipologia A sul binario illegale collegato alla stazione di Brenta",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 309
   }
  ],
  "speeds": {
@@ -3187,6 +3419,38 @@
   [
    45.430758,
    9.258747
+  ],
+  [
+   45.443037,
+   9.217654
+  ],
+  [
+   45.446148,
+   9.212027
+  ],
+  [
+   45.440629,
+   9.222635
+  ],
+  [
+   45.442542,
+   9.219268
+  ],
+  [
+   45.437381,
+   9.229509
+  ],
+  [
+   45.440123,
+   9.224239
+  ],
+  [
+   45.436851,
+   9.231085
+  ],
+  [
+   45.433837,
+   9.237284
   ]
  ],
  "removed_signals_about": "#A42 (exit from the depot towards the station): Giovanni, it protects nothing (28 Oct). Numbers of the others do not change. #A43 duplicate of #A07 (28 Oct).",
@@ -3325,5 +3589,164 @@
   ],
   "positions": 3,
   "slot_m": 110
+ },
+ "block_numbers_about": "Fixed #A numbers of the block signals computed along the line (key: direction|kind|name -> number). A block keeps its number when others are added or removed; a new block gets the next free number (the build prints it). #A201-#A289 are the numbers the page showed before they were frozen.",
+ "block_numbers": {
+  "N|departure|SAN DONATO → ROGOREDO FS": 201,
+  "N|block|SAN DONATO → ROGOREDO FS (blocco)|1150": 202,
+  "N|entry|ROGOREDO FS": 203,
+  "N|departure|ROGOREDO FS → PORTO DI MARE": 204,
+  "N|entry|PORTO DI MARE": 205,
+  "N|departure|PORTO DI MARE → CORVETTO": 206,
+  "N|entry|CORVETTO": 207,
+  "N|departure|CORVETTO → BRENTA": 208,
+  "N|entry|BRENTA": 209,
+  "N|departure|BRENTA → LODI T.I.B.B.": 210,
+  "N|entry|LODI T.I.B.B.": 211,
+  "N|departure|LODI T.I.B.B. → PORTA ROMANA": 212,
+  "N|entry|PORTA ROMANA": 213,
+  "N|departure|PORTA ROMANA → CROCETTA": 214,
+  "N|entry|CROCETTA": 215,
+  "N|departure|CROCETTA → MISSORI": 216,
+  "N|entry|MISSORI": 217,
+  "N|departure|MISSORI → DUOMO M3": 218,
+  "N|entry|DUOMO M3": 219,
+  "N|departure|DUOMO M3 → MONTENAPOLEONE": 220,
+  "N|entry|MONTENAPOLEONE": 221,
+  "N|departure|MONTENAPOLEONE → TURATI": 222,
+  "N|entry|TURATI": 223,
+  "N|departure|TURATI → REPUBBLICA": 224,
+  "N|entry|REPUBBLICA": 225,
+  "N|departure|REPUBBLICA → CENTRALE FS": 226,
+  "N|block|REPUBBLICA → CENTRALE FS (blocco)|9560": 227,
+  "N|entry|CENTRALE FS": 228,
+  "N|departure|CENTRALE FS → SONDRIO": 229,
+  "N|block|CENTRALE FS → SONDRIO (blocco)|10100": 230,
+  "N|entry|SONDRIO": 231,
+  "N|departure|SONDRIO → ZARA": 232,
+  "N|entry|ZARA": 233,
+  "N|departure|ZARA → MACIACHINI": 234,
+  "N|entry|MACIACHINI": 235,
+  "N|departure|MACIACHINI → DERGANO": 236,
+  "N|entry|DERGANO": 237,
+  "N|departure|DERGANO → AFFORI CENTRO": 238,
+  "N|entry|AFFORI CENTRO": 239,
+  "N|departure|AFFORI CENTRO → AFFORI FN": 240,
+  "N|entry|AFFORI FN": 241,
+  "N|departure|AFFORI FN → COMASINA": 242,
+  "N|entry|COMASINA arrivo": 243,
+  "S|departure|COMASINA → AFFORI FN": 244,
+  "S|entry|AFFORI FN": 245,
+  "S|departure|AFFORI FN → AFFORI CENTRO": 246,
+  "S|entry|AFFORI CENTRO": 247,
+  "S|departure|AFFORI CENTRO → DERGANO": 248,
+  "S|entry|DERGANO": 249,
+  "S|departure|DERGANO → MACIACHINI": 250,
+  "S|entry|MACIACHINI": 251,
+  "S|departure|MACIACHINI → ZARA": 252,
+  "S|entry|ZARA": 253,
+  "S|departure|ZARA → SONDRIO": 254,
+  "S|block|ZARA → SONDRIO (blocco)|5660": 255,
+  "S|entry|SONDRIO": 256,
+  "S|departure|SONDRIO → CENTRALE FS": 257,
+  "S|block|SONDRIO → CENTRALE FS (blocco)|6270": 258,
+  "S|entry|CENTRALE FS": 259,
+  "S|departure|CENTRALE FS → REPUBBLICA": 260,
+  "S|entry|REPUBBLICA": 261,
+  "S|departure|REPUBBLICA → TURATI": 262,
+  "S|entry|TURATI": 263,
+  "S|departure|TURATI → MONTENAPOLEONE": 264,
+  "S|entry|MONTENAPOLEONE": 265,
+  "S|departure|MONTENAPOLEONE → DUOMO M3": 266,
+  "S|entry|DUOMO M3": 267,
+  "S|departure|DUOMO M3 → MISSORI": 268,
+  "S|entry|MISSORI": 269,
+  "S|departure|MISSORI → CROCETTA": 270,
+  "S|entry|CROCETTA": 271,
+  "S|departure|CROCETTA → PORTA ROMANA": 272,
+  "S|entry|PORTA ROMANA": 273,
+  "S|departure|PORTA ROMANA → LODI T.I.B.B.": 274,
+  "S|entry|LODI T.I.B.B.": 275,
+  "S|departure|LODI T.I.B.B. → BRENTA": 276,
+  "S|block|LODI T.I.B.B. → BRENTA (blocco)|12230": 277,
+  "S|entry|BRENTA": 278,
+  "S|departure|BRENTA → CORVETTO": 279,
+  "S|entry|CORVETTO": 280,
+  "S|departure|CORVETTO → PORTO DI MARE": 281,
+  "S|entry|PORTO DI MARE": 282,
+  "S|departure|PORTO DI MARE → ROGOREDO FS": 283,
+  "S|entry|ROGOREDO FS": 284,
+  "S|departure|ROGOREDO FS → SAN DONATO": 285,
+  "S|block|ROGOREDO FS → SAN DONATO (blocco)|14570": 286,
+  "S|block|ROGOREDO FS → SAN DONATO (blocco)|15150": 287,
+  "S|block|ROGOREDO FS → SAN DONATO (blocco)|15720": 288,
+  "S|entry|SAN DONATO arrivo": 289,
+  "N|block|SAN DONATO → ROGOREDO FS (blocco)|1750": 290
+ },
+ "no_split": [
+  "N|SAN DONATO → ROGOREDO FS",
+  "S|ROGOREDO FS → SAN DONATO"
+ ],
+ "removed_blocks": [
+  "N|entry|ROGOREDO FS"
+ ],
+ "use_placed_number": [
+  "N|departure|SAN DONATO → ROGOREDO FS",
+  "S|block|ROGOREDO FS → SAN DONATO (blocco)|15720"
+ ],
+ "illegal_types": {
+  "N|illegal|ROGOREDO FS → SAN DONATO": "d",
+  "N|illegal|LODI T.I.B.B. → BRENTA": "d",
+  "S|illegal|BRENTA → LODI T.I.B.B.": "d"
+ },
+ "block_types": {
+  "S|departure|ROGOREDO FS → SAN DONATO": "d",
+  "S|departure|LODI T.I.B.B. → BRENTA": "d",
+  "N|departure|SAN DONATO → ROGOREDO FS": "e",
+  "S|block|ROGOREDO FS → SAN DONATO (blocco)|15720": "f",
+  "S|block|LODI T.I.B.B. → BRENTA (blocco)|12230": "b"
+ },
+ "signal_types_about": "stype: a station protection, b station + switch protection, c departure, d departure with a switch ahead, e terminus departure, f San Donato entry. legal: the normal direction of the track (right-hand); wrong-way signals are normally red.",
+ "illegal_numbers": {
+  "N|illegal|ROGOREDO FS → SAN DONATO": 310,
+  "N|illegal|PORTO DI MARE → ROGOREDO FS": 311,
+  "N|illegal|CORVETTO → PORTO DI MARE": 312,
+  "N|illegal|BRENTA → CORVETTO": 313,
+  "N|illegal|LODI T.I.B.B. → BRENTA": 314,
+  "N|illegal|PORTA ROMANA → LODI T.I.B.B.": 315,
+  "N|illegal|CROCETTA → PORTA ROMANA": 316,
+  "N|illegal|MISSORI → CROCETTA": 317,
+  "N|illegal|DUOMO M3 → MISSORI": 318,
+  "N|illegal|MONTENAPOLEONE → DUOMO M3": 319,
+  "N|illegal|TURATI → MONTENAPOLEONE": 320,
+  "N|illegal|REPUBBLICA → TURATI": 321,
+  "N|illegal|CENTRALE FS → REPUBBLICA": 322,
+  "N|illegal|SONDRIO → CENTRALE FS": 323,
+  "N|illegal|ZARA → SONDRIO": 324,
+  "N|illegal|MACIACHINI → ZARA": 325,
+  "N|illegal|DERGANO → MACIACHINI": 326,
+  "N|illegal|AFFORI CENTRO → DERGANO": 327,
+  "N|illegal|AFFORI FN → AFFORI CENTRO": 328,
+  "N|illegal|COMASINA → AFFORI FN": 329,
+  "S|illegal|AFFORI FN → COMASINA": 330,
+  "S|illegal|AFFORI CENTRO → AFFORI FN": 331,
+  "S|illegal|DERGANO → AFFORI CENTRO": 332,
+  "S|illegal|MACIACHINI → DERGANO": 333,
+  "S|illegal|ZARA → MACIACHINI": 334,
+  "S|illegal|SONDRIO → ZARA": 335,
+  "S|illegal|CENTRALE FS → SONDRIO": 336,
+  "S|illegal|REPUBBLICA → CENTRALE FS": 337,
+  "S|illegal|TURATI → REPUBBLICA": 338,
+  "S|illegal|MONTENAPOLEONE → TURATI": 339,
+  "S|illegal|DUOMO M3 → MONTENAPOLEONE": 340,
+  "S|illegal|MISSORI → DUOMO M3": 341,
+  "S|illegal|CROCETTA → MISSORI": 342,
+  "S|illegal|PORTA ROMANA → CROCETTA": 343,
+  "S|illegal|LODI T.I.B.B. → PORTA ROMANA": 344,
+  "S|illegal|BRENTA → LODI T.I.B.B.": 345,
+  "S|illegal|CORVETTO → BRENTA": 346,
+  "S|illegal|PORTO DI MARE → CORVETTO": 347,
+  "S|illegal|ROGOREDO FS → PORTO DI MARE": 348,
+  "S|illegal|SAN DONATO → ROGOREDO FS": 349
  }
 }

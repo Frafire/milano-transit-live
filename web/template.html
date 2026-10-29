@@ -337,7 +337,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   </div>
   <div class="admin-only">
     <div class="label" style="margin-bottom:6px">M3 trains</div>
-    <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button><button id="platBtn" aria-pressed="false">Platforms</button><button id="sigsBtn" aria-pressed="false">Segnali</button></div>
+    <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button><button id="platBtn" aria-pressed="false">Platforms</button><button id="sigsBtn" aria-pressed="false">Segnali</button><button id="illBtn" aria-pressed="false" title="Segnali sul senso illegale (sempre rossi)">Segnali illegali</button></div>
     <div class="row"><button id="sigDelBtn" aria-pressed="false" title="Clic su un semaforo per toglierlo (finisce nell'export MTL-EDIT)">Togli semafori</button><button id="sigUndoBtn" title="Rimette tutti i semafori tolti">Rimetti tutti</button></div>
     <p class="note" id="sigDelNote" hidden></p>
     <p class="note">On: trains drive with acceleration and braking. Off: they follow the plan exactly.</p>
@@ -692,7 +692,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       fleet.engine.prof = F.path_edges ? MTLEngine.buildProfiles(F.path_edges, F.net.edges, fleet.engine.fileSpeeds, fleet.engine.ops, fleet.engine.fileCuts) : null;
       fleet.engine.throatR = MTLEngine.throatResources(F.throats, F.path_edges)
         .concat(MTLEngine.blockResources(F.blocks, F.path_edges, F.net.edges));
-      fleet.engine.blocks = F.blocks || [];
+      fleet.engine.blocks = F.blocks || []; fleet.engine.illegal = F.illegal || [];
       fleet.engine.G = F.degraded || null;
       fleet.trains.forEach(tr => { tr.F = fleet; });
       if (LIVE0 && LIVE0.trains.length === fleet.trains.length) {      // fast start: the day was driven at build time
@@ -2123,8 +2123,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const lamp = (i, j, on) => { x.fillStyle = on ? '#ffffff' : '#3a3a3a'; x.fillRect(i, j, 3, 3); };
     lamp(1, 1, a === 'sgo'); lamp(1, 5, true); lamp(5, 5, a === 'sstop');
     SIGURL[a] = c.toDataURL(); });
-  const sigLayer = L.layerGroup(); let showSigs = false, SIGS = null;
-  try { showSigs = localStorage.getItem('mtl-sigs') === '1'; } catch (e) {}
+  const sigLayer = L.layerGroup(), illLayer = L.layerGroup(); let showSigs = false, showIll = false, SIGS = null;
+  try { showSigs = localStorage.getItem('mtl-sigs') === '1'; showIll = localStorage.getItem('mtl-sigs-ill') === '1'; } catch (e) {}
   const tagHtml = tag => `<span class="sigtag admin-only">${tag}</span>`;   // #AXX, shown in admin mode only
   const sigNo = (F, si) => '#A' + String(((F.engine.net.signals || [])[si] || {}).n || si + 1).padStart(2, '0');
   // interlocking notes for a signal's tooltip
@@ -2170,28 +2170,31 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       return best && (best.vx * -uy + best.vy * ux) > 0 ? 1 : -1;
     }
-    // block signals computed along the line (not placed on the map) are numbered from #A201: fixed, they do not move when
-    // a signal is placed
+    // block signals computed along the line (not placed on the map) have fixed numbers from #A201 (rules block_numbers): they do not move when
+    // a signal is placed or taken away
     const NPL = 200, tagOf = n => '#A' + String(n).padStart(2, '0');
-    const place = (pid, other, d, sgn, tip, blockIdx) => {
-      const tag = tagOf(NPL + blockIdx + 1); tip = tag + ' · ' + tip;
+    const place = (pid, other, d, sgn, tip, blockIdx, fixedN, stype, illegal) => {
+      const tag = tagOf(fixedN || NPL + blockIdx + 1); tip = tag + (stype ? ' · tipo ' + stype : '') + (illegal ? ' · senso illegale' : '') + ' · ' + tip;
       const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);
       const kx = Math.cos(a[0] * Math.PI / 180), ux = (b[1] - a[1]) * kx, uy = b[0] - a[0], n = Math.hypot(ux, uy) || 1;
       const side = other != null ? outward(other, a, ux / n, uy / n) : 1;
       const off = 7 / 111000 * side, pos = [a[0] - ux / n * off, a[1] + uy / n * off / kx];
       const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL.stop}">${tagHtml(tag)}` }) })
         .bindTooltip(tip, { className: 'st', direction: 'top' });
-      out.push({ m, block: blockIdx, a: null, tag });
+      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal });
     };
     // block signals, usual direction: one at the start of every block section (stations and in between)
     (F.engine.blocks || []).forEach((bl, bi) => {
       if (bl.pid == null) return;
       const other = pidOf(bl.dir === 'N' ? 'S' : 'N');
       const what = bl.kind === 'entry' ? 'Protezione' : bl.kind === 'departure' ? 'Partenza' : 'Blocco';
-      place(bl.pid, other, bl.signal_d, +1, what + ' · ' + cap(bl.name.slice(2)) + (bl.real ? '' : ' (posizione stimata)'), bi);
+      place(bl.pid, other, bl.signal_d, +1, what + ' · ' + cap(bl.name.slice(2)) + (bl.real ? '' : ' (posizione stimata)'), bi, bl.n, bl.stype);
     });
     // the other signals placed on the map (terminal junctions, tails, depot): state from the track just ahead of them
+    // a placed signal that is the position of a block signal is drawn once, by the block (with the block's fixed number)
+    const ofBlock = new Set((F.engine.blocks || []).map(b => b.placed).filter(n => n != null));
     sectionAhead(F).forEach(x => {
+      if (x.sg.n != null && ofBlock.has(x.sg.n)) return;
       const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt', tag = tagOf(x.sg.n || (F.engine.net.signals || []).indexOf(x.sg) + 1);
       const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${shunt ? ' sh' : ''}" alt="" src="${SIGURL[shunt ? 'sstop' : 'stop']}">${tagHtml(tag)}` }) })
         .bindTooltip(tag + ' · ' + (shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ilNote(F, (F.engine.net.signals || []).indexOf(x.sg)) + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
@@ -2199,14 +2202,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
       if (F.ag && F.ag.IL && F.ag.IL.isManual(si)) m.on('click', () => clearManual(F, si, tag));
       for (const [pid, list] of Object.entries(F.engine.net.sigpos || {})) for (const [d, i] of list) if (i === si) refs.push([pid, d]);
-      out.push({ m, block: -1, ahead: x.parts, refs, shunt, a: null, sg: x.sg, tag, si });
+      const ill = x.sg.legal === false;
+      if (x.sg.stype) m.setTooltipContent(m.getTooltip().getContent().replace(tag + ' · ', tag + ' · tipo ' + x.sg.stype + (ill ? ' · senso illegale' : '') + ' · '));
+      out.push({ m, block: -1, ahead: ill ? null : x.parts, refs: ill ? [] : refs, shunt, a: null, sg: x.sg, tag, si, illegal: ill });
     });
-    // wrong-way signals at the platform ends (the line is banalizzata): placeholders, always red
-    ['N', 'S'].forEach(dir => {
-      const xs = RT[dir]; if (!xs.length) return;
-      const pid = pidOf(dir), other = pidOf(dir === 'N' ? 'S' : 'N');
-      const stops = xs.map(x => ({ n: x.from, d: x.d0 })).concat([{ n: xs[xs.length - 1].to, d: xs[xs.length - 1].d1 }]);
-      stops.forEach((st, j) => { if (j > 0) place(pid, other, st.d - half, -1, `${cap(st.n)} · partenza senso inverso verso ${cap(stops[j - 1].n)}`, -1); });
+    // wrong-way departure signals at the platform ends (the line is banalizzata): numbered in the build, always red
+    (F.engine.illegal || []).forEach(il => {
+      const other = pidOf(il.dir === 'N' ? 'S' : 'N');
+      place(il.pid, other, il.d, -1, `partenza dal senso inverso: ${cap(il.from)} verso ${cap(il.to)}`, -1, il.n, il.stype, true);
     });
     return out;
   }
@@ -2268,11 +2271,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const showNames = (show || !document.getElementById('drawer').hidden) && map.getZoom() >= 16;
     if (showNames) { if (!NAMES) { NAMES = true; buildNames(F); } if (!map.hasLayer(trkNameLayer)) trkNameLayer.addTo(map); }
     else if (map.hasLayer(trkNameLayer)) map.removeLayer(trkNameLayer);
-    if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); return; }
+    if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); if (map.hasLayer(illLayer)) map.removeLayer(illLayer); return; }
     if (!SIGS) { SIGS = buildSignals(F);
       const gone = ll => (ED.removed || []).some(([la, lo]) => Math.hypot((la - ll.lat) * 111000, (lo - ll.lng) * 78000) < 4);
-      SIGS.forEach(sg => { if (gone(sg.m.getLatLng())) sg.removed = true; else sg.m.addTo(sigLayer); }); }
+      SIGS.forEach(sg => { if (gone(sg.m.getLatLng())) sg.removed = true; else sg.m.addTo(sg.illegal ? illLayer : sigLayer); }); }
     if (!map.hasLayer(sigLayer)) sigLayer.addTo(map);
+    if (showIll && !map.hasLayer(illLayer)) illLayer.addTo(map); else if (!showIll && map.hasLayer(illLayer)) map.removeLayer(illLayer);
     const BR = (F.engine.throatR || []).filter(r => r.block), half = F.engine.half;
     const occ = F.trains.map(tr => trainState(F, tr, state.t));
     SIGS.forEach(sg => {
@@ -2302,10 +2306,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const sigDelBtn = document.getElementById('sigDelBtn'), sigDelNote = document.getElementById('sigDelNote');
   sigDelBtn.onclick = () => { sigDel = !sigDel; sigDelBtn.setAttribute('aria-pressed', sigDel); sigDelNote.hidden = !sigDel;
     sigDelNote.textContent = sigDel ? 'Clic su un semaforo per toglierlo (accendi "Segnali" e avvicinati).' : ''; if (sigDel && !showSigs) sigsBtn.click(); };
-  document.getElementById('sigUndoBtn').onclick = () => { ED.removed = []; persist(); if (SIGS) { SIGS.forEach(sg => { sg.removed = false; sg.m.addTo(sigLayer); }); } sigDelNote.hidden = true; };
+  document.getElementById('sigUndoBtn').onclick = () => { ED.removed = []; persist(); if (SIGS) { SIGS.forEach(sg => { sg.removed = false; sg.m.addTo(sg.illegal ? illLayer : sigLayer); }); } sigDelNote.hidden = true; };
   const sigsBtn = document.getElementById('sigsBtn');
   sigsBtn.setAttribute('aria-pressed', showSigs);
   sigsBtn.onclick = () => { showSigs = !showSigs; sigsBtn.setAttribute('aria-pressed', showSigs); try { localStorage.setItem('mtl-sigs', showSigs ? '1' : '0'); } catch (e) {} updateSignals(); };
+  const illBtn = document.getElementById('illBtn');
+  illBtn.setAttribute('aria-pressed', showIll);
+  illBtn.onclick = () => { showIll = !showIll; illBtn.setAttribute('aria-pressed', showIll); try { localStorage.setItem('mtl-sigs-ill', showIll ? '1' : '0'); } catch (e) {} updateSignals(); };
   map.on('zoomend', updateSignals);
 
   function renderPanel() {

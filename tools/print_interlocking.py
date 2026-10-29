@@ -75,7 +75,7 @@ DEPOT_CATS = ('yard', 'test')
 DG = M.get('degraded') or {}
 HALF = M.get('half', 55) + 2.5
 # block signals computed along the line: #A201 + block index, like the map (template.html buildSignals)
-BLOCKS = [(201 + bi, bl) for bi, bl in enumerate(M.get('blocks') or []) if bl.get('pid') is not None]
+BLOCKS = [(bl.get('n') or 201 + bi, bl) for bi, bl in enumerate(M.get('blocks') or []) if bl.get('pid') is not None]
 STATIONS = [(nm, at(DG['N']['pid'], d)) for nm, d in zip(DG.get('names', []), DG['N']['stops'])] if DG else []
 WRONG = []                     # wrong-way signals at the platform ends (line banalizzata): placeholders, always red
 for dr in ('N', 'S'):
