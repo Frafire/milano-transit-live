@@ -9,7 +9,7 @@ CFG = {
              SD_OUT_NODE=165, IN_VIA=[124, 153, 160], DEPOT_IN_VIA=[124, 153, 160], AFTER_ARR=160,
              PULL_OUT=300, PLAT_WAIT=120,
              depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, tail_at_signal=True, nose_stop=True, blocks=True, degraded=True, recovery=[['BRENTA', 'S', (45.4428, 45.4450, 9.2140, 9.2180)], ['CENTRALE FS', 'S', (45.4815, 45.4850, 9.1995, 9.2070)], ['CENTRALE FS', 'N', (45.4815, 45.4850, 9.1995, 9.2070)]], com_choice=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
-             labels=[('1', 78, 70, 'on'), ('2', 103, 85, 'on'), ('3', 79, 100, 'on')]),
+             labels=[('3', 78, 70, 'on'), ('2', 103, 85, 'on'), ('1', 79, 100, 'on')]),
   'M4': dict(tracks='osm_m4.txt', main='Linea M4', home='San Cristoforo', far='Linate Aeroporto',
              HOME_STOP=(45.44236, 9.12977), FAR_STOP=(45.46284, 9.27800),
              SD_TAILS=[18, 107], COM_TAILS=[3, 4], SD_DEP={1: 20}, PLATS=[1],
@@ -706,7 +706,7 @@ for k, chain in enumerate(trains):
         if tr['out']:
             ctail = COM_TAIL_OF.get(tr['ti'], COM_TAILS[com_tail_i]); com_tail_i ^= 1
             if loc[0] == 'depot':
-                # pull out: depot -> platform 1 in 5 min, wait 2 min, depart
+                # pull out: depot -> platform 3 in 5 min, wait 2 min, depart
                 start = STORE_BEFORE.get(tr['ti'], loc[1]); via = [SD_DEP[1], SD_OUT_NODE]
                 pid0 = leg_path(start, via, ctail); d_pl, _ = project(paths[pid0][0], paths[pid0][1], *SD_STOP, 0, None)
                 d0 = start_off(start)
@@ -974,8 +974,8 @@ else:
 
 
 # ---------------- depot paths for the page's depot manager (places are given live, Giovanni 28 Oct) ----------------
-# in: from San Donato platform 3 (the train has unloaded there, signal #A40) to the place; out[p]: from the place to
-# departure platform p and on to the junction; positions: the stop on platform 3, the parked train, the platform stop
+# in: from San Donato platform 1 (the train has unloaded there, signal #A40) to the place; out[p]: from the place to
+# departure platform p and on to the junction; positions: the stop on platform 1, the parked train, the platform stop
 DEPOT_PATHS = {}
 if LINE == 'M3':
     for p_ in storage:
@@ -1167,7 +1167,7 @@ if CFG.get('SECTION'):
                'sb_signal': list(ll(*node_pos[SC['sb'][0]])), 'nb_signal': list(ll(*node_pos[SC['nb'][0]]))}
     print('San Donato-Rogoredo: paths through the section', len(ranges), '| short-turn versions', len(rev))
 # ---------------- terminal junctions ("incrocio") for the live engine ----------------
-# one train at a time between the platforms and the tail tracks; at the home terminal also the depot access to platform 1
+# one train at a time between the platforms and the tail tracks; at the home terminal also the depot access to platform 3
 THROATS = []
 if CFG.get('THROATS'):
     def _throat(ends, tails, extra_from=()):
@@ -1177,7 +1177,7 @@ if CFG.get('THROATS'):
                 for start in (a,):
                     for r in (route_nodes(start, t), route_nodes(t, start)):
                         if r: es |= {ei for ei, _ in r}
-        for src in extra_from:                       # depot -> platform 1
+        for src in extra_from:                       # depot -> platform 3
             r = route_nodes(src, CFG['THROATS']['home']['p1'][0])
             if r: es |= {ei for ei, _ in r}
         # keep the junction area only: no tail tracks, no platform/main tracks, no long depot tracks

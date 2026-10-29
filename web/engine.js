@@ -340,7 +340,7 @@
         };
         out.push(R);
       }
-      if (th.p1 && th.p1.length) out.push(make('binario 1 ' + th.name, th.p1, 10));
+      if (th.p1 && th.p1.length) out.push(make('binario 3 ' + th.name, th.p1, 10));
       (th.tails || []).forEach((ei, i) => out.push(make('tronchetto ' + (i + 1) + ' ' + th.name, [ei], 10)));   // one train per tail
     });
     return out;

@@ -161,7 +161,7 @@
       let h = '', x = '';
       // San Donato: platform 2 taken by a train reversing there, this one waits in the tail (a call: open)
       const cp = tr.agentK != null && CALLS[tr.agentK] && CALLS[tr.agentK].p2;
-      if (cp && tr.alts[cp.ai]) h += radioSec('p2', 'Binario 2 occupato', `<div class="row"><button id="p2Wait">Resta fermo e attendi</button><button id="p2Divert">Devia al binario 1</button></div>`, 'retrocessione', true);
+      if (cp && tr.alts[cp.ai]) h += radioSec('p2', 'Binario 2 occupato', `<div class="row"><button id="p2Wait">Resta fermo e attendi</button><button id="p2Divert">Devia al binario 3</button></div>`, 'retrocessione', true);
       // the depot place given to a train coming in: the PC can change it until #A04/#A05
       const tq = tr.agentK != null && F.depot && F.depot.target[tr.agentK];
       if (tq != null && !pastEntrance(F, tr.agentK)) {
@@ -236,13 +236,13 @@
         driverSays('Ricevuto PC, attendo il via libera per il binario 2. Passo.'); };
       if (p2d) p2d.onclick = () => {
         const c = CALLS[tr.agentK], alt = c && c.p2 && tr.alts[c.p2.ai]; if (!alt) return;
-        say('PC', `Treno ${radioTrain.no}, ti devio al binario 1: ci aspettiamo di partire dal binario 1. Passo.`, 'pc');
+        say('PC', `Treno ${radioTrain.no}, ti devio al binario 3: ci aspettiamo di partire dal binario 3. Passo.`, 'pc');
         const keep = tr.segs.slice(alt.i, alt.i + alt.n);
         setPlat(tr, alt, 1);
         if (F.ag.replan(tr.agentK) === false) {          // it is already past the switch: back to platform 2
           tr.segs.splice(alt.i, keep.length, ...keep); tr.starts = tr.segs.map(x => x[3][0]); alt.plat = 2; relive(tr);
           driverSays('Negativo PC, ho già passato lo scambio. Resto in attesa per il binario 2. Passo.');
-        } else { c.p2 = null; driverSays('Ricevuto, vado sul binario 1 e parto da lì. Passo.'); }
+        } else { c.p2 = null; driverSays('Ricevuto, vado sul binario 3 e parto da lì. Passo.'); }
       };
       const cancel = document.getElementById('radioCancel');
       if (cancel) cancel.onclick = () => { say('PC', `Treno ${radioTrain.no}, annulla la sosta prolungata, servizio regolare. Passo.`, 'pc');
@@ -428,7 +428,7 @@
           const ai = (tr.alts || []).findIndex(x => x.plat === 2 && state.t <= x.leave && x.leave - state.t < 15 * 60 && x.opts['1']);
           const o = ai >= 0 ? trainOnPlatform(F, P2WAY, state.t, tr) : null;
           if (o && o.p2 && state.t <= o.p2.dep + 60) { c.p2 = { ai };
-            call(`PC, qui treno ${no}, sono sul tronchetto di San Donato: il binario 2 è occupato dal treno ${trainNo(F, o)} in retrocessione. Resto fermo o mi mandate al binario 1? Chiedo istruzioni. Passo.`); }
+            call(`PC, qui treno ${no}, sono sul tronchetto di San Donato: il binario 2 è occupato dal treno ${trainNo(F, o)} in retrocessione. Resto fermo o mi mandate al binario 3? Chiedo istruzioni. Passo.`); }
         }
         if (c.p2 && (!a.red || !tr.alts[c.p2.ai] || tr.alts[c.p2.ai].plat !== 2)) c.p2 = null;
         if (c.vlimTo != null && !a.vlim) { const where = G.names[c.vlimTo]; c.vlimTo = null;

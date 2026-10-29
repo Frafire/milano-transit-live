@@ -1,7 +1,7 @@
 // The M3 depot (San Donato) and its test loop (anello di prova): who stands where, which place a train gets, and the
 // trips round the test loop. Giovanni, 28 Oct.
 //
-// Places: trains have no fixed place. When a train leaves San Donato platform 3 for the depot (#A40 towards #A04) the
+// Places: trains have no fixed place. When a train leaves San Donato platform 1 for the depot (#A40 towards #A04) the
 // depot gives it a free place; until it passes #A04/#A05 the player can change it by radio. Its next run out of the
 // depot starts from that place. At the end of the service day the trains keep their places for the next day. A place
 // is called by the signal in front of it (A48, A78...). The places after #A76, #A77, #A78 are given only when nothing
@@ -57,7 +57,7 @@
       if (!best) return false;
       const o = best.o, run = Math.max(0, o.plat - o.start) / V_YARD;
       if (s[1] === 'from_depot') { const tP = s[3][s[3].length - 1]; tr.segs[j] = [o.pid, 'from_depot', -1, [Math.round(tP - run), tP], [o.start, o.plat], +q]; }
-      else {                    // an empty run on through the station (to Comasina): out of the place to platform 1, then on as planned
+      else {                    // an empty run on through the station (to Comasina): out of the place to platform 3, then on as planned
         const t0 = s[3][0], tP = Math.round(t0 + run), tE = s[3][s[3].length - 1], dE = s[4][s[4].length - 1];
         tr.segs.splice(j, 1, [o.pid, 'empty', -1, [t0, tP], [o.start, o.plat], +q], [oldPid, 'empty', -1, [tP, Math.max(tP + 1, tE)], [best.m, dE]]); shiftRefs(tr, j, 1);
       }
@@ -68,7 +68,7 @@
       const j = nextOut(tr, g); if (j >= 0 && placeOf(tr.segs[j]) !== q) rewriteOut(tr, j, q);
       for (let i = g + 1; i < tr.segs.length; i++) { const x = tr.segs[i]; if (x[3][0] >= RESERVE_T && placeOf(x) && placeOf(x) !== q) tr.segs[i] = [pid, 'to_depot', -1, [x[3][0], x[3][0] + 1], [d, d], +q]; }
     }
-    // give train k place q for the run it is on now (it must already be on the way in, on San Donato platform 3)
+    // give train k place q for the run it is on now (it must already be on the way in, on San Donato platform 1)
     function assign(k, q) {
       const tr = F.trains[k], a = F.ag.agents()[k], si = a.si, s = tr.segs[si], P = F.depotPaths[q]; if (!P || !s) return false;
       const d = F.ag.mapTo(a.pid, a.d, P.in); if (d == null) return false;
@@ -101,7 +101,7 @@
         let at = F.depot.at[k];
         if (at != null && !(placeOf(s) === at && standsAt(a, s, tr, si))) { delete F.depot.at[k]; at = null; }     // it has left its place
         if (at == null && F.depot.target[k] == null && standsAt(a, s, tr, si) && !taken().has(placeOf(s))) { at = F.depot.at[k] = placeOf(s); }
-        // on the way in: a place, given once (on platform 3, #A40)
+        // on the way in: a place, given once (on platform 1, #A40)
         const inRun = placeOf(s) && !isOut(tr, si) && s[3][0] < RESERVE_T && !loopRole(s);
         if (inRun && F.depot.target[k] == null && at == null && F.depot.done[k] !== a.si) {
           const q = pick(k);

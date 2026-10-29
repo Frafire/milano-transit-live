@@ -521,7 +521,7 @@
    "heading": 223,
    "dir": 1,
    "type": "entry",
-   "name": "Partenza binario 1",
+   "name": "Partenza binario 3",
    "kind": "atp",
    "n": 14
   },
@@ -3152,9 +3152,9 @@
  "names": {
   "_about": "Names of tracks by OSM way (w number in the editor). Shown on the map and used by the radio.",
   "ways": {
-   "78": "San Donato binario 1",
+   "78": "San Donato binario 3",
    "103": "San Donato binario 2",
-   "79": "San Donato binario 3 (arrivi)",
+   "79": "San Donato binario 1 (arrivi)",
    "77": "San Donato tronchetto 1",
    "58": "San Donato tronchetto 2",
    "64": "San Donato uscita deposito",

@@ -668,7 +668,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     });
     (F.labels || []).forEach(lb => L.marker([lb.la, lb.lo], { keyboard: false,
       icon: L.divIcon({ className: '', html: '<div class="plat-label ' + (lb.s || '') + '">' + lb.t + '</div>', iconSize: [0, 0] }) })
-      .bindTooltip('Binario ' + lb.t + (lb.t === '3' ? ' · arrivi' : ' · partenze'), { className: 'st', direction: 'top', offset: [0, -8] }).addTo(platLayer));
+      .bindTooltip('Binario ' + lb.t + (lb.t === '1' ? ' · arrivi' : lb.t === '2' ? ' · arrivi e partenze' : ' · partenze'), { className: 'st', direction: 'top', offset: [0, -8] }).addTo(platLayer));
     const fleet = { li, boards, line: F.line, look, trips: F.mode === 'trips', bus: F.mode === 'bus', name: F.mode === 'bus' ? routes[li].n : F.line, pulls: F.pulls || [], home: F.home, far: F.far, carLen: 2 * F.half / look.cars,
       paths: F.paths.map(p => { const pts = decodeFlat(p.p); return { lat: pts.map(x => x[0]), lon: pts.map(x => x[1]), d: p.d }; }) };
     fleet.stops = busStops; fleet.display = !!F.display; fleet.heads = F.heads || [];
@@ -1446,7 +1446,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const users = platUsers(F, 2, a.from, a.dep, tr), moved = [];
     for (const u of users) {
       if (u.p2) { p2Msg = `Order refused: platform 2 is already promised to ${trName(F, u.o, t)}.`; return; }
-      if (platUsers(F, 1, u.alt.from, u.alt.dep, u.o).length || !u.alt.opts['1']) { p2Msg = `Order refused: ${trName(F, u.o, t)} needs platform 2 at ${fmt(u.alt.from)} and platform 1 is busy too.`; return; }
+      if (platUsers(F, 1, u.alt.from, u.alt.dep, u.o).length || !u.alt.opts['1']) { p2Msg = `Order refused: ${trName(F, u.o, t)} needs platform 2 at ${fmt(u.alt.from)} and platform 3 is busy too.`; return; }
     }
     users.forEach(u => { setPlat(u.o, u.alt, 1); moved.push(trName(F, u.o, t) + ' (departs ' + fmt(u.alt.dep) + ')'); });
     const end = a.i + a.n, delta = a.segs.length - a.n;
@@ -1457,7 +1457,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     tr.arr2.forEach(x => { if (x !== a && x.i >= end) x.i += delta; if (x !== a && x.i >= a.i && x.i < end) x.done = true; });
     a.done = true; tr.p2 = { from: a.from, dep: a.dep };
     p2Msg = `Ordered: arrives on platform 2 at ${fmt(a.arr)}, the driver changes cab there and it leaves for ${F.far} at ${fmt(a.dep)}.` +
-      (moved.length ? ' Moved to platform 1: ' + moved.join(', ') + '.' : '');
+      (moved.length ? ' Moved to platform 3: ' + moved.join(', ') + '.' : '');
   }
   function arr2Box(F, tr, st) {
     if (!isPlayer || F.line !== 'M3' || !tr.arr2) return '';
@@ -1467,7 +1467,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (k < 0) return '';
     const busy = trainOnPlatform(F, P2WAY, t, tr);
     return `<div class="picker"><div class="label">San Donato arrival</div>
-      <p class="note">Normally into platform 3, then the tail. You can order it into platform 2 to reverse in place (only if platform 2 is free now).</p>
+      <p class="note">Normally into platform 1, then the tail. You can order it into platform 2 to reverse in place (only if platform 2 is free now).</p>
       <div class="row"><button data-arr2="${k}" ${busy ? 'disabled' : ''}>Arrive on platform 2 and reverse</button></div>
       ${busy ? `<div class="warn">Platform 2 is occupied by ${trName(F, busy, t)}.</div>` : ''}${p2Msg ? `<p class="note">${p2Msg}</p>` : ''}</div>`;
   }
@@ -1738,7 +1738,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         [pts[0], pts[pts.length - 1]].forEach(q => L.circleMarker(q, { radius: 3, color: '#000', weight: 1, fillColor: '#fff', fillOpacity: 1, interactive: false }).addTo(m3platLayer));
       });
     });
-    // terminal platforms with no train stop on the main path (San Donato binario 3): same extent as the drawn ones
+    // terminal platforms with no train stop on the main path (San Donato binario 1): same extent as the drawn ones
     const pm = F.platmap;
     if (pm) {
       const kx = 111320 * Math.cos(45.46 * Math.PI / 180), ky = 110540, m = (p, q) => Math.hypot((p[1] - q[1]) * kx, (p[0] - q[0]) * ky);
