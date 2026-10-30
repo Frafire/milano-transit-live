@@ -527,6 +527,7 @@ def stop_marks(pid):
     if pid in _marks_cache: return _marks_cache[pid]
     p, c = paths[pid]; out = []
     for sg in _STOPMARK:
+        if sg.get('legal') is False: continue      # a wrong-way signal never stops a train going the usual way (superimposed tunnels)
         x, y = xy(*sg['on_track']); best = None
         for i in range(len(p) - 1):
             (ax, ay), (bx, by) = p[i], p[i + 1]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
@@ -1461,7 +1462,7 @@ for pid in range(len(paths)):
     PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves})
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
-    NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name', 'stype', 'legal')}, 'n': sg.get('_n')}
+    NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name', 'stype', 'legal', 'manual')}, 'n': sg.get('_n')}
                       for sg in _rules_.get('signals', []) if sg.get('line') == LINE]
     NET['removed'] = _rules_.get('removed_signals', [])
     NET['interlocking'] = INTERLOCKING
@@ -1575,9 +1576,20 @@ if CFG.get('blocks'):
             last = len(st) - 1
             for j in range(1, last + 1):
                 ILLEGAL.append({'key': '%s|illegal|%s → %s' % (dr_, names[j], names[j - 1]), 'dir': dr_, 'pid': sg[0], 'd': round(st[j] - TRAIN_HALF - 2.5, 1),
-                                'from': names[j], 'to': names[j - 1]})
+                                'from': names[j], 'to': names[j - 1], 'kind': 'departure'})
             dep = [snap(d + TRAIN_HALF + 2.5, -15, 40) for d in st]
-            ent = [None] + [snap(st[j] - TRAIN_HALF - (2.5 if j == last else ENTRY_GAP), -120, 5) for j in range(1, last + 1)]
+            _EG = {frozenset(k.split('|')): v for k, v in _rules_.get('entry_gap_m', {}).items()}
+            gap_ = lambda a, b: _EG.get(frozenset((a.upper(), b.upper())))
+            _EW = _rules_.get('entry_window_m', {})
+            _enm = lambda j: names[j] + (' arrivo' if j == last else '')
+            ent = [None] + [snap(st[j] - TRAIN_HALF - (2.5 if j == last else (gap_(names[j - 1], names[j]) or ENTRY_GAP)),
+                                 -_EW.get('%s|%s' % (dr_, _enm(j)), 120) if not gap_(names[j - 1], names[j]) else -3, 5) for j in range(1, last + 1)]
+            # wrong-way entry signals computed where the protection signals are at a fixed distance (entry_gap_m): station j
+            # protected for a train coming the wrong way from station j + 1, just past the far end of the platform
+            for j in range(last):
+                g_ = gap_(names[j], names[j + 1])
+                if g_: ILLEGAL.append({'key': '%s|illegal_entry|%s ← %s' % (dr_, names[j], names[j + 1]), 'dir': dr_, 'pid': sg[0], 'd': round(st[j] + TRAIN_HALF + g_, 1),
+                                       'from': names[j + 1], 'to': names[j], 'kind': 'entry'})
             def add(kind, nm, a_, b_, is_real, psig=None):
                 BLOCKS.append({'name': '%s %s' % (dr_, nm), 'dir': dr_, 'kind': kind, 'parts': _parts(sg[0], a_, b_), 'signal_d': round(a_, 1),
                                'pid': sg[0], 'station': kind == 'departure', 'real': is_real, 'placed': (psig or {}).get('n') if psig else None})
@@ -1592,7 +1604,7 @@ if CFG.get('blocks'):
                 bounds.append((b_, 'entry', '%s%s' % (names[j + 1], ' arrivo' if j + 1 == last else ''), ent[j + 1][1], ent[j + 1][2]))
             end_d = dep[last][0]
             # signals Giovanni removed with the editor: no signal there, the two sections become one
-            gone = [b for b in bounds[1:] if removed_near(sg[0], b[0])]
+            gone = [b for b in bounds[1:] if removed_near(sg[0], b[0]) and not (b[4] and not _gone(b[4]))]     # a signal placed there (and kept) stays
             if gone: print('  signals removed (%s):' % dr_, [b[2] for b in gone])
             gone += [b for b in bounds[1:] if '%s|%s|%s' % (dr_, b[1], b[2]) in _rules_.get('removed_blocks', [])]
             bounds = [bounds[0]] + [b for b in bounds[1:] if b not in gone]
@@ -1607,24 +1619,29 @@ if CFG.get('blocks'):
     print('block sections:', len(BLOCKS))
     # fixed numbers: a block keeps its #A number whatever is added or removed (rules "block_numbers": key -> number);
     # a block that is new gets the next free number, printed so that it can be written into the rules
-    _BN = _rules_.get('block_numbers', {}); _next_n = max(list(_BN.values()) + [289]) + 1; _seen_k = collections.Counter(); NEW_BN = {}
+    _BN = _rules_.get('block_numbers', {}); _seen_k = collections.Counter(); NEW_BN = {}
+    _USED = {v for v in _BN.values() if isinstance(v, int)} | set(_rules_.get('illegal_numbers', {}).values()) | {x.get('n') for x in _rules_.get('signals', []) if x.get('n')}
+    def _free(start):
+        while start in _USED: start += 1
+        _USED.add(start); return start
+    _next_n = None
     for b_ in BLOCKS:
         k_ = b_['dir'] + '|' + b_['kind'] + '|' + b_['name'][2:] + ('|%d' % (round(b_['signal_d'] / 10) * 10) if b_['kind'] == 'block' else '')
         _seen_k[k_] += 1
         if _seen_k[k_] > 1: k_ += '#%d' % _seen_k[k_]
         if k_ in _BN: b_['n'] = _BN[k_]
-        else: b_['n'] = _next_n; NEW_BN[k_] = _next_n; _next_n += 1
+        else: b_['n'] = _free(290); NEW_BN[k_] = b_['n']
         b_['key'] = k_
         if k_ in _rules_.get('use_placed_number', []) and b_.get('placed'): b_['n'] = b_['placed']      # shown with the number of the signal placed there
         _ps = next((x for x in _rules_['signals'] if x.get('n') and x.get('n') == b_.get('placed')), None)
         b_['stype'] = (_ps or {}).get('stype') or _rules_.get('block_types', {}).get(k_) or {'entry': 'a', 'departure': 'c', 'block': 'a'}[b_['kind']]
         b_['legal'] = True
         if k_ in _rules_.get('hidden_blocks', []): b_['hidden'] = True      # the block section stays, the signal does not exist
-    _IN = _rules_.get('illegal_numbers', {}); _nxt_i = max(list(_IN.values()) + [309]) + 1; NEW_IN = {}
+    _IN = _rules_.get('illegal_numbers', {}); NEW_IN = {}
     for x_ in ILLEGAL:
         if x_['key'] in _IN: x_['n'] = _IN[x_['key']]
-        else: x_['n'] = _nxt_i; NEW_IN[x_['key']] = _nxt_i; _nxt_i += 1
-        x_['stype'] = _rules_.get('illegal_types', {}).get(x_['key'], 'c'); x_['legal'] = False
+        else: x_['n'] = _free(310); NEW_IN[x_['key']] = x_['n']
+        x_['stype'] = _rules_.get('illegal_types', {}).get(x_['key'], 'a' if x_.get('kind') == 'entry' else 'c'); x_['legal'] = False
     if NEW_IN: print('wrong-way signals with a new number (write them into rules illegal_numbers):', json.dumps(NEW_IN, ensure_ascii=False))
     if NEW_BN: print('blocks with a new number (write them into rules block_numbers):', json.dumps(NEW_BN, ensure_ascii=False))
 if DEGRADED:

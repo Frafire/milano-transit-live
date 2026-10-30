@@ -757,9 +757,11 @@
    "heading": 197,
    "dir": 1,
    "type": "entry",
-   "name": "",
+   "name": " Manuale: blocca la sezione fino a Centrale finche il treno passa o il PC lo riporta a rosso",
    "kind": "atp",
-   "n": 33
+   "n": 33,
+   "manual": true,
+   "stype": "m"
   },
   {
    "line": "M3",
@@ -3066,6 +3068,960 @@
    "stype": "a",
    "legal": false,
    "n": 309
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.522404,
+   "lon": 9.167595,
+   "on_track": [
+    45.522401,
+    9.16759
+   ],
+   "offset_m": 0.5,
+   "side": "right",
+   "heading": 147,
+   "dir": -1,
+   "type": "entry",
+   "name": "Tipo A protezione Affori FN illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 350
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.522558,
+   "lon": 9.167326,
+   "on_track": [
+    45.522577,
+    9.167371
+   ],
+   "offset_m": 4.1,
+   "side": "right",
+   "heading": 147,
+   "dir": 1,
+   "type": "entry",
+   "name": "Tipo A protezione Affori FN legale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 121
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.526436,
+   "lon": 9.164558,
+   "on_track": [
+    45.526435,
+    9.164553
+   ],
+   "offset_m": 0.4,
+   "side": "right",
+   "heading": 341,
+   "dir": 1,
+   "type": "entry",
+   "name": "Tipologia B, protezione stazione e scambio (Comasina)",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 122
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.526387,
+   "lon": 9.164483,
+   "on_track": [
+    45.526395,
+    9.164518
+   ],
+   "offset_m": 2.8,
+   "side": "right",
+   "heading": 341,
+   "dir": -1,
+   "type": "entry",
+   "name": "Tipologia B protezione stazione e scambio (Comasina)",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 351
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.514429,
+   "lon": 9.17327,
+   "on_track": [
+    45.514444,
+    9.173314
+   ],
+   "offset_m": 3.8,
+   "side": "right",
+   "heading": 154,
+   "dir": 1,
+   "type": "entry",
+   "name": "legale tipologia A protezione Affori Centro",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 123
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.514486,
+   "lon": 9.173364,
+   "on_track": [
+    45.514477,
+    9.173338
+   ],
+   "offset_m": 2.2,
+   "side": "right",
+   "heading": 154,
+   "dir": -1,
+   "type": "entry",
+   "name": "illegale tipologia A protezione Affori Centro",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 352
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.52068,
+   "lon": 9.16925,
+   "on_track": [
+    45.520657,
+    9.169196
+   ],
+   "offset_m": 4.9,
+   "side": "right",
+   "heading": 327,
+   "dir": 1,
+   "type": "entry",
+   "name": "legale tipologia A protezione Affori FN",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 124
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.520618,
+   "lon": 9.169132,
+   "on_track": [
+    45.520634,
+    9.169166
+   ],
+   "offset_m": 3.2,
+   "side": "right",
+   "heading": 327,
+   "dir": -1,
+   "type": "entry",
+   "name": "illegale tipologia A protezione Affori FN",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 353
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.506548,
+   "lon": 9.17882,
+   "on_track": [
+    45.506555,
+    9.178838
+   ],
+   "offset_m": 1.6,
+   "side": "right",
+   "heading": 154,
+   "dir": 1,
+   "type": "entry",
+   "name": "legale tipologia A protezione Dergano",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 125
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.506576,
+   "lon": 9.178916,
+   "on_track": [
+    45.506565,
+    9.178882
+   ],
+   "offset_m": 2.9,
+   "side": "right",
+   "heading": 154,
+   "dir": -1,
+   "type": "entry",
+   "name": "illegale tipologia A protezione Dergano",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 354
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.512324,
+   "lon": 9.174925,
+   "on_track": [
+    45.512302,
+    9.174858
+   ],
+   "offset_m": 5.8,
+   "side": "right",
+   "heading": 334,
+   "dir": 1,
+   "type": "entry",
+   "name": "legale tipologia A protezione Affori Centro",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 126
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.512264,
+   "lon": 9.174823,
+   "on_track": [
+    45.512266,
+    9.174832
+   ],
+   "offset_m": 0.7,
+   "side": "right",
+   "heading": 334,
+   "dir": -1,
+   "type": "entry",
+   "name": "illegale tipologia A protezione Affori Centro",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 355
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.498822,
+   "lon": 9.184256,
+   "on_track": [
+    45.498824,
+    9.184264
+   ],
+   "offset_m": 0.6,
+   "side": "left",
+   "heading": 154,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia B, illegale, possibile utilizzo dello scambio, 15 km/h, protezione stazione Maciachini",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 356
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.498861,
+   "lon": 9.184144,
+   "on_track": [
+    45.498872,
+    9.184177
+   ],
+   "offset_m": 2.9,
+   "side": "right",
+   "heading": 154,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia B, legale, possibile utilizzo dello scambio, 15 km/h, protezione stazione Maciachini",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 127
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.504354,
+   "lon": 9.180488,
+   "on_track": [
+    45.504336,
+    9.180437
+   ],
+   "offset_m": 4.5,
+   "side": "right",
+   "heading": 334,
+   "dir": 1,
+   "type": "entry",
+   "name": "legale tipologia A protezione Dergano",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 128
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.504366,
+   "lon": 9.180365,
+   "on_track": [
+    45.504365,
+    9.180363
+   ],
+   "offset_m": 0.1,
+   "side": "left",
+   "heading": 334,
+   "dir": -1,
+   "type": "entry",
+   "name": "illegale tipologia A protezione Dergano",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 357
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.493341,
+   "lon": 9.189994,
+   "on_track": [
+    45.493342,
+    9.189996
+   ],
+   "offset_m": 0.2,
+   "side": "left",
+   "heading": 108,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia A protezione Zara illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 358
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.493258,
+   "lon": 9.190074,
+   "on_track": [
+    45.493275,
+    9.19008
+   ],
+   "offset_m": 1.9,
+   "side": "right",
+   "heading": 108,
+   "dir": 1,
+   "type": "entry",
+   "name": "Tipo A protezione Zara legale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 129
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.496205,
+   "lon": 9.18611,
+   "on_track": [
+    45.496198,
+    9.186094
+   ],
+   "offset_m": 1.4,
+   "side": "right",
+   "heading": 335,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia B protezione Maciachini, legale con possibilita di instradamento",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 130
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.496152,
+   "lon": 9.186054,
+   "on_track": [
+    45.496159,
+    9.186074
+   ],
+   "offset_m": 1.8,
+   "side": "right",
+   "heading": 335,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia B protezione Maciachini e scambio, senza possibilita di percorso illegale",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 359
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.491143,
+   "lon": 9.198199,
+   "on_track": [
+    45.49114,
+    9.198195
+   ],
+   "offset_m": 0.4,
+   "side": "right",
+   "heading": 120,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia B, protezione deviata e stazione di Sondrio, illegale",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 360
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.491134,
+   "lon": 9.198056,
+   "on_track": [
+    45.491143,
+    9.198062
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 117,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia B, protezione deviata e stazione di Sondrio, legale, deviata 15 km/h",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 131
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.492134,
+   "lon": 9.194773,
+   "on_track": [
+    45.4921,
+    9.194757
+   ],
+   "offset_m": 4.0,
+   "side": "right",
+   "heading": 291,
+   "dir": 1,
+   "type": "entry",
+   "name": "Tipologia A legale protezione Zara",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 132
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.491995,
+   "lon": 9.194945,
+   "on_track": [
+    45.492001,
+    9.19495
+   ],
+   "offset_m": 0.8,
+   "side": "right",
+   "heading": 291,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia A illegale protezione Zara",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 361
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.4871,
+   "lon": 9.20285,
+   "on_track": [
+    45.4871,
+    9.202858
+   ],
+   "offset_m": 0.7,
+   "side": "right",
+   "heading": 184,
+   "dir": 1,
+   "type": "entry",
+   "name": "Tipologia B, protegge stazione, scambio e incrocio, deviata 15 km/h",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 133
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.48724,
+   "lon": 9.202938,
+   "on_track": [
+    45.487239,
+    9.202908
+   ],
+   "offset_m": 2.3,
+   "side": "right",
+   "heading": 180,
+   "dir": -1,
+   "type": "entry",
+   "name": "Tipologia B, protegge stazione, scambio e tronchino di ricovero laterale, deviata 15 km/h, illegale",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 362
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.488951,
+   "lon": 9.202241,
+   "on_track": [
+    45.488948,
+    9.202236
+   ],
+   "offset_m": 0.5,
+   "side": "right",
+   "heading": 327,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia B, legale, stazione Sondrio + scambio, deviata 15 km/h",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 134
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.489009,
+   "lon": 9.202107,
+   "on_track": [
+    45.489016,
+    9.202119
+   ],
+   "offset_m": 1.3,
+   "side": "right",
+   "heading": 320,
+   "dir": -1,
+   "type": "entry",
+   "name": "illegale, tipologia B, stazione Sondrio + protezione scambio, NON puo usare lo scambio",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 363
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.481997,
+   "lon": 9.200497,
+   "on_track": [
+    45.481985,
+    9.200523
+   ],
+   "offset_m": 2.4,
+   "side": "right",
+   "heading": 215,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia B, protezione stazione e scambio, da qui un treno non puo prendere lo scambio",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 135
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.482277,
+   "lon": 9.201007,
+   "on_track": [
+    45.482273,
+    9.201018
+   ],
+   "offset_m": 1.0,
+   "side": "left",
+   "heading": 215,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia B, protezione stazione Repubblica, illegale",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 364
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.483512,
+   "lon": 9.202278,
+   "on_track": [
+    45.483522,
+    9.202258
+   ],
+   "offset_m": 1.9,
+   "side": "right",
+   "heading": 35,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia A, legale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 136
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.483648,
+   "lon": 9.202155,
+   "on_track": [
+    45.483648,
+    9.202157
+   ],
+   "offset_m": 0.2,
+   "side": "right",
+   "heading": 35,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia A, illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 365
+  },
+  {
+   "line": "M3",
+   "w": 63,
+   "lat": 45.482234,
+   "lon": 9.200846,
+   "on_track": [
+    45.482234,
+    9.200844
+   ],
+   "offset_m": 0.2,
+   "side": "left",
+   "heading": 215,
+   "dir": 1,
+   "type": "entry",
+   "name": "Manuale: partenza dal binario di rimessa; se verde, il tipo B che protegge lo scambio diventa rosso",
+   "kind": "atp",
+   "manual": true,
+   "stype": "m",
+   "legal": true,
+   "n": 137
+  },
+  {
+   "line": "M3",
+   "w": 59,
+   "lat": 45.48239,
+   "lon": 9.201052,
+   "on_track": [
+    45.48239,
+    9.201054
+   ],
+   "offset_m": 0.1,
+   "side": "left",
+   "heading": 215,
+   "dir": -1,
+   "type": "entry",
+   "name": "Manuale: collegamento M2-M3; se attivo la sezione di protezione resta rossa finche il treno non la libera",
+   "kind": "atp",
+   "manual": true,
+   "stype": "m",
+   "legal": true,
+   "n": 138
+  },
+  {
+   "line": "M3",
+   "w": 106,
+   "lat": 45.475994,
+   "lon": 9.194808,
+   "on_track": [
+    45.475991,
+    9.194822
+   ],
+   "offset_m": 1.1,
+   "side": "right",
+   "heading": 196,
+   "dir": 1,
+   "type": "entry",
+   "name": "Tipologia A protezione Turati",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 139
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.476078,
+   "lon": 9.194849,
+   "on_track": [
+    45.476074,
+    9.194866
+   ],
+   "offset_m": 1.4,
+   "side": "right",
+   "heading": 21,
+   "dir": -1,
+   "type": "entry",
+   "name": "Tipologia A protezione Turati, illegale (assunto sul binario alto)",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 366
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.479552,
+   "lon": 9.197767,
+   "on_track": [
+    45.47956,
+    9.197747
+   ],
+   "offset_m": 1.8,
+   "side": "left",
+   "heading": 33,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia A illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 367
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.479411,
+   "lon": 9.198172,
+   "on_track": [
+    45.479412,
+    9.198168
+   ],
+   "offset_m": 0.3,
+   "side": "right",
+   "heading": 35,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia A protezione legale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 140
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.452247,
+   "lon": 9.202018,
+   "on_track": [
+    45.452253,
+    9.202025
+   ],
+   "offset_m": 0.8,
+   "side": "right",
+   "heading": 132,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipo b, protegge stazione di Porta Romana + scambio 15 km/h",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 141
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.452291,
+   "lon": 9.202034,
+   "on_track": [
+    45.452286,
+    9.202029
+   ],
+   "offset_m": 0.6,
+   "side": "right",
+   "heading": 132,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipo b, protegge stazione + scambio, illegale",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 368
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.456153,
+   "lon": 9.195828,
+   "on_track": [
+    45.456149,
+    9.195823
+   ],
+   "offset_m": 0.6,
+   "side": "right",
+   "heading": 311,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia A protegge Crocetta",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 142
+  },
+  {
+   "line": "M3",
+   "w": 99,
+   "lat": 45.456135,
+   "lon": 9.195798,
+   "on_track": [
+    45.456149,
+    9.195818
+   ],
+   "offset_m": 2.2,
+   "side": "right",
+   "heading": 311,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia A protegge Crocetta, illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 369
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.447348,
+   "lon": 9.209794,
+   "on_track": [
+    45.447356,
+    9.209807
+   ],
+   "offset_m": 1.4,
+   "side": "right",
+   "heading": 132,
+   "dir": 1,
+   "type": "entry",
+   "name": "tipologia a legale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": true,
+   "n": 143
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.447385,
+   "lon": 9.209861,
+   "on_track": [
+    45.447375,
+    9.209847
+   ],
+   "offset_m": 1.6,
+   "side": "right",
+   "heading": 132,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia a illegale",
+   "kind": "atp",
+   "stype": "a",
+   "legal": false,
+   "n": 370
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.450356,
+   "lon": 9.205167,
+   "on_track": [
+    45.45034,
+    9.205147
+   ],
+   "offset_m": 2.4,
+   "side": "right",
+   "heading": 312,
+   "dir": 1,
+   "type": "entry",
+   "name": "Tipologia B, collegato alla stazione di Porta Romana, controlla anche incrocio davanti",
+   "kind": "atp",
+   "stype": "b",
+   "legal": true,
+   "n": 144
+  },
+  {
+   "line": "M3",
+   "w": 66,
+   "lat": 45.45037,
+   "lon": 9.20503,
+   "on_track": [
+    45.450371,
+    9.205033
+   ],
+   "offset_m": 0.3,
+   "side": "right",
+   "heading": 312,
+   "dir": -1,
+   "type": "entry",
+   "name": "tipologia B, collegato alla stazione di Porta Romana; se deviato 15 km/h",
+   "kind": "atp",
+   "stype": "b",
+   "legal": false,
+   "n": 371
+  },
+  {
+   "line": "M3",
+   "w": 60,
+   "lat": 45.489787,
+   "lon": 9.200814,
+   "on_track": [
+    45.489806,
+    9.200831
+   ],
+   "offset_m": 2.4,
+   "side": "right",
+   "heading": 126,
+   "dir": 1,
+   "type": "nose",
+   "name": "Sondrio: qui finisce la banchina (direzione San Donato)"
+  },
+  {
+   "line": "M3",
+   "w": 102,
+   "lat": 45.490387,
+   "lon": 9.199765,
+   "on_track": [
+    45.490387,
+    9.199765
+   ],
+   "offset_m": 0,
+   "side": "right",
+   "heading": 305,
+   "dir": 1,
+   "type": "nose",
+   "name": "Sondrio: fine banchina direzione Comasina (spostata come la banchina opposta, 23,5 m verso Zara)"
   }
  ],
  "speeds": {
@@ -3454,6 +4410,66 @@
   [
    45.433837,
    9.237284
+  ],
+  [
+   45.450539,
+   9.204842
+  ],
+  [
+   45.450488,
+   9.204826
+  ],
+  [
+   45.45221,
+   9.202088
+  ],
+  [
+   45.452204,
+   9.202174
+  ],
+  [
+   45.481651,
+   9.200173
+  ],
+  [
+   45.481594,
+   9.200358
+  ],
+  [
+   45.482134,
+   9.200744
+  ],
+  [
+   45.482356,
+   9.201007
+  ],
+  [
+   45.486087,
+   9.202799
+  ],
+  [
+   45.48686,
+   9.202874
+  ],
+  [
+   45.486828,
+   9.202799
+  ],
+  [
+   45.486158,
+   9.202742
+  ],
+  [
+   45.489535,
+   9.201466
+  ],
+  [
+   45.490991,
+   9.198502
+  ],
+  [
+   45.490951,
+   9.198475
   ]
  ],
  "removed_signals_about": "#A42 (exit from the depot towards the station): Giovanni, it protects nothing (28 Oct). Numbers of the others do not change. #A43 duplicate of #A07 (28 Oct).",
@@ -3657,16 +4673,16 @@
   "S|departure|CENTRALE FS → REPUBBLICA": 260,
   "S|entry|REPUBBLICA": 261,
   "S|departure|REPUBBLICA → TURATI": 262,
-  "S|entry|TURATI": 263,
-  "S|departure|TURATI → MONTENAPOLEONE": 264,
-  "S|entry|MONTENAPOLEONE": 265,
-  "S|departure|MONTENAPOLEONE → DUOMO M3": 266,
-  "S|entry|DUOMO M3": 267,
-  "S|departure|DUOMO M3 → MISSORI": 268,
-  "S|entry|MISSORI": 269,
-  "S|departure|MISSORI → CROCETTA": 270,
-  "S|entry|CROCETTA": 271,
-  "S|departure|CROCETTA → PORTA ROMANA": 272,
+  "S|entry|TURATI": 401,
+  "S|departure|TURATI → MONTENAPOLEONE": 402,
+  "S|entry|MONTENAPOLEONE": 403,
+  "S|departure|MONTENAPOLEONE → DUOMO M3": 404,
+  "S|entry|DUOMO M3": 405,
+  "S|departure|DUOMO M3 → MISSORI": 406,
+  "S|entry|MISSORI": 407,
+  "S|departure|MISSORI → CROCETTA": 408,
+  "S|entry|CROCETTA": 409,
+  "S|departure|CROCETTA → PORTA ROMANA": 410,
   "S|entry|PORTA ROMANA": 273,
   "S|departure|PORTA ROMANA → LODI T.I.B.B.": 274,
   "S|entry|LODI T.I.B.B.": 275,
@@ -3695,20 +4711,39 @@
  ],
  "use_placed_number": [
   "N|departure|SAN DONATO → ROGOREDO FS",
-  "S|block|ROGOREDO FS → SAN DONATO (blocco)|15720"
+  "S|block|ROGOREDO FS → SAN DONATO (blocco)|15720",
+  "N|entry|COMASINA arrivo"
  ],
  "illegal_types": {
   "N|illegal|ROGOREDO FS → SAN DONATO": "d",
   "N|illegal|LODI T.I.B.B. → BRENTA": "d",
   "S|illegal|BRENTA → LODI T.I.B.B.": "d",
-  "S|illegal|SAN DONATO → ROGOREDO FS": "d"
+  "S|illegal|SAN DONATO → ROGOREDO FS": "d",
+  "S|illegal|MACIACHINI → DERGANO": "d",
+  "N|illegal|MACIACHINI → ZARA": "d",
+  "N|illegal|SONDRIO → CENTRALE FS": "d",
+  "S|illegal|SONDRIO → ZARA": "d",
+  "S|illegal|CENTRALE FS → SONDRIO": "d",
+  "S|illegal|REPUBBLICA → CENTRALE FS": "d",
+  "S|illegal|PORTA ROMANA → CROCETTA": "d",
+  "N|illegal|PORTA ROMANA → LODI T.I.B.B.": "d",
+  "N|illegal|COMASINA → AFFORI FN": "d"
  },
  "block_types": {
   "S|departure|ROGOREDO FS → SAN DONATO": "d",
   "S|departure|LODI T.I.B.B. → BRENTA": "d",
   "N|departure|SAN DONATO → ROGOREDO FS": "e",
   "S|block|ROGOREDO FS → SAN DONATO (blocco)|15720": "f",
-  "S|block|LODI T.I.B.B. → BRENTA (blocco)|12230": "b"
+  "S|block|LODI T.I.B.B. → BRENTA (blocco)|12230": "b",
+  "N|departure|MACIACHINI → DERGANO": "d",
+  "S|departure|MACIACHINI → ZARA": "d",
+  "N|departure|SONDRIO → ZARA": "d",
+  "S|departure|SONDRIO → CENTRALE FS": "d",
+  "N|departure|CENTRALE FS → SONDRIO": "d",
+  "N|departure|REPUBBLICA → CENTRALE FS": "d",
+  "N|departure|PORTA ROMANA → CROCETTA": "d",
+  "S|departure|PORTA ROMANA → LODI T.I.B.B.": "d",
+  "S|departure|COMASINA → AFFORI FN": "e"
  },
  "signal_types_about": "stype: a station protection, b station + switch protection, c departure, d departure with a switch ahead, e terminus departure, f San Donato entry. legal: the normal direction of the track (right-hand); wrong-way signals are normally red.",
  "illegal_numbers": {
@@ -3740,22 +4775,156 @@
   "S|illegal|SONDRIO → ZARA": 335,
   "S|illegal|CENTRALE FS → SONDRIO": 336,
   "S|illegal|REPUBBLICA → CENTRALE FS": 337,
-  "S|illegal|TURATI → REPUBBLICA": 338,
-  "S|illegal|MONTENAPOLEONE → TURATI": 339,
-  "S|illegal|DUOMO M3 → MONTENAPOLEONE": 340,
-  "S|illegal|MISSORI → DUOMO M3": 341,
-  "S|illegal|CROCETTA → MISSORI": 342,
+  "S|illegal|TURATI → REPUBBLICA": 501,
+  "S|illegal|MONTENAPOLEONE → TURATI": 502,
+  "S|illegal|DUOMO M3 → MONTENAPOLEONE": 503,
+  "S|illegal|MISSORI → DUOMO M3": 504,
+  "S|illegal|CROCETTA → MISSORI": 505,
   "S|illegal|PORTA ROMANA → CROCETTA": 343,
   "S|illegal|LODI T.I.B.B. → PORTA ROMANA": 344,
   "S|illegal|BRENTA → LODI T.I.B.B.": 345,
   "S|illegal|CORVETTO → BRENTA": 346,
   "S|illegal|PORTO DI MARE → CORVETTO": 347,
   "S|illegal|ROGOREDO FS → PORTO DI MARE": 348,
-  "S|illegal|SAN DONATO → ROGOREDO FS": 349
+  "S|illegal|SAN DONATO → ROGOREDO FS": 349,
+  "S|illegal_entry|TURATI ← MONTENAPOLEONE": 506,
+  "S|illegal_entry|MONTENAPOLEONE ← DUOMO M3": 507,
+  "S|illegal_entry|DUOMO M3 ← MISSORI": 508,
+  "S|illegal_entry|MISSORI ← CROCETTA": 509,
+  "N|illegal_entry|CROCETTA ← MISSORI": 375,
+  "N|illegal_entry|MISSORI ← DUOMO M3": 376,
+  "N|illegal_entry|DUOMO M3 ← MONTENAPOLEONE": 377,
+  "N|illegal_entry|MONTENAPOLEONE ← TURATI": 378
  },
  "hidden_blocks": [
-  "S|entry|SAN DONATO arrivo",
-  "N|entry|COMASINA arrivo"
+  "S|entry|SAN DONATO arrivo"
  ],
- "hidden_blocks_about": "Block sections kept for the interlocking and the tests, but without a signal on the map (A289 and A243 do not exist)."
+ "hidden_blocks_about": "Block sections kept for the interlocking and the tests, but without a signal on the map (A289 and A243 do not exist).",
+ "entry_gap_m": {
+  "TURATI|MONTENAPOLEONE": 25,
+  "MONTENAPOLEONE|DUOMO M3": 25,
+  "DUOMO M3|MISSORI": 25,
+  "MISSORI|CROCETTA": 25
+ },
+ "entry_gap_about": "Tunnels where the station protection signals stand exactly this far before the platform, on both tracks (legal entry blocks and computed wrong-way entries). Key: the two stations, either order.",
+ "replaced_markers": [
+  [
+   45.447095,
+   9.210086
+  ],
+  [
+   45.456222,
+   9.19584
+  ],
+  [
+   45.456902,
+   9.194391
+  ],
+  [
+   45.459793,
+   9.189776
+  ],
+  [
+   45.460492,
+   9.188337
+  ],
+  [
+   45.463287,
+   9.188594
+  ],
+  [
+   45.464511,
+   9.18843
+  ],
+  [
+   45.469519,
+   9.192336
+  ],
+  [
+   45.470563,
+   9.193249
+  ],
+  [
+   45.474439,
+   9.194898
+  ],
+  [
+   45.475658,
+   9.194623
+  ],
+  [
+   45.479652,
+   9.198517
+  ],
+  [
+   45.47956,
+   9.198425
+  ],
+  [
+   45.480789,
+   9.199016
+  ],
+  [
+   45.48382,
+   9.202572
+  ],
+  [
+   45.485056,
+   9.202547
+  ],
+  [
+   45.490259,
+   9.19977
+  ],
+  [
+   45.492516,
+   9.193448
+  ],
+  [
+   45.492782,
+   9.191741
+  ],
+  [
+   45.497181,
+   9.185506
+  ],
+  [
+   45.498207,
+   9.184541
+  ],
+  [
+   45.505019,
+   9.180062
+  ],
+  [
+   45.506045,
+   9.179092
+  ],
+  [
+   45.513031,
+   9.174447
+  ],
+  [
+   45.514058,
+   9.173482
+  ],
+  [
+   45.521203,
+   9.1688
+  ],
+  [
+   45.522141,
+   9.167666
+  ]
+ ],
+ "replaced_markers_about": "Computed signals Giovanni marked as removed (PDF 2026-10-30): they are replaced by his placed signals or by the 25 m signals, so the block sections stay (not in removed_signals).",
+ "entry_window_m": {
+  "N|SONDRIO": 250,
+  "S|ZARA": 250,
+  "S|SONDRIO": 250,
+  "S|CENTRALE FS": 250,
+  "S|REPUBBLICA": 250,
+  "N|COMASINA arrivo": 260
+ },
+ "entry_window_about": "Station protection signals that stand far before the platform (a crossover in between): look this far back for Giovanni's placed signal."
 }

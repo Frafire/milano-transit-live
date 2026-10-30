@@ -655,7 +655,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const busStops = (F.stops || []).map((st, si) => {
       let a = 0; const ts = (st.t || []).map(x => (a += x)).map(x => x < 10800 ? x + 86400 : x);
       const ord = ts.map((_, k) => k).sort((p, q) => ts[p] - ts[q]);
-      const s2 = { ...st, n: st.n.replace(/\b\w/g, c => c.toUpperCase()), ts: ord.map(k => ts[k]), hs: ord.map(k => (st.h || [])[k]) };
+      const s2 = { ...st, n: st.n.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()), ts: ord.map(k => ts[k]), hs: ord.map(k => (st.h || [])[k]) };
       const m = L.marker([st.la, st.lo], { keyboard: false, bubblingMouseEvents: false,
         icon: L.divIcon({ className: '', html: '<div class="hstop' + (F.display ? ' live' : '') + '">H</div>', iconSize: [0, 0] }) })
         .bindTooltip(s2.n, { className: 'st', direction: 'top', offset: [0, -8] }).addTo(stopLayer);
@@ -1324,10 +1324,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         if (!next.length) lines = '<li><span class="nonserv">Servizio terminato</span></li>';
         next.forEach((x, k) => {
           const diff = x.t - t, min = Math.max(1, Math.round(diff / 60));
-          const txt = x.here ? `<strong class="arrivo">Treno per ${d.replace(/\b\w/g, c => c.toUpperCase())}</strong>` : diff <= soon ? '<strong class="arrivo">in arrivo</strong>' : min + (min === 1 ? ' minuto' : ' minuti');
+          const txt = x.here ? `<strong class="arrivo">Treno per ${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</strong>` : diff <= soon ? '<strong class="arrivo">in arrivo</strong>' : min + (min === 1 ? ' minuto' : ' minuti');
           lines += `<li><span>${k + 1}° treno</span><span>${txt}</span></li>`;
         });
-        return `<div class="dir"><div class="dname">${d.replace(/\b\w/g, c => c.toUpperCase())}</div><ul>${lines}</ul></div>`;
+        return `<div class="dir"><div class="dname">${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</div><ul>${lines}</ul></div>`;
       }
       let i = ts.findIndex(x => x >= t), lines = '';
       for (let k = 0; k < 2; k++, i++) {
@@ -1337,7 +1337,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         const txt = diff <= soon ? '<strong class="arrivo">in arrivo</strong>' : min + (min === 1 ? ' minuto' : ' minuti');
         lines += `<li><span>${k + 1}° treno</span><span>${txt}</span></li>`;
       }
-      return `<div class="dir"><div class="dname">${d.replace(/\b\w/g, c => c.toUpperCase())}</div><ul>${lines}</ul></div>`;
+      return `<div class="dir"><div class="dname">${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</div><ul>${lines}</ul></div>`;
     }).join('');
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
       <div><h2>${b.n}</h2><div class="sub">Prossimi treni</div></div></div>
@@ -1360,7 +1360,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         const near = Math.hypot((st.pos[1] - pm.stop[1]) * kx, (st.pos[0] - pm.stop[0]) * ky) < 130;
         if (near && dist(st.pos, tk.pts) < 2.5) {
           const rt = realTrain(F, tr, t), name = 'Treno ' + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n);
-          const what = st.trip >= 0 ? '→ ' + trips[st.trip].h.replace(/\b\w/g, c => c.toUpperCase()) + (st.label.startsWith('Boarding') ? ' · ' + st.label.replace('Boarding, departs', 'parte') : '') : (st.status === 'hold' ? 'arrivato' : 'in manovra');
+          const what = st.trip >= 0 ? '→ ' + trips[st.trip].h.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()) + (st.label.startsWith('Boarding') ? ' · ' + st.label.replace('Boarding, departs', 'parte') : '') : (st.status === 'hold' ? 'arrivato' : 'in manovra');
           who = `<span class="ptrain">${name}</span> <span class="pwhat">${what}</span>`;
         }
       });
@@ -1390,7 +1390,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const hours = {}; xs.forEach(x => { const hh = Math.floor(x / 3600); (hours[hh] = hours[hh] || []).push(x); });
       const rows = Object.keys(hours).map(Number).sort((a, b) => a - b).map(hh => `<tr><td>${String(hh % 24).padStart(2, '0')}</td><td>${hours[hh].map(x =>
         `<span class="${x < t - 30 ? 'past' : x === s.ts[i] ? 'nx' : ''}">${String(Math.floor(x / 60) % 60).padStart(2, '0')}</span>`).join('')}</td></tr>`).join('');
-      return `<h3>Direzione ${h.replace(/\b\w/g, c => c.toUpperCase())}</h3><table>${rows}</table>`;
+      return `<h3>Direzione ${h.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</h3><table>${rows}</table>`;
     }).join('');
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
       <div><h2>${s.n}</h2><div class="sub">Fermata bus · tempo di attesa</div></div></div>
@@ -1690,7 +1690,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const out = { N: [], S: [] };
     for (const tr of F.trains) for (let si = 0; si < tr.segs.length; si++) {
       const sg = tr.segs[si]; if (sg[1] !== 'service' || sg[2] < 0) continue;
-      const tp = trips[sg[2]], names = tp.st.filter(x => x >= 0).map(x => D.stops[x][0].toLowerCase().replace(/\b\w/g, c => c.toUpperCase()));
+      const tp = trips[sg[2]], names = tp.st.filter(x => x >= 0).map(x => D.stops[x][0].toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()));
       const dir = names[0].toUpperCase().startsWith('SAN DONATO') ? 'N' : 'S'; if (out[dir].length) continue;
       const ds = sg[4], ts = sg[3], stops = [];
       for (let i = 0; i < ds.length; i++) { if (i === 0 || ds[i] !== ds[i - 1]) stops.push({ d: ds[i], arr: ts[i], dep: ts[i] }); else stops[stops.length - 1].dep = ts[i]; }
@@ -2210,7 +2210,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // wrong-way departure signals at the platform ends (the line is banalizzata): numbered in the build, always red
     (F.engine.illegal || []).forEach(il => {
       const other = pidOf(il.dir === 'N' ? 'S' : 'N');
-      place(il.pid, other, il.d, -1, `partenza dal senso inverso: ${cap(il.from)} verso ${cap(il.to)}`, -1, il.n, il.stype, true);
+      place(il.pid, other, il.d, -1, il.kind === 'entry' ? `protezione di ${cap(il.to)} per chi arriva contromano da ${cap(il.from)}` : `partenza dal senso inverso: ${cap(il.from)} verso ${cap(il.to)}`, -1, il.n, il.stype, true);
     });
     return out;
   }
@@ -2327,7 +2327,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (st.trip >= 0) {
         const tp = trips[st.trip]; let k = 0; while (k < tp.ts.length && tp.ts[k] < t) k++;
         const nxt = tp.st[Math.min(k, tp.st.length - 1)], stopName = D.stops[nxt >= 0 ? nxt : tp.st[k - 1]][0];
-        where = '→ ' + tp.h.replace(/\b\w/g, c => c.toUpperCase()) + ' · ' + stopName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        where = '→ ' + tp.h.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()) + ' · ' + stopName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase());
         order = tp.start;
       }
       const d = delayOf(F, tr, t), cls = delayClass(d), m = Math.round(d / 60);
