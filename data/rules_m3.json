@@ -511,18 +511,18 @@
   {
    "line": "M3",
    "w": 78,
-   "lat": 45.428743,
-   "lon": 9.255069,
+   "lat": 45.428796,
+   "lon": 9.255144,
    "on_track": [
-    45.428742,
-    9.255071
+    45.428796,
+    9.255144
    ],
    "offset_m": 0.2,
    "side": "right",
    "heading": 223,
    "dir": 1,
    "type": "entry",
-   "name": "Partenza binario 3",
+   "name": "Partenza binario 3 (banchina allineata ad A40)",
    "kind": "atp",
    "n": 14,
    "stype": "e",
@@ -965,18 +965,18 @@
   {
    "line": "M3",
    "w": 103,
-   "lat": 45.428621,
-   "lon": 9.255192,
+   "lat": 45.428663,
+   "lon": 9.255294,
    "on_track": [
-    45.428614,
-    9.255201
+    45.428663,
+    9.255294
    ],
    "offset_m": 0.2,
    "side": "right",
    "heading": 223,
    "dir": 1,
    "type": "entry",
-   "name": "Partenza binario 2",
+   "name": "Partenza binario 2 (prima dello scambio; banchina allineata ad A40)",
    "kind": "atp",
    "n": 45
   },

@@ -1745,7 +1745,12 @@ for pid_, pe_ in enumerate(PATH_EDGES):
         for _, off, face, n_, fl in _by_edge.get(ei, []):
             if face != dr: continue
             out_.append([round(x0 + off * k if dr > 0 else x1 - off * k, 1), n_, fl])
-    if out_: SIGALL[str(pid_)] = sorted({(a, b): [a, b, c] for a, b, c in out_}.values())
+    if out_:
+        out_.sort(); ded = []
+        for x in out_:
+            if ded and ded[-1][1] == x[1] and abs(ded[-1][0] - x[0]) < 3: ded[-1][2] = ''.join(sorted(set(ded[-1][2] + x[2]))); continue
+            ded.append(x)
+        SIGALL[str(pid_)] = ded
 NET['sigall'] = SIGALL
 print('route interlocking: signals on the paths', sum(len(v) for v in SIGALL.values()), '| signals', len(_SIGAT))
 json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in paths],

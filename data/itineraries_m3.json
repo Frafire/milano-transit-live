@@ -1375,6 +1375,36 @@
    "id": "SD-27",
    "group": "SD",
    "sense": "contromano",
+   "frm": "davanti ad A04, dopo cambio banco",
+   "to": "San Donato binario 1 (arrivi)",
+   "start_signal": 4,
+   "end_signal": 349,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     166,
+     40,
+     160
+    ],
+    [
+     174,
+     160,
+     153
+    ]
+   ],
+   "switches": [
+    [
+     160,
+     166,
+     174
+    ]
+   ]
+  },
+  {
+   "id": "SD-28",
+   "group": "SD",
+   "sense": "contromano",
    "frm": "deposito San Donato (ingresso)",
    "to": "San Donato binario 1 (arrivi)",
    "start_signal": 3,

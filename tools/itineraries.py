@@ -135,6 +135,7 @@ def plat_near(i, node, within=260):
 
 EDGE_LABEL = {224: 'banchina Comasina (arrivi)', 116: 'banchina Comasina (partenze)', 166: 'deposito San Donato (ingresso)', 239: 'Brenta tronchetto',
               184: 'Centrale tronchino di ricovero (A33)', 183: 'raccordo verso la M2', 129: 'Repubblica binario di rimessa'}
+EXTRA_START = {('SD', 'deposito San Donato (ingresso)', 'San Donato binario 1 (arrivi)'): ('A04', 'davanti ad A04, dopo cambio banco')}
 # where the train ends up: the depot is one place, whichever track the train goes in by
 SAME_PLACE = {'deposito San Donato (ingresso)': 'deposito San Donato', 'San Donato uscita deposito': 'deposito San Donato'}
 
@@ -329,6 +330,12 @@ def run():
                 if m['len'] < b_['len']: m['alt'] = b_['alt'] + [b_['steps']]; best[key_] = m
                 else: b_['alt'].append(m['steps'])
         ms = list(best.values())
+        # a train that went into the depot entry up to A04, changes cab there and comes back (Giovanni: every possibility)
+        for (gk, frm_, to_), (lab_, where_) in EXTRA_START.items():
+            if gk != key: continue
+            for m in list(ms):
+                if m['frm'] == frm_ and m['to'] == to_:
+                    ms.append(dict(m, start=[lab_, None, True], frm=where_, alt=[]))
         # order: legal first, then by entry
         ms.sort(key=lambda m: (['legale', 'va contromano', 'rientra sul legale', 'contromano'].index(m['sense']), m['frm'], m['to']))
         for n, m in enumerate(ms): m['id'] = '%s-%d' % (key, n + 1)
