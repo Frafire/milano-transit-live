@@ -370,7 +370,7 @@ for _t in (COM_TAILS if CFG.get('tail_at_signal') else []):
                 _best = _acc + _u * math.sqrt(_L2)
             _acc += math.sqrt(_L2)
     _ts = _rules_.get('tail_slots')
-    if _ts and _t in _ts['nodes']: TAIL_STOP[_t] = _ts['slot_m'] / 2         # first position: the deepest, centred in its 110 m
+    if _ts and _t in _ts['nodes']: TAIL_STOP[_t] = _ts['slot_m'] * (_ts['positions'] - 0.5)   # in the day: position 1, the outermost (next to the switch), centred in its 110 m
     elif _best: TAIL_STOP[_t] = max(TRAIN_HALF, _best - TRAIN_HALF - 5)
 print('tail stop positions from signals (m from the end):', {k: round(v) for k, v in TAIL_STOP.items()})
 def tail_off(n): return TAIL_STOP.get(n, TRAIN_HALF)

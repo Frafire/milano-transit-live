@@ -1317,6 +1317,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   function renderBoard() {
     const [fi, bi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], b = F.boards[bi], t = state.t;
     const soon = F.line === 'M4' ? 30 : 90;          // 'in arrivo' under 1:30 (M3); driverless M4 under 30 s
+    // M3: binario 1 is the track towards San Donato, binario 2 towards Comasina, in every station (San Donato has its own three)
+    const binOf = d => F.line !== 'M3' || /^san donato$/i.test(b.n) ? '' : /comasina/i.test(d) ? 'Binario 2 · ' : /san donato/i.test(d) ? 'Binario 1 · ' : '';
     const rows = Object.entries(b.dirs).filter(([d]) => d.toUpperCase() !== b.n.toUpperCase()).map(([d, ts]) => {
       const live = liveBoard(F, b, d, t);
       if (live) {
@@ -1328,7 +1330,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
           const txt = x.here ? `<strong class="arrivo">Treno per ${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</strong>` : diff <= soon ? '<strong class="arrivo">in arrivo</strong>' : min + (min === 1 ? ' minuto' : ' minuti');
           lines += `<li><span>${k + 1}° treno</span><span>${txt}</span></li>`;
         });
-        return `<div class="dir"><div class="dname">${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</div><ul>${lines}</ul></div>`;
+        return `<div class="dir"><div class="dname">${binOf(d)}${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</div><ul>${lines}</ul></div>`;
       }
       let i = ts.findIndex(x => x >= t), lines = '';
       for (let k = 0; k < 2; k++, i++) {
@@ -1338,7 +1340,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         const txt = diff <= soon ? '<strong class="arrivo">in arrivo</strong>' : min + (min === 1 ? ' minuto' : ' minuti');
         lines += `<li><span>${k + 1}° treno</span><span>${txt}</span></li>`;
       }
-      return `<div class="dir"><div class="dname">${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</div><ul>${lines}</ul></div>`;
+      return `<div class="dir"><div class="dname">${binOf(d)}${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</div><ul>${lines}</ul></div>`;
     }).join('');
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
       <div><h2>${b.n}</h2><div class="sub">Prossimi treni</div></div></div>

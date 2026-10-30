@@ -133,9 +133,12 @@ def plat_near(i, node, within=260):
     return best[1] if best else None
 
 
-EDGE_LABEL = {224: 'banchina Comasina (arrivi)', 116: 'banchina Comasina (partenze)', 166: 'deposito San Donato (ingresso)', 239: 'Brenta tronchetto',
+EDGE_LABEL = {224: 'banchina Comasina binario 2 (arrivi)', 116: 'banchina Comasina binario 1 (partenze)', 166: 'deposito San Donato (ingresso)', 239: 'Brenta tronchetto',
               184: 'Centrale tronchino di ricovero (A33)', 183: 'raccordo verso la M2', 129: 'Repubblica binario di rimessa'}
-EXTRA_START = {('SD', 'deposito San Donato (ingresso)', 'San Donato binario 1 (arrivi)'): ('A04', 'davanti ad A04, dopo cambio banco')}
+EXTRA_START = {('SD', 'deposito San Donato (ingresso)', 'San Donato binario 1 (arrivi)'): ('A02', 'deposito San Donato (da A02)')}
+# Comasina tails: three positions of 110 m each, position 1 the outermost (next to the switch), 3 the deepest
+TAIL_POS = {190: (180, 'Comasina tronchetto 1'), 193: (182, 'Comasina tronchetto 2')}       # tail piece: (switch node, name)
+SLOT = 110.0
 # where the train ends up: the depot is one place, whichever track the train goes in by
 SAME_PLACE = {'deposito San Donato (ingresso)': 'deposito San Donato', 'San Donato uscita deposito': 'deposito San Donato'}
 
@@ -146,7 +149,7 @@ def edge_name(i, node=None):
     if str(e['way']) in NAMES: return NAMES[str(e['way'])]
     if node is not None:
         pn = plat_near(i, node)
-        if pn: return 'banchina ' + pn + ('' if e['cat'] != 'main' else (' (bin. verso Comasina)' if i in N_EDGES else ' (bin. verso San Donato)'))
+        if pn: return 'banchina ' + pn + ('' if e['cat'] != 'main' else (' binario 2' if i in N_EDGES else ' binario 1'))
     elif PLAT_EDGE.get(i) and len(PLAT_EDGE[i]) == 1: return 'banchina ' + next(iter(PLAT_EDGE[i]))
     if str(e['way']) in NAMES: return NAMES[str(e['way'])]
     if e['cat'] == 'crossover': return 'deviatoio %d' % i
@@ -154,7 +157,7 @@ def edge_name(i, node=None):
         far = None
         if node is not None and PLAT_AT.get(i):
             L = e['len']; far = min(PLAT_AT[i], key=lambda x: (x[0] if e['a'] == node else L - x[1]))[2]
-        return 'binario verso %s%s' % ('Comasina' if i in N_EDGES else 'San Donato', ' (lato %s)' % far if far else '')
+        return '%s%s' % ('binario 2 (verso Comasina)' if i in N_EDGES else 'binario 1 (verso San Donato)', ' lato %s' % far if far else '')
     return {'link': 'raccordo', 'siding': 'binario di servizio', 'yard': 'deposito'}.get(e['cat'], e['cat']) + ' %d' % i
 
 
@@ -284,8 +287,11 @@ def sig_back(step, limit=600):
 
 def describe(route, deg, stops):
     first, last = route[0], route[-1]
-    dev = any(E[k]['cat'] in ('crossover',) or (E[k]['cat'] == 'siding' and E[k]['way'] not in (78, 79, 103)) for k, a, b in route[1:-1]) or \
-        any(E[k]['cat'] == 'crossover' for k, a, b in route)
+    # 15 km/h only when the train takes the diverging branch of a switch (straight through a switch: line speed)
+    dev = False
+    for n, (k, a, b) in enumerate(route[:-1]):
+        nk = route[n + 1][0]; c = [j for j in _ADJ[b] if j != k and through_ok(k, b, j)]
+        if len(c) > 1 and nk != min(c, key=lambda j: _ang(k, j, b)): dev = True
     l0, l1 = legal_of(first), legal_of(last)
     wall = len(_ADJ[last[2]]) == 1 and last[0] != 183     # a tail: the train stops at the buffer, no signal in front of it (183 goes on into the M2)
     s0 = sig_before(route, deg) or sig_back(first); s1 = None if wall else sig_after(last)
@@ -298,6 +304,10 @@ def describe(route, deg, stops):
 
 
 def compat(A, B, L):
+    # the same piece run in opposite directions: a head-on collision, the two movements can never be set together
+    da = {k: (a, b) for k, a, b in A['steps']}
+    for k, a, b in B['steps']:
+        if k in da and da[k] == (b, a): return ('front', None)
     ra = {}; cum = 0
     for k, a, b in A['steps']: ra[('E', k)] = cum + L[k]; cum += L[k]
     for n, k, nk in A['switches']: ra.setdefault(('N', n), 0)
@@ -330,7 +340,29 @@ def run():
                 if m['len'] < b_['len']: m['alt'] = b_['alt'] + [b_['steps']]; best[key_] = m
                 else: b_['alt'].append(m['steps'])
         ms = list(best.values())
-        # a train that went into the depot entry up to A04, changes cab there and comes back (Giovanni: every possibility)
+        # Comasina tails: one movement for each position, in and out (position 1 the outermost)
+        if any(m['steps'][-1][0] in TAIL_POS or m['steps'][0][0] in TAIL_POS for m in ms):
+            out_ = []
+            for m in ms:
+                last_, first_ = m['steps'][-1], m['steps'][0]
+                if last_[0] in TAIL_POS:
+                    sw_, nm_ = TAIL_POS[last_[0]]
+                    sig_in = [x for x in _facing(last_[0], last_[1], last_[2])]          # facing into the tail, metres from the switch
+                    for p_ in (1, 2, 3):
+                        st_ = next((x for x in sig_in if abs(x[0] - SLOT * p_) < 15), None)
+                        out_.append(dict(m, to='%s posizione %d' % (nm_, p_), end=list(st_[1:]) if st_ else None, stops_end=st_ is None, alt=list(m['alt'])))
+                elif first_[0] in TAIL_POS:
+                    sw_, nm_ = TAIL_POS[first_[0]]
+                    sig_out = _facing(first_[0], first_[1], first_[2])                   # facing out, metres from the buffer end
+                    L_ = E[first_[0]]['len']
+                    for p_ in (1, 2, 3):
+                        if p_ == 1: st_ = m['start']
+                        else:
+                            x_ = next((x for x in sig_out if abs((L_ - x[0]) - SLOT * (p_ - 1)) < 15), None); st_ = list(x_[1:]) if x_ else None
+                        out_.append(dict(m, frm='%s posizione %d' % (nm_, p_), start=st_, alt=list(m['alt'])))
+                else: out_.append(m)
+            ms = out_
+        # a train standing in the depot that goes back to the platform the wrong way (Giovanni: every possibility)
         for (gk, frm_, to_), (lab_, where_) in EXTRA_START.items():
             if gk != key: continue
             for m in list(ms):

@@ -4625,7 +4625,7 @@
   ]
  },
  "tail_slots": {
-  "_about": "Giovanni 28 Oct: the Comasina tails hold three trains each at the end of service (110 m a position: the new trains are 108 m, the old ones 105 m, couplers not counted). The tail track, from its dead end to the switch, is made 3 x 110 m long (the dead end moves); the first position is the deepest, centred 55 m from the end. Signals sit between the positions (one each way, at 110 m and 220 m from the end).",
+  "_about": "Giovanni: the Comasina tails hold three trains each at the end of service (110 m a position: the new trains are 108 m, the old ones 105 m, couplers not counted). The tail track, from its dead end to the switch, is 3 x 110 m long. Position 1 is the outermost (next to the switch), position 3 the deepest (the buffer). In the day a train turning back stops in position 1 and changes cab there; at the end of service, in the morning and for the reserve the tails fill first in, last out. Signals sit between the positions (one each way, at 110 m and 220 m from the switch).",
   "line": "M3",
   "nodes": [
    183,
