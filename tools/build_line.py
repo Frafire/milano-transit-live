@@ -344,7 +344,7 @@ _side_lon = _IL.get('depot_sides', {}).get('lon')
 _sides = [[i for i, sg in enumerate(_rules_['signals']) if sg.get('type') == 'shunt' and (sg['lon'] > _side_lon) == east] for east in (True, False)] if _side_lon else []
 # ---- interlocking: one model (web/interlocking.js). Groups, depot sides, manual signals, block sections, zones ----
 _ix = lambda ns: [i for i in (_sig_index(n) for n in ns) if i is not None]
-_G = [{'name': g.get('name', ''), 'signals': _ix(g['signals']), 'hold': bool(g.get('hold')), 'section': bool(g.get('section'))} for g in _IL.get('groups', [])]
+_G = [{'name': g.get('name', ''), 'signals': _ix(g['signals']), 'hold': bool(g.get('hold')), 'section': bool(g.get('section')), 'covered': bool(g.get('routes'))} for g in _IL.get('groups', [])]
 # the depot: one movement at a time on each side (the signal stays given until the train stops or has gone 400 m)
 for nm_, g_ in zip(('Deposito lato est: una manovra alla volta', 'Deposito lato ovest: una manovra alla volta'), _sides):
     _G.append({'name': nm_, 'signals': g_, 'hold': True, 'section': True})
@@ -352,7 +352,8 @@ _manual = set(_ix(_IL.get('manual', []))) | {i for g_ in _sides for i in g_}    
 _section = _manual | {i for g in _G if g['section'] for i in g['signals']}
 _Z = [{'name': z['name'], 'entry': _ix(z['entry'])} for z in _IL.get('zones', [])]
 _ctl = sorted(_manual | _section | {i for g in _G for i in g['signals']} | {i for z in _Z for i in z['entry']})
-INTERLOCKING = {'signals': {str(i): {'n': _rules_['signals'][i]['_n'], 'manual': i in _manual, 'section': i in _section} for i in _ctl},
+_cov = {i for g in _G if g.get('covered') for i in g['signals']} - {i for g in _G if not g.get('covered') for i in g['signals']} - _manual - {i for z in _Z for i in z['entry']}
+INTERLOCKING = {'signals': {str(i): {'n': _rules_['signals'][i]['_n'], 'manual': i in _manual, 'section': i in _section, 'covered': i in _cov} for i in _ctl},
                 'groups': [{k: v for k, v in g.items() if k != 'section'} for g in _G], 'zones': _Z, 'manual': sorted(_manual)}
 print('interlocking: %d controlled signals, %d groups, %d zones, %d worked by the player, %d with a block section' % (
     len(_ctl), len(_G), len(_Z), len(_manual), len(_section)))
@@ -1704,6 +1705,49 @@ if TEST and TEST.get('trip'):
     TEST['trip_blocks'] = {p_: _over(v['legs'], p_) for p_, v in TEST['trip'].items()}
     TEST['home_blocks'] = {q_: _over(v['legs'], q_) for q_, v in TEST['home'].items()}
     print('test loop: places in the way, going', {k: v for k, v in TEST['trip_blocks'].items() if v}, '| coming back', {k: v for k, v in TEST['home_blocks'].items() if v})
+# every signal (block, wrong-way and placed) on every path that goes over it facing it, for the route interlocking:
+# sigall[pid] = [[d, number, flags]]; flags: 'm' manual, 'i' wrong-way, 'e' terminus departure. A block or wrong-way
+# signal sits on one track piece (from its own path); a placed one on the piece of its way (superimposed tunnels).
+def _edge_at(pid, d):
+    for ei, dr, x0, x1 in PATH_EDGES[pid]['e']:
+        if x0 - 0.5 <= d <= x1 + 0.5:
+            k = edges[ei]['len'] / ((x1 - x0) or 1); return ei, ((d - x0) * k if dr > 0 else (x1 - d) * k), dr
+    return None
+_SIGAT = []          # (edge, metres from a, facing +1/-1, number, flags)
+for b_ in BLOCKS:
+    if b_.get('hidden') or b_.get('pid') is None: continue
+    r_ = _edge_at(b_['pid'], b_['signal_d'])
+    if r_: _SIGAT.append((r_[0], r_[1], r_[2], b_['n'], 'e' if b_.get('stype') == 'e' else ''))
+for x_ in ILLEGAL:
+    r_ = _edge_at(x_['pid'], x_['d'])
+    if r_: _SIGAT.append((r_[0], r_[1], -r_[2], x_['n'], 'i' + ('e' if x_.get('stype') == 'e' else '')))
+_bplaced = {b_.get('placed') for b_ in BLOCKS if b_.get('placed')}
+# the signals between the stabling positions of a tail (end of service) do not cut the route into the tail: a train goes
+# into a tail only when the whole tail is free (in the day it stops at the first position)
+_TS = _rules_.get('tail_slots', {}).get('nodes', [])
+_tail_edges = {i for i, e in enumerate(edges) if e['a'] in _TS or e['b'] in _TS}
+for pid_, lst in SIGPOS.items():
+    for d_, si_ in lst:
+        sg = NET['signals'][si_]
+        if sg.get('kind') != 'atp' or not sg.get('n') or sg['n'] in _bplaced: continue
+        r_ = _edge_at(int(pid_), d_)
+        if not r_ or edges[r_[0]]['way'] != sg.get('w') or r_[0] in _tail_edges: continue
+        _SIGAT.append((r_[0], r_[1], r_[2], sg['n'], ('m' if sg.get('manual') else '') + ('i' if sg.get('legal') is False else '')))
+_SIGAT = list({(a, round(b, 1), c, n): (a, b, c, n, f) for a, b, c, n, f in _SIGAT}.values())
+_by_edge = collections.defaultdict(list)
+for t_ in _SIGAT: _by_edge[t_[0]].append(t_)
+SIGALL = {}
+for pid_, pe_ in enumerate(PATH_EDGES):
+    if not pe_: continue
+    out_ = []
+    for ei, dr, x0, x1 in pe_['e']:
+        k = (x1 - x0) / (edges[ei]['len'] or 1)
+        for _, off, face, n_, fl in _by_edge.get(ei, []):
+            if face != dr: continue
+            out_.append([round(x0 + off * k if dr > 0 else x1 - off * k, 1), n_, fl])
+    if out_: SIGALL[str(pid_)] = sorted({(a, b): [a, b, c] for a, b, c in out_}.values())
+NET['sigall'] = SIGALL
+print('route interlocking: signals on the paths', sum(len(v) for v in SIGALL.values()), '| signals', len(_SIGAT))
 json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in paths],
            'trains': [tl.segs for tl in out],
            'where': [[tl.start_where, tl.end_where] for tl in out],

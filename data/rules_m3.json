@@ -454,39 +454,40 @@
   },
   {
    "line": "M3",
-   "w": 88,
-   "lat": 45.529369,
-   "lon": 9.163145,
+   "w": 102,
+   "lat": 45.529315,
+   "lon": 9.163164,
    "on_track": [
-    45.529368,
-    9.163139
+    45.529315,
+    9.163164
    ],
    "offset_m": 0.5,
    "side": "right",
-   "heading": 342,
+   "heading": 341,
    "dir": 1,
    "type": "entry",
-   "name": "",
+   "name": " (davanti allo scambio 181: vale per i due tronchetti)",
    "kind": "atp",
    "n": 11
   },
   {
    "line": "M3",
-   "w": 87,
-   "lat": 45.529354,
-   "lon": 9.16308,
+   "w": 60,
+   "lat": 45.529302,
+   "lon": 9.163119,
    "on_track": [
-    45.529357,
-    9.163093
+    45.529302,
+    9.163119
    ],
    "offset_m": 1,
    "side": "right",
    "heading": 342,
    "dir": -1,
    "type": "entry",
-   "name": "",
+   "name": " (davanti allo scambio 124: illegale, dal binario partenze ai tronchetti)",
    "kind": "atp",
-   "n": 12
+   "n": 12,
+   "legal": false
   },
   {
    "line": "M3",
@@ -4282,14 +4283,16 @@
      7,
      8
     ],
-    "section": true
+    "section": true,
+    "routes": true
    },
    {
     "name": "Comasina: tronchetti",
     "signals": [
      9,
      10
-    ]
+    ],
+    "routes": true
    },
    {
     "name": "San Donato: partenze binari 2 e 3 (una alla volta)",
@@ -4297,7 +4300,8 @@
      14,
      45
     ],
-    "section": true
+    "section": true,
+    "routes": true
    },
    {
     "name": "Anello di prova: rossi, verdi solo per il treno che entra o esce",
@@ -4338,7 +4342,8 @@
     "_about": "one train at a time on the test loop: #A94 clears only for the train holding it (it asks by radio at #A94)"
    }
   ],
-  "_model": "One model: groups (one signal at a time; hold = the grant stays until the movement is over; section = block section to the next signal), manual (worked by the player when the depot is on manual; all shunting signals are manual too), depot_sides (shunting signals east/west of lon: one movement at a time per side), zones (one train at a time, entry signals). Signals by their fixed #A number."
+  "_model": "One model: groups (one signal at a time; hold = the grant stays until the movement is over; section = block section to the next signal), manual (worked by the player when the depot is on manual; all shunting signals are manual too), depot_sides (shunting signals east/west of lon: one movement at a time per side), zones (one train at a time, entry signals). Signals by their fixed #A number.",
+  "_routes_about": "groups with \"routes\": the route interlocking (web/routes.js) does their job; they apply only while it is off (closures, for now)"
  },
  "names": {
   "_about": "Names of tracks by OSM way (w number in the editor). Shown on the map and used by the radio.",

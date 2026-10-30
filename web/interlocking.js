@@ -36,7 +36,9 @@
     // ordinary signal (no list of paths: every train)
     const zpaths = zones.map(z => z.paths ? new Set(z.paths.map(Number)) : null);
     const intoZone = (zi, pid) => !zpaths[zi] || pid == null || zpaths[zi].has(+pid);
-    const controlled = si => sig.has(si);
+    // signals and groups the route interlocking takes care of (o.routesOn() true): left alone here
+    const routesOn = o.routesOn || (() => false);
+    const controlled = si => sig.has(si) && !(sig.get(si).covered && routesOn());
     const isManual = si => !!(sig.get(si) || {}).manual;
     const groupOf = si => { const x = sig.get(si); return x && x.groups.length ? x.groups[0] : null; };
 
@@ -63,7 +65,7 @@
       if (d - nose > NEAR) return false;
       if (freeTo < d + 30) return false;
       if (x.section && pid != null && (freeTrains != null ? freeTrains : freeTo) < sectionEnd(pid, si, d) - 5) return false;
-      for (const gi of x.groups) for (const [s2, k2] of Object.entries(st.grant)) if (k2 !== k && (sig.get(+s2) || { groups: [] }).groups.includes(gi)) return false;
+      for (const gi of x.groups) { if (groups[gi].covered && routesOn()) continue; for (const [s2, k2] of Object.entries(st.grant)) if (k2 !== k && (sig.get(+s2) || { groups: [] }).groups.includes(gi)) return false; }
       if (x.zone != null && intoZone(x.zone, pid) && zoneHolder(st, x.zone) !== k) return false;
       if (x.manual && !st.auto) { if (!(st.pass[si] > 0)) return false; st.pass[si]--; }
       st.grant[si] = k; return true;

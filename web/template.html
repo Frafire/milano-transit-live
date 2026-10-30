@@ -458,6 +458,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="engine.js"></script>
 <script src="interlocking.js"></script>
+<script src="routes.js"></script>
 <script src="agents.js"></script>
 <script src="DepotM3.js"></script>
 <script src="radio.js"></script>
@@ -1990,7 +1991,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, interlocking: E_.net.interlocking,
+      resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)),
       locks: cl => MTLEngine.blockResources(MTLEngine.turnLocks(G, cl), E_.pathEdges, E_.net.edges).map(r => Object.assign(r, { lock: true })) });
@@ -2181,7 +2182,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const off = 7 / 111000 * side, pos = at || [a[0] - ux / n * off, a[1] + uy / n * off / kx];
       const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL.stop}">${tagHtml(tag)}` }) })
         .bindTooltip(tip, { className: 'st', direction: 'top' });
-      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si });
+      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si, stype });
     };
     // block signals, usual direction: one at the start of every block section (stations and in between)
     (F.engine.blocks || []).forEach((bl, bi) => {
@@ -2205,7 +2206,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       for (const [pid, list] of Object.entries(F.engine.net.sigpos || {})) for (const [d, i] of list) if (i === si) refs.push([pid, d]);
       const ill = x.sg.legal === false;
       if (x.sg.stype) m.setTooltipContent(m.getTooltip().getContent().replace(tag + ' · ', tag + ' · tipo ' + x.sg.stype + (ill ? ' · senso illegale' : '') + ' · '));
-      out.push({ m, block: -1, ahead: ill ? null : x.parts, refs: ill ? [] : refs, shunt, a: null, sg: x.sg, tag, si, illegal: ill });
+      out.push({ m, block: -1, ahead: ill ? null : x.parts, refs: ill ? [] : refs, shunt, a: null, sg: x.sg, tag, si, illegal: ill, stype: x.sg.stype || (x.sg.manual ? 'm' : null) });
     });
     // wrong-way departure signals at the platform ends (the line is banalizzata): numbered in the build, always red
     (F.engine.illegal || []).forEach(il => {
@@ -2280,6 +2281,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (showIll && !map.hasLayer(illLayer)) illLayer.addTo(map); else if (!showIll && map.hasLayer(illLayer)) map.removeLayer(illLayer);
     const BR = (F.engine.throatR || []).filter(r => r.block), half = F.engine.half;
     const occ = F.trains.map(tr => trainState(F, tr, state.t));
+    // route interlocking: a signal shows via libera when a train has its route set; the signals that are normally green
+    // (types a, b, c, d on the legal side) also when the stretch behind them is free
+    const RTon = !!(F.ag && F.ag.RT && !F.ag.S.lockCl);
+    let green = null;
+    if (RTon) { const fr = {}; F.ag.agents().forEach(a => { fr[a.k] = { pid: a.pid, nose: a.d + half }; }); green = F.ag.RT.green(F.ag.rt(), fr); }
     SIGS.forEach(sg => {
       let busy = true;
       if (sg.block >= 0) { const R = BR[sg.block], bl = F.engine.blocks[sg.block];
@@ -2295,6 +2301,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         });
       }
       else if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
+      if (RTon && !sg.shunt) { const n = parseInt(String(sg.tag || '').slice(2), 10);
+        if (green.has(n)) busy = false; else if (sg.illegal || !/^[abcd]$/.test(sg.stype || 'a')) busy = true; }
       // interlocking signals: via libera only when cleared for a train
       if (sg.si != null && F.ag && F.ag.IL && F.ag.IL.controlled(sg.si)) { const il = F.ag.il();
         busy = il.grant[sg.si] == null && !(F.ag.IL.isManual(sg.si) && !il.auto && il.pass[sg.si] > 0); }   // cleared by the player: red + white
