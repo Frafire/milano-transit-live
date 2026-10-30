@@ -174,6 +174,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
 .hstop.live { cursor: pointer; border-color: #ff9416; }
 .board { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; background: #050607; border-radius: 6px; padding: 10px 12px; font-family: var(--display); }
+.screens { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
+.scrbox .scrlab { color: var(--muted, #9aa); font: 600 12px var(--display); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
+.scr { display: block; width: 100%; max-width: 396px; border-radius: 4px; box-shadow: 0 0 0 3px #262626, 0 0 0 4px #3c3c3c; }
 .stclock { display: block; height: 40px; margin: 10px auto 4px; border-radius: 3px; box-shadow: 0 0 0 2px #2b2b2b; }
 .board .dname { color: var(--signal); font: 600 17px var(--display); letter-spacing: .02em; }
 .board ul { list-style: none; margin: 4px 0 0; padding: 0; }
@@ -1298,9 +1301,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const a = F.ag.agents()[k]; if (!a || a.hidden || a.status === 'parked' && a.mode !== 'plan') return;
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
       if (leg && leg.stops && leg.status === 'service' && leg.dir === dir) {
-        if (a.stopAt === X && leg.stops[0] && leg.stops[0].st === X) { if (leg.stops.length > 1) out.push({ t: -1, here: true }); return; }
+        if (a.stopAt === X && leg.stops[0] && leg.stops[0].st === X) { if (leg.stops.length > 1) out.push({ t: -1, here: true, pid: leg.pid }); return; }
         const z = leg.stops.find(z => z.st === X);
-        if (z && z !== leg.stops[leg.stops.length - 1]) { const eta = Math.max(t + Math.abs(z.d - a.d) / 13 + 20 * leg.stops.indexOf(z), z.arr ? z.arr + Math.max(0, a.late || 0) : 0); out.push({ t: eta }); return; }
+        if (z && z !== leg.stops[leg.stops.length - 1]) { const eta = Math.max(t + Math.abs(z.d - a.d) / 13 + 20 * leg.stops.indexOf(z), z.arr ? z.arr + Math.max(0, a.late || 0) : 0); out.push({ t: eta, pid: leg.pid }); return; }
       }
       if (a.mode !== 'plan') return;
       // its next runs of the day through this station that way
@@ -1310,7 +1313,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         const sts = (F._sof = F._sof || stopsOfF(F))(s0); if (sts.length < 2) continue;
         const d0 = sts[sts.length - 1].st > sts[0].st ? 'N' : 'S'; if (d0 !== dir) continue;
         const z = sts.findIndex(y => y.st === X); if (z < 0 || z === sts.length - 1) continue;
-        const tt = s0[3][sts[z].j] + Math.max(0, a.late || 0); if (tt >= t - 30) { out.push({ t: tt }); n++; }
+        const tt = s0[3][sts[z].j] + Math.max(0, a.late || 0); if (tt >= t - 30) { out.push({ t: tt, pid: s0[0] }); n++; }
       }
     });
     return out.sort((p, q) => p.t - q.t);
@@ -1332,11 +1335,108 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       x.fillStyle = '#1a1612'; x.fillRect(0, 0, c.width, c.height);
       let col = 2;
       glyphs.forEach(g => { for (let r = 0; r < 7; r++) for (let i = 0; i < g[0].length; i++) {
-          x.fillStyle = g[r][i] === '1' ? '#ffa31a' : '#3a2a14'; x.beginPath(); x.arc((col + i + 0.5) * P, (r + 2 + 0.5) * P, P * 0.42, 0, 7); x.fill(); }
+          const on = g[r][i] === '1'; x.shadowBlur = on ? P * 0.9 : 0; x.shadowColor = '#ffb326'; x.fillStyle = on ? '#ffc23d' : '#33240f'; x.beginPath(); x.arc((col + i + 0.5) * P, (r + 2 + 0.5) * P, P * 0.44, 0, 7); x.fill(); }
         col += g[0].length + 1; });
       clkCache = { k: txt, url: c.toDataURL() };
     }
     return `<img class="stclock" alt="Ora ${txt}" title="Orologio di stazione" src="${clkCache.url}">`;
+  }
+  // ---- platform screens (M3), dot matrix like the real ones. One page every 10 s (real time): 1st train, notice,
+  // 2nd train, notice. From 10 s before the train comes in until it leaves: "Treno per ...". After the last train:
+  // "TRENI PER ...". Minutes in halves down to 1 (Giovanni).
+  const SCR_NOTICES = [['IN BANCHINA', 'NON SUPERARE LA RIGA', 'GIALLA DI SICUREZZA'], ['PER LA SALITA', 'UTILIZZARE TUTTE LE', 'PORTE DEL TRENO']];
+  const F57 = {
+'A':['01110','10001','10001','11111','10001','10001','10001'],'B':['11110','10001','10001','11110','10001','10001','11110'],
+'C':['01110','10001','10000','10000','10000','10001','01110'],'D':['11100','10010','10001','10001','10001','10010','11100'],
+'E':['11111','10000','10000','11110','10000','10000','11111'],'F':['11111','10000','10000','11110','10000','10000','10000'],
+'G':['01110','10001','10000','10111','10001','10001','01111'],'H':['10001','10001','10001','11111','10001','10001','10001'],
+'I':['01110','00100','00100','00100','00100','00100','01110'],'J':['00111','00010','00010','00010','00010','10010','01100'],
+'K':['10001','10010','10100','11000','10100','10010','10001'],'L':['10000','10000','10000','10000','10000','10000','11111'],
+'M':['10001','11011','10101','10101','10001','10001','10001'],'N':['10001','10001','11001','10101','10011','10001','10001'],
+'O':['01110','10001','10001','10001','10001','10001','01110'],'P':['11110','10001','10001','11110','10000','10000','10000'],
+'Q':['01110','10001','10001','10001','10101','10010','01101'],'R':['11110','10001','10001','11110','10100','10010','10001'],
+'S':['01111','10000','10000','01110','00001','00001','11110'],'T':['11111','00100','00100','00100','00100','00100','00100'],
+'U':['10001','10001','10001','10001','10001','10001','01110'],'V':['10001','10001','10001','10001','10001','01010','00100'],
+'W':['10001','10001','10001','10101','10101','10101','01010'],'X':['10001','10001','01010','00100','01010','10001','10001'],
+'Y':['10001','10001','10001','01010','00100','00100','00100'],'Z':['11111','00001','00010','00100','01000','10000','11111'],
+'a':['00000','00000','01110','00001','01111','10001','01111'],'e':['00000','00000','01110','10001','11111','10000','01110'],
+'i':['00100','00000','01100','00100','00100','00100','01110'],'m':['00000','00000','11010','10101','10101','10001','10001'],
+'n':['00000','00000','10110','11001','10001','10001','10001'],'o':['00000','00000','01110','10001','10001','10001','01110'],
+'p':['00000','00000','11110','10001','11110','10000','10000'],'r':['00000','00000','10110','11001','10000','10000','10000'],
+'s':['00000','00000','01110','10000','01110','00001','11110'],'t':['01000','01000','11100','01000','01000','01001','00110'],
+'0':['01110','10001','10011','10101','11001','10001','01110'],'1':['00100','01100','00100','00100','00100','00100','01110'],
+'2':['01110','10001','00001','00010','00100','01000','11111'],'3':['11111','00010','00100','00010','00001','10001','01110'],
+'4':['00010','00110','01010','10010','11111','00010','00010'],'5':['11111','10000','11110','00001','00001','10001','01110'],
+'6':['00110','01000','10000','11110','10001','10001','01110'],'7':['11111','00001','00010','00100','01000','01000','01000'],
+'8':['01110','10001','10001','01110','10001','10001','01110'],'9':['01110','10001','10001','01111','00001','00010','01100'],
+':':['0','0','1','0','1','0','0'],'.':['0','0','0','0','0','1','1'],' ':['000','000','000','000','000','000','000'],
+'°':['111','101','111','000','000','000','000'],'½':['10000','10000','10010','00101','00001','00010','00111'],"'":['1','1','0','0','0','0','0']};
+  const SCR = { W: 160, H: 24, P: 2.5, cache: new Map() };
+  const txtW = (t, sx) => [...t].reduce((n, ch) => n + ((F57[ch] || F57[' '])[0].length + 1) * sx, -sx);
+  function scrImage(key, lines) {          // lines: [{ text, x, y, color, big, right }]: 5x7 dots, big = twice as tall
+    if (SCR.cache.has(key)) return SCR.cache.get(key);
+    const dots = new Array(SCR.W * SCR.H).fill(null);
+    lines.forEach(L => {
+      const sy = L.big ? 2 : 1; let x0 = L.right ? L.x - txtW(L.text, 1) + 1 : L.x;
+      for (const ch of L.text) { const g = F57[ch] || F57[' '];
+        for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1')
+          for (let k = 0; k < sy; k++) { const X = x0 + i, Y = L.y + r * sy + k; if (X >= 0 && X < SCR.W && Y >= 0 && Y < SCR.H) dots[Y * SCR.W + X] = L.color; }
+        x0 += g[0].length + 1; }
+    });
+    const P = SCR.P, c = document.createElement('canvas'); c.width = SCR.W * P; c.height = SCR.H * P; const x = c.getContext('2d');
+    x.fillStyle = '#0b0b0b'; x.fillRect(0, 0, c.width, c.height);
+    for (let j = 0; j < SCR.H; j++) for (let i = 0; i < SCR.W; i++) {
+      const col = dots[j * SCR.W + i]; x.shadowBlur = col ? P : 0; x.shadowColor = col || '#000';
+      x.fillStyle = col || '#1d1d1d'; x.beginPath(); x.arc((i + 0.5) * P, (j + 0.5) * P, P * 0.43, 0, 7); x.fill();
+    }
+    const url = c.toDataURL(); if (SCR.cache.size > 200) SCR.cache.clear(); SCR.cache.set(key, url); return url;
+  }
+  const SCR_G = '#a6f05e', SCR_A = '#ffb633';
+  function scrPage(kind, t, data) {
+    const s = Math.floor(((t % 86400) + 86400) % 86400), hm = String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0');
+    const X0 = 33, L = [{ text: hm, x: 1, y: 9, color: SCR_A }];
+    if (kind === 'train') {
+      const m = data.min, num = String(Math.floor(m)) + (m % 1 ? '½' : '');
+      L.push({ text: data.n + '° Treno per', x: X0, y: 1, color: SCR_G }, { text: 'attesa', x: SCR.W - 2, y: 1, color: SCR_G, right: true },
+        { text: data.dest, x: X0, y: 9, color: SCR_A, big: true }, { text: num, x: SCR.W - 2, y: 9, color: SCR_A, big: true, right: true },
+        { text: 'min.', x: SCR.W - 4 - txtW(num, 1), y: 16, color: SCR_G, right: true });
+    } else if (kind === 'here') L.push({ text: 'Treno per', x: X0, y: 1, color: SCR_G }, { text: data.dest, x: X0, y: 9, color: SCR_A, big: true });
+    else if (kind === 'end') L.push({ text: 'TRENI PER', x: X0, y: 1, color: SCR_G }, { text: data.dest, x: X0, y: 9, color: SCR_A, big: true });
+    else L.push(...data.lines.map((tx, i) => ({ text: tx, x: X0, y: 1 + i * 8, color: SCR_G })));
+    const key = kind + '|' + hm + '|' + JSON.stringify(data);
+    return `<img class="scr" alt="${(data.dest || (data.lines || []).join(' ')).replace(/"/g, '')}" src="${scrImage(key, L)}">`;
+  }
+  // one screen: items = [{ t, here }] for the trains of this platform, sorted; info = notices only (Comasina arrivals)
+  function platformScreen(t, items, dest, info) {
+    const slot = Math.floor(Date.now() / 10000) % 4, notice = { lines: SCR_NOTICES[slot === 1 ? 0 : 1] };
+    if (info) return scrPage('notice', t, { lines: SCR_NOTICES[Math.floor(Date.now() / 10000) % 2] });
+    const next = items.filter(x => x.here || x.t >= t - 5);
+    if (!next.length || !next[0].here && next[0].t - t > 30 * 60) return scrPage('end', t, { dest });      // no train in the next half hour
+    const first = next[0];
+    if (first.here || first.t - t <= 10) return scrPage('here', t, { dest });
+    const minOf = x => Math.max(1, Math.ceil((x.t - t) / 30) / 2);
+    if (slot === 0 || (slot === 2 && next.length < 2)) return scrPage('train', t, { n: 1, dest, min: minOf(first) });
+    if (slot === 2) return scrPage('train', t, { n: 2, dest, min: minOf(next[1]) });
+    return scrPage('notice', t, notice);
+  }
+  // which San Donato platform a run leaves from (2 or 3): from the first track pieces of its path
+  function sdPlatOf(F, pid) {
+    const PE_ = F.engine && F.engine.pathEdges, pe = PE_ && PE_[pid]; if (!pe) return null;
+    for (const [ei] of pe.e.slice(0, 8)) { if (ei === 173) return '3'; if (ei === 225 || ei === 226) return '2'; }
+    return null;
+  }
+  function m3Screens(F, b, t) {
+    const name = b.n.toUpperCase(), dirs = Object.keys(b.dirs).filter(d => d.toUpperCase() !== name);
+    const dSD = dirs.find(d => /san donato/i.test(d)), dCO = dirs.find(d => /comasina/i.test(d));
+    const box = (label, img) => `<div class="scrbox"><div class="scrlab">${label}</div>${img}</div>`;
+    const items = d => d ? (liveBoard(F, b, d, t) || []) : [];
+    if (/^SAN DONATO$/.test(name)) {
+      const it = items(dCO || 'COMASINA');
+      return ['2', '3'].map(pl => box('Binario ' + pl, platformScreen(t, it.filter(x => sdPlatOf(F, x.pid) === pl), 'COMASINA'))).join('');
+    }
+    if (/^COMASINA$/.test(name))
+      return box('Binario 1 · partenze', platformScreen(t, items(dSD || 'SAN DONATO'), 'SAN DONATO')) + box('Binario 2 · arrivi', platformScreen(t, [], '', true));
+    return box('Binario 1', platformScreen(t, items(dSD), 'SAN DONATO')) + box('Binario 2', platformScreen(t, items(dCO), 'COMASINA'));
   }
   function renderBoard() {
     const [fi, bi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], b = F.boards[bi], t = state.t;
@@ -1368,7 +1468,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }).join('');
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
       <div><h2>${b.n}</h2><div class="sub">Prossimi treni</div></div></div>
-      ${F.line === 'M3' ? stationClock(t) : ''}<div class="board">${rows}</div>${platformDiagram(F, b, t)}
+      ${F.line === 'M3' ? stationClock(t) + '<div class="screens">' + m3Screens(F, b, t) + '</div>' : `<div class="board">${rows}</div>`}${platformDiagram(F, b, t)}
       <div class="row"><button id="closeBtn">Close</button></div>`;
     card.hidden = false;
     document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
