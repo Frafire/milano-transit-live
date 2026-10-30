@@ -1328,19 +1328,24 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   let clkCache = { k: null, url: '' };
   function stationClock(t) {
     const s = Math.floor(((t % 86400) + 86400) % 86400), p2 = n => String(n).padStart(2, '0');
-    const txt = p2(Math.floor(s / 3600)) + ':' + p2(Math.floor(s / 60) % 60) + ' ' + p2(s % 60);
+    const hm = p2(Math.floor(s / 3600)) + ':' + p2(Math.floor(s / 60) % 60), ss = p2(s % 60), txt = hm + ' ' + ss;
     if (clkCache.k !== txt) {
-      const P = 4, glyphs = [...txt].map(ch => CLK_FONT[ch]), cols = glyphs.reduce((n, g) => n + g[0].length + 1, -1);
-      const c = document.createElement('canvas'); c.width = (cols + 4) * P; c.height = (7 + 4) * P; const x = c.getContext('2d');
+      // hours and minutes big, the seconds smaller and on the same bottom line (like the real clock)
+      const P = 4, Q = 2.8, gw = g => g[0].length;
+      const big = [...hm].map(ch => CLK_FONT[ch]), small = [...ss].map(ch => CLK_FONT[ch]);
+      const wBig = big.reduce((n, g) => n + (gw(g) + 1) * P, -P), wSmall = small.reduce((n, g) => n + (gw(g) + 1) * Q, -Q);
+      const c = document.createElement('canvas'); c.width = Math.ceil(wBig + 2.2 * P + wSmall + 4 * P); c.height = 11 * P; const x = c.getContext('2d');
       x.fillStyle = '#1a1612'; x.fillRect(0, 0, c.width, c.height);
-      let col = 2;
-      glyphs.forEach(g => { for (let r = 0; r < 7; r++) for (let i = 0; i < g[0].length; i++) {
-          const on = g[r][i] === '1'; x.shadowBlur = on ? P * 0.9 : 0; x.shadowColor = '#ffb326'; x.fillStyle = on ? '#ffc23d' : '#33240f'; x.beginPath(); x.arc((col + i + 0.5) * P, (r + 2 + 0.5) * P, P * 0.44, 0, 7); x.fill(); }
-        col += g[0].length + 1; });
+      const dot = (cx, cy, r, on) => { x.shadowBlur = on ? r * 2 : 0; x.shadowColor = '#ffb326'; x.fillStyle = on ? '#ffc23d' : '#33240f'; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); };
+      let X = 2 * P; const bottom = 9 * P;
+      big.forEach(g => { for (let r = 0; r < 7; r++) for (let i = 0; i < gw(g); i++) dot(X + (i + 0.5) * P, bottom - (7 - r - 0.5) * P, P * 0.44, g[r][i] === '1'); X += (gw(g) + 1) * P; });
+      X += 1.2 * P;
+      small.forEach(g => { for (let r = 0; r < 7; r++) for (let i = 0; i < gw(g); i++) dot(X + (i + 0.5) * Q, bottom - (7 - r - 0.5) * Q, Q * 0.44, g[r][i] === '1'); X += (gw(g) + 1) * Q; });
       clkCache = { k: txt, url: c.toDataURL() };
     }
     return `<img class="stclock" alt="Ora ${txt}" title="Orologio di stazione" src="${clkCache.url}">`;
   }
+
   // ---- platform screens (M3), dot matrix like the real ones. One page every 10 s (real time): 1st train, notice,
   // 2nd train, notice. From 10 s before the train comes in until it leaves: "Treno per ...". After the last train:
   // "TRENI PER ...". Minutes in halves down to 1 (Giovanni).
@@ -1371,6 +1376,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 '8':['01110','10001','10001','01110','10001','10001','01110'],'9':['01110','10001','10001','01111','00001','00010','01100'],
 ':':['0','0','1','0','1','0','0'],'.':['0','0','0','0','0','1','1'],' ':['000','000','000','000','000','000','000'],
 '°':['111','101','111','000','000','000','000'],'½':['10000','10000','10010','00101','00001','00010','00111'],"'":['1','1','0','0','0','0','0']};
+  // the half minute on the big line: a small 1, the bar in the middle, a small 2 (as on the real screens)
+  const HALF14 = ['00100', '01100', '00100', '00100', '01110', '00000', '11111', '00000', '01110', '10001', '00010', '00100', '01000', '11111'];
   const SCR = { W: 160, H: 24, P: 2.5, cache: new Map() };
   const txtW = (t, sx) => [...t].reduce((n, ch) => n + ((F57[ch] || F57[' '])[0].length + 1) * sx, -sx);
   function scrImage(key, lines) {          // lines: [{ text, x, y, color, big, right }]: 5x7 dots, big = twice as tall
@@ -1378,9 +1385,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const dots = new Array(SCR.W * SCR.H).fill(null);
     lines.forEach(L => {
       const sy = L.big ? 2 : 1; let x0 = L.right ? L.x - txtW(L.text, 1) + 1 : L.x;
-      for (const ch of L.text) { const g = F57[ch] || F57[' '];
-        for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1')
-          for (let k = 0; k < sy; k++) { const X = x0 + i, Y = L.y + r * sy + k; if (X >= 0 && X < SCR.W && Y >= 0 && Y < SCR.H) dots[Y * SCR.W + X] = L.color; }
+      for (const ch of L.text) { const g = L.big && ch === '½' ? HALF14 : F57[ch] || F57[' '], ry = g.length === 14 ? 1 : sy;
+        for (let r = 0; r < g.length; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1')
+          for (let k = 0; k < ry; k++) { const X = x0 + i, Y = L.y + r * ry + k; if (X >= 0 && X < SCR.W && Y >= 0 && Y < SCR.H) dots[Y * SCR.W + X] = L.color; }
         x0 += g[0].length + 1; }
     });
     const P = SCR.P, c = document.createElement('canvas'); c.width = SCR.W * P; c.height = SCR.H * P; const x = c.getContext('2d');
