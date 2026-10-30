@@ -174,6 +174,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
 .hstop.live { cursor: pointer; border-color: #ff9416; }
 .board { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; background: #050607; border-radius: 6px; padding: 10px 12px; font-family: var(--display); }
+.stclock { display: block; height: 40px; margin: 10px auto 4px; border-radius: 3px; box-shadow: 0 0 0 2px #2b2b2b; }
 .board .dname { color: var(--signal); font: 600 17px var(--display); letter-spacing: .02em; }
 .board ul { list-style: none; margin: 4px 0 0; padding: 0; }
 .board li { display: flex; justify-content: space-between; font: 500 16px var(--display); color: #f2f2f2; padding: 2px 0; font-variant-numeric: tabular-nums; }
@@ -1314,6 +1315,29 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     });
     return out.sort((p, q) => p.t - q.t);
   }
+  // the station clock (every M3 station): orange dot matrix, hours:minutes and the seconds apart, like the real ones
+  const CLK_FONT = { 0: ['01110', '10001', '10011', '10101', '11001', '10001', '01110'], 1: ['00100', '01100', '00100', '00100', '00100', '00100', '01110'],
+    2: ['01110', '10001', '00001', '00010', '00100', '01000', '11111'], 3: ['11111', '00010', '00100', '00010', '00001', '10001', '01110'],
+    4: ['00010', '00110', '01010', '10010', '11111', '00010', '00010'], 5: ['11111', '10000', '11110', '00001', '00001', '10001', '01110'],
+    6: ['00110', '01000', '10000', '11110', '10001', '10001', '01110'], 7: ['11111', '00001', '00010', '00100', '01000', '01000', '01000'],
+    8: ['01110', '10001', '10001', '01110', '10001', '10001', '01110'], 9: ['01110', '10001', '10001', '01111', '00001', '00010', '01100'],
+    ':': ['0', '0', '1', '0', '1', '0', '0'], ' ': ['00', '00', '00', '00', '00', '00', '00'] };
+  let clkCache = { k: null, url: '' };
+  function stationClock(t) {
+    const s = Math.floor(((t % 86400) + 86400) % 86400), p2 = n => String(n).padStart(2, '0');
+    const txt = p2(Math.floor(s / 3600)) + ':' + p2(Math.floor(s / 60) % 60) + ' ' + p2(s % 60);
+    if (clkCache.k !== txt) {
+      const P = 4, glyphs = [...txt].map(ch => CLK_FONT[ch]), cols = glyphs.reduce((n, g) => n + g[0].length + 1, -1);
+      const c = document.createElement('canvas'); c.width = (cols + 4) * P; c.height = (7 + 4) * P; const x = c.getContext('2d');
+      x.fillStyle = '#1a1612'; x.fillRect(0, 0, c.width, c.height);
+      let col = 2;
+      glyphs.forEach(g => { for (let r = 0; r < 7; r++) for (let i = 0; i < g[0].length; i++) {
+          x.fillStyle = g[r][i] === '1' ? '#ffa31a' : '#3a2a14'; x.beginPath(); x.arc((col + i + 0.5) * P, (r + 2 + 0.5) * P, P * 0.42, 0, 7); x.fill(); }
+        col += g[0].length + 1; });
+      clkCache = { k: txt, url: c.toDataURL() };
+    }
+    return `<img class="stclock" alt="Ora ${txt}" title="Orologio di stazione" src="${clkCache.url}">`;
+  }
   function renderBoard() {
     const [fi, bi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], b = F.boards[bi], t = state.t;
     const soon = F.line === 'M4' ? 30 : 90;          // 'in arrivo' under 1:30 (M3); driverless M4 under 30 s
@@ -1344,7 +1368,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }).join('');
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
       <div><h2>${b.n}</h2><div class="sub">Prossimi treni</div></div></div>
-      <div class="board">${rows}</div>${platformDiagram(F, b, t)}
+      ${F.line === 'M3' ? stationClock(t) : ''}<div class="board">${rows}</div>${platformDiagram(F, b, t)}
       <div class="row"><button id="closeBtn">Close</button></div>`;
     card.hidden = false;
     document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
@@ -2118,6 +2142,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     SIGMAP2.forEach((row, y) => [...row].forEach((ch, i) => { if (ch === '.') return;
       x.fillStyle = ch === 'g' ? '#a0a0a0' : ch === 'G' ? '#dedede' : ch === 'k' ? '#101010' : ch === 'h' ? SIGC2[a][y < 9 ? 'hR' : 'hW'] : SIGC2[a][ch]; x.fillRect(i, y, 1, 1); }));
     SIGURL[a] = c.toDataURL(); });
+  // wrong-way (illegale) signals: the same lamps, the body with square corners (Giovanni)
+  const SIGMAP2I = SIGMAP2.map((row, y) => y === 0 || y === 17 ? 'ggggggggggg' : y === 1 || y === 16 ? 'gGkkkkkkkGg' : row);
+  Object.keys(SIGC2).forEach(a => { const c = document.createElement('canvas'); c.width = 11; c.height = 18; const x = c.getContext('2d');
+    SIGMAP2I.forEach((row, y) => [...row].forEach((ch, i) => { if (ch === '.') return;
+      x.fillStyle = ch === 'g' ? '#a0a0a0' : ch === 'G' ? '#dedede' : ch === 'k' ? '#101010' : ch === 'h' ? SIGC2[a][y < 9 ? 'hR' : 'hW'] : SIGC2[a][ch]; x.fillRect(i, y, 1, 1); }));
+    SIGURL['i' + a] = c.toDataURL(); });
   // shunting signal (manovra, segnale basso, as in Giovanni's picture): three lamps on a low black body;
   // the two bottom ones lit (horizontal) = stop, top and bottom-left lit (vertical) = proceed
   ['sstop', 'sgo'].forEach(a => { const c = document.createElement('canvas'); c.width = 9; c.height = 10; const x = c.getContext('2d');
@@ -2182,7 +2212,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const kx = Math.cos(a[0] * Math.PI / 180), ux = (b[1] - a[1]) * kx, uy = b[0] - a[0], n = Math.hypot(ux, uy) || 1;
       const side = other != null ? outward(other, a, ux / n, uy / n) : 1;
       const off = 7 / 111000 * side, pos = at || [a[0] - ux / n * off, a[1] + uy / n * off / kx];
-      const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL.stop}">${tagHtml(tag)}` }) })
+      const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[illegal ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
         .bindTooltip(tip, { className: 'st', direction: 'top' });
       out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si, stype });
     };
@@ -2200,7 +2230,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     sectionAhead(F).forEach(x => {
       if (x.sg.n != null && ofBlock.has(x.sg.n)) return;
       const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt', tag = tagOf(x.sg.n || (F.engine.net.signals || []).indexOf(x.sg) + 1);
-      const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${shunt ? ' sh' : ''}" alt="" src="${SIGURL[shunt ? 'sstop' : 'stop']}">${tagHtml(tag)}` }) })
+      const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${shunt ? ' sh' : ''}" alt="" src="${SIGURL[shunt ? 'sstop' : x.sg.legal === false ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
         .bindTooltip(tag + ' · ' + (shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ilNote(F, (F.engine.net.signals || []).indexOf(x.sg)) + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
       // where it is on the paths that go over it: it shows the section right behind it (junction, tail, block)
       const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
@@ -2309,7 +2339,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (sg.si != null && F.ag && F.ag.IL && F.ag.IL.controlled(sg.si)) { const il = F.ag.il();
         busy = il.grant[sg.si] == null && !(F.ag.IL.isManual(sg.si) && !il.auto && il.pass[sg.si] > 0); }   // cleared by the player: red + white
       const a = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
-      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${sg.shunt ? ' sh' : ''}" alt="" src="${SIGURL[a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
+      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${sg.shunt ? ' sh' : ''}" alt="" src="${SIGURL[(sg.illegal && !sg.shunt ? 'i' : '') + a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
     });
   }
   // tool: take signals away (they go into the MTL-EDIT export as "removed"; the build then drops them)
