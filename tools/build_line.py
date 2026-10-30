@@ -5,7 +5,7 @@ LINE = os.environ.get('LINE', 'M3')
 CFG = {
   'M3': dict(tracks='osm_m3.txt', main='Linea M3', home='San Donato', far='Comasina',
              HOME_STOP=(45.42893, 9.25585), FAR_STOP=(45.52885, 9.16333),
-             SD_TAILS=[163, 116], COM_TAILS=[183, 179], SD_DEP={1: 143, 2: 120}, PLATS=[1, 2],
+             SD_TAILS=[163, 116], COM_TAILS=[183, 179], COM_TAIL_NO={179: 1, 183: 2}, SD_DEP={1: 143, 2: 120}, PLATS=[1, 2],
              SD_OUT_NODE=165, IN_VIA=[124, 153, 160], DEPOT_IN_VIA=[124, 153, 160], AFTER_ARR=160,
              PULL_OUT=300, PLAT_WAIT=120,
              depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, tail_at_signal=True, nose_stop=True, blocks=True, degraded=True, recovery=[['BRENTA', 'S', (45.4428, 45.4450, 9.2140, 9.2180)], ['CENTRALE FS', 'S', (45.4815, 45.4850, 9.1995, 9.2070)], ['CENTRALE FS', 'N', (45.4815, 45.4850, 9.1995, 9.2070)]], com_choice=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
@@ -688,7 +688,7 @@ def tail_alternative(tl, cp, tr_in, end_in, via_in, t_leave_in, t_plat_in, go_de
         opts[str(t2)] = tmp.segs
     if len(opts) > 1:
         CALTS[tl.k].append({'i': i0, 'n': n, 'tail': cp['tail'], 'opts': opts, 'open': cp['tr']['dep'], 'close': round(cp['t_arr'] - 60),
-                            'arr': round(cp['t_move']), 'leave': round(t_leave_in), 'names': {str(t): j + 1 for j, t in enumerate(COM_TAILS)}})
+                            'arr': round(cp['t_move']), 'leave': round(t_leave_in), 'names': {str(t): CFG.get('COM_TAIL_NO', {}).get(t, j + 1) for j, t in enumerate(COM_TAILS)}})
 
 out = []
 pending = None

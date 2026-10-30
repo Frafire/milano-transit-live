@@ -1,123 +1,15 @@
 {
- "_about": "Itinerari M3 San Donato-Lodi, generati da tools/movements.py. start_signal: numero #A del segnale che li apre. reverse_at: dove il treno inverte la cabina prima di partire contromano.",
+ "_about": "Itinerari M3 su tutta la linea, calcolati da tools/itineraries.py dal tracciato: geometria degli scambi (niente inversioni a U), un treno inverte solo fermo in banchina o in tronchetto (cambio banco). start_signal: #A del segnale che apre il movimento (null = manca un segnale). sense: legale, contromano, va contromano (da legale a contromano), rientra sul legale.",
  "itineraries": [
   {
    "id": "SD-1",
    "group": "SD",
-   "label": "Arrivo sul binario 1",
-   "legal": true,
-   "start_signal": 13,
-   "start": "A13 (f)",
-   "end": "ferma in banchina; poi attende A40",
-   "limit": "normale",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     "ARR",
-     "ARRL",
-     153
-    ],
-    [
-     174,
-     153,
-     160
-    ]
-   ],
-   "switches": [
-    [
-     153,
-     "ARR",
-     174
-    ]
-   ]
-  },
-  {
-   "id": "SD-2",
-   "group": "SD",
-   "label": "Arrivo sul binario 2 con cambio banco (solo ritardi/anomalie)",
-   "legal": true,
-   "start_signal": 13,
-   "start": "A13 (f)",
-   "end": "ferma in banchina b2; poi attende A44/A45",
-   "limit": "15 km/h sulla comunicazione",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     "ARR",
-     "ARRL",
-     153
-    ],
-    [
-     236,
-     153,
-     196
-    ],
-    [
-     225,
-     196,
-     120
-    ]
-   ],
-   "switches": [
-    [
-     153,
-     "ARR",
-     236
-    ],
-    [
-     196,
-     236,
-     225
-    ]
-   ]
-  },
-  {
-   "id": "SD-3",
-   "group": "SD",
-   "label": "Binario 1 -> deposito",
-   "legal": true,
+   "sense": "legale",
+   "frm": "San Donato binario 1 (arrivi)",
+   "to": "San Donato tronchetto 1",
    "start_signal": 40,
-   "start": "A40",
-   "end": "A04 (ingresso deposito)",
-   "limit": "tronchetto/deposito",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": false,
-   "edges": [
-    [
-     174,
-     153,
-     160
-    ],
-    [
-     166,
-     160,
-     40
-    ]
-   ],
-   "switches": [
-    [
-     160,
-     174,
-     166
-    ]
-   ]
-  },
-  {
-   "id": "SD-4",
-   "group": "SD",
-   "label": "Binario 1 -> tronchetto 1",
-   "legal": true,
-   "start_signal": 40,
-   "start": "A40",
-   "end": "ferma al tronchetto 1",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
+   "end_signal": null,
+   "limit_kmh": 15,
    "stops_end": true,
    "edges": [
     [
@@ -170,16 +62,84 @@
    ]
   },
   {
-   "id": "SD-5",
+   "id": "SD-2",
    "group": "SD",
-   "label": "Binario 1 -> tronchetto 2",
-   "legal": true,
+   "sense": "legale",
+   "frm": "San Donato binario 1 (arrivi)",
+   "to": "San Donato tronchetto 1",
    "start_signal": 40,
-   "start": "A40",
-   "end": "ferma al tronchetto 2",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     174,
+     153,
+     160
+    ],
+    [
+     209,
+     160,
+     161
+    ],
+    [
+     235,
+     161,
+     156
+    ],
+    [
+     146,
+     156,
+     155
+    ],
+    [
+     227,
+     155,
+     164
+    ],
+    [
+     171,
+     164,
+     163
+    ]
+   ],
+   "switches": [
+    [
+     160,
+     174,
+     209
+    ],
+    [
+     161,
+     209,
+     235
+    ],
+    [
+     156,
+     235,
+     146
+    ],
+    [
+     155,
+     146,
+     227
+    ],
+    [
+     164,
+     227,
+     171
+    ]
+   ]
+  },
+  {
+   "id": "SD-3",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato binario 1 (arrivi)",
+   "to": "San Donato tronchetto 2",
+   "start_signal": 40,
+   "end_signal": null,
+   "limit_kmh": 15,
    "stops_end": true,
    "edges": [
     [
@@ -242,390 +202,124 @@
    ]
   },
   {
-   "id": "SD-6",
+   "id": "SD-4",
    "group": "SD",
-   "label": "Tronchetto 1 -> binario 3",
-   "legal": true,
-   "start_signal": 8,
-   "start": "A08",
-   "end": "ferma in banchina b3; poi attende A14",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
+   "sense": "legale",
+   "frm": "San Donato binario 1 (arrivi)",
+   "to": "San Donato uscita deposito",
+   "start_signal": 40,
+   "end_signal": null,
+   "limit_kmh": 15,
    "stops_end": true,
    "edges": [
     [
-     171,
-     163,
-     164
+     174,
+     153,
+     160
     ],
     [
-     227,
-     164,
-     155
-    ],
-    [
-     228,
-     155,
-     118
-    ],
-    [
-     234,
-     118,
-     143
-    ],
-    [
-     173,
-     143,
-     165
-    ]
-   ],
-   "switches": [
-    [
-     164,
-     171,
-     227
-    ],
-    [
-     155,
-     227,
-     228
-    ],
-    [
-     118,
-     228,
-     234
-    ],
-    [
-     143,
-     234,
-     173
-    ]
-   ]
-  },
-  {
-   "id": "SD-7",
-   "group": "SD",
-   "label": "Tronchetto 1 -> binario 2",
-   "legal": true,
-   "start_signal": 8,
-   "start": "A08",
-   "end": "ferma in banchina b2; poi attende A45",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     171,
-     163,
-     164
-    ],
-    [
-     172,
-     164,
-     156
-    ],
-    [
-     235,
-     156,
+     209,
+     160,
      161
     ],
     [
-     167,
+     235,
      161,
-     120
+     156
     ],
     [
-     225,
-     120,
-     196
+     146,
+     156,
+     155
+    ],
+    [
+     145,
+     155,
+     117
+    ],
+    [
+     229,
+     117,
+     142
+    ],
+    [
+     132,
+     142,
+     141
     ]
    ],
    "switches": [
     [
-     164,
-     171,
-     172
+     160,
+     174,
+     209
     ],
     [
-     156,
-     172,
+     161,
+     209,
      235
     ],
     [
-     161,
+     156,
      235,
-     167
+     146
     ],
     [
-     120,
-     167,
-     225
-    ]
-   ]
-  },
-  {
-   "id": "SD-8",
-   "group": "SD",
-   "label": "Tronchetto 2 -> binario 3",
-   "legal": true,
-   "start_signal": 7,
-   "start": "A07",
-   "end": "ferma in banchina b3; poi attende A14",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     110,
-     116,
-     117
+     155,
+     146,
+     145
     ],
-    [
-     111,
-     117,
-     118
-    ],
-    [
-     234,
-     118,
-     143
-    ],
-    [
-     173,
-     143,
-     165
-    ]
-   ],
-   "switches": [
     [
      117,
-     110,
-     111
-    ],
-    [
-     118,
-     111,
-     234
-    ],
-    [
-     143,
-     234,
-     173
-    ]
-   ]
-  },
-  {
-   "id": "SD-9",
-   "group": "SD",
-   "label": "Tronchetto 2 -> binario 2",
-   "legal": true,
-   "start_signal": 7,
-   "start": "A07",
-   "end": "ferma in banchina b2; poi attende A45",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     110,
-     116,
-     117
-    ],
-    [
-     111,
-     117,
-     118
-    ],
-    [
-     112,
-     118,
-     119
-    ],
-    [
-     113,
-     119,
-     120
-    ],
-    [
-     225,
-     120,
-     196
-    ]
-   ],
-   "switches": [
-    [
-     117,
-     110,
-     111
-    ],
-    [
-     118,
-     111,
-     112
-    ],
-    [
-     120,
-     113,
-     225
-    ]
-   ]
-  },
-  {
-   "id": "SD-10",
-   "group": "SD",
-   "label": "Deposito -> binario 3",
-   "legal": true,
-   "start_signal": 6,
-   "start": "A06",
-   "end": "ferma in banchina b3; poi attende A14",
-   "limit": "deposito/15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     132,
-     141,
-     142
-    ],
-    [
-     133,
-     142,
-     143
-    ],
-    [
-     173,
-     143,
-     165
-    ]
-   ],
-   "switches": [
-    [
-     142,
-     132,
-     133
-    ],
-    [
-     143,
-     133,
-     173
-    ]
-   ]
-  },
-  {
-   "id": "SD-11",
-   "group": "SD",
-   "label": "Deposito -> binario 2 (mai visto, possibile)",
-   "legal": true,
-   "start_signal": 6,
-   "start": "A06",
-   "end": "ferma in banchina b2; poi attende A45",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     132,
-     141,
-     142
-    ],
-    [
-     229,
-     142,
-     117
-    ],
-    [
-     111,
-     117,
-     118
-    ],
-    [
-     112,
-     118,
-     119
-    ],
-    [
-     113,
-     119,
-     120
-    ],
-    [
-     225,
-     120,
-     196
-    ]
-   ],
-   "switches": [
-    [
-     142,
-     132,
+     145,
      229
     ],
     [
-     117,
+     142,
      229,
-     111
-    ],
-    [
-     118,
-     111,
-     112
-    ],
-    [
-     120,
-     113,
-     225
+     132
     ]
    ]
   },
   {
-   "id": "SD-12",
+   "id": "SD-5",
    "group": "SD",
-   "label": "Binario 3 -> linea Rogoredo (partenza normale)",
-   "legal": true,
-   "start_signal": 14,
-   "start": "A14 (e)",
-   "end": "A290 (prossimo segnale in linea)",
-   "limit": "normale",
-   "reverse_at": null,
-   "no_reverse": false,
+   "sense": "legale",
+   "frm": "San Donato binario 1 (arrivi)",
+   "to": "binario di servizio 166",
+   "start_signal": 40,
+   "end_signal": 4,
+   "limit_kmh": null,
    "stops_end": false,
    "edges": [
     [
-     173,
-     143,
-     165
+     174,
+     153,
+     160
     ],
     [
-     "DEP",
-     165,
-     "DEPL"
+     166,
+     160,
+     40
     ]
    ],
    "switches": [
     [
-     165,
-     173,
-     "DEP"
+     160,
+     174,
+     166
     ]
    ]
   },
   {
-   "id": "SD-13",
+   "id": "SD-6",
    "group": "SD",
-   "label": "Binario 2 -> linea Rogoredo (partenza normale)",
-   "legal": true,
+   "sense": "legale",
+   "frm": "San Donato binario 2",
+   "to": "binario verso Comasina",
    "start_signal": 45,
-   "start": "A45 (e)",
-   "end": "A290 (prossimo segnale in linea)",
-   "limit": "normale",
-   "reverse_at": null,
-   "no_reverse": false,
+   "end_signal": 290,
+   "limit_kmh": null,
    "stops_end": false,
    "edges": [
     [
@@ -639,9 +333,9 @@
      165
     ],
     [
-     "DEP",
+     175,
      165,
-     "DEPL"
+     137
     ]
    ],
    "switches": [
@@ -653,54 +347,320 @@
     [
      165,
      226,
-     "DEP"
+     175
     ]
    ]
   },
   {
-   "id": "SD-14",
+   "id": "SD-7",
    "group": "SD",
-   "label": "Binario 1 -> linea Rogoredo (ILLEGALE, navetta: possibile ma congestiona il tunnel)",
-   "legal": false,
-   "start_signal": 349,
-   "start": "A349 (d, rosso)",
-   "end": "primo segnale in linea contromano (A310 a Rogoredo)",
-   "limit": "15 km/h sulla comunicazione se usata",
-   "reverse_at": "binario 1",
-   "no_reverse": false,
-   "stops_end": false,
+   "sense": "legale",
+   "frm": "San Donato binario 3",
+   "to": "San Donato tronchetto 1",
+   "start_signal": 41,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
    "edges": [
     [
-     174,
-     160,
-     153
+     173,
+     165,
+     143
     ],
     [
-     "ARR",
-     153,
-     "ARRL"
+     234,
+     143,
+     118
+    ],
+    [
+     228,
+     118,
+     155
+    ],
+    [
+     227,
+     155,
+     164
+    ],
+    [
+     171,
+     164,
+     163
     ]
    ],
    "switches": [
     [
-     153,
-     174,
-     "ARR"
+     143,
+     173,
+     234
+    ],
+    [
+     118,
+     234,
+     228
+    ],
+    [
+     155,
+     228,
+     227
+    ],
+    [
+     164,
+     227,
+     171
     ]
    ]
   },
   {
-   "id": "SD-15",
+   "id": "SD-8",
    "group": "SD",
-   "label": "Binario 3 guasto -> deposito (ILLEGALE)",
-   "legal": false,
+   "sense": "legale",
+   "frm": "San Donato binario 3",
+   "to": "San Donato tronchetto 2",
    "start_signal": 41,
-   "start": "A41",
-   "end": "A06 lato deposito",
-   "limit": "deposito/15 km/h",
-   "reverse_at": "binario 3",
-   "no_reverse": false,
-   "stops_end": false,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     173,
+     165,
+     143
+    ],
+    [
+     234,
+     143,
+     118
+    ],
+    [
+     228,
+     118,
+     155
+    ],
+    [
+     145,
+     155,
+     117
+    ],
+    [
+     110,
+     117,
+     116
+    ]
+   ],
+   "switches": [
+    [
+     143,
+     173,
+     234
+    ],
+    [
+     118,
+     234,
+     228
+    ],
+    [
+     155,
+     228,
+     145
+    ],
+    [
+     117,
+     145,
+     110
+    ]
+   ]
+  },
+  {
+   "id": "SD-9",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato binario 3",
+   "to": "San Donato tronchetto 2",
+   "start_signal": 41,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     173,
+     165,
+     143
+    ],
+    [
+     234,
+     143,
+     118
+    ],
+    [
+     111,
+     118,
+     117
+    ],
+    [
+     110,
+     117,
+     116
+    ]
+   ],
+   "switches": [
+    [
+     143,
+     173,
+     234
+    ],
+    [
+     118,
+     234,
+     111
+    ],
+    [
+     117,
+     111,
+     110
+    ]
+   ]
+  },
+  {
+   "id": "SD-10",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato binario 3",
+   "to": "San Donato uscita deposito",
+   "start_signal": 41,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     173,
+     165,
+     143
+    ],
+    [
+     234,
+     143,
+     118
+    ],
+    [
+     228,
+     118,
+     155
+    ],
+    [
+     145,
+     155,
+     117
+    ],
+    [
+     229,
+     117,
+     142
+    ],
+    [
+     132,
+     142,
+     141
+    ]
+   ],
+   "switches": [
+    [
+     143,
+     173,
+     234
+    ],
+    [
+     118,
+     234,
+     228
+    ],
+    [
+     155,
+     228,
+     145
+    ],
+    [
+     117,
+     145,
+     229
+    ],
+    [
+     142,
+     229,
+     132
+    ]
+   ]
+  },
+  {
+   "id": "SD-11",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato binario 3",
+   "to": "San Donato uscita deposito",
+   "start_signal": 41,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     173,
+     165,
+     143
+    ],
+    [
+     234,
+     143,
+     118
+    ],
+    [
+     111,
+     118,
+     117
+    ],
+    [
+     229,
+     117,
+     142
+    ],
+    [
+     132,
+     142,
+     141
+    ]
+   ],
+   "switches": [
+    [
+     143,
+     173,
+     234
+    ],
+    [
+     118,
+     234,
+     111
+    ],
+    [
+     117,
+     111,
+     229
+    ],
+    [
+     142,
+     229,
+     132
+    ]
+   ]
+  },
+  {
+   "id": "SD-12",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato binario 3",
+   "to": "San Donato uscita deposito",
+   "start_signal": 41,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
    "edges": [
     [
      173,
@@ -732,17 +692,1670 @@
    ]
   },
   {
+   "id": "SD-13",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato binario 3",
+   "to": "binario verso Comasina",
+   "start_signal": 14,
+   "end_signal": 290,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     173,
+     143,
+     165
+    ],
+    [
+     175,
+     165,
+     137
+    ]
+   ],
+   "switches": [
+    [
+     165,
+     173,
+     175
+    ]
+   ]
+  },
+  {
+   "id": "SD-14",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato tronchetto 1",
+   "to": "San Donato binario 2",
+   "start_signal": 8,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     171,
+     163,
+     164
+    ],
+    [
+     227,
+     164,
+     155
+    ],
+    [
+     228,
+     155,
+     118
+    ],
+    [
+     112,
+     118,
+     119
+    ],
+    [
+     113,
+     119,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     164,
+     171,
+     227
+    ],
+    [
+     155,
+     227,
+     228
+    ],
+    [
+     118,
+     228,
+     112
+    ],
+    [
+     120,
+     113,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-15",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato tronchetto 1",
+   "to": "San Donato binario 2",
+   "start_signal": 8,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     171,
+     163,
+     164
+    ],
+    [
+     227,
+     164,
+     155
+    ],
+    [
+     146,
+     155,
+     156
+    ],
+    [
+     235,
+     156,
+     161
+    ],
+    [
+     167,
+     161,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     164,
+     171,
+     227
+    ],
+    [
+     155,
+     227,
+     146
+    ],
+    [
+     156,
+     146,
+     235
+    ],
+    [
+     161,
+     235,
+     167
+    ],
+    [
+     120,
+     167,
+     225
+    ]
+   ]
+  },
+  {
    "id": "SD-16",
    "group": "SD",
-   "label": "Binario 2 guasto -> deposito (ILLEGALE)",
-   "legal": false,
-   "start_signal": 44,
-   "start": "A44",
-   "end": "A06 lato deposito",
-   "limit": "15 km/h",
-   "reverse_at": "binario 2",
-   "no_reverse": false,
+   "sense": "legale",
+   "frm": "San Donato tronchetto 1",
+   "to": "San Donato binario 2",
+   "start_signal": 8,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     171,
+     163,
+     164
+    ],
+    [
+     172,
+     164,
+     156
+    ],
+    [
+     235,
+     156,
+     161
+    ],
+    [
+     167,
+     161,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     164,
+     171,
+     172
+    ],
+    [
+     156,
+     172,
+     235
+    ],
+    [
+     161,
+     235,
+     167
+    ],
+    [
+     120,
+     167,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-17",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato tronchetto 1",
+   "to": "San Donato binario 3",
+   "start_signal": 8,
+   "end_signal": 14,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     171,
+     163,
+     164
+    ],
+    [
+     227,
+     164,
+     155
+    ],
+    [
+     228,
+     155,
+     118
+    ],
+    [
+     234,
+     118,
+     143
+    ],
+    [
+     173,
+     143,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     164,
+     171,
+     227
+    ],
+    [
+     155,
+     227,
+     228
+    ],
+    [
+     118,
+     228,
+     234
+    ],
+    [
+     143,
+     234,
+     173
+    ]
+   ]
+  },
+  {
+   "id": "SD-18",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato tronchetto 2",
+   "to": "San Donato binario 2",
+   "start_signal": 7,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     110,
+     116,
+     117
+    ],
+    [
+     145,
+     117,
+     155
+    ],
+    [
+     228,
+     155,
+     118
+    ],
+    [
+     112,
+     118,
+     119
+    ],
+    [
+     113,
+     119,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     117,
+     110,
+     145
+    ],
+    [
+     155,
+     145,
+     228
+    ],
+    [
+     118,
+     228,
+     112
+    ],
+    [
+     120,
+     113,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-19",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato tronchetto 2",
+   "to": "San Donato binario 2",
+   "start_signal": 7,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     110,
+     116,
+     117
+    ],
+    [
+     145,
+     117,
+     155
+    ],
+    [
+     146,
+     155,
+     156
+    ],
+    [
+     235,
+     156,
+     161
+    ],
+    [
+     167,
+     161,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     117,
+     110,
+     145
+    ],
+    [
+     155,
+     145,
+     146
+    ],
+    [
+     156,
+     146,
+     235
+    ],
+    [
+     161,
+     235,
+     167
+    ],
+    [
+     120,
+     167,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-20",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato tronchetto 2",
+   "to": "San Donato binario 2",
+   "start_signal": 7,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     110,
+     116,
+     117
+    ],
+    [
+     111,
+     117,
+     118
+    ],
+    [
+     112,
+     118,
+     119
+    ],
+    [
+     113,
+     119,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     117,
+     110,
+     111
+    ],
+    [
+     118,
+     111,
+     112
+    ],
+    [
+     120,
+     113,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-21",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato tronchetto 2",
+   "to": "San Donato binario 3",
+   "start_signal": 7,
+   "end_signal": 14,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     110,
+     116,
+     117
+    ],
+    [
+     145,
+     117,
+     155
+    ],
+    [
+     228,
+     155,
+     118
+    ],
+    [
+     234,
+     118,
+     143
+    ],
+    [
+     173,
+     143,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     117,
+     110,
+     145
+    ],
+    [
+     155,
+     145,
+     228
+    ],
+    [
+     118,
+     228,
+     234
+    ],
+    [
+     143,
+     234,
+     173
+    ]
+   ]
+  },
+  {
+   "id": "SD-22",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato tronchetto 2",
+   "to": "San Donato binario 3",
+   "start_signal": 7,
+   "end_signal": 14,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     110,
+     116,
+     117
+    ],
+    [
+     111,
+     117,
+     118
+    ],
+    [
+     234,
+     118,
+     143
+    ],
+    [
+     173,
+     143,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     117,
+     110,
+     111
+    ],
+    [
+     118,
+     111,
+     234
+    ],
+    [
+     143,
+     234,
+     173
+    ]
+   ]
+  },
+  {
+   "id": "SD-23",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato uscita deposito",
+   "to": "San Donato binario 2",
+   "start_signal": 6,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     132,
+     141,
+     142
+    ],
+    [
+     229,
+     142,
+     117
+    ],
+    [
+     145,
+     117,
+     155
+    ],
+    [
+     228,
+     155,
+     118
+    ],
+    [
+     112,
+     118,
+     119
+    ],
+    [
+     113,
+     119,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     142,
+     132,
+     229
+    ],
+    [
+     117,
+     229,
+     145
+    ],
+    [
+     155,
+     145,
+     228
+    ],
+    [
+     118,
+     228,
+     112
+    ],
+    [
+     120,
+     113,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-24",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato uscita deposito",
+   "to": "San Donato binario 2",
+   "start_signal": 6,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     132,
+     141,
+     142
+    ],
+    [
+     229,
+     142,
+     117
+    ],
+    [
+     145,
+     117,
+     155
+    ],
+    [
+     146,
+     155,
+     156
+    ],
+    [
+     235,
+     156,
+     161
+    ],
+    [
+     167,
+     161,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     142,
+     132,
+     229
+    ],
+    [
+     117,
+     229,
+     145
+    ],
+    [
+     155,
+     145,
+     146
+    ],
+    [
+     156,
+     146,
+     235
+    ],
+    [
+     161,
+     235,
+     167
+    ],
+    [
+     120,
+     167,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-25",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato uscita deposito",
+   "to": "San Donato binario 2",
+   "start_signal": 6,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     132,
+     141,
+     142
+    ],
+    [
+     229,
+     142,
+     117
+    ],
+    [
+     111,
+     117,
+     118
+    ],
+    [
+     112,
+     118,
+     119
+    ],
+    [
+     113,
+     119,
+     120
+    ],
+    [
+     225,
+     120,
+     196
+    ]
+   ],
+   "switches": [
+    [
+     142,
+     132,
+     229
+    ],
+    [
+     117,
+     229,
+     111
+    ],
+    [
+     118,
+     111,
+     112
+    ],
+    [
+     120,
+     113,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-26",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato uscita deposito",
+   "to": "San Donato binario 3",
+   "start_signal": 6,
+   "end_signal": 14,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     132,
+     141,
+     142
+    ],
+    [
+     229,
+     142,
+     117
+    ],
+    [
+     145,
+     117,
+     155
+    ],
+    [
+     228,
+     155,
+     118
+    ],
+    [
+     234,
+     118,
+     143
+    ],
+    [
+     173,
+     143,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     142,
+     132,
+     229
+    ],
+    [
+     117,
+     229,
+     145
+    ],
+    [
+     155,
+     145,
+     228
+    ],
+    [
+     118,
+     228,
+     234
+    ],
+    [
+     143,
+     234,
+     173
+    ]
+   ]
+  },
+  {
+   "id": "SD-27",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato uscita deposito",
+   "to": "San Donato binario 3",
+   "start_signal": 6,
+   "end_signal": 14,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     132,
+     141,
+     142
+    ],
+    [
+     229,
+     142,
+     117
+    ],
+    [
+     111,
+     117,
+     118
+    ],
+    [
+     234,
+     118,
+     143
+    ],
+    [
+     173,
+     143,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     142,
+     132,
+     229
+    ],
+    [
+     117,
+     229,
+     111
+    ],
+    [
+     118,
+     111,
+     234
+    ],
+    [
+     143,
+     234,
+     173
+    ]
+   ]
+  },
+  {
+   "id": "SD-28",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "San Donato uscita deposito",
+   "to": "San Donato binario 3",
+   "start_signal": 6,
+   "end_signal": 14,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     132,
+     141,
+     142
+    ],
+    [
+     133,
+     142,
+     143
+    ],
+    [
+     173,
+     143,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     142,
+     132,
+     133
+    ],
+    [
+     143,
+     133,
+     173
+    ]
+   ]
+  },
+  {
+   "id": "SD-29",
+   "group": "SD",
+   "sense": "legale",
+   "frm": "binario verso San Donato",
+   "to": "San Donato binario 1 (arrivi)",
+   "start_signal": 13,
+   "end_signal": 40,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     142,
+     136,
+     153
+    ],
+    [
+     174,
+     153,
+     160
+    ]
+   ],
+   "switches": [
+    [
+     153,
+     142,
+     174
+    ]
+   ]
+  },
+  {
+   "id": "SD-30",
+   "group": "SD",
+   "sense": "va contromano",
+   "frm": "San Donato binario 2",
+   "to": "binario verso San Donato",
+   "start_signal": 45,
+   "end_signal": 301,
+   "limit_kmh": 15,
    "stops_end": false,
+   "edges": [
+    [
+     225,
+     120,
+     196
+    ],
+    [
+     236,
+     196,
+     153
+    ],
+    [
+     142,
+     153,
+     136
+    ]
+   ],
+   "switches": [
+    [
+     196,
+     225,
+     236
+    ],
+    [
+     153,
+     236,
+     142
+    ]
+   ]
+  },
+  {
+   "id": "SD-31",
+   "group": "SD",
+   "sense": "va contromano",
+   "frm": "binario verso San Donato",
+   "to": "San Donato binario 2",
+   "start_signal": 13,
+   "end_signal": 44,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     142,
+     136,
+     153
+    ],
+    [
+     236,
+     153,
+     196
+    ],
+    [
+     225,
+     196,
+     120
+    ]
+   ],
+   "switches": [
+    [
+     153,
+     142,
+     236
+    ],
+    [
+     196,
+     236,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-32",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato binario 1 (arrivi)",
+   "to": "binario verso San Donato",
+   "start_signal": 349,
+   "end_signal": 301,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     174,
+     160,
+     153
+    ],
+    [
+     142,
+     153,
+     136
+    ]
+   ],
+   "switches": [
+    [
+     153,
+     174,
+     142
+    ]
+   ]
+  },
+  {
+   "id": "SD-33",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato binario 2",
+   "to": "San Donato tronchetto 1",
+   "start_signal": 44,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     167,
+     120,
+     161
+    ],
+    [
+     235,
+     161,
+     156
+    ],
+    [
+     172,
+     156,
+     164
+    ],
+    [
+     171,
+     164,
+     163
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     167
+    ],
+    [
+     161,
+     167,
+     235
+    ],
+    [
+     156,
+     235,
+     172
+    ],
+    [
+     164,
+     172,
+     171
+    ]
+   ]
+  },
+  {
+   "id": "SD-34",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato binario 2",
+   "to": "San Donato tronchetto 1",
+   "start_signal": 44,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     167,
+     120,
+     161
+    ],
+    [
+     235,
+     161,
+     156
+    ],
+    [
+     146,
+     156,
+     155
+    ],
+    [
+     227,
+     155,
+     164
+    ],
+    [
+     171,
+     164,
+     163
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     167
+    ],
+    [
+     161,
+     167,
+     235
+    ],
+    [
+     156,
+     235,
+     146
+    ],
+    [
+     155,
+     146,
+     227
+    ],
+    [
+     164,
+     227,
+     171
+    ]
+   ]
+  },
+  {
+   "id": "SD-35",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato binario 2",
+   "to": "San Donato tronchetto 1",
+   "start_signal": 44,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     113,
+     120,
+     119
+    ],
+    [
+     112,
+     119,
+     118
+    ],
+    [
+     228,
+     118,
+     155
+    ],
+    [
+     227,
+     155,
+     164
+    ],
+    [
+     171,
+     164,
+     163
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     113
+    ],
+    [
+     118,
+     112,
+     228
+    ],
+    [
+     155,
+     228,
+     227
+    ],
+    [
+     164,
+     227,
+     171
+    ]
+   ]
+  },
+  {
+   "id": "SD-36",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato binario 2",
+   "to": "San Donato tronchetto 2",
+   "start_signal": 44,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     167,
+     120,
+     161
+    ],
+    [
+     235,
+     161,
+     156
+    ],
+    [
+     146,
+     156,
+     155
+    ],
+    [
+     145,
+     155,
+     117
+    ],
+    [
+     110,
+     117,
+     116
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     167
+    ],
+    [
+     161,
+     167,
+     235
+    ],
+    [
+     156,
+     235,
+     146
+    ],
+    [
+     155,
+     146,
+     145
+    ],
+    [
+     117,
+     145,
+     110
+    ]
+   ]
+  },
+  {
+   "id": "SD-37",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato binario 2",
+   "to": "San Donato tronchetto 2",
+   "start_signal": 44,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     113,
+     120,
+     119
+    ],
+    [
+     112,
+     119,
+     118
+    ],
+    [
+     228,
+     118,
+     155
+    ],
+    [
+     145,
+     155,
+     117
+    ],
+    [
+     110,
+     117,
+     116
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     113
+    ],
+    [
+     118,
+     112,
+     228
+    ],
+    [
+     155,
+     228,
+     145
+    ],
+    [
+     117,
+     145,
+     110
+    ]
+   ]
+  },
+  {
+   "id": "SD-38",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato binario 2",
+   "to": "San Donato tronchetto 2",
+   "start_signal": 44,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     113,
+     120,
+     119
+    ],
+    [
+     112,
+     119,
+     118
+    ],
+    [
+     111,
+     118,
+     117
+    ],
+    [
+     110,
+     117,
+     116
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     113
+    ],
+    [
+     118,
+     112,
+     111
+    ],
+    [
+     117,
+     111,
+     110
+    ]
+   ]
+  },
+  {
+   "id": "SD-39",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato binario 2",
+   "to": "San Donato uscita deposito",
+   "start_signal": 44,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     167,
+     120,
+     161
+    ],
+    [
+     235,
+     161,
+     156
+    ],
+    [
+     146,
+     156,
+     155
+    ],
+    [
+     145,
+     155,
+     117
+    ],
+    [
+     229,
+     117,
+     142
+    ],
+    [
+     132,
+     142,
+     141
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     167
+    ],
+    [
+     161,
+     167,
+     235
+    ],
+    [
+     156,
+     235,
+     146
+    ],
+    [
+     155,
+     146,
+     145
+    ],
+    [
+     117,
+     145,
+     229
+    ],
+    [
+     142,
+     229,
+     132
+    ]
+   ]
+  },
+  {
+   "id": "SD-40",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato binario 2",
+   "to": "San Donato uscita deposito",
+   "start_signal": 44,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     225,
+     196,
+     120
+    ],
+    [
+     113,
+     120,
+     119
+    ],
+    [
+     112,
+     119,
+     118
+    ],
+    [
+     228,
+     118,
+     155
+    ],
+    [
+     145,
+     155,
+     117
+    ],
+    [
+     229,
+     117,
+     142
+    ],
+    [
+     132,
+     142,
+     141
+    ]
+   ],
+   "switches": [
+    [
+     120,
+     225,
+     113
+    ],
+    [
+     118,
+     112,
+     228
+    ],
+    [
+     155,
+     228,
+     145
+    ],
+    [
+     117,
+     145,
+     229
+    ],
+    [
+     142,
+     229,
+     132
+    ]
+   ]
+  },
+  {
+   "id": "SD-41",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato binario 2",
+   "to": "San Donato uscita deposito",
+   "start_signal": 44,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
    "edges": [
     [
      225,
@@ -799,355 +2412,394 @@
    ]
   },
   {
-   "id": "SD-17",
+   "id": "SD-42",
    "group": "SD",
-   "label": "Binario 3 -> tronchetto 1 (cambio banco, poi inverte)",
-   "legal": false,
-   "start_signal": 41,
-   "start": "A41",
-   "end": "ferma al tronchetto 1",
-   "limit": "15 km/h",
-   "reverse_at": "binario 3",
-   "no_reverse": false,
+   "sense": "contromano",
+   "frm": "San Donato tronchetto 1",
+   "to": "San Donato binario 1 (arrivi)",
+   "start_signal": 8,
+   "end_signal": 349,
+   "limit_kmh": 15,
    "stops_end": true,
    "edges": [
     [
-     173,
-     165,
-     143
+     171,
+     163,
+     164
     ],
     [
-     234,
-     143,
-     118
-    ],
-    [
-     228,
-     118,
+     227,
+     164,
      155
     ],
     [
-     227,
+     146,
      155,
-     164
+     156
     ],
     [
-     171,
-     164,
-     163
+     235,
+     156,
+     161
+    ],
+    [
+     209,
+     161,
+     160
+    ],
+    [
+     174,
+     160,
+     153
     ]
    ],
    "switches": [
     [
-     143,
-     173,
-     234
-    ],
-    [
-     118,
-     234,
-     228
-    ],
-    [
-     155,
-     228,
+     164,
+     171,
      227
     ],
     [
-     164,
+     155,
      227,
-     171
+     146
+    ],
+    [
+     156,
+     146,
+     235
+    ],
+    [
+     161,
+     235,
+     209
+    ],
+    [
+     160,
+     209,
+     174
     ]
    ]
   },
   {
-   "id": "SD-18",
+   "id": "SD-43",
    "group": "SD",
-   "label": "Binario 3 -> tronchetto 2 (cambio banco, poi inverte)",
-   "legal": false,
-   "start_signal": 41,
-   "start": "A41",
-   "end": "ferma al tronchetto 2",
-   "limit": "15 km/h",
-   "reverse_at": "binario 3",
-   "no_reverse": false,
+   "sense": "contromano",
+   "frm": "San Donato tronchetto 1",
+   "to": "San Donato binario 1 (arrivi)",
+   "start_signal": 8,
+   "end_signal": 349,
+   "limit_kmh": 15,
    "stops_end": true,
    "edges": [
+    [
+     171,
+     163,
+     164
+    ],
+    [
+     172,
+     164,
+     156
+    ],
+    [
+     235,
+     156,
+     161
+    ],
+    [
+     209,
+     161,
+     160
+    ],
+    [
+     174,
+     160,
+     153
+    ]
+   ],
+   "switches": [
+    [
+     164,
+     171,
+     172
+    ],
+    [
+     156,
+     172,
+     235
+    ],
+    [
+     161,
+     235,
+     209
+    ],
+    [
+     160,
+     209,
+     174
+    ]
+   ]
+  },
+  {
+   "id": "SD-44",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato tronchetto 2",
+   "to": "San Donato binario 1 (arrivi)",
+   "start_signal": 7,
+   "end_signal": 349,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     110,
+     116,
+     117
+    ],
+    [
+     145,
+     117,
+     155
+    ],
+    [
+     146,
+     155,
+     156
+    ],
+    [
+     235,
+     156,
+     161
+    ],
+    [
+     209,
+     161,
+     160
+    ],
+    [
+     174,
+     160,
+     153
+    ]
+   ],
+   "switches": [
+    [
+     117,
+     110,
+     145
+    ],
+    [
+     155,
+     145,
+     146
+    ],
+    [
+     156,
+     146,
+     235
+    ],
+    [
+     161,
+     235,
+     209
+    ],
+    [
+     160,
+     209,
+     174
+    ]
+   ]
+  },
+  {
+   "id": "SD-45",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "San Donato uscita deposito",
+   "to": "San Donato binario 1 (arrivi)",
+   "start_signal": 6,
+   "end_signal": 349,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     132,
+     141,
+     142
+    ],
+    [
+     229,
+     142,
+     117
+    ],
+    [
+     145,
+     117,
+     155
+    ],
+    [
+     146,
+     155,
+     156
+    ],
+    [
+     235,
+     156,
+     161
+    ],
+    [
+     209,
+     161,
+     160
+    ],
+    [
+     174,
+     160,
+     153
+    ]
+   ],
+   "switches": [
+    [
+     142,
+     132,
+     229
+    ],
+    [
+     117,
+     229,
+     145
+    ],
+    [
+     155,
+     145,
+     146
+    ],
+    [
+     156,
+     146,
+     235
+    ],
+    [
+     161,
+     235,
+     209
+    ],
+    [
+     160,
+     209,
+     174
+    ]
+   ]
+  },
+  {
+   "id": "SD-46",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "binario di servizio 166",
+   "to": "San Donato binario 1 (arrivi)",
+   "start_signal": null,
+   "end_signal": 349,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     166,
+     40,
+     160
+    ],
+    [
+     174,
+     160,
+     153
+    ]
+   ],
+   "switches": [
+    [
+     160,
+     166,
+     174
+    ]
+   ]
+  },
+  {
+   "id": "SD-47",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "binario verso Comasina",
+   "to": "San Donato binario 2",
+   "start_signal": null,
+   "end_signal": 44,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     175,
+     137,
+     165
+    ],
+    [
+     226,
+     165,
+     196
+    ],
+    [
+     225,
+     196,
+     120
+    ]
+   ],
+   "switches": [
+    [
+     165,
+     175,
+     226
+    ],
+    [
+     196,
+     226,
+     225
+    ]
+   ]
+  },
+  {
+   "id": "SD-48",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "binario verso Comasina",
+   "to": "San Donato binario 3",
+   "start_signal": null,
+   "end_signal": 41,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     175,
+     137,
+     165
+    ],
     [
      173,
      165,
      143
-    ],
-    [
-     234,
-     143,
-     118
-    ],
-    [
-     111,
-     118,
-     117
-    ],
-    [
-     110,
-     117,
-     116
     ]
    ],
    "switches": [
     [
-     143,
-     173,
-     234
-    ],
-    [
-     118,
-     234,
-     111
-    ],
-    [
-     117,
-     111,
-     110
-    ]
-   ]
-  },
-  {
-   "id": "SD-19",
-   "group": "SD",
-   "label": "Binario 2 -> tronchetto 1 (cambio banco, poi inverte)",
-   "legal": false,
-   "start_signal": 44,
-   "start": "A44",
-   "end": "ferma al tronchetto 1",
-   "limit": "15 km/h",
-   "reverse_at": "binario 2",
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     225,
-     196,
-     120
-    ],
-    [
-     167,
-     120,
-     161
-    ],
-    [
-     235,
-     161,
-     156
-    ],
-    [
-     172,
-     156,
-     164
-    ],
-    [
-     171,
-     164,
-     163
-    ]
-   ],
-   "switches": [
-    [
-     120,
-     225,
-     167
-    ],
-    [
-     161,
-     167,
-     235
-    ],
-    [
-     156,
-     235,
-     172
-    ],
-    [
-     164,
-     172,
-     171
-    ]
-   ]
-  },
-  {
-   "id": "SD-20",
-   "group": "SD",
-   "label": "Binario 2 -> tronchetto 2 (cambio banco, poi inverte)",
-   "legal": false,
-   "start_signal": 44,
-   "start": "A44",
-   "end": "ferma al tronchetto 2",
-   "limit": "15 km/h",
-   "reverse_at": "binario 2",
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     225,
-     196,
-     120
-    ],
-    [
-     113,
-     120,
-     119
-    ],
-    [
-     112,
-     119,
-     118
-    ],
-    [
-     111,
-     118,
-     117
-    ],
-    [
-     110,
-     117,
-     116
-    ]
-   ],
-   "switches": [
-    [
-     120,
-     225,
-     113
-    ],
-    [
-     118,
-     112,
-     111
-    ],
-    [
-     117,
-     111,
-     110
-    ]
-   ]
-  },
-  {
-   "id": "RG-1",
-   "group": "ROG",
-   "label": "Da SD sul binario nord, dritto alla banchina nord (normale)",
-   "legal": true,
-   "start_signal": 290,
-   "start": "A290 (b)",
-   "end": "ferma in banchina nord; poi A204",
-   "limit": "normale",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     175,
      165,
-     137
-    ],
-    [
-     176,
-     137,
-     166
-    ]
-   ],
-   "switches": [
-    [
-     137,
      175,
-     176
+     173
     ]
    ]
   },
   {
-   "id": "RG-3",
+   "id": "ROG-1",
    "group": "ROG",
-   "label": "Da SD sul binario sud (contromano), dritto alla banchina sud",
-   "legal": false,
-   "start_signal": 301,
-   "start": "A301 (b illegale)",
-   "end": "ferma in banchina sud; poi A348",
-   "limit": "normale (contromano)",
-   "reverse_at": "binario 1 di San Donato (SD-14)",
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     142,
-     153,
-     136
-    ],
-    [
-     141,
-     136,
-     152
-    ]
-   ],
-   "switches": [
-    [
-     136,
-     142,
-     141
-    ]
-   ]
-  },
-  {
-   "id": "RG-4",
-   "group": "ROG",
-   "label": "Da SD sul binario sud (contromano), incrocio -> banchina nord",
-   "legal": true,
-   "start_signal": 301,
-   "start": "A301 (b illegale)",
-   "end": "ferma in banchina nord; poi A204",
-   "limit": "15 km/h",
-   "reverse_at": "binario 1 di San Donato (SD-14)",
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     142,
-     153,
-     136
-    ],
-    [
-     127,
-     136,
-     137
-    ],
-    [
-     176,
-     137,
-     166
-    ]
-   ],
-   "switches": [
-    [
-     136,
-     142,
-     127
-    ],
-    [
-     137,
-     127,
-     176
-    ]
-   ]
-  },
-  {
-   "id": "RG-5",
-   "group": "ROG",
-   "label": "Dalla banchina sud verso SD, dritto sul binario sud (normale)",
-   "legal": true,
+   "sense": "legale",
+   "frm": "banchina Rogoredo FS (bin. verso San Donato)",
+   "to": "binario verso San Donato",
    "start_signal": 285,
-   "start": "A285 (d)",
-   "end": "A13 (entrata SD)",
-   "limit": "normale",
-   "reverse_at": null,
-   "no_reverse": false,
+   "end_signal": 13,
+   "limit_kmh": null,
    "stops_end": false,
    "edges": [
     [
@@ -1170,48 +2822,44 @@
    ]
   },
   {
-   "id": "RG-7",
+   "id": "ROG-2",
    "group": "ROG",
-   "label": "Dalla banchina nord verso SD, dritto sul binario nord (contromano)",
-   "legal": false,
-   "start_signal": 310,
-   "start": "A310 (d illegale)",
-   "end": "primo segnale contromano su binario nord",
-   "limit": "normale (contromano)",
-   "reverse_at": "banchina nord di Rogoredo",
-   "no_reverse": false,
-   "stops_end": false,
+   "sense": "legale",
+   "frm": "binario verso Comasina",
+   "to": "banchina Rogoredo FS (bin. verso Comasina)",
+   "start_signal": 290,
+   "end_signal": 204,
+   "limit_kmh": null,
+   "stops_end": true,
    "edges": [
     [
-     176,
-     166,
+     175,
+     165,
      137
     ],
     [
-     175,
+     176,
      137,
-     165
+     166
     ]
    ],
    "switches": [
     [
      137,
-     176,
-     175
+     175,
+     176
     ]
    ]
   },
   {
-   "id": "RG-8",
+   "id": "ROG-3",
    "group": "ROG",
-   "label": "Dalla banchina nord verso SD, incrocio -> binario sud (normale)",
-   "legal": true,
+   "sense": "rientra sul legale",
+   "frm": "banchina Rogoredo FS (bin. verso Comasina)",
+   "to": "binario verso San Donato",
    "start_signal": 310,
-   "start": "A310 (d illegale)",
-   "end": "A13 (entrata SD)",
-   "limit": "15 km/h",
-   "reverse_at": "banchina nord di Rogoredo",
-   "no_reverse": false,
+   "end_signal": 13,
+   "limit_kmh": 15,
    "stops_end": false,
    "edges": [
     [
@@ -1244,16 +2892,149 @@
    ]
   },
   {
-   "id": "BR-1",
+   "id": "ROG-4",
+   "group": "ROG",
+   "sense": "rientra sul legale",
+   "frm": "binario verso San Donato",
+   "to": "banchina Rogoredo FS (bin. verso Comasina)",
+   "start_signal": 301,
+   "end_signal": 204,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     142,
+     153,
+     136
+    ],
+    [
+     127,
+     136,
+     137
+    ],
+    [
+     176,
+     137,
+     166
+    ]
+   ],
+   "switches": [
+    [
+     136,
+     142,
+     127
+    ],
+    [
+     137,
+     127,
+     176
+    ]
+   ]
+  },
+  {
+   "id": "ROG-5",
+   "group": "ROG",
+   "sense": "contromano",
+   "frm": "banchina Rogoredo FS (bin. verso Comasina)",
+   "to": "binario verso Comasina",
+   "start_signal": 310,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     166,
+     137
+    ],
+    [
+     175,
+     137,
+     165
+    ]
+   ],
+   "switches": [
+    [
+     137,
+     176,
+     175
+    ]
+   ]
+  },
+  {
+   "id": "ROG-6",
+   "group": "ROG",
+   "sense": "contromano",
+   "frm": "binario verso San Donato",
+   "to": "banchina Rogoredo FS (bin. verso San Donato)",
+   "start_signal": 301,
+   "end_signal": 348,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     142,
+     153,
+     136
+    ],
+    [
+     141,
+     136,
+     152
+    ]
+   ],
+   "switches": [
+    [
+     136,
+     142,
+     141
+    ]
+   ]
+  },
+  {
+   "id": "BRE-1",
    "group": "BRE",
-   "label": "Da Lodi dritto a Brenta (normale)",
-   "legal": true,
+   "sense": "legale",
+   "frm": "binario di servizio 239",
+   "to": "banchina Brenta (bin. verso San Donato)",
+   "start_signal": 20,
+   "end_signal": 279,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     239,
+     199,
+     197
+    ],
+    [
+     237,
+     197,
+     152
+    ],
+    [
+     141,
+     152,
+     136
+    ]
+   ],
+   "switches": [
+    [
+     152,
+     237,
+     141
+    ]
+   ]
+  },
+  {
+   "id": "BRE-2",
+   "group": "BRE",
+   "sense": "legale",
+   "frm": "binario verso San Donato",
+   "to": "banchina Brenta (bin. verso San Donato)",
    "start_signal": 277,
-   "start": "A277 (b)",
-   "end": "ferma in banchina Brenta; poi A279",
-   "limit": "normale",
-   "reverse_at": null,
-   "no_reverse": false,
+   "end_signal": 279,
+   "limit_kmh": null,
    "stops_end": true,
    "edges": [
     [
@@ -1286,16 +3067,14 @@
    ]
   },
   {
-   "id": "BR-2",
+   "id": "BRE-3",
    "group": "BRE",
-   "label": "Da Lodi deviato sul tronchetto",
-   "legal": true,
+   "sense": "legale",
+   "frm": "binario verso San Donato",
+   "to": "binario di servizio 239",
    "start_signal": 277,
-   "start": "A277 (b)",
-   "end": "ferma nel tronchetto (A19/A20 manuali)",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
+   "end_signal": 20,
+   "limit_kmh": 15,
    "stops_end": true,
    "edges": [
     [
@@ -1319,141 +3098,18 @@
      151,
      139,
      241
-    ],
-    [
-     199,
-     241,
-     239
     ]
    ]
   },
   {
-   "id": "BR-3",
+   "id": "BRE-4",
    "group": "BRE",
-   "label": "Dal tronchetto a Brenta (uscita con A20)",
-   "legal": true,
-   "start_signal": 20,
-   "start": "A20 (manuale)",
-   "end": "ferma in banchina Brenta; poi A279",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     237,
-     197,
-     152
-    ],
-    [
-     141,
-     152,
-     136
-    ]
-   ],
-   "switches": [
-    [
-     152,
-     237,
-     141
-    ]
-   ]
-  },
-  {
-   "id": "BR-4",
-   "group": "BRE",
-   "label": "Dal tronchetto verso Lodi (uscita con A19, contromano)",
-   "legal": false,
-   "start_signal": 19,
-   "start": "A19 (manuale)",
-   "end": "segnale illegale di Lodi (A308)",
-   "limit": "15 km/h",
-   "reverse_at": "tronchetto",
-   "no_reverse": false,
-   "stops_end": false,
-   "edges": [
-    [
-     239,
-     197,
-     199
-    ],
-    [
-     241,
-     199,
-     151
-    ],
-    [
-     139,
-     151,
-     150
-    ]
-   ],
-   "switches": [
-    [
-     199,
-     239,
-     241
-    ],
-    [
-     151,
-     241,
-     139
-    ]
-   ]
-  },
-  {
-   "id": "BR-5",
-   "group": "BRE",
-   "label": "Da Brenta verso Lodi dritto (contromano)",
-   "legal": false,
+   "sense": "contromano",
+   "frm": "banchina Brenta (bin. verso San Donato)",
+   "to": "binario di servizio 239",
    "start_signal": 345,
-   "start": "A345 (d illegale)",
-   "end": "segnale illegale di Lodi (A308)",
-   "limit": "normale (contromano)",
-   "reverse_at": "banchina di Brenta",
-   "no_reverse": false,
-   "stops_end": false,
-   "edges": [
-    [
-     141,
-     136,
-     152
-    ],
-    [
-     140,
-     152,
-     151
-    ],
-    [
-     139,
-     151,
-     150
-    ]
-   ],
-   "switches": [
-    [
-     152,
-     141,
-     140
-    ],
-    [
-     151,
-     140,
-     139
-    ]
-   ]
-  },
-  {
-   "id": "BR-6",
-   "group": "BRE",
-   "label": "Da Brenta deviato sul tronchetto (contromano)",
-   "legal": false,
-   "start_signal": 345,
-   "start": "A345 (d illegale)",
-   "end": "ferma nel tronchetto",
-   "limit": "15 km/h",
-   "reverse_at": "banchina di Brenta",
-   "no_reverse": false,
+   "end_signal": 19,
+   "limit_kmh": 15,
    "stops_end": true,
    "edges": [
     [
@@ -1477,131 +3133,93 @@
      152,
      141,
      237
+    ]
+   ]
+  },
+  {
+   "id": "BRE-5",
+   "group": "BRE",
+   "sense": "contromano",
+   "frm": "banchina Brenta (bin. verso San Donato)",
+   "to": "binario verso San Donato",
+   "start_signal": 345,
+   "end_signal": 308,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     136,
+     152
     ],
     [
+     140,
+     152,
+     151
+    ],
+    [
+     139,
+     151,
+     150
+    ]
+   ],
+   "switches": [
+    [
+     152,
+     141,
+     140
+    ],
+    [
+     151,
+     140,
+     139
+    ]
+   ]
+  },
+  {
+   "id": "BRE-6",
+   "group": "BRE",
+   "sense": "contromano",
+   "frm": "binario di servizio 239",
+   "to": "binario verso San Donato",
+   "start_signal": 19,
+   "end_signal": 308,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     239,
      197,
-     237,
-     239
-    ]
-   ]
-  },
-  {
-   "id": "LD-1",
-   "group": "LOD",
-   "label": "Da Brenta sul binario nord, dritto alla banchina nord (normale)",
-   "legal": true,
-   "start_signal": 211,
-   "start": "A211 (b)",
-   "end": "ferma in banchina nord; poi A212",
-   "limit": "normale",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     176,
-     137,
-     166
+     199
     ],
     [
-     177,
-     166,
-     167
-    ]
-   ],
-   "switches": [
-    [
-     166,
-     176,
-     177
-    ]
-   ]
-  },
-  {
-   "id": "LD-3",
-   "group": "LOD",
-   "label": "Da Brenta sul binario sud (contromano), dritto alla banchina sud",
-   "legal": false,
-   "start_signal": 308,
-   "start": "A308 (b illegale)",
-   "end": "ferma in banchina sud; poi A344",
-   "limit": "normale (contromano)",
-   "reverse_at": "tronchetto/banchina di Brenta (BR-5)",
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
+     241,
+     199,
+     151
+    ],
     [
      139,
      151,
      150
-    ],
-    [
-     138,
-     150,
-     149
     ]
    ],
    "switches": [
     [
-     150,
-     139,
-     138
-    ]
-   ]
-  },
-  {
-   "id": "LD-4",
-   "group": "LOD",
-   "label": "Da Brenta sul binario sud (contromano), incrocio -> banchina nord",
-   "legal": true,
-   "start_signal": 308,
-   "start": "A308 (b illegale)",
-   "end": "ferma in banchina nord; poi A212",
-   "limit": "15 km/h",
-   "reverse_at": null,
-   "no_reverse": false,
-   "stops_end": true,
-   "edges": [
-    [
-     139,
      151,
-     150
-    ],
-    [
-     205,
-     150,
-     166
-    ],
-    [
-     177,
-     166,
-     167
-    ]
-   ],
-   "switches": [
-    [
-     150,
-     139,
-     205
-    ],
-    [
-     166,
-     205,
-     177
+     241,
+     139
     ]
    ]
   },
   {
-   "id": "LD-5",
+   "id": "LOD-1",
    "group": "LOD",
-   "label": "Dalla banchina sud verso Brenta, dritto (normale)",
-   "legal": true,
+   "sense": "legale",
+   "frm": "banchina Lodi T.I.B.B. (bin. verso San Donato)",
+   "to": "binario verso San Donato",
    "start_signal": 276,
-   "start": "A276 (d)",
-   "end": "A277 (b)",
-   "limit": "normale",
-   "reverse_at": null,
-   "no_reverse": false,
+   "end_signal": 277,
+   "limit_kmh": null,
    "stops_end": false,
    "edges": [
     [
@@ -1624,48 +3242,44 @@
    ]
   },
   {
-   "id": "LD-7",
+   "id": "LOD-2",
    "group": "LOD",
-   "label": "Dalla banchina nord verso Brenta, dritto (contromano)",
-   "legal": false,
-   "start_signal": 314,
-   "start": "A314 (d illegale)",
-   "end": "segnale contromano su binario nord",
-   "limit": "normale (contromano)",
-   "reverse_at": "banchina nord di Lodi",
-   "no_reverse": false,
-   "stops_end": false,
+   "sense": "legale",
+   "frm": "binario verso Comasina (lato Brenta)",
+   "to": "banchina Lodi T.I.B.B. (bin. verso Comasina)",
+   "start_signal": 211,
+   "end_signal": 212,
+   "limit_kmh": null,
+   "stops_end": true,
    "edges": [
     [
-     177,
-     167,
+     176,
+     137,
      166
     ],
     [
-     176,
+     177,
      166,
-     137
+     167
     ]
    ],
    "switches": [
     [
      166,
-     177,
-     176
+     176,
+     177
     ]
    ]
   },
   {
-   "id": "LD-8",
+   "id": "LOD-3",
    "group": "LOD",
-   "label": "Dalla banchina nord verso Brenta, incrocio -> binario sud (normale)",
-   "legal": true,
+   "sense": "rientra sul legale",
+   "frm": "banchina Lodi T.I.B.B. (bin. verso Comasina)",
+   "to": "binario verso San Donato",
    "start_signal": 314,
-   "start": "A314 (d illegale)",
-   "end": "A277 (b)",
-   "limit": "15 km/h",
-   "reverse_at": "banchina nord di Lodi",
-   "no_reverse": false,
+   "end_signal": 277,
+   "limit_kmh": 15,
    "stops_end": false,
    "edges": [
     [
@@ -1694,6 +3308,3226 @@
      150,
      205,
      139
+    ]
+   ]
+  },
+  {
+   "id": "LOD-4",
+   "group": "LOD",
+   "sense": "rientra sul legale",
+   "frm": "binario verso San Donato",
+   "to": "banchina Lodi T.I.B.B. (bin. verso Comasina)",
+   "start_signal": 308,
+   "end_signal": 212,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     139,
+     151,
+     150
+    ],
+    [
+     205,
+     150,
+     166
+    ],
+    [
+     177,
+     166,
+     167
+    ]
+   ],
+   "switches": [
+    [
+     150,
+     139,
+     205
+    ],
+    [
+     166,
+     205,
+     177
+    ]
+   ]
+  },
+  {
+   "id": "LOD-5",
+   "group": "LOD",
+   "sense": "contromano",
+   "frm": "banchina Lodi T.I.B.B. (bin. verso Comasina)",
+   "to": "binario verso Comasina (lato Brenta)",
+   "start_signal": 314,
+   "end_signal": 309,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     177,
+     167,
+     166
+    ],
+    [
+     176,
+     166,
+     137
+    ]
+   ],
+   "switches": [
+    [
+     166,
+     177,
+     176
+    ]
+   ]
+  },
+  {
+   "id": "LOD-6",
+   "group": "LOD",
+   "sense": "contromano",
+   "frm": "binario verso San Donato",
+   "to": "banchina Lodi T.I.B.B. (bin. verso San Donato)",
+   "start_signal": 308,
+   "end_signal": 344,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     139,
+     151,
+     150
+    ],
+    [
+     138,
+     150,
+     149
+    ]
+   ],
+   "switches": [
+    [
+     150,
+     139,
+     138
+    ]
+   ]
+  },
+  {
+   "id": "PRS-1",
+   "group": "PRS",
+   "sense": "legale",
+   "frm": "banchina Porta Romana (bin. verso San Donato)",
+   "to": "binario verso San Donato (lato Lodi T.I.B.B.)",
+   "start_signal": 274,
+   "end_signal": 275,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     137,
+     148,
+     149
+    ],
+    [
+     138,
+     149,
+     150
+    ]
+   ],
+   "switches": [
+    [
+     149,
+     137,
+     138
+    ]
+   ]
+  },
+  {
+   "id": "PRS-2",
+   "group": "PRS",
+   "sense": "legale",
+   "frm": "binario verso Comasina (lato Lodi T.I.B.B.)",
+   "to": "banchina Porta Romana (bin. verso Comasina)",
+   "start_signal": 213,
+   "end_signal": 214,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     177,
+     166,
+     167
+    ],
+    [
+     178,
+     167,
+     168
+    ]
+   ],
+   "switches": [
+    [
+     167,
+     177,
+     178
+    ]
+   ]
+  },
+  {
+   "id": "PRS-3",
+   "group": "PRS",
+   "sense": "rientra sul legale",
+   "frm": "banchina Porta Romana (bin. verso Comasina)",
+   "to": "binario verso San Donato (lato Lodi T.I.B.B.)",
+   "start_signal": 315,
+   "end_signal": 275,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     178,
+     168,
+     167
+    ],
+    [
+     206,
+     167,
+     149
+    ],
+    [
+     138,
+     149,
+     150
+    ]
+   ],
+   "switches": [
+    [
+     167,
+     178,
+     206
+    ],
+    [
+     149,
+     206,
+     138
+    ]
+   ]
+  },
+  {
+   "id": "PRS-4",
+   "group": "PRS",
+   "sense": "rientra sul legale",
+   "frm": "binario verso San Donato (lato Lodi T.I.B.B.)",
+   "to": "banchina Porta Romana (bin. verso Comasina)",
+   "start_signal": 371,
+   "end_signal": 214,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     138,
+     150,
+     149
+    ],
+    [
+     206,
+     149,
+     167
+    ],
+    [
+     178,
+     167,
+     168
+    ]
+   ],
+   "switches": [
+    [
+     149,
+     138,
+     206
+    ],
+    [
+     167,
+     206,
+     178
+    ]
+   ]
+  },
+  {
+   "id": "PRS-5",
+   "group": "PRS",
+   "sense": "contromano",
+   "frm": "banchina Porta Romana (bin. verso Comasina)",
+   "to": "binario verso Comasina (lato Lodi T.I.B.B.)",
+   "start_signal": 315,
+   "end_signal": 370,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     178,
+     168,
+     167
+    ],
+    [
+     177,
+     167,
+     166
+    ]
+   ],
+   "switches": [
+    [
+     167,
+     178,
+     177
+    ]
+   ]
+  },
+  {
+   "id": "PRS-6",
+   "group": "PRS",
+   "sense": "contromano",
+   "frm": "binario verso San Donato (lato Lodi T.I.B.B.)",
+   "to": "banchina Porta Romana (bin. verso San Donato)",
+   "start_signal": 371,
+   "end_signal": 343,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     138,
+     150,
+     149
+    ],
+    [
+     137,
+     149,
+     148
+    ]
+   ],
+   "switches": [
+    [
+     149,
+     138,
+     137
+    ]
+   ]
+  },
+  {
+   "id": "PRN-1",
+   "group": "PRN",
+   "sense": "legale",
+   "frm": "banchina Porta Romana (bin. verso Comasina)",
+   "to": "binario verso Comasina (lato Crocetta)",
+   "start_signal": 214,
+   "end_signal": 215,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     178,
+     167,
+     168
+    ],
+    [
+     179,
+     168,
+     169
+    ],
+    [
+     180,
+     169,
+     170
+    ]
+   ],
+   "switches": [
+    [
+     168,
+     178,
+     179
+    ],
+    [
+     169,
+     179,
+     180
+    ]
+   ]
+  },
+  {
+   "id": "PRN-2",
+   "group": "PRN",
+   "sense": "legale",
+   "frm": "binario verso San Donato",
+   "to": "banchina Porta Romana (bin. verso San Donato)",
+   "start_signal": 273,
+   "end_signal": 274,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     135,
+     146,
+     147
+    ],
+    [
+     136,
+     147,
+     148
+    ],
+    [
+     137,
+     148,
+     149
+    ]
+   ],
+   "switches": [
+    [
+     147,
+     135,
+     136
+    ],
+    [
+     148,
+     136,
+     137
+    ]
+   ]
+  },
+  {
+   "id": "PRN-3",
+   "group": "PRN",
+   "sense": "va contromano",
+   "frm": "banchina Porta Romana (bin. verso Comasina)",
+   "to": "binario verso San Donato",
+   "start_signal": 214,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     178,
+     167,
+     168
+    ],
+    [
+     182,
+     168,
+     171
+    ],
+    [
+     181,
+     171,
+     147
+    ],
+    [
+     135,
+     147,
+     146
+    ]
+   ],
+   "switches": [
+    [
+     168,
+     178,
+     182
+    ],
+    [
+     171,
+     182,
+     181
+    ],
+    [
+     147,
+     181,
+     135
+    ]
+   ]
+  },
+  {
+   "id": "PRN-4",
+   "group": "PRN",
+   "sense": "va contromano",
+   "frm": "binario verso San Donato",
+   "to": "banchina Porta Romana (bin. verso Comasina)",
+   "start_signal": 273,
+   "end_signal": 315,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     135,
+     146,
+     147
+    ],
+    [
+     181,
+     147,
+     171
+    ],
+    [
+     182,
+     171,
+     168
+    ],
+    [
+     178,
+     168,
+     167
+    ]
+   ],
+   "switches": [
+    [
+     147,
+     135,
+     181
+    ],
+    [
+     171,
+     181,
+     182
+    ],
+    [
+     168,
+     182,
+     178
+    ]
+   ]
+  },
+  {
+   "id": "PRN-5",
+   "group": "PRN",
+   "sense": "rientra sul legale",
+   "frm": "banchina Porta Romana (bin. verso San Donato)",
+   "to": "binario verso Comasina (lato Crocetta)",
+   "start_signal": 343,
+   "end_signal": 215,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     137,
+     149,
+     148
+    ],
+    [
+     208,
+     148,
+     171
+    ],
+    [
+     207,
+     171,
+     169
+    ],
+    [
+     180,
+     169,
+     170
+    ]
+   ],
+   "switches": [
+    [
+     148,
+     137,
+     208
+    ],
+    [
+     171,
+     208,
+     207
+    ],
+    [
+     169,
+     207,
+     180
+    ]
+   ]
+  },
+  {
+   "id": "PRN-6",
+   "group": "PRN",
+   "sense": "rientra sul legale",
+   "frm": "binario verso Comasina (lato Crocetta)",
+   "to": "banchina Porta Romana (bin. verso San Donato)",
+   "start_signal": 368,
+   "end_signal": 274,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     180,
+     170,
+     169
+    ],
+    [
+     207,
+     169,
+     171
+    ],
+    [
+     208,
+     171,
+     148
+    ],
+    [
+     137,
+     148,
+     149
+    ]
+   ],
+   "switches": [
+    [
+     169,
+     180,
+     207
+    ],
+    [
+     171,
+     207,
+     208
+    ],
+    [
+     148,
+     208,
+     137
+    ]
+   ]
+  },
+  {
+   "id": "PRN-7",
+   "group": "PRN",
+   "sense": "contromano",
+   "frm": "banchina Porta Romana (bin. verso San Donato)",
+   "to": "binario verso San Donato",
+   "start_signal": 343,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     137,
+     149,
+     148
+    ],
+    [
+     136,
+     148,
+     147
+    ],
+    [
+     135,
+     147,
+     146
+    ]
+   ],
+   "switches": [
+    [
+     148,
+     137,
+     136
+    ],
+    [
+     147,
+     136,
+     135
+    ]
+   ]
+  },
+  {
+   "id": "PRN-8",
+   "group": "PRN",
+   "sense": "contromano",
+   "frm": "binario verso Comasina (lato Crocetta)",
+   "to": "banchina Porta Romana (bin. verso Comasina)",
+   "start_signal": 368,
+   "end_signal": 315,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     180,
+     170,
+     169
+    ],
+    [
+     179,
+     169,
+     168
+    ],
+    [
+     178,
+     168,
+     167
+    ]
+   ],
+   "switches": [
+    [
+     169,
+     180,
+     179
+    ],
+    [
+     168,
+     179,
+     178
+    ]
+   ]
+  },
+  {
+   "id": "REP-1",
+   "group": "REP",
+   "sense": "legale",
+   "frm": "banchina Repubblica (bin. verso Comasina)",
+   "to": "binario verso Comasina (lato Centrale FS)",
+   "start_signal": 226,
+   "end_signal": 228,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     194,
+     121
+    ],
+    [
+     214,
+     121,
+     174
+    ]
+   ],
+   "switches": [
+    [
+     121,
+     213,
+     214
+    ]
+   ]
+  },
+  {
+   "id": "REP-2",
+   "group": "REP",
+   "sense": "legale",
+   "frm": "banchina Repubblica (bin. verso Comasina)",
+   "to": "raccordo 183",
+   "start_signal": 226,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     194,
+     121
+    ],
+    [
+     114,
+     121,
+     122
+    ],
+    [
+     115,
+     122,
+     123
+    ],
+    [
+     183,
+     123,
+     172
+    ]
+   ],
+   "switches": [
+    [
+     121,
+     213,
+     114
+    ],
+    [
+     122,
+     114,
+     115
+    ]
+   ]
+  },
+  {
+   "id": "REP-3",
+   "group": "REP",
+   "sense": "legale",
+   "frm": "binario verso San Donato (lato Centrale FS)",
+   "to": "banchina Repubblica (bin. verso San Donato)",
+   "start_signal": 261,
+   "end_signal": 262,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     125,
+     133,
+     134
+    ],
+    [
+     126,
+     134,
+     135
+    ]
+   ],
+   "switches": [
+    [
+     134,
+     125,
+     126
+    ]
+   ]
+  },
+  {
+   "id": "REP-4",
+   "group": "REP",
+   "sense": "legale",
+   "frm": "raccordo 129",
+   "to": "banchina Repubblica (bin. verso San Donato)",
+   "start_signal": 137,
+   "end_signal": 262,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     129,
+     139,
+     138
+    ],
+    [
+     130,
+     138,
+     140
+    ],
+    [
+     131,
+     140,
+     134
+    ],
+    [
+     126,
+     134,
+     135
+    ]
+   ],
+   "switches": [
+    [
+     138,
+     129,
+     130
+    ],
+    [
+     134,
+     131,
+     126
+    ]
+   ]
+  },
+  {
+   "id": "REP-5",
+   "group": "REP",
+   "sense": "legale",
+   "frm": "raccordo 183",
+   "to": "banchina Repubblica (bin. verso San Donato)",
+   "start_signal": 138,
+   "end_signal": 262,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     183,
+     172,
+     123
+    ],
+    [
+     115,
+     123,
+     122
+    ],
+    [
+     128,
+     122,
+     138
+    ],
+    [
+     130,
+     138,
+     140
+    ],
+    [
+     131,
+     140,
+     134
+    ],
+    [
+     126,
+     134,
+     135
+    ]
+   ],
+   "switches": [
+    [
+     122,
+     115,
+     128
+    ],
+    [
+     138,
+     128,
+     130
+    ],
+    [
+     134,
+     131,
+     126
+    ]
+   ]
+  },
+  {
+   "id": "REP-6",
+   "group": "REP",
+   "sense": "contromano",
+   "frm": "banchina Repubblica (bin. verso San Donato)",
+   "to": "binario verso San Donato (lato Centrale FS)",
+   "start_signal": 337,
+   "end_signal": 365,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     126,
+     135,
+     134
+    ],
+    [
+     125,
+     134,
+     133
+    ]
+   ],
+   "switches": [
+    [
+     134,
+     126,
+     125
+    ]
+   ]
+  },
+  {
+   "id": "REP-7",
+   "group": "REP",
+   "sense": "contromano",
+   "frm": "banchina Repubblica (bin. verso San Donato)",
+   "to": "raccordo 129",
+   "start_signal": 337,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     126,
+     135,
+     134
+    ],
+    [
+     131,
+     134,
+     140
+    ],
+    [
+     130,
+     140,
+     138
+    ],
+    [
+     129,
+     138,
+     139
+    ]
+   ],
+   "switches": [
+    [
+     134,
+     126,
+     131
+    ],
+    [
+     138,
+     130,
+     129
+    ]
+   ]
+  },
+  {
+   "id": "REP-8",
+   "group": "REP",
+   "sense": "contromano",
+   "frm": "banchina Repubblica (bin. verso San Donato)",
+   "to": "raccordo 183",
+   "start_signal": 337,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     126,
+     135,
+     134
+    ],
+    [
+     131,
+     134,
+     140
+    ],
+    [
+     130,
+     140,
+     138
+    ],
+    [
+     128,
+     138,
+     122
+    ],
+    [
+     115,
+     122,
+     123
+    ],
+    [
+     183,
+     123,
+     172
+    ]
+   ],
+   "switches": [
+    [
+     134,
+     126,
+     131
+    ],
+    [
+     138,
+     130,
+     128
+    ],
+    [
+     122,
+     128,
+     115
+    ]
+   ]
+  },
+  {
+   "id": "REP-9",
+   "group": "REP",
+   "sense": "contromano",
+   "frm": "binario verso Comasina (lato Centrale FS)",
+   "to": "banchina Repubblica (bin. verso Comasina)",
+   "start_signal": 364,
+   "end_signal": 321,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     214,
+     174,
+     121
+    ],
+    [
+     213,
+     121,
+     194
+    ]
+   ],
+   "switches": [
+    [
+     121,
+     214,
+     213
+    ]
+   ]
+  },
+  {
+   "id": "REP-10",
+   "group": "REP",
+   "sense": "contromano",
+   "frm": "raccordo 183",
+   "to": "banchina Repubblica (bin. verso Comasina)",
+   "start_signal": 138,
+   "end_signal": 321,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     183,
+     172,
+     123
+    ],
+    [
+     115,
+     123,
+     122
+    ],
+    [
+     114,
+     122,
+     121
+    ],
+    [
+     213,
+     121,
+     194
+    ]
+   ],
+   "switches": [
+    [
+     122,
+     115,
+     114
+    ],
+    [
+     121,
+     114,
+     213
+    ]
+   ]
+  },
+  {
+   "id": "CEN-1",
+   "group": "CEN",
+   "sense": "legale",
+   "frm": "banchina Centrale FS (bin. verso Comasina)",
+   "to": "binario di servizio 184",
+   "start_signal": 229,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     214,
+     121,
+     174
+    ],
+    [
+     184,
+     174,
+     173
+    ]
+   ],
+   "switches": [
+    [
+     174,
+     214,
+     184
+    ]
+   ]
+  },
+  {
+   "id": "CEN-2",
+   "group": "CEN",
+   "sense": "legale",
+   "frm": "banchina Centrale FS (bin. verso Comasina)",
+   "to": "binario verso Comasina",
+   "start_signal": 229,
+   "end_signal": 231,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     214,
+     121,
+     174
+    ],
+    [
+     215,
+     174,
+     185
+    ],
+    [
+     216,
+     185,
+     186
+    ],
+    [
+     217,
+     186,
+     175
+    ]
+   ],
+   "switches": [
+    [
+     174,
+     214,
+     215
+    ],
+    [
+     185,
+     215,
+     216
+    ],
+    [
+     186,
+     216,
+     217
+    ]
+   ]
+  },
+  {
+   "id": "CEN-3",
+   "group": "CEN",
+   "sense": "legale",
+   "frm": "binario verso San Donato",
+   "to": "banchina Centrale FS (bin. verso San Donato)",
+   "start_signal": 259,
+   "end_signal": 260,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     123,
+     131,
+     132
+    ],
+    [
+     124,
+     132,
+     133
+    ],
+    [
+     125,
+     133,
+     134
+    ]
+   ],
+   "switches": [
+    [
+     132,
+     123,
+     124
+    ],
+    [
+     133,
+     124,
+     125
+    ]
+   ]
+  },
+  {
+   "id": "CEN-4",
+   "group": "CEN",
+   "sense": "va contromano",
+   "frm": "banchina Centrale FS (bin. verso Comasina)",
+   "to": "binario verso San Donato",
+   "start_signal": 229,
+   "end_signal": 363,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     214,
+     121,
+     174
+    ],
+    [
+     215,
+     174,
+     185
+    ],
+    [
+     195,
+     185,
+     184
+    ],
+    [
+     194,
+     184,
+     132
+    ],
+    [
+     123,
+     132,
+     131
+    ]
+   ],
+   "switches": [
+    [
+     174,
+     214,
+     215
+    ],
+    [
+     185,
+     215,
+     195
+    ],
+    [
+     184,
+     195,
+     194
+    ],
+    [
+     132,
+     194,
+     123
+    ]
+   ]
+  },
+  {
+   "id": "CEN-5",
+   "group": "CEN",
+   "sense": "va contromano",
+   "frm": "binario verso San Donato",
+   "to": "banchina Centrale FS (bin. verso Comasina)",
+   "start_signal": 259,
+   "end_signal": 322,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     123,
+     131,
+     132
+    ],
+    [
+     194,
+     132,
+     184
+    ],
+    [
+     195,
+     184,
+     185
+    ],
+    [
+     215,
+     185,
+     174
+    ],
+    [
+     214,
+     174,
+     121
+    ]
+   ],
+   "switches": [
+    [
+     132,
+     123,
+     194
+    ],
+    [
+     184,
+     194,
+     195
+    ],
+    [
+     185,
+     195,
+     215
+    ],
+    [
+     174,
+     215,
+     214
+    ]
+   ]
+  },
+  {
+   "id": "CEN-6",
+   "group": "CEN",
+   "sense": "rientra sul legale",
+   "frm": "banchina Centrale FS (bin. verso San Donato)",
+   "to": "binario verso Comasina",
+   "start_signal": 336,
+   "end_signal": 231,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     125,
+     134,
+     133
+    ],
+    [
+     197,
+     133,
+     184
+    ],
+    [
+     196,
+     184,
+     186
+    ],
+    [
+     217,
+     186,
+     175
+    ]
+   ],
+   "switches": [
+    [
+     133,
+     125,
+     197
+    ],
+    [
+     184,
+     197,
+     196
+    ],
+    [
+     186,
+     196,
+     217
+    ]
+   ]
+  },
+  {
+   "id": "CEN-7",
+   "group": "CEN",
+   "sense": "rientra sul legale",
+   "frm": "binario verso Comasina",
+   "to": "banchina Centrale FS (bin. verso San Donato)",
+   "start_signal": 362,
+   "end_signal": 260,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     217,
+     175,
+     186
+    ],
+    [
+     196,
+     186,
+     184
+    ],
+    [
+     197,
+     184,
+     133
+    ],
+    [
+     125,
+     133,
+     134
+    ]
+   ],
+   "switches": [
+    [
+     186,
+     217,
+     196
+    ],
+    [
+     184,
+     196,
+     197
+    ],
+    [
+     133,
+     197,
+     125
+    ]
+   ]
+  },
+  {
+   "id": "CEN-8",
+   "group": "CEN",
+   "sense": "contromano",
+   "frm": "banchina Centrale FS (bin. verso San Donato)",
+   "to": "binario verso San Donato",
+   "start_signal": 336,
+   "end_signal": 363,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     125,
+     134,
+     133
+    ],
+    [
+     124,
+     133,
+     132
+    ],
+    [
+     123,
+     132,
+     131
+    ]
+   ],
+   "switches": [
+    [
+     133,
+     125,
+     124
+    ],
+    [
+     132,
+     124,
+     123
+    ]
+   ]
+  },
+  {
+   "id": "CEN-9",
+   "group": "CEN",
+   "sense": "contromano",
+   "frm": "binario di servizio 184",
+   "to": "banchina Centrale FS (bin. verso Comasina)",
+   "start_signal": 33,
+   "end_signal": 322,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     184,
+     173,
+     174
+    ],
+    [
+     214,
+     174,
+     121
+    ]
+   ],
+   "switches": [
+    [
+     174,
+     184,
+     214
+    ]
+   ]
+  },
+  {
+   "id": "CEN-10",
+   "group": "CEN",
+   "sense": "contromano",
+   "frm": "binario verso Comasina",
+   "to": "banchina Centrale FS (bin. verso Comasina)",
+   "start_signal": 362,
+   "end_signal": 322,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     217,
+     175,
+     186
+    ],
+    [
+     216,
+     186,
+     185
+    ],
+    [
+     215,
+     185,
+     174
+    ],
+    [
+     214,
+     174,
+     121
+    ]
+   ],
+   "switches": [
+    [
+     186,
+     217,
+     216
+    ],
+    [
+     185,
+     216,
+     215
+    ],
+    [
+     174,
+     215,
+     214
+    ]
+   ]
+  },
+  {
+   "id": "SON-1",
+   "group": "SON",
+   "sense": "legale",
+   "frm": "banchina Sondrio (bin. verso San Donato)",
+   "to": "binario verso San Donato",
+   "start_signal": 257,
+   "end_signal": 259,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     122,
+     130,
+     131
+    ],
+    [
+     123,
+     131,
+     132
+    ]
+   ],
+   "switches": [
+    [
+     131,
+     122,
+     123
+    ]
+   ]
+  },
+  {
+   "id": "SON-2",
+   "group": "SON",
+   "sense": "legale",
+   "frm": "binario verso Comasina",
+   "to": "banchina Sondrio (bin. verso Comasina)",
+   "start_signal": 231,
+   "end_signal": 232,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     217,
+     186,
+     175
+    ],
+    [
+     218,
+     175,
+     177
+    ]
+   ],
+   "switches": [
+    [
+     175,
+     217,
+     218
+    ]
+   ]
+  },
+  {
+   "id": "SON-3",
+   "group": "SON",
+   "sense": "va contromano",
+   "frm": "banchina Sondrio (bin. verso San Donato)",
+   "to": "binario verso Comasina",
+   "start_signal": 257,
+   "end_signal": 362,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     122,
+     130,
+     131
+    ],
+    [
+     185,
+     131,
+     175
+    ],
+    [
+     217,
+     175,
+     186
+    ]
+   ],
+   "switches": [
+    [
+     131,
+     122,
+     185
+    ],
+    [
+     175,
+     185,
+     217
+    ]
+   ]
+  },
+  {
+   "id": "SON-4",
+   "group": "SON",
+   "sense": "va contromano",
+   "frm": "binario verso Comasina",
+   "to": "banchina Sondrio (bin. verso San Donato)",
+   "start_signal": 231,
+   "end_signal": 335,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     217,
+     186,
+     175
+    ],
+    [
+     185,
+     175,
+     131
+    ],
+    [
+     122,
+     131,
+     130
+    ]
+   ],
+   "switches": [
+    [
+     175,
+     217,
+     185
+    ],
+    [
+     131,
+     185,
+     122
+    ]
+   ]
+  },
+  {
+   "id": "SON-5",
+   "group": "SON",
+   "sense": "contromano",
+   "frm": "banchina Sondrio (bin. verso Comasina)",
+   "to": "binario verso Comasina",
+   "start_signal": 323,
+   "end_signal": 362,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     218,
+     177,
+     175
+    ],
+    [
+     217,
+     175,
+     186
+    ]
+   ],
+   "switches": [
+    [
+     175,
+     218,
+     217
+    ]
+   ]
+  },
+  {
+   "id": "SON-6",
+   "group": "SON",
+   "sense": "contromano",
+   "frm": "binario verso San Donato",
+   "to": "banchina Sondrio (bin. verso San Donato)",
+   "start_signal": 363,
+   "end_signal": 335,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     123,
+     132,
+     131
+    ],
+    [
+     122,
+     131,
+     130
+    ]
+   ],
+   "switches": [
+    [
+     131,
+     123,
+     122
+    ]
+   ]
+  },
+  {
+   "id": "ZS-1",
+   "group": "ZS",
+   "sense": "legale",
+   "frm": "banchina Sondrio (bin. verso Comasina)",
+   "to": "binario verso Comasina (lato Zara)",
+   "start_signal": 232,
+   "end_signal": 233,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     218,
+     175,
+     177
+    ],
+    [
+     219,
+     177,
+     178
+    ],
+    [
+     220,
+     178,
+     189
+    ]
+   ],
+   "switches": [
+    [
+     177,
+     218,
+     219
+    ],
+    [
+     178,
+     219,
+     220
+    ]
+   ]
+  },
+  {
+   "id": "ZS-2",
+   "group": "ZS",
+   "sense": "legale",
+   "frm": "binario verso San Donato (lato Zara)",
+   "to": "banchina Sondrio (bin. verso San Donato)",
+   "start_signal": 256,
+   "end_signal": 257,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     120,
+     128,
+     129
+    ],
+    [
+     121,
+     129,
+     130
+    ],
+    [
+     122,
+     130,
+     131
+    ]
+   ],
+   "switches": [
+    [
+     129,
+     120,
+     121
+    ],
+    [
+     130,
+     121,
+     122
+    ]
+   ]
+  },
+  {
+   "id": "ZS-3",
+   "group": "ZS",
+   "sense": "va contromano",
+   "frm": "banchina Sondrio (bin. verso Comasina)",
+   "to": "binario verso San Donato (lato Zara)",
+   "start_signal": 232,
+   "end_signal": 361,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     218,
+     175,
+     177
+    ],
+    [
+     187,
+     177,
+     176
+    ],
+    [
+     186,
+     176,
+     129
+    ],
+    [
+     120,
+     129,
+     128
+    ]
+   ],
+   "switches": [
+    [
+     177,
+     218,
+     187
+    ],
+    [
+     176,
+     187,
+     186
+    ],
+    [
+     129,
+     186,
+     120
+    ]
+   ]
+  },
+  {
+   "id": "ZS-4",
+   "group": "ZS",
+   "sense": "va contromano",
+   "frm": "binario verso San Donato (lato Zara)",
+   "to": "banchina Sondrio (bin. verso Comasina)",
+   "start_signal": 256,
+   "end_signal": 323,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     120,
+     128,
+     129
+    ],
+    [
+     186,
+     129,
+     176
+    ],
+    [
+     187,
+     176,
+     177
+    ],
+    [
+     218,
+     177,
+     175
+    ]
+   ],
+   "switches": [
+    [
+     129,
+     120,
+     186
+    ],
+    [
+     176,
+     186,
+     187
+    ],
+    [
+     177,
+     187,
+     218
+    ]
+   ]
+  },
+  {
+   "id": "ZS-5",
+   "group": "ZS",
+   "sense": "rientra sul legale",
+   "frm": "banchina Sondrio (bin. verso San Donato)",
+   "to": "binario verso Comasina (lato Zara)",
+   "start_signal": 335,
+   "end_signal": 233,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     122,
+     131,
+     130
+    ],
+    [
+     188,
+     130,
+     176
+    ],
+    [
+     189,
+     176,
+     178
+    ],
+    [
+     220,
+     178,
+     189
+    ]
+   ],
+   "switches": [
+    [
+     130,
+     122,
+     188
+    ],
+    [
+     176,
+     188,
+     189
+    ],
+    [
+     178,
+     189,
+     220
+    ]
+   ]
+  },
+  {
+   "id": "ZS-6",
+   "group": "ZS",
+   "sense": "rientra sul legale",
+   "frm": "binario verso Comasina (lato Zara)",
+   "to": "banchina Sondrio (bin. verso San Donato)",
+   "start_signal": 360,
+   "end_signal": 257,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     220,
+     189,
+     178
+    ],
+    [
+     189,
+     178,
+     176
+    ],
+    [
+     188,
+     176,
+     130
+    ],
+    [
+     122,
+     130,
+     131
+    ]
+   ],
+   "switches": [
+    [
+     178,
+     220,
+     189
+    ],
+    [
+     176,
+     189,
+     188
+    ],
+    [
+     130,
+     188,
+     122
+    ]
+   ]
+  },
+  {
+   "id": "ZS-7",
+   "group": "ZS",
+   "sense": "contromano",
+   "frm": "banchina Sondrio (bin. verso San Donato)",
+   "to": "binario verso San Donato (lato Zara)",
+   "start_signal": 335,
+   "end_signal": 361,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     122,
+     131,
+     130
+    ],
+    [
+     121,
+     130,
+     129
+    ],
+    [
+     120,
+     129,
+     128
+    ]
+   ],
+   "switches": [
+    [
+     130,
+     122,
+     121
+    ],
+    [
+     129,
+     121,
+     120
+    ]
+   ]
+  },
+  {
+   "id": "ZS-8",
+   "group": "ZS",
+   "sense": "contromano",
+   "frm": "binario verso Comasina (lato Zara)",
+   "to": "banchina Sondrio (bin. verso Comasina)",
+   "start_signal": 360,
+   "end_signal": 323,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     220,
+     189,
+     178
+    ],
+    [
+     219,
+     178,
+     177
+    ],
+    [
+     218,
+     177,
+     175
+    ]
+   ],
+   "switches": [
+    [
+     178,
+     220,
+     219
+    ],
+    [
+     177,
+     219,
+     218
+    ]
+   ]
+  },
+  {
+   "id": "MCS-1",
+   "group": "MCS",
+   "sense": "legale",
+   "frm": "banchina Maciachini (bin. verso San Donato)",
+   "to": "binario verso San Donato (lato Zara)",
+   "start_signal": 252,
+   "end_signal": 253,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     119,
+     127,
+     128
+    ],
+    [
+     120,
+     128,
+     129
+    ]
+   ],
+   "switches": [
+    [
+     128,
+     119,
+     120
+    ]
+   ]
+  },
+  {
+   "id": "MCS-2",
+   "group": "MCS",
+   "sense": "legale",
+   "frm": "binario verso Comasina (lato Zara)",
+   "to": "banchina Maciachini (bin. verso Comasina)",
+   "start_signal": 235,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     220,
+     178,
+     189
+    ],
+    [
+     221,
+     189,
+     190
+    ]
+   ],
+   "switches": [
+    [
+     189,
+     220,
+     221
+    ]
+   ]
+  },
+  {
+   "id": "MCS-3",
+   "group": "MCS",
+   "sense": "va contromano",
+   "frm": "banchina Maciachini (bin. verso San Donato)",
+   "to": "binario verso Comasina (lato Zara)",
+   "start_signal": 252,
+   "end_signal": 358,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     119,
+     127,
+     128
+    ],
+    [
+     200,
+     128,
+     189
+    ],
+    [
+     220,
+     189,
+     178
+    ]
+   ],
+   "switches": [
+    [
+     128,
+     119,
+     200
+    ],
+    [
+     189,
+     200,
+     220
+    ]
+   ]
+  },
+  {
+   "id": "MCS-4",
+   "group": "MCS",
+   "sense": "va contromano",
+   "frm": "binario verso Comasina (lato Zara)",
+   "to": "banchina Maciachini (bin. verso San Donato)",
+   "start_signal": 235,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     220,
+     178,
+     189
+    ],
+    [
+     200,
+     189,
+     128
+    ],
+    [
+     119,
+     128,
+     127
+    ]
+   ],
+   "switches": [
+    [
+     189,
+     220,
+     200
+    ],
+    [
+     128,
+     200,
+     119
+    ]
+   ]
+  },
+  {
+   "id": "MCS-5",
+   "group": "MCS",
+   "sense": "contromano",
+   "frm": "banchina Maciachini (bin. verso Comasina)",
+   "to": "binario verso Comasina (lato Zara)",
+   "start_signal": 325,
+   "end_signal": 358,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     221,
+     190,
+     189
+    ],
+    [
+     220,
+     189,
+     178
+    ]
+   ],
+   "switches": [
+    [
+     189,
+     221,
+     220
+    ]
+   ]
+  },
+  {
+   "id": "MCS-6",
+   "group": "MCS",
+   "sense": "contromano",
+   "frm": "binario verso San Donato (lato Zara)",
+   "to": "banchina Maciachini (bin. verso San Donato)",
+   "start_signal": 359,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     120,
+     129,
+     128
+    ],
+    [
+     119,
+     128,
+     127
+    ]
+   ],
+   "switches": [
+    [
+     128,
+     120,
+     119
+    ]
+   ]
+  },
+  {
+   "id": "MCN-1",
+   "group": "MCN",
+   "sense": "legale",
+   "frm": "banchina Maciachini (bin. verso Comasina)",
+   "to": "binario verso Comasina (lato Dergano)",
+   "start_signal": 236,
+   "end_signal": 237,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     221,
+     189,
+     190
+    ],
+    [
+     222,
+     190,
+     188
+    ],
+    [
+     223,
+     188,
+     195
+    ]
+   ],
+   "switches": [
+    [
+     190,
+     221,
+     222
+    ],
+    [
+     188,
+     222,
+     223
+    ]
+   ]
+  },
+  {
+   "id": "MCN-2",
+   "group": "MCN",
+   "sense": "legale",
+   "frm": "binario verso San Donato (lato Dergano)",
+   "to": "banchina Maciachini (bin. verso San Donato)",
+   "start_signal": 251,
+   "end_signal": 252,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     117,
+     125,
+     126
+    ],
+    [
+     118,
+     126,
+     127
+    ],
+    [
+     119,
+     127,
+     128
+    ]
+   ],
+   "switches": [
+    [
+     126,
+     117,
+     118
+    ],
+    [
+     127,
+     118,
+     119
+    ]
+   ]
+  },
+  {
+   "id": "MCN-3",
+   "group": "MCN",
+   "sense": "va contromano",
+   "frm": "banchina Maciachini (bin. verso Comasina)",
+   "to": "binario verso San Donato (lato Dergano)",
+   "start_signal": 236,
+   "end_signal": 357,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     221,
+     189,
+     190
+    ],
+    [
+     201,
+     190,
+     187
+    ],
+    [
+     202,
+     187,
+     126
+    ],
+    [
+     117,
+     126,
+     125
+    ]
+   ],
+   "switches": [
+    [
+     190,
+     221,
+     201
+    ],
+    [
+     187,
+     201,
+     202
+    ],
+    [
+     126,
+     202,
+     117
+    ]
+   ]
+  },
+  {
+   "id": "MCN-4",
+   "group": "MCN",
+   "sense": "va contromano",
+   "frm": "binario verso San Donato (lato Dergano)",
+   "to": "banchina Maciachini (bin. verso Comasina)",
+   "start_signal": 251,
+   "end_signal": 325,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     117,
+     125,
+     126
+    ],
+    [
+     202,
+     126,
+     187
+    ],
+    [
+     201,
+     187,
+     190
+    ],
+    [
+     221,
+     190,
+     189
+    ]
+   ],
+   "switches": [
+    [
+     126,
+     117,
+     202
+    ],
+    [
+     187,
+     202,
+     201
+    ],
+    [
+     190,
+     201,
+     221
+    ]
+   ]
+  },
+  {
+   "id": "MCN-5",
+   "group": "MCN",
+   "sense": "rientra sul legale",
+   "frm": "banchina Maciachini (bin. verso San Donato)",
+   "to": "binario verso Comasina (lato Dergano)",
+   "start_signal": 333,
+   "end_signal": 237,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     119,
+     128,
+     127
+    ],
+    [
+     198,
+     127,
+     187
+    ],
+    [
+     199,
+     187,
+     188
+    ],
+    [
+     223,
+     188,
+     195
+    ]
+   ],
+   "switches": [
+    [
+     127,
+     119,
+     198
+    ],
+    [
+     187,
+     198,
+     199
+    ],
+    [
+     188,
+     199,
+     223
+    ]
+   ]
+  },
+  {
+   "id": "MCN-6",
+   "group": "MCN",
+   "sense": "rientra sul legale",
+   "frm": "binario verso Comasina (lato Dergano)",
+   "to": "banchina Maciachini (bin. verso San Donato)",
+   "start_signal": 356,
+   "end_signal": 252,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     223,
+     195,
+     188
+    ],
+    [
+     199,
+     188,
+     187
+    ],
+    [
+     198,
+     187,
+     127
+    ],
+    [
+     119,
+     127,
+     128
+    ]
+   ],
+   "switches": [
+    [
+     188,
+     223,
+     199
+    ],
+    [
+     187,
+     199,
+     198
+    ],
+    [
+     127,
+     198,
+     119
+    ]
+   ]
+  },
+  {
+   "id": "MCN-7",
+   "group": "MCN",
+   "sense": "contromano",
+   "frm": "banchina Maciachini (bin. verso San Donato)",
+   "to": "binario verso San Donato (lato Dergano)",
+   "start_signal": 333,
+   "end_signal": 357,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     119,
+     128,
+     127
+    ],
+    [
+     118,
+     127,
+     126
+    ],
+    [
+     117,
+     126,
+     125
+    ]
+   ],
+   "switches": [
+    [
+     127,
+     119,
+     118
+    ],
+    [
+     126,
+     118,
+     117
+    ]
+   ]
+  },
+  {
+   "id": "MCN-8",
+   "group": "MCN",
+   "sense": "contromano",
+   "frm": "binario verso Comasina (lato Dergano)",
+   "to": "banchina Maciachini (bin. verso Comasina)",
+   "start_signal": 356,
+   "end_signal": 325,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     223,
+     195,
+     188
+    ],
+    [
+     222,
+     188,
+     190
+    ],
+    [
+     221,
+     190,
+     189
+    ]
+   ],
+   "switches": [
+    [
+     188,
+     223,
+     222
+    ],
+    [
+     190,
+     222,
+     221
+    ]
+   ]
+  },
+  {
+   "id": "COS-1",
+   "group": "COS",
+   "sense": "legale",
+   "frm": "banchina Comasina (partenze)",
+   "to": "binario verso San Donato (lato Affori FN)",
+   "start_signal": 244,
+   "end_signal": 245,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     116,
+     124,
+     125
+    ],
+    [
+     117,
+     125,
+     126
+    ]
+   ],
+   "switches": [
+    [
+     125,
+     116,
+     117
+    ]
+   ]
+  },
+  {
+   "id": "COS-2",
+   "group": "COS",
+   "sense": "legale",
+   "frm": "binario verso Comasina (lato Affori FN)",
+   "to": "banchina Comasina (arrivi)",
+   "start_signal": 122,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     223,
+     188,
+     195
+    ],
+    [
+     224,
+     195,
+     181
+    ]
+   ],
+   "switches": [
+    [
+     195,
+     223,
+     224
+    ]
+   ]
+  },
+  {
+   "id": "COS-3",
+   "group": "COS",
+   "sense": "va contromano",
+   "frm": "banchina Comasina (partenze)",
+   "to": "binario verso Comasina (lato Affori FN)",
+   "start_signal": 244,
+   "end_signal": 350,
+   "limit_kmh": 15,
+   "stops_end": false,
+   "edges": [
+    [
+     116,
+     124,
+     125
+    ],
+    [
+     233,
+     125,
+     195
+    ],
+    [
+     223,
+     195,
+     188
+    ]
+   ],
+   "switches": [
+    [
+     125,
+     116,
+     233
+    ],
+    [
+     195,
+     233,
+     223
+    ]
+   ]
+  },
+  {
+   "id": "COS-4",
+   "group": "COS",
+   "sense": "va contromano",
+   "frm": "binario verso Comasina (lato Affori FN)",
+   "to": "banchina Comasina (partenze)",
+   "start_signal": 122,
+   "end_signal": null,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     223,
+     188,
+     195
+    ],
+    [
+     233,
+     195,
+     125
+    ],
+    [
+     116,
+     125,
+     124
+    ]
+   ],
+   "switches": [
+    [
+     195,
+     223,
+     233
+    ],
+    [
+     125,
+     233,
+     116
+    ]
+   ]
+  },
+  {
+   "id": "COS-5",
+   "group": "COS",
+   "sense": "contromano",
+   "frm": "banchina Comasina (arrivi)",
+   "to": "binario verso Comasina (lato Affori FN)",
+   "start_signal": 329,
+   "end_signal": 350,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     224,
+     181,
+     195
+    ],
+    [
+     223,
+     195,
+     188
+    ]
+   ],
+   "switches": [
+    [
+     195,
+     224,
+     223
+    ]
+   ]
+  },
+  {
+   "id": "COS-6",
+   "group": "COS",
+   "sense": "contromano",
+   "frm": "binario verso San Donato (lato Affori FN)",
+   "to": "banchina Comasina (partenze)",
+   "start_signal": 351,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     117,
+     126,
+     125
+    ],
+    [
+     116,
+     125,
+     124
+    ]
+   ],
+   "switches": [
+    [
+     125,
+     117,
+     116
+    ]
+   ]
+  },
+  {
+   "id": "CON-1",
+   "group": "CON",
+   "sense": "legale",
+   "frm": "Comasina tronchetto 1",
+   "to": "banchina Comasina (partenze)",
+   "start_signal": 9,
+   "end_signal": 244,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     190,
+     179,
+     180
+    ],
+    [
+     191,
+     180,
+     124
+    ],
+    [
+     116,
+     124,
+     125
+    ]
+   ],
+   "switches": [
+    [
+     180,
+     190,
+     191
+    ],
+    [
+     124,
+     191,
+     116
+    ]
+   ]
+  },
+  {
+   "id": "CON-2",
+   "group": "CON",
+   "sense": "legale",
+   "frm": "Comasina tronchetto 2",
+   "to": "banchina Comasina (partenze)",
+   "start_signal": 10,
+   "end_signal": 244,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     193,
+     183,
+     182
+    ],
+    [
+     204,
+     182,
+     191
+    ],
+    [
+     203,
+     191,
+     124
+    ],
+    [
+     116,
+     124,
+     125
+    ]
+   ],
+   "switches": [
+    [
+     182,
+     193,
+     204
+    ],
+    [
+     191,
+     204,
+     203
+    ],
+    [
+     124,
+     203,
+     116
+    ]
+   ]
+  },
+  {
+   "id": "CON-3",
+   "group": "CON",
+   "sense": "legale",
+   "frm": "banchina Comasina (arrivi)",
+   "to": "Comasina tronchetto 1",
+   "start_signal": 11,
+   "end_signal": 106,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     224,
+     195,
+     181
+    ],
+    [
+     232,
+     181,
+     191
+    ],
+    [
+     231,
+     191,
+     180
+    ],
+    [
+     190,
+     180,
+     179
+    ]
+   ],
+   "switches": [
+    [
+     181,
+     224,
+     232
+    ],
+    [
+     191,
+     232,
+     231
+    ],
+    [
+     180,
+     231,
+     190
+    ]
+   ]
+  },
+  {
+   "id": "CON-4",
+   "group": "CON",
+   "sense": "legale",
+   "frm": "banchina Comasina (arrivi)",
+   "to": "Comasina tronchetto 2",
+   "start_signal": 11,
+   "end_signal": 107,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     224,
+     195,
+     181
+    ],
+    [
+     192,
+     181,
+     182
+    ],
+    [
+     193,
+     182,
+     183
+    ]
+   ],
+   "switches": [
+    [
+     181,
+     224,
+     192
+    ],
+    [
+     182,
+     192,
+     193
+    ]
+   ]
+  },
+  {
+   "id": "CON-5",
+   "group": "CON",
+   "sense": "contromano",
+   "frm": "Comasina tronchetto 1",
+   "to": "banchina Comasina (arrivi)",
+   "start_signal": 9,
+   "end_signal": 329,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     190,
+     179,
+     180
+    ],
+    [
+     231,
+     180,
+     191
+    ],
+    [
+     232,
+     191,
+     181
+    ],
+    [
+     224,
+     181,
+     195
+    ]
+   ],
+   "switches": [
+    [
+     180,
+     190,
+     231
+    ],
+    [
+     191,
+     231,
+     232
+    ],
+    [
+     181,
+     232,
+     224
+    ]
+   ]
+  },
+  {
+   "id": "CON-6",
+   "group": "CON",
+   "sense": "contromano",
+   "frm": "Comasina tronchetto 2",
+   "to": "banchina Comasina (arrivi)",
+   "start_signal": 10,
+   "end_signal": 329,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     193,
+     183,
+     182
+    ],
+    [
+     192,
+     182,
+     181
+    ],
+    [
+     224,
+     181,
+     195
+    ]
+   ],
+   "switches": [
+    [
+     182,
+     193,
+     192
+    ],
+    [
+     181,
+     192,
+     224
+    ]
+   ]
+  },
+  {
+   "id": "CON-7",
+   "group": "CON",
+   "sense": "contromano",
+   "frm": "banchina Comasina (partenze)",
+   "to": "Comasina tronchetto 1",
+   "start_signal": 12,
+   "end_signal": 106,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     116,
+     125,
+     124
+    ],
+    [
+     191,
+     124,
+     180
+    ],
+    [
+     190,
+     180,
+     179
+    ]
+   ],
+   "switches": [
+    [
+     124,
+     116,
+     191
+    ],
+    [
+     180,
+     191,
+     190
+    ]
+   ]
+  },
+  {
+   "id": "CON-8",
+   "group": "CON",
+   "sense": "contromano",
+   "frm": "banchina Comasina (partenze)",
+   "to": "Comasina tronchetto 2",
+   "start_signal": 12,
+   "end_signal": 107,
+   "limit_kmh": 15,
+   "stops_end": true,
+   "edges": [
+    [
+     116,
+     125,
+     124
+    ],
+    [
+     203,
+     124,
+     191
+    ],
+    [
+     204,
+     191,
+     182
+    ],
+    [
+     193,
+     182,
+     183
+    ]
+   ],
+   "switches": [
+    [
+     124,
+     116,
+     203
+    ],
+    [
+     191,
+     203,
+     204
+    ],
+    [
+     182,
+     204,
+     193
     ]
    ]
   }
