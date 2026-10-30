@@ -131,7 +131,9 @@ def plat_near(i, node, within=260):
     return best[1] if best else None
 
 
-EDGE_LABEL = {224: 'banchina Comasina (arrivi)', 116: 'banchina Comasina (partenze)'}
+EDGE_LABEL = {224: 'banchina Comasina (arrivi)', 116: 'banchina Comasina (partenze)', 166: 'deposito San Donato (ingresso)'}
+# where the train ends up: the depot is one place, whichever track the train goes in by
+SAME_PLACE = {'deposito San Donato (ingresso)': 'deposito San Donato', 'San Donato uscita deposito': 'deposito San Donato'}
 
 
 def edge_name(i, node=None):
@@ -280,6 +282,19 @@ def run():
             # a train arriving the usual way never turns onto the wrong track in a station without first stopping (it would
             # arrive contromano): that is a U-turn on the switch, already excluded by the geometry; what is left is real
             ms.append(m)
+        # the same movement by more than one way (two switches back to back at San Donato, two ways into the depot):
+        # one line, the shortest way; the others are kept as alternatives
+        best = {}
+        for m in ms:
+            m['to'] = SAME_PLACE.get(m['to'], m['to'])
+            m['len'] = sum(L[k] for k, a, b in m['steps'])
+            key_ = ((m['start'] or [None])[0], m['frm'], m['to'], m['sense'])
+            if key_ not in best: best[key_] = m; m['alt'] = []
+            else:
+                b_ = best[key_]
+                if m['len'] < b_['len']: m['alt'] = b_['alt'] + [b_['steps']]; best[key_] = m
+                else: b_['alt'].append(m['steps'])
+        ms = list(best.values())
         # order: legal first, then by entry
         ms.sort(key=lambda m: (['legale', 'va contromano', 'rientra sul legale', 'contromano'].index(m['sense']), m['frm'], m['to']))
         for n, m in enumerate(ms): m['id'] = '%s-%d' % (key, n + 1)

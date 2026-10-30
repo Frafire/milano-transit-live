@@ -66,76 +66,6 @@
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato binario 1 (arrivi)",
-   "to": "San Donato tronchetto 1",
-   "start_signal": 40,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     174,
-     153,
-     160
-    ],
-    [
-     209,
-     160,
-     161
-    ],
-    [
-     235,
-     161,
-     156
-    ],
-    [
-     146,
-     156,
-     155
-    ],
-    [
-     227,
-     155,
-     164
-    ],
-    [
-     171,
-     164,
-     163
-    ]
-   ],
-   "switches": [
-    [
-     160,
-     174,
-     209
-    ],
-    [
-     161,
-     209,
-     235
-    ],
-    [
-     156,
-     235,
-     146
-    ],
-    [
-     155,
-     146,
-     227
-    ],
-    [
-     164,
-     227,
-     171
-    ]
-   ]
-  },
-  {
-   "id": "SD-3",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato binario 1 (arrivi)",
    "to": "San Donato tronchetto 2",
    "start_signal": 40,
    "end_signal": null,
@@ -202,91 +132,11 @@
    ]
   },
   {
-   "id": "SD-4",
+   "id": "SD-3",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato binario 1 (arrivi)",
-   "to": "San Donato uscita deposito",
-   "start_signal": 40,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     174,
-     153,
-     160
-    ],
-    [
-     209,
-     160,
-     161
-    ],
-    [
-     235,
-     161,
-     156
-    ],
-    [
-     146,
-     156,
-     155
-    ],
-    [
-     145,
-     155,
-     117
-    ],
-    [
-     229,
-     117,
-     142
-    ],
-    [
-     132,
-     142,
-     141
-    ]
-   ],
-   "switches": [
-    [
-     160,
-     174,
-     209
-    ],
-    [
-     161,
-     209,
-     235
-    ],
-    [
-     156,
-     235,
-     146
-    ],
-    [
-     155,
-     146,
-     145
-    ],
-    [
-     117,
-     145,
-     229
-    ],
-    [
-     142,
-     229,
-     132
-    ]
-   ]
-  },
-  {
-   "id": "SD-5",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato binario 1 (arrivi)",
-   "to": "binario di servizio 166",
+   "to": "deposito San Donato",
    "start_signal": 40,
    "end_signal": 4,
    "limit_kmh": null,
@@ -312,7 +162,7 @@
    ]
   },
   {
-   "id": "SD-6",
+   "id": "SD-4",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato binario 2",
@@ -352,7 +202,7 @@
    ]
   },
   {
-   "id": "SD-7",
+   "id": "SD-5",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato binario 3",
@@ -412,67 +262,7 @@
    ]
   },
   {
-   "id": "SD-8",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato binario 3",
-   "to": "San Donato tronchetto 2",
-   "start_signal": 41,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     173,
-     165,
-     143
-    ],
-    [
-     234,
-     143,
-     118
-    ],
-    [
-     228,
-     118,
-     155
-    ],
-    [
-     145,
-     155,
-     117
-    ],
-    [
-     110,
-     117,
-     116
-    ]
-   ],
-   "switches": [
-    [
-     143,
-     173,
-     234
-    ],
-    [
-     118,
-     234,
-     228
-    ],
-    [
-     155,
-     228,
-     145
-    ],
-    [
-     117,
-     145,
-     110
-    ]
-   ]
-  },
-  {
-   "id": "SD-9",
+   "id": "SD-6",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato binario 3",
@@ -522,177 +312,7 @@
    ]
   },
   {
-   "id": "SD-10",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato binario 3",
-   "to": "San Donato uscita deposito",
-   "start_signal": 41,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     173,
-     165,
-     143
-    ],
-    [
-     234,
-     143,
-     118
-    ],
-    [
-     228,
-     118,
-     155
-    ],
-    [
-     145,
-     155,
-     117
-    ],
-    [
-     229,
-     117,
-     142
-    ],
-    [
-     132,
-     142,
-     141
-    ]
-   ],
-   "switches": [
-    [
-     143,
-     173,
-     234
-    ],
-    [
-     118,
-     234,
-     228
-    ],
-    [
-     155,
-     228,
-     145
-    ],
-    [
-     117,
-     145,
-     229
-    ],
-    [
-     142,
-     229,
-     132
-    ]
-   ]
-  },
-  {
-   "id": "SD-11",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato binario 3",
-   "to": "San Donato uscita deposito",
-   "start_signal": 41,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     173,
-     165,
-     143
-    ],
-    [
-     234,
-     143,
-     118
-    ],
-    [
-     111,
-     118,
-     117
-    ],
-    [
-     229,
-     117,
-     142
-    ],
-    [
-     132,
-     142,
-     141
-    ]
-   ],
-   "switches": [
-    [
-     143,
-     173,
-     234
-    ],
-    [
-     118,
-     234,
-     111
-    ],
-    [
-     117,
-     111,
-     229
-    ],
-    [
-     142,
-     229,
-     132
-    ]
-   ]
-  },
-  {
-   "id": "SD-12",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato binario 3",
-   "to": "San Donato uscita deposito",
-   "start_signal": 41,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     173,
-     165,
-     143
-    ],
-    [
-     133,
-     143,
-     142
-    ],
-    [
-     132,
-     142,
-     141
-    ]
-   ],
-   "switches": [
-    [
-     143,
-     173,
-     133
-    ],
-    [
-     142,
-     133,
-     132
-    ]
-   ]
-  },
-  {
-   "id": "SD-13",
+   "id": "SD-7",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato binario 3",
@@ -722,142 +342,47 @@
    ]
   },
   {
-   "id": "SD-14",
+   "id": "SD-8",
    "group": "SD",
    "sense": "legale",
-   "frm": "San Donato tronchetto 1",
-   "to": "San Donato binario 2",
-   "start_signal": 8,
+   "frm": "San Donato binario 3",
+   "to": "deposito San Donato",
+   "start_signal": 41,
    "end_signal": null,
    "limit_kmh": 15,
    "stops_end": true,
    "edges": [
     [
-     171,
-     163,
-     164
+     173,
+     165,
+     143
     ],
     [
-     227,
-     164,
-     155
+     133,
+     143,
+     142
     ],
     [
-     228,
-     155,
-     118
-    ],
-    [
-     112,
-     118,
-     119
-    ],
-    [
-     113,
-     119,
-     120
-    ],
-    [
-     225,
-     120,
-     196
+     132,
+     142,
+     141
     ]
    ],
    "switches": [
     [
-     164,
-     171,
-     227
+     143,
+     173,
+     133
     ],
     [
-     155,
-     227,
-     228
-    ],
-    [
-     118,
-     228,
-     112
-    ],
-    [
-     120,
-     113,
-     225
+     142,
+     133,
+     132
     ]
    ]
   },
   {
-   "id": "SD-15",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato tronchetto 1",
-   "to": "San Donato binario 2",
-   "start_signal": 8,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     171,
-     163,
-     164
-    ],
-    [
-     227,
-     164,
-     155
-    ],
-    [
-     146,
-     155,
-     156
-    ],
-    [
-     235,
-     156,
-     161
-    ],
-    [
-     167,
-     161,
-     120
-    ],
-    [
-     225,
-     120,
-     196
-    ]
-   ],
-   "switches": [
-    [
-     164,
-     171,
-     227
-    ],
-    [
-     155,
-     227,
-     146
-    ],
-    [
-     156,
-     146,
-     235
-    ],
-    [
-     161,
-     235,
-     167
-    ],
-    [
-     120,
-     167,
-     225
-    ]
-   ]
-  },
-  {
-   "id": "SD-16",
+   "id": "SD-9",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato tronchetto 1",
@@ -917,7 +442,7 @@
    ]
   },
   {
-   "id": "SD-17",
+   "id": "SD-10",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato tronchetto 1",
@@ -977,72 +502,7 @@
    ]
   },
   {
-   "id": "SD-18",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato tronchetto 2",
-   "to": "San Donato binario 2",
-   "start_signal": 7,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     110,
-     116,
-     117
-    ],
-    [
-     145,
-     117,
-     155
-    ],
-    [
-     228,
-     155,
-     118
-    ],
-    [
-     112,
-     118,
-     119
-    ],
-    [
-     113,
-     119,
-     120
-    ],
-    [
-     225,
-     120,
-     196
-    ]
-   ],
-   "switches": [
-    [
-     117,
-     110,
-     145
-    ],
-    [
-     155,
-     145,
-     228
-    ],
-    [
-     118,
-     228,
-     112
-    ],
-    [
-     120,
-     113,
-     225
-    ]
-   ]
-  },
-  {
-   "id": "SD-19",
+   "id": "SD-11",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato tronchetto 2",
@@ -1112,122 +572,7 @@
    ]
   },
   {
-   "id": "SD-20",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato tronchetto 2",
-   "to": "San Donato binario 2",
-   "start_signal": 7,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     110,
-     116,
-     117
-    ],
-    [
-     111,
-     117,
-     118
-    ],
-    [
-     112,
-     118,
-     119
-    ],
-    [
-     113,
-     119,
-     120
-    ],
-    [
-     225,
-     120,
-     196
-    ]
-   ],
-   "switches": [
-    [
-     117,
-     110,
-     111
-    ],
-    [
-     118,
-     111,
-     112
-    ],
-    [
-     120,
-     113,
-     225
-    ]
-   ]
-  },
-  {
-   "id": "SD-21",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato tronchetto 2",
-   "to": "San Donato binario 3",
-   "start_signal": 7,
-   "end_signal": 14,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     110,
-     116,
-     117
-    ],
-    [
-     145,
-     117,
-     155
-    ],
-    [
-     228,
-     155,
-     118
-    ],
-    [
-     234,
-     118,
-     143
-    ],
-    [
-     173,
-     143,
-     165
-    ]
-   ],
-   "switches": [
-    [
-     117,
-     110,
-     145
-    ],
-    [
-     155,
-     145,
-     228
-    ],
-    [
-     118,
-     228,
-     234
-    ],
-    [
-     143,
-     234,
-     173
-    ]
-   ]
-  },
-  {
-   "id": "SD-22",
+   "id": "SD-12",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato tronchetto 2",
@@ -1277,82 +622,7 @@
    ]
   },
   {
-   "id": "SD-23",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato uscita deposito",
-   "to": "San Donato binario 2",
-   "start_signal": 6,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     132,
-     141,
-     142
-    ],
-    [
-     229,
-     142,
-     117
-    ],
-    [
-     145,
-     117,
-     155
-    ],
-    [
-     228,
-     155,
-     118
-    ],
-    [
-     112,
-     118,
-     119
-    ],
-    [
-     113,
-     119,
-     120
-    ],
-    [
-     225,
-     120,
-     196
-    ]
-   ],
-   "switches": [
-    [
-     142,
-     132,
-     229
-    ],
-    [
-     117,
-     229,
-     145
-    ],
-    [
-     155,
-     145,
-     228
-    ],
-    [
-     118,
-     228,
-     112
-    ],
-    [
-     120,
-     113,
-     225
-    ]
-   ]
-  },
-  {
-   "id": "SD-24",
+   "id": "SD-13",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato uscita deposito",
@@ -1432,202 +702,7 @@
    ]
   },
   {
-   "id": "SD-25",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato uscita deposito",
-   "to": "San Donato binario 2",
-   "start_signal": 6,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     132,
-     141,
-     142
-    ],
-    [
-     229,
-     142,
-     117
-    ],
-    [
-     111,
-     117,
-     118
-    ],
-    [
-     112,
-     118,
-     119
-    ],
-    [
-     113,
-     119,
-     120
-    ],
-    [
-     225,
-     120,
-     196
-    ]
-   ],
-   "switches": [
-    [
-     142,
-     132,
-     229
-    ],
-    [
-     117,
-     229,
-     111
-    ],
-    [
-     118,
-     111,
-     112
-    ],
-    [
-     120,
-     113,
-     225
-    ]
-   ]
-  },
-  {
-   "id": "SD-26",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato uscita deposito",
-   "to": "San Donato binario 3",
-   "start_signal": 6,
-   "end_signal": 14,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     132,
-     141,
-     142
-    ],
-    [
-     229,
-     142,
-     117
-    ],
-    [
-     145,
-     117,
-     155
-    ],
-    [
-     228,
-     155,
-     118
-    ],
-    [
-     234,
-     118,
-     143
-    ],
-    [
-     173,
-     143,
-     165
-    ]
-   ],
-   "switches": [
-    [
-     142,
-     132,
-     229
-    ],
-    [
-     117,
-     229,
-     145
-    ],
-    [
-     155,
-     145,
-     228
-    ],
-    [
-     118,
-     228,
-     234
-    ],
-    [
-     143,
-     234,
-     173
-    ]
-   ]
-  },
-  {
-   "id": "SD-27",
-   "group": "SD",
-   "sense": "legale",
-   "frm": "San Donato uscita deposito",
-   "to": "San Donato binario 3",
-   "start_signal": 6,
-   "end_signal": 14,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     132,
-     141,
-     142
-    ],
-    [
-     229,
-     142,
-     117
-    ],
-    [
-     111,
-     117,
-     118
-    ],
-    [
-     234,
-     118,
-     143
-    ],
-    [
-     173,
-     143,
-     165
-    ]
-   ],
-   "switches": [
-    [
-     142,
-     132,
-     229
-    ],
-    [
-     117,
-     229,
-     111
-    ],
-    [
-     118,
-     111,
-     234
-    ],
-    [
-     143,
-     234,
-     173
-    ]
-   ]
-  },
-  {
-   "id": "SD-28",
+   "id": "SD-14",
    "group": "SD",
    "sense": "legale",
    "frm": "San Donato uscita deposito",
@@ -1667,7 +742,7 @@
    ]
   },
   {
-   "id": "SD-29",
+   "id": "SD-15",
    "group": "SD",
    "sense": "legale",
    "frm": "binario verso San Donato",
@@ -1697,7 +772,7 @@
    ]
   },
   {
-   "id": "SD-30",
+   "id": "SD-16",
    "group": "SD",
    "sense": "va contromano",
    "frm": "San Donato binario 2",
@@ -1737,7 +812,7 @@
    ]
   },
   {
-   "id": "SD-31",
+   "id": "SD-17",
    "group": "SD",
    "sense": "va contromano",
    "frm": "binario verso San Donato",
@@ -1777,7 +852,7 @@
    ]
   },
   {
-   "id": "SD-32",
+   "id": "SD-18",
    "group": "SD",
    "sense": "contromano",
    "frm": "San Donato binario 1 (arrivi)",
@@ -1807,7 +882,7 @@
    ]
   },
   {
-   "id": "SD-33",
+   "id": "SD-19",
    "group": "SD",
    "sense": "contromano",
    "frm": "San Donato binario 2",
@@ -1867,142 +942,7 @@
    ]
   },
   {
-   "id": "SD-34",
-   "group": "SD",
-   "sense": "contromano",
-   "frm": "San Donato binario 2",
-   "to": "San Donato tronchetto 1",
-   "start_signal": 44,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     225,
-     196,
-     120
-    ],
-    [
-     167,
-     120,
-     161
-    ],
-    [
-     235,
-     161,
-     156
-    ],
-    [
-     146,
-     156,
-     155
-    ],
-    [
-     227,
-     155,
-     164
-    ],
-    [
-     171,
-     164,
-     163
-    ]
-   ],
-   "switches": [
-    [
-     120,
-     225,
-     167
-    ],
-    [
-     161,
-     167,
-     235
-    ],
-    [
-     156,
-     235,
-     146
-    ],
-    [
-     155,
-     146,
-     227
-    ],
-    [
-     164,
-     227,
-     171
-    ]
-   ]
-  },
-  {
-   "id": "SD-35",
-   "group": "SD",
-   "sense": "contromano",
-   "frm": "San Donato binario 2",
-   "to": "San Donato tronchetto 1",
-   "start_signal": 44,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     225,
-     196,
-     120
-    ],
-    [
-     113,
-     120,
-     119
-    ],
-    [
-     112,
-     119,
-     118
-    ],
-    [
-     228,
-     118,
-     155
-    ],
-    [
-     227,
-     155,
-     164
-    ],
-    [
-     171,
-     164,
-     163
-    ]
-   ],
-   "switches": [
-    [
-     120,
-     225,
-     113
-    ],
-    [
-     118,
-     112,
-     228
-    ],
-    [
-     155,
-     228,
-     227
-    ],
-    [
-     164,
-     227,
-     171
-    ]
-   ]
-  },
-  {
-   "id": "SD-36",
+   "id": "SD-20",
    "group": "SD",
    "sense": "contromano",
    "frm": "San Donato binario 2",
@@ -2072,131 +1012,11 @@
    ]
   },
   {
-   "id": "SD-37",
+   "id": "SD-21",
    "group": "SD",
    "sense": "contromano",
    "frm": "San Donato binario 2",
-   "to": "San Donato tronchetto 2",
-   "start_signal": 44,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     225,
-     196,
-     120
-    ],
-    [
-     113,
-     120,
-     119
-    ],
-    [
-     112,
-     119,
-     118
-    ],
-    [
-     228,
-     118,
-     155
-    ],
-    [
-     145,
-     155,
-     117
-    ],
-    [
-     110,
-     117,
-     116
-    ]
-   ],
-   "switches": [
-    [
-     120,
-     225,
-     113
-    ],
-    [
-     118,
-     112,
-     228
-    ],
-    [
-     155,
-     228,
-     145
-    ],
-    [
-     117,
-     145,
-     110
-    ]
-   ]
-  },
-  {
-   "id": "SD-38",
-   "group": "SD",
-   "sense": "contromano",
-   "frm": "San Donato binario 2",
-   "to": "San Donato tronchetto 2",
-   "start_signal": 44,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     225,
-     196,
-     120
-    ],
-    [
-     113,
-     120,
-     119
-    ],
-    [
-     112,
-     119,
-     118
-    ],
-    [
-     111,
-     118,
-     117
-    ],
-    [
-     110,
-     117,
-     116
-    ]
-   ],
-   "switches": [
-    [
-     120,
-     225,
-     113
-    ],
-    [
-     118,
-     112,
-     111
-    ],
-    [
-     117,
-     111,
-     110
-    ]
-   ]
-  },
-  {
-   "id": "SD-39",
-   "group": "SD",
-   "sense": "contromano",
-   "frm": "San Donato binario 2",
-   "to": "San Donato uscita deposito",
+   "to": "deposito San Donato",
    "start_signal": 44,
    "end_signal": null,
    "limit_kmh": 15,
@@ -2272,217 +1092,7 @@
    ]
   },
   {
-   "id": "SD-40",
-   "group": "SD",
-   "sense": "contromano",
-   "frm": "San Donato binario 2",
-   "to": "San Donato uscita deposito",
-   "start_signal": 44,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     225,
-     196,
-     120
-    ],
-    [
-     113,
-     120,
-     119
-    ],
-    [
-     112,
-     119,
-     118
-    ],
-    [
-     228,
-     118,
-     155
-    ],
-    [
-     145,
-     155,
-     117
-    ],
-    [
-     229,
-     117,
-     142
-    ],
-    [
-     132,
-     142,
-     141
-    ]
-   ],
-   "switches": [
-    [
-     120,
-     225,
-     113
-    ],
-    [
-     118,
-     112,
-     228
-    ],
-    [
-     155,
-     228,
-     145
-    ],
-    [
-     117,
-     145,
-     229
-    ],
-    [
-     142,
-     229,
-     132
-    ]
-   ]
-  },
-  {
-   "id": "SD-41",
-   "group": "SD",
-   "sense": "contromano",
-   "frm": "San Donato binario 2",
-   "to": "San Donato uscita deposito",
-   "start_signal": 44,
-   "end_signal": null,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     225,
-     196,
-     120
-    ],
-    [
-     113,
-     120,
-     119
-    ],
-    [
-     112,
-     119,
-     118
-    ],
-    [
-     111,
-     118,
-     117
-    ],
-    [
-     229,
-     117,
-     142
-    ],
-    [
-     132,
-     142,
-     141
-    ]
-   ],
-   "switches": [
-    [
-     120,
-     225,
-     113
-    ],
-    [
-     118,
-     112,
-     111
-    ],
-    [
-     117,
-     111,
-     229
-    ],
-    [
-     142,
-     229,
-     132
-    ]
-   ]
-  },
-  {
-   "id": "SD-42",
-   "group": "SD",
-   "sense": "contromano",
-   "frm": "San Donato tronchetto 1",
-   "to": "San Donato binario 1 (arrivi)",
-   "start_signal": 8,
-   "end_signal": 349,
-   "limit_kmh": 15,
-   "stops_end": true,
-   "edges": [
-    [
-     171,
-     163,
-     164
-    ],
-    [
-     227,
-     164,
-     155
-    ],
-    [
-     146,
-     155,
-     156
-    ],
-    [
-     235,
-     156,
-     161
-    ],
-    [
-     209,
-     161,
-     160
-    ],
-    [
-     174,
-     160,
-     153
-    ]
-   ],
-   "switches": [
-    [
-     164,
-     171,
-     227
-    ],
-    [
-     155,
-     227,
-     146
-    ],
-    [
-     156,
-     146,
-     235
-    ],
-    [
-     161,
-     235,
-     209
-    ],
-    [
-     160,
-     209,
-     174
-    ]
-   ]
-  },
-  {
-   "id": "SD-43",
+   "id": "SD-22",
    "group": "SD",
    "sense": "contromano",
    "frm": "San Donato tronchetto 1",
@@ -2542,7 +1152,7 @@
    ]
   },
   {
-   "id": "SD-44",
+   "id": "SD-23",
    "group": "SD",
    "sense": "contromano",
    "frm": "San Donato tronchetto 2",
@@ -2612,7 +1222,7 @@
    ]
   },
   {
-   "id": "SD-45",
+   "id": "SD-24",
    "group": "SD",
    "sense": "contromano",
    "frm": "San Donato uscita deposito",
@@ -2692,37 +1302,7 @@
    ]
   },
   {
-   "id": "SD-46",
-   "group": "SD",
-   "sense": "contromano",
-   "frm": "binario di servizio 166",
-   "to": "San Donato binario 1 (arrivi)",
-   "start_signal": null,
-   "end_signal": 349,
-   "limit_kmh": null,
-   "stops_end": true,
-   "edges": [
-    [
-     166,
-     40,
-     160
-    ],
-    [
-     174,
-     160,
-     153
-    ]
-   ],
-   "switches": [
-    [
-     160,
-     166,
-     174
-    ]
-   ]
-  },
-  {
-   "id": "SD-47",
+   "id": "SD-25",
    "group": "SD",
    "sense": "contromano",
    "frm": "binario verso Comasina",
@@ -2762,7 +1342,7 @@
    ]
   },
   {
-   "id": "SD-48",
+   "id": "SD-26",
    "group": "SD",
    "sense": "contromano",
    "frm": "binario verso Comasina",
@@ -2788,6 +1368,36 @@
      165,
      175,
      173
+    ]
+   ]
+  },
+  {
+   "id": "SD-27",
+   "group": "SD",
+   "sense": "contromano",
+   "frm": "deposito San Donato (ingresso)",
+   "to": "San Donato binario 1 (arrivi)",
+   "start_signal": null,
+   "end_signal": 349,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     166,
+     40,
+     160
+    ],
+    [
+     174,
+     160,
+     153
+    ]
+   ],
+   "switches": [
+    [
+     160,
+     166,
+     174
     ]
    ]
   },
@@ -6008,7 +4618,7 @@
    "frm": "binario verso Comasina (lato Affori FN)",
    "to": "banchina Comasina (arrivi)",
    "start_signal": 122,
-   "end_signal": null,
+   "end_signal": 11,
    "limit_kmh": null,
    "stops_end": true,
    "edges": [
@@ -6078,7 +4688,7 @@
    "frm": "binario verso Comasina (lato Affori FN)",
    "to": "banchina Comasina (partenze)",
    "start_signal": 122,
-   "end_signal": null,
+   "end_signal": 12,
    "limit_kmh": 15,
    "stops_end": true,
    "edges": [
@@ -6148,7 +4758,7 @@
    "frm": "binario verso San Donato (lato Affori FN)",
    "to": "banchina Comasina (partenze)",
    "start_signal": 351,
-   "end_signal": null,
+   "end_signal": 12,
    "limit_kmh": null,
    "stops_end": true,
    "edges": [

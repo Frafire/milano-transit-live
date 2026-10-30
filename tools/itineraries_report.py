@@ -24,8 +24,8 @@ for key, g in D.items():
     for m in ms:
         c, t = SENSE[m['sense']]
         endc = sig(m['end']) if m['end'] else ('<span class="t">ferma</span>' if m['stops_end'] else '<span class="miss">manca</span>')
-        out.append('<tr><td class="id">%s</td><td class="big">%s</td><td class="big">%s</td><td>%s <span class="t">&rarr;</span> %s</td><td><span class="%s">%s</span></td><td>%s</td></tr>' % (
-            m['id'], sig(m['start']), endc, h(m['frm']), h(m['to']), c, t, '15 km/h' if m['deviata'] else ''))
+        out.append('<tr><td class="id">%s</td><td class="big">%s</td><td class="big">%s</td><td>%s <span class="t">&rarr;</span> %s%s</td><td><span class="%s">%s</span></td><td>%s</td></tr>' % (
+            m['id'], sig(m['start']), endc, h(m['frm']), h(m['to']), ' <span class="t">(%d altre strade)</span>' % len(m['alt']) if m.get('alt') else '', c, t, '15 km/h' if m['deviata'] else ''))
     out.append('</tbody></table></div>')
     out.append('<details><summary>Chi puo muoversi dopo chi</summary><p class="hint">Riga = parte per primo, colonna = segue. libero: insieme; N m: dopo N metri del primo; attende: il primo si ferma su un tratto in comune.</p><div class="sc"><table class="mx"><thead><tr><th></th>' + ''.join('<th>%s</th>' % m['id'].split('-')[1] for m in ms) + '</tr></thead><tbody>')
     for A in ms: out.append('<tr><th>%s</th>' % A['id'] + ''.join('<td class="dot">&middot;</td>' if A is B else cell(g['matrix'][A['id'] + '>' + B['id']]) for B in ms) + '</tr>')
