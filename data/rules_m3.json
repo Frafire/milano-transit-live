@@ -4023,6 +4023,26 @@
    "dir": 1,
    "type": "nose",
    "name": "Sondrio: fine banchina direzione Comasina (spostata come la banchina opposta, 23,5 m verso Zara)"
+  },
+  {
+   "line": "M3",
+   "w": 80,
+   "lat": 45.427635,
+   "lon": 9.252492,
+   "on_track": [
+    45.427616,
+    9.252493
+   ],
+   "offset_m": 2.1,
+   "side": "right",
+   "heading": 90,
+   "dir": -1,
+   "type": "entry",
+   "kind": "atp",
+   "n": 379,
+   "stype": "b",
+   "legal": false,
+   "name": "Protezione illegale della stazione di San Donato: chi arriva da qui puo essere instradato sul binario 2 o 3 fino a questo punto; controlla i due scambi davanti; normalmente via impedita"
   }
  ],
  "speeds": {

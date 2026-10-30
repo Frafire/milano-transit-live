@@ -23,7 +23,7 @@ for key, g in D.items():
     out.append('<section id="%s"><h2>%s</h2><p class="hint">%d movimenti</p><div class="sc"><table><thead><tr><th>ID</th><th>Dal semaforo</th><th>Al semaforo</th><th>Cosa fa il treno</th><th>Senso</th><th>Vel.</th></tr></thead><tbody>' % (key, h(g['title']), len(ms)))
     for m in ms:
         c, t = SENSE[m['sense']]
-        endc = sig(m['end']) if m['end'] else ('<span class="t">ferma</span>' if m['stops_end'] else '<span class="miss">manca</span>')
+        endc = sig(m['end']) if m['end'] else ('<span class="t">muro (fine tronchetto)</span>' if m['stops_end'] else '<span class="t">M2</span>' if m['to'] == 'raccordo verso la M2' else '<span class="miss">manca</span>')
         out.append('<tr><td class="id">%s</td><td class="big">%s</td><td class="big">%s</td><td>%s <span class="t">&rarr;</span> %s%s</td><td><span class="%s">%s</span></td><td>%s</td></tr>' % (
             m['id'], sig(m['start']), endc, h(m['frm']), h(m['to']), ' <span class="t">(%d altre strade)</span>' % len(m['alt']) if m.get('alt') else '', c, t, '15 km/h' if m['deviata'] else ''))
     out.append('</tbody></table></div>')
@@ -31,5 +31,5 @@ for key, g in D.items():
     for A in ms: out.append('<tr><th>%s</th>' % A['id'] + ''.join('<td class="dot">&middot;</td>' if A is B else cell(g['matrix'][A['id'] + '>' + B['id']]) for B in ms) + '</tr>')
     out.append('</tbody></table></div></details></section>')
 intro = ('<header><h1>Itinerari della M3</h1><p class="hint">%d movimenti in %d gruppi di scambi, calcolati dal tracciato. Un treno passa da un binario all\'altro solo se lo scambio lo permette nella sua direzione (niente inversioni a U sullo scambio); inverte solo fermo in banchina o in tronchetto, davanti a un segnale (cambio banco). Corvetto, Porto di Mare, Zara, Dergano, Affori, Turati, Montenapoleone, Duomo, Missori e Crocetta non hanno scambi.</p><p class="nav">%s</p></header>' % (total, len(D), nav))
-legend = '<div class="top"><b>Senso</b><p><span class="lg">legale</span> sul binario di destra · <span class="wa">va contromano</span> parte legale e passa sull\'altro binario · <span class="rt">rientra sul legale</span> parte contromano (dopo un cambio banco) e torna sul suo binario · <span class="il">contromano</span> sempre sul binario sinistro. <span class="miss">manca</span>: nessun segnale apre quel movimento.</p></div>'
+legend = '<div class="top"><b>Senso</b><p><span class="lg">legale</span> sul binario di destra · <span class="wa">va contromano</span> parte legale e passa sull\'altro binario · <span class="rt">rientra sul legale</span> parte contromano (dopo un cambio banco) e torna sul suo binario · <span class="il">contromano</span> sempre sul binario sinistro. Ogni movimento va da un semaforo al semaforo successivo, davanti al quale il treno si ferma (anche in stazione: lì apre le porte); <i>muro</i>: fine del tronchetto.</p></div>'
 open(sys.argv[2], 'w').write(HEAD + '<main>\n' + intro + legend + '\n'.join(out) + '</main>')

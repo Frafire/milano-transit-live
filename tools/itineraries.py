@@ -62,6 +62,8 @@ LEGAL = {}
 for pid in (2, 6):
     for ei, dr, x0, x1 in PE[pid]['e']:
         if E[ei]['cat'] == 'main': LEGAL.setdefault(ei, (E[ei]['a'], E[ei]['b']) if dr > 0 else (E[ei]['b'], E[ei]['a']))
+# San Donato platforms: binario 1 legal towards the tails (arrivals), binari 2 and 3 towards the line (departures)
+LEGAL.update({174: (153, 160), 173: (143, 165), 225: (120, 196), 226: (196, 165)})
 
 # ---- every signal on the network: (edge, metres from a, facing +1 a->b / -1 b->a, label)
 SIGS = collections.defaultdict(list)
@@ -131,7 +133,8 @@ def plat_near(i, node, within=260):
     return best[1] if best else None
 
 
-EDGE_LABEL = {224: 'banchina Comasina (arrivi)', 116: 'banchina Comasina (partenze)', 166: 'deposito San Donato (ingresso)'}
+EDGE_LABEL = {224: 'banchina Comasina (arrivi)', 116: 'banchina Comasina (partenze)', 166: 'deposito San Donato (ingresso)', 239: 'Brenta tronchetto',
+              184: 'Centrale tronchino di ricovero (A33)', 183: 'raccordo verso la M2', 129: 'Repubblica binario di rimessa'}
 # where the train ends up: the depot is one place, whichever track the train goes in by
 SAME_PLACE = {'deposito San Donato (ingresso)': 'deposito San Donato', 'San Donato uscita deposito': 'deposito San Donato'}
 
@@ -241,11 +244,41 @@ def sig_before(route, deg):
     return found
 
 
-def sig_after(step):
-    k, a, b = step; sgs = SIGS.get(k, []); L = E[k]['len']
-    face = 1 if (a, b) == (E[k]['a'], E[k]['b']) else -1
-    c = [(off if face > 0 else L - off, lab, st, lg) for off, f, lab, st, lg in sgs if f == face]
-    return min(c)[1:] if c else None
+def _facing(k, x, y):
+    """signals on piece k facing a train going x -> y: [(metres from x, label, type, legal)]"""
+    L = E[k]['len']; face = 1 if (x, y) == (E[k]['a'], E[k]['b']) else -1
+    return sorted((off if face > 0 else L - off, lab, st, lg) for off, f, lab, st, lg in SIGS.get(k, []) if f == face)
+
+
+def _straight_on(k, node, back=False):
+    """the piece a train takes after (or, back=True, came from before) piece k at node, going straight where it can"""
+    c = [j for j in _ADJ[node] if j != k and through_ok(k, node, j)]
+    return min(c, key=lambda j: _ang(k, j, node)) if c else None
+
+
+def sig_after(step, limit=2500):
+    """the first signal the train meets after the movement (it stops in front of it): on the last piece, or further on
+    going straight (a platform ends with its departure signal just past the switch, the depot has its own)"""
+    k, a, b = step; done = 0
+    while k is not None and done < limit:
+        c = _facing(k, a, b)
+        if c: return c[0][1:]
+        done += E[k]['len']; nk = _straight_on(k, b)
+        if nk is None: return None
+        a, b, k = b, other(nk, b), nk
+    return None
+
+
+def sig_back(step, limit=600):
+    """no signal on the way in: the last one the train passed before it, going back along the track"""
+    k, a, b = step; done = 0
+    while done < limit:
+        pk = _straight_on(k, a)
+        if pk is None: return None
+        x = other(pk, a); c = _facing(pk, x, a)
+        if c: return c[-1][1:]
+        done += E[pk]['len']; k, a, b = pk, x, a
+    return None
 
 
 def describe(route, deg, stops):
@@ -253,8 +286,9 @@ def describe(route, deg, stops):
     dev = any(E[k]['cat'] in ('crossover',) or (E[k]['cat'] == 'siding' and E[k]['way'] not in (78, 79, 103)) for k, a, b in route[1:-1]) or \
         any(E[k]['cat'] == 'crossover' for k, a, b in route)
     l0, l1 = legal_of(first), legal_of(last)
-    s0 = sig_before(route, deg); s1 = sig_after(last)
-    stop_end = last[0] in stops
+    wall = len(_ADJ[last[2]]) == 1 and last[0] != 183     # a tail: the train stops at the buffer, no signal in front of it (183 goes on into the M2)
+    s0 = sig_before(route, deg) or sig_back(first); s1 = None if wall else sig_after(last)
+    stop_end = wall
     sw = [(b, k, route[n + 1][0]) for n, (k, a, b) in enumerate(route[:-1]) if deg[b] >= 3]
     a_ = l0 if l0 is not None else l1; b_ = l1 if l1 is not None else l0
     sense = 'legale' if a_ is not False and b_ is not False else 'contromano' if a_ is False and b_ is False else 'rientra sul legale' if a_ is False else 'va contromano'
