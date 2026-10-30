@@ -137,6 +137,9 @@ EDGE_LABEL = {224: 'banchina Comasina binario 2 (arrivi)', 116: 'banchina Comasi
               184: 'Centrale tronchino di ricovero (A33)', 183: 'raccordo verso la M2', 129: 'Repubblica binario di rimessa'}
 EXTRA_START = {('SD', 'deposito San Donato (ingresso)', 'San Donato binario 1 (arrivi)'): ('A02', 'deposito San Donato (da A02)')}
 # Comasina tails: three positions of 110 m each, position 1 the outermost (next to the switch), 3 the deepest
+# movements Giovanni classes differently from the geometry: (group, start signal, end signal) -> sense
+# SD 13->44: binario 1 into San Donato binario 2, half legal and half not, but standard: it happens a few times a month
+SENSE_FIX = {('SD', 'A13', 'A44'): 'misto (ammesso in servizio)'}
 TAIL_POS = {190: (180, 'Comasina tronchetto 1'), 193: (182, 'Comasina tronchetto 2')}       # tail piece: (switch node, name)
 SLOT = 110.0
 # where the train ends up: the depot is one place, whichever track the train goes in by
@@ -371,6 +374,9 @@ def run():
         # order: legal first, then by entry
         ms.sort(key=lambda m: (['legale', 'va contromano', 'rientra sul legale', 'contromano'].index(m['sense']), m['frm'], m['to']))
         for n, m in enumerate(ms): m['id'] = '%s-%d' % (key, n + 1)
+        for m in ms:       # after the numbering, so the IDs stay the same
+            fx = SENSE_FIX.get((key, m['start'][0] if m['start'] else None, m['end'][0] if m['end'] else None))
+            if fx: m['sense'] = fx
         mx = {}
         for A in ms:
             for B in ms:
