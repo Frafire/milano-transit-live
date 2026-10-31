@@ -4923,5 +4923,20 @@
   "S|REPUBBLICA": 250,
   "N|COMASINA arrivo": 260
  },
- "entry_window_about": "Station protection signals that stand far before the platform (a crossover in between): look this far back for Giovanni's placed signal."
+ "entry_window_about": "Station protection signals that stand far before the platform (a crossover in between): look this far back for Giovanni's placed signal.",
+ "capacity": {
+  "_about": "Quanti treni ci stanno in un tronchetto o in una galleria di servizio (Regole_interlocking_M3, precedenza 28). Per pezzo di binario (numero del pezzo nella rete del simulatore). Comasina: le 3 posizioni dei tronchetti sono già nel tracciato.",
+  "edges": {
+   "239": 1,
+   "129": 2,
+   "183": 3,
+   "184": 1
+  },
+  "names": {
+   "239": "Brenta tronchetto",
+   "129": "Repubblica binario di rimessa",
+   "183": "raccordo verso la M2",
+   "184": "Centrale tronchino A33"
+  }
+ }
 }

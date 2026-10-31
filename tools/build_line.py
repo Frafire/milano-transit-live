@@ -1426,6 +1426,31 @@ if CFG.get('degraded'):
         print('degraded service: turns at', sorted(TURNS))
     else:
         print('degraded service: no matching pair of main paths')
+# the other ways of a movement (itineraries with "alt", tools/itineraries.py): every path that takes the usual way of
+# such a movement gets a twin path that takes the other way instead (the interlocking can switch a train to it, when
+# the usual way is taken and the other one is free). VARIANTS[pid] = [[itinerary id, way index, twin pid]]
+VARIANTS = {}
+_ITF0 = 'itineraries_%s.json' % LINE.lower()
+_IT0 = json.load(open(_ITF0))['itineraries'] if os.path.exists(_ITF0) else []
+_n_base = len(paths)
+def _make_variants():
+    for pid in range(_n_base):
+        st = PATH_STATES.get(pid)
+        if not st: continue
+        ids = [ei for ei, _ in st]
+        for m in _IT0:
+            if not m.get('alt'): continue
+            _W = [x[0] for x in m['edges']]
+            for i in range(len(ids) - len(_W) + 1):
+                if ids[i:i + len(_W)] != _W: continue
+                # the same way: the same directions too
+                if any((1 if edges[e]['a'] == a else -1) != st[i + j][1] for j, (e, a, b) in enumerate(m['edges'])): continue
+                for wi, _A in enumerate(m['alt'], 1):
+                    ns = st[:i] + [(e, 1 if edges[e]['a'] == a else -1) for e, a, b in _A] + st[i + len(_W):]
+                    VARIANTS.setdefault(pid, []).append([m['id'], wi, make_path(('variant', pid, m['id'], wi), ns)])
+                break
+_make_variants()
+print('other ways: %d paths with a twin, %d twin paths' % (len(VARIANTS), len(paths) - _n_base))
 # for every path: which track piece covers which stretch, and where it takes the diverging side of a junction (15 km/h)
 def _ang(u, v): return math.degrees(math.acos(max(-1.0, min(1.0, u[0] * v[0] + u[1] * v[1]))))
 PATH_EDGES = []
@@ -1761,7 +1786,15 @@ NET['itineraries'] = [{'id': m['id'], 'group': m['group'], 'sense': m['sense'], 
                        'frm': m['frm'], 'to': m['to'], 'ways': [[x[0] for x in w] for w in [m['edges']] + (m.get('alt') or [])],
                        'when': (_rit.get(m['id']) or {}).get('quando'), 'prio': (_rit.get(m['id']) or {}).get('priorita'),
                        'cmd': (_rsg.get(str(m['start_signal'])) or {}).get('comando')} for m in _IT]
-NET['rules'] = {'tempi': _RG.get('tempi', {})}
+_tm = _RG.get('tempi', {})
+_tval = lambda pre, i=1: next((v[i] for k, v in _tm.items() if k.startswith(pre) and v[i] is not None), 0)
+NET['rules'] = {'tempi': _tm}
+# what the route interlocking needs from the rules: times, capacities, the signals worked by the PC
+NET['route_rules'] = {'times': {'blade': _tval('Ago dello scambio'), 'signal': _tval('Ritardo di apertura del segnale')},
+                      'capacity': {k: v for k, v in _rules_.get('capacity', {}).get('edges', {}).items()},
+                      'pcSignals': sorted(int(n) for n, v in _rsg.items() if (v.get('comando') or '').startswith('manuale'))}
+print('route rules:', NET['route_rules'])
+NET['variants'] = {str(k): v for k, v in VARIANTS.items()}
 print('itineraries: %d (%d with other ways), rules for %d of them' % (len(_IT), sum(1 for m in _IT if m.get('alt')), sum(1 for m in _IT if m['id'] in _rit)))
 print('route interlocking: signals on the paths', sum(len(v) for v in SIGALL.values()), '| signals', len(_SIGAT))
 json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in paths],

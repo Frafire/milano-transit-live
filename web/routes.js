@@ -11,12 +11,30 @@
 // the train changes path (it reverses, it goes into the depot) or is switched off.
 // The geometry of the switches is already in the paths (built from the track): a path never takes a U-turn on a switch.
 // It never moves a train; it only answers. The state is a plain object kept by the caller (saved, going back in time).
+//
+// Giovanni's rules (Regole_interlocking_M3.xlsx, through the build):
+//   - every route over a switch is a movement of the table of the itineraries (with its ID); a movement whose rules
+//     say it is not for the normal service (a breakdown, a closure, single track...) is set only when the PC has
+//     authorised it; the same for the signals worked by the PC ("manuale con controllo sezioni");
+//   - a switch that has to change position takes the time of the blade (Tempi: ago dello scambio), then the signal
+//     opens after its own delay (Tempi: ritardo di apertura del segnale); a route is ready only then;
+//   - a siding with a capacity (a tail, the tunnel to the M2) takes no more trains than that;
+//   - a movement with other ways (San Donato) can be given on another way when the usual one is taken (the caller
+//     moves the train to the twin path, o.variants).
 (function (root) {
   function create(o) {
-    // o: { sigall: { pid: [[d, n, flags]] }, pathEdges: [{ e: [[edge, dir, from, to]] }], netEdges: [{ a, b, len }], itineraries }
+    // o: { sigall: { pid: [[d, n, flags]] }, pathEdges: [{ e: [[edge, dir, from, to]] }], netEdges: [{ a, b, len }],
+    //      itineraries: [{ id, start, ways, when }], times: { blade, signal } (s), capacity: { edge: trains },
+    //      pcSignals: [n], normal: [situations of the normal service] }
     const SA = o.sigall || {}, PE = o.pathEdges, NE = o.netEdges;
+    const BLADE = (o.times && o.times.blade) || 0, SIGNAL = (o.times && o.times.signal) || 0;
+    const CAP = o.capacity || {}, PC_SIG = new Set(o.pcSignals || []);
+    const NORMAL = new Set(o.normal || ['servizio normale', 'sempre', 'mattina', 'sera', 'ritardo', 'manovra deposito']);
+    const WHEN = {}; for (const it of o.itineraries || []) WHEN[it.id] = it.when;
 
-    function fresh() { return { routes: {} }; }          // routes[k] = [{ pid, d0, d1, n, pieces: [[edge, l0, l1, pEnd]], nodes: [[node, p]] }]
+    // routes[k] = [{ pid, d0, d1, n, pieces: [[edge, l0, l1, pEnd]], nodes: [[node, p]], id, way, ready }]
+    // sw[node]: the position of a switch (the two pieces it joins); pc[key]: authorisations given by the PC
+    function fresh() { return { routes: {}, sw: {}, pc: {}, t: 0 }; }
 
     // signals ahead of a train on its path (front at nose): [{ d, n, fl }], nearest first
     function ahead(pid, nose, look) {
@@ -96,25 +114,53 @@
     const heldNode = (st, k, nd) => (st.routes[k] || []).some(r => r.nodes.some(x => x[0] === nd));
     function held(st, k, pid, d) { return (st.routes[k] || []).some(r => r.pid === pid && Math.abs(r.d0 - d) < 1); }
     // train k asks for the route that starts at the signal at d on its path: true if it is set (now or before)
+    // a siding with a capacity: how many trains are in it or on their way into it (routes ending there)
+    function full(st, k, pieces, occ) {
+      for (const [ei] of pieces) {
+        const cap = CAP[ei]; if (cap == null) continue;
+        const who = new Set((occ(ei) || []).map(x => x[0]).filter(x => x !== k));
+        for (const [k2, rs] of Object.entries(st.routes)) if (+k2 !== k && rs.some(r => r.pieces.some(x => x[0] === ei))) who.add(+k2);
+        if (who.size >= cap) return { full: ei, trains: who.size };
+      }
+      return null;
+    }
+    // the PC authorises a signal ('n:13') or a movement of the table ('id:SD-10') for the next train
+    function authorize(st, key) { st.pc[key] = (st.pc[key] || 0) + 1; return true; }
+    // train k asks for the route that starts at the signal at d on its path: true if it is set (now or before)
     function request(st, k, pid, d, n, occ, blocked) {
       if (held(st, k, pid, d)) return true;
       const d1 = nextSignal(pid, d), { pieces, nodes } = span(pid, d, d1);
-      const why = free(st, k, pieces, nodes, occ) || (blocked ? blocked(pieces) : null);
+      const it = BY_START.size ? identify(n, pieces) : null;
+      // the PC's signals and the movements that are not for the normal service: only with the PC's authorisation
+      const needPc = (n != null && PC_SIG.has(n) ? 'n:' + n : null) || (it && WHEN[it.id] && !NORMAL.has(WHEN[it.id]) ? 'id:' + it.id : null);
+      if (needPc && !(st.pc[needPc] > 0)) { st.lastNo = { pc: needPc }; return false; }
+      const why = free(st, k, pieces, nodes, occ) || full(st, k, pieces, occ) || (blocked ? blocked(pieces) : null);
       if (why) { st.lastNo = why; return false; }
-      const r = { pid, d0: d, d1, n, pieces, nodes };
-      if (BY_START.size) {
-        const it = identify(n, pieces);
-        if (it) { r.id = it.id; r.way = it.way; st.uses = st.uses || {}; st.uses[it.id] = (st.uses[it.id] || 0) + 1; }
-        else if (nodes.some(([nd]) => isSwitch(nd) && !depotSwitch(nd))) { st.noId = (st.noId || 0) + 1; st.noIdAt = st.noIdAt || {}; const key = n + '@' + pid; st.noIdAt[key] = (st.noIdAt[key] || 0) + 1; }
+      if (needPc) st.pc[needPc]--;
+      // the switches: the ones that must change position take the time of the blade, then the signal opens
+      let moved = false;
+      for (let i = 0; i + 1 < pieces.length && i < nodes.length; i++) {
+        const nd = nodes[i][0]; if (!isSwitch(nd)) continue;
+        const pos = Math.min(pieces[i][0], pieces[i + 1][0]) + '-' + Math.max(pieces[i][0], pieces[i + 1][0]);
+        if (st.sw[nd] != null && st.sw[nd] !== pos) moved = true;
+        st.sw[nd] = pos;
       }
+      const r = { pid, d0: d, d1, n, pieces, nodes, ready: (st.t || 0) + (moved ? BLADE : 0) + SIGNAL };
+      if (it) { r.id = it.id; r.way = it.way; st.uses = st.uses || {}; st.uses[it.id] = (st.uses[it.id] || 0) + 1; }
+      else if (BY_START.size && nodes.some(([nd]) => isSwitch(nd) && !depotSwitch(nd))) { st.noId = (st.noId || 0) + 1; st.noIdAt = st.noIdAt || {}; const key = n + '@' + pid; st.noIdAt[key] = (st.noIdAt[key] || 0) + 1; }
       (st.routes[k] = st.routes[k] || []).push(r);
       return true;
     }
+    // is the route of train k from d on its path ready (switches in place, signal open)?
+    const readyNode = (st, k, nd) => (st.routes[k] || []).filter(r => r.nodes.some(x => x[0] === nd)).every(r => r.ready == null || r.ready <= (st.t || 0));
+    function ready(st, k, pid, d) { const r = (st.routes[k] || []).find(x => x.pid === pid && Math.abs(x.d0 - d) < 1); return !r || r.ready == null || r.ready <= (st.t || 0); }
     // behind the train's tail: release; another path or switched off: release all
-    function release(st, k, pid, tail, gone) {
+    // (next: the path of the train's next move, when it is about to start it: its route, set in advance, stays)
+    function release(st, k, pid, tail, gone, next) {
       const rs = st.routes[k]; if (!rs) return;
       const keep = [];
       for (const r of rs) {
+        if (!gone && next != null && r.pid === next && r.pid !== pid) { keep.push(r); continue; }
         if (gone || r.pid !== pid) continue;
         r.pieces = r.pieces.filter(x => x[3] > tail - 1);
         r.nodes = r.nodes.filter(x => x[1] > tail - 1);
@@ -125,7 +171,7 @@
     // the signals showing via libera now: numbers of the routes set (not yet passed by the front of the train)
     function green(st, fronts) {
       const out = new Set();
-      for (const [k, rs] of Object.entries(st.routes)) for (const r of rs) { const f = fronts[k]; if (r.n != null && (!f || f.pid !== r.pid || f.nose < r.d0 + 1)) out.add(r.n); }
+      for (const [k, rs] of Object.entries(st.routes)) for (const r of rs) { const f = fronts[k]; if (r.n != null && (r.ready == null || r.ready <= (st.t || 0)) && (!f || f.pid !== r.pid || f.nose < r.d0 + 1)) out.add(r.n); }
       return out;
     }
     // is the stretch behind a signal free (for the signals that are normally green: a, b, c, d on the legal side)?
@@ -133,7 +179,7 @@
       const d1 = nextSignal(pid, d), { pieces, nodes } = span(pid, d, d1);
       return !free(st, -1, pieces, nodes, occ);
     }
-    return { fresh, ahead, request, release, held, green, clearAhead, nextSignal, span, identify, switchesOn, heldNode };
+    return { fresh, ahead, request, release, held, ready, readyNode, authorize, green, clearAhead, nextSignal, span, identify, switchesOn, heldNode };
   }
   const api = { create };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLRoutes = api;

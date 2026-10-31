@@ -45,8 +45,29 @@
     // depot and test-loop signals (web/interlocking.js); the line: route interlocking (web/routes.js)
     const IL = o.interlocking && ILmod ? ILmod.create(Object.assign({}, o.interlocking, { sigpos: o.sigpos, half: o.half })) : null;
     S.il = IL ? IL.fresh(null) : null;
-    const RT = RTmod.create({ sigall: o.sigall || {}, pathEdges, netEdges, itineraries: o.itineraries });
+    const RR = o.routeRules || {};
+    const RT = RTmod.create({ sigall: o.sigall || {}, pathEdges, netEdges, itineraries: o.itineraries, times: RR.times, capacity: RR.capacity, pcSignals: RR.pcSignals });
     S.rt = RT.fresh();
+    // the other ways of a movement (San Donato): VAR[pid] = [[itinerary id, way, twin pid]]; START[id]: its first signal
+    const VAR = o.variants || {}, START = {}; for (const it of o.itineraries || []) START[it.id] = it.start;
+    // the usual way of a movement is taken: another way, if one is free (the train is standing at the start of its move)
+    function otherWay(a, leg, c, occ) {
+      const vs = (VAR[a.pid] || []).filter(v => START[v[0]] === c.n); if (!vs.length) return false;
+      if (a.v > 0 || !(a.stopAt != null || leg.start == null || Math.abs(a.d - leg.start) < 2)) return false;
+      for (const [, , pid2] of vs) {
+        const m = x => x == null ? x : mapTo(a.pid, x, pid2);
+        const d2 = m(a.d), end2 = m(leg.end), stops2 = leg.stops.map(z => m(z.d));
+        if (d2 == null || end2 == null || stops2.some(x => x == null)) continue;
+        const c2 = RT.ahead(pid2, d2 + half, LOOK).find(x => x.n === c.n); if (!c2) continue;
+        if (!RT.request(S.rt, a.k, pid2, c2.d, c.n, occ)) continue;
+        // on the twin path from here on: same place, same stops
+        leg.stops.forEach((z, i) => { z.d = stops2[i]; });
+        leg.start = leg.start != null ? m(leg.start) : leg.start; leg.end = end2; leg.pid = pid2;
+        a.pid = pid2; a.d = d2; S.rt.other = (S.rt.other || 0) + 1; const r_ = (S.rt.routes[a.k] || []).slice(-1)[0]; if (r_ && r_.id) { S.rt.otherAt = S.rt.otherAt || {}; S.rt.otherAt[r_.id] = (S.rt.otherAt[r_.id] || 0) + 1; }
+        return true;
+      }
+      return false;
+    }
 
     // pos[k]: { pid, d, v, seg, before, startAt, leaveAt, status } where each train is at time t
     function start(t, pos) {
@@ -134,8 +155,14 @@
         if (next != null && next < c.d - half) break;           // it stops before the signal first: it asks when it leaves
         // it asks when it is near (it could still stop before the signal): a route set too early only holds up the others
         if (c.d - nose > Math.max(120, a.v * a.v / (2 * brk) + 80)) { lim = Math.min(lim, stop); break; }
-        if (RT.request(S.rt, a.k, a.pid, c.d, c.n, ei => edgeMap.get(ei))) continue;
-        lim = stop; why = { sig: c.n, route: S.rt.lastNo }; break;
+        const occ = ei => edgeMap.get(ei);
+        if (RT.request(S.rt, a.k, a.pid, c.d, c.n, occ)) {
+          if (RT.ready(S.rt, a.k, a.pid, c.d)) continue;
+          lim = stop; why = { sig: c.n, route: { wait: 'scambio' } }; break;          // switches moving, signal opening
+        }
+        const no = S.rt.lastNo;
+        if (otherWay(a, leg, c, occ)) return { lim: a.d, why: { sig: c.n, other: true } };    // the twin path: from the next step
+        lim = stop; why = { sig: c.n, route: no }; break;
       }
       // a movement that starts with no signal between the train and its first switch (out of a tail position at
       // Comasina): it sets its route from where it stands, up to the next signal, before going over the switch
@@ -144,8 +171,11 @@
         const c0 = RT.ahead(a.pid, nose, LOOK)[0];
         if (!c0 || sw[0] < c0.d - 1) {
           const stop = Math.max(a.d, sw[0] - half - 3);
-          if (sw[0] - nose > Math.max(120, a.v * a.v / (2 * brk) + 80) || !RT.request(S.rt, a.k, a.pid, nose, null, ei => edgeMap.get(ei))) { if (stop < lim) { lim = stop; why = { route: S.rt.lastNo, start: true }; } }
+          if ((a.v > 0 && sw[0] - nose > Math.max(120, a.v * a.v / (2 * brk) + 80)) || !RT.request(S.rt, a.k, a.pid, nose, null, ei => edgeMap.get(ei))) { if (stop < lim) { lim = stop; why = { route: S.rt.lastNo, start: true }; } }
         }
+      } else if (sw && sw[0] - half - 3 < lim && !RT.readyNode(S.rt, a.k, sw[1])) {
+        const stop = Math.max(a.d, sw[0] - half - 3);
+        if (stop < lim) { lim = stop; why = { route: { wait: 'scambio' }, start: true }; }
       }
       // depot and test-loop signals: pass only with via libera for this train
       if (IL) for (const c of IL.ahead(a.pid, nose, LOOK)) {
@@ -185,7 +215,17 @@
 
     // ---------- one step of one agent ----------
     function stepAgent(a) {
-      if (a.mode === 'static' || a.hidden || S.t < a.wait) return;
+      if (a.mode === 'static' || a.hidden) return;
+      if (S.t < a.wait) {
+        // its next move starts in a few seconds (the cab change is done): the route is set in advance, the switches
+        // move while the driver gets ready
+        const nx = a.legs[0];
+        if (a.mode === 'plan' && nx && !nx.kind && a.wait - S.t <= 15 && !(o.holdAt && o.holdAt(a.k, a.si, a))) {
+          const t = Object.assign({}, a, { pid: nx.pid, d: nx.pid !== a.pid && nx.start != null ? nx.start : a.d, v: 0, stopAt: null });
+          authority(t, nx);
+        }
+        return;
+      }
       // held where it stands before this move of its day (test loop: waiting at #A94 for the loop, or for a depot place)
       if (o.holdAt && o.holdAt(a.k, a.si, a)) { a.v = 0; a.why = 'anello'; return; }
       const leg = a.legs[0];
@@ -204,7 +244,8 @@
         const st = leg.stops[0];
         const ex = a.stopKey && o.extra ? (o.extra(a.k, a.stopKey) || 0) : 0;      // longer stop ordered by radio
         a.dwellUntil = (a.arriveT != null ? a.arriveT : S.t) + (a.dwBase || 0) + ex;
-        if (S.t < a.dwellUntil) { a.why = ex ? 'sosta' : null; return; }
+        // the departure signal is set while the doors are still open (the route is ready when the train leaves)
+        if (S.t < a.dwellUntil) { if (S.t >= a.dwellUntil - 10 && leg.stops.length > 1) authority(a, leg); a.why = ex ? 'sosta' : null; return; }
         if (!st || leg.stops.length === 1 && st.d >= leg.end - 0.5) {      // last stop of the run: it ends here
           leg.stops.shift(); a.stopAt = null; a.legs.shift(); return;
         }
@@ -245,7 +286,7 @@
       while (S.t + DT <= t && guard++ < 40000) {
         // events whose time has come (again, after going back in time)
         for (const e of TL.events) if (!e.done && e.t <= S.t + DT) { e.done = true; apply(e); }
-        S.t += DT; refresh();
+        S.t += DT; S.rt.t = S.t; refresh();
         for (const a of S.agents) {
           const p0 = a.pid, n0 = a.d + half;
           stepAgent(a);
@@ -262,7 +303,7 @@
             S.rt.swPassed = (S.rt.swPassed || 0) + 1;
             if (!RT.heldNode(S.rt, a.k, nd)) { S.rt.swViol = (S.rt.swViol || 0) + 1; S.rt.swAt = S.rt.swAt || {}; const key = nd + '@' + a.pid + ':' + a.status; S.rt.swAt[key] = (S.rt.swAt[key] || 0) + 1; }
           }
-          RT.release(S.rt, a.k, a.pid, a.d - half, a.hidden || a.status === 'parked' || a.mode === 'static');
+          RT.release(S.rt, a.k, a.pid, a.d - half, a.hidden || (a.status === 'parked' && !(S.t < a.wait && a.wait - S.t <= 15)) || a.mode === 'static', S.t < a.wait && a.legs[0] ? a.legs[0].pid : null);
           if (o.record) o.record(a.k, a, S.t);
         }
         if (Math.floor(S.t / SNAP) !== Math.floor((S.t - DT) / SNAP)) snapshot();
@@ -286,6 +327,7 @@
     function apply(e) {
       if (e.kind === 'order') lastResult = order(e.k, e.what, e.arg);
       else if (e.kind === 'normal') start(S.t, o.initAt(S.t));
+      else if (e.kind === 'pc') lastResult = RT.authorize(S.rt, e.key);         // the PC authorises a signal or a movement
       else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
     }
     // a new event now: what was planned after this moment is dropped (a new branch of the day)

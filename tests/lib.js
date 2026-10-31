@@ -74,7 +74,7 @@ function stopsOfM(M, D) {
 function agents(M, D, initAt, extraOpts) {
   const A = require('../web/agents.js'), envs_ = envs(M, D);
   return A.create(Object.assign({ G: M.degraded, ops: M.ops, reverse: M.reverse_s, half: M.half, prof: profiles(M), pathEdges: M.path_edges, netEdges: M.net.edges,
-    plans0: M.trains, stopsOf: stopsOfM(M, D), sigpos: M.net.sigpos, sigall: M.net.sigall, itineraries: M.net.itineraries, interlocking: M.net.interlocking, zones: E.platformZones(M.degraded),
+    plans0: M.trains, stopsOf: stopsOfM(M, D), sigpos: M.net.sigpos, sigall: M.net.sigall, itineraries: M.net.itineraries, variants: M.net.variants, routeRules: M.net.route_rules, interlocking: M.net.interlocking, zones: E.platformZones(M.degraded),
     dwell: envs_ ? envs_.map(e => e.dwell) : null, extra: () => 0, initAt }, extraOpts || {}));
 }
 // where every train stands before its day starts (its first move, not yet started)
@@ -97,6 +97,8 @@ function driveDay(M, D) {
       R.cur = { si: a.si, seg: [s[0], s[1], s[2], [r1(t - 0.5)], [r1(a.d)], ...s.slice(5)] }; R.lastT = t; R.lastV = a.v;
     }
     const sg = R.cur.seg, ts = sg[3], ds = sg[4], moving = a.v > 0, wasMoving = R.lastV > 0;
+    // the interlocking gave the move on another way (its twin path), before the train moved: the move is on that path
+    if (a.pid !== sg[0]) { if (ds.every(x => x === ds[0])) { sg[0] = a.pid; for (let i = 0; i < ds.length; i++) ds[i] = r1(a.d); } else R.pidChanged = (R.pidChanged || 0) + 1; }
     if (moving !== wasMoving || (moving && t - R.lastT >= 4)) {
       if (!moving && wasMoving) { ts.push(r1(t)); ds.push(r1(a.d)); }                      // stops
       else if (moving && !wasMoving) { ts.push(r1(t - 0.5)); ds.push(ds[ds.length - 1]); ts.push(r1(t)); ds.push(r1(a.d)); }   // leaves
@@ -114,7 +116,7 @@ function driveDay(M, D) {
   for (let t = T0; t < T1; t += 600) ag.step(Math.min(T1, t + 600));
   rec.forEach((R, k) => { if (R.cur) { const ts = R.cur.seg[3], ds = R.cur.seg[4]; ts.push(r1(T1)); ds.push(ds[ds.length - 1]); R.segs.push(R.cur.seg); R.cur = null; }
     const plan = M.trains[k]; while (R.segs.length < plan.length) { const s = plan[R.segs.length]; R.segs.push([s[0], s[1], s[2], [T1, T1], [s[4][s[4].length - 1], s[4][s[4].length - 1]], ...s.slice(5)]); } });
-  return { res: rec.map(R => ({ segs: R.segs, log: R.log })), held: rec.reduce((x, R) => x + R.held, 0), rt: ag.rt(), T0, T1 };
+  return { res: rec.map(R => ({ segs: R.segs, log: R.log })), held: rec.reduce((x, R) => x + R.held, 0), rt: ag.rt(), T0, T1, pidChanged: rec.reduce((x, R) => x + (R.pidChanged || 0), 0) };
 }
 // the whole day as the game runs it (the one driven at build time, build/m3_live.json, when it is there)
 function runDay(M, D) {
@@ -136,4 +138,13 @@ function posAt(day, t) {
     return { pid: sg[0], d: s.d, v: s.v, seg: s.si, leaveAt, status: sg[1] };
   });
 }
-module.exports = { runDay, driveDay, agents, dayStart, posAt, stopsOfM, E, load, profiles, posOf, stations, envs, stretches, runTime, KX, KY };
+// the same point of track on another path (twin paths: the other way of a movement)
+function mapTo(M, pid, d, pid2) {
+  const pe = M.path_edges[pid], pe2 = M.path_edges[pid2]; if (!pe || !pe2) return null;
+  const sp = pe.e.find(([, , x0, x1]) => d >= x0 && d <= x1); if (!sp) return null;
+  const [ei, dir, x0, x1] = sp, l = (dir > 0 ? d - x0 : x1 - d) * (M.net.edges[ei].len || 1) / ((x1 - x0) || 1);
+  const sp2 = pe2.e.find(x => x[0] === ei); if (!sp2) return null;
+  const [, dir2, y0, y1] = sp2, k2 = ((y1 - y0) || 1) / (M.net.edges[ei].len || 1);
+  return dir2 > 0 ? y0 + l * k2 : y1 - l * k2;
+}
+module.exports = { mapTo, runDay, driveDay, agents, dayStart, posAt, stopsOfM, E, load, profiles, posOf, stations, envs, stretches, runTime, KX, KY };
