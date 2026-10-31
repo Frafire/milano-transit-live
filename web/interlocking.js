@@ -1,4 +1,6 @@
-// Interlocking: which controlled signals may show "via libera", and for which train. One model for the whole line.
+// Depot and test-loop signals: which of them may show "via libera", and for which train. The line itself (stations,
+// junctions, tails) is protected by the route interlocking (web/routes.js); this keeps the depot rules: manual signals
+// worked by the player, one movement at a time per depot side, the test loop zone.
 //
 // It knows the line, not the trains' plans. The trains (agents.js) ask it before passing a controlled signal; it
 // answers yes (the signal clears for that train) or no (the train stops before it). It never moves a train.
@@ -36,9 +38,7 @@
     // ordinary signal (no list of paths: every train)
     const zpaths = zones.map(z => z.paths ? new Set(z.paths.map(Number)) : null);
     const intoZone = (zi, pid) => !zpaths[zi] || pid == null || zpaths[zi].has(+pid);
-    // signals and groups the route interlocking takes care of (o.routesOn() true): left alone here
-    const routesOn = o.routesOn || (() => false);
-    const controlled = si => sig.has(si) && !(sig.get(si).covered && routesOn());
+    const controlled = si => sig.has(si);
     const isManual = si => !!(sig.get(si) || {}).manual;
     const groupOf = si => { const x = sig.get(si); return x && x.groups.length ? x.groups[0] : null; };
 
@@ -65,7 +65,7 @@
       if (d - nose > NEAR) return false;
       if (freeTo < d + 30) return false;
       if (x.section && pid != null && (freeTrains != null ? freeTrains : freeTo) < sectionEnd(pid, si, d) - 5) return false;
-      for (const gi of x.groups) { if (groups[gi].covered && routesOn()) continue; for (const [s2, k2] of Object.entries(st.grant)) if (k2 !== k && (sig.get(+s2) || { groups: [] }).groups.includes(gi)) return false; }
+      for (const gi of x.groups) { for (const [s2, k2] of Object.entries(st.grant)) if (k2 !== k && (sig.get(+s2) || { groups: [] }).groups.includes(gi)) return false; }
       if (x.zone != null && intoZone(x.zone, pid) && zoneHolder(st, x.zone) !== k) return false;
       if (x.manual && !st.auto) { if (!(st.pass[si] > 0)) return false; st.pass[si]--; }
       st.grant[si] = k; return true;

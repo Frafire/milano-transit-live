@@ -230,87 +230,6 @@
     });
     return merged;
   }
-  function holdKey(plan, si, a, half) {
-    const pts = plan[si][3], pds = plan[si][4];
-    let m = -1;
-    for (let i = 1; i < pds.length; i++) { if (pds[i] >= a - half) break; if (pds[i] === pds[i - 1]) m = i; }
-    return m >= 0 ? si + ':' + m : si + ':start';
-  }
-  // keep: { holds, plans } of an earlier booked run, to continue from it after a small change (only new conflicts)
-  function runBooked(plans, ops, reverse, resources, half, base, profiles, envs, keep, log) {
-    plans = keep ? keep.plans.slice() : plans.slice();
-    const holds = keep ? keep.holds.map(h => ({ ...h })) : plans.map(() => ({}));
-    const res = base ? base.slice() : plans.map((p, k) => runTrain(p, ops, reverse, null, profiles, envs && envs[k]));
-    // occupancy of every resource by every train, refreshed only for the train that was just driven again
-    const occ = resources.map(R => res.map(r => occupancy(r.segs, R, half)));
-    const skip = new Set();
-    let guard = 0, held = 0;
-    // earliest conflict in one resource (cached; recomputed only when a train using it was driven again)
-    const conflictOf = ri => {
-      const iv = [];
-      occ[ri].forEach((list, k) => { for (const x of list) iv.push({ enter: x.enter, exit: x.exit, si: x.si, status: x.status, open: x.open, k }); });
-      iv.sort((x, y) => x.enter - y.enter);
-      for (let i = 0; i < iv.length; i++) {
-        const x = iv[i]; let conflict = null, latestAllowed = -Infinity;
-        for (let j = 0; j < i; j++) {
-          const p = iv[j]; if (p.k === x.k) continue;
-          const clearance = resources[ri].block ? (p.status === 'service' || x.status === 'service' ? 120 : 90) : 2;
-          const allowed = Math.max(p.exit, p.enter + clearance);
-          if (x.enter < allowed - 0.5 && allowed > latestAllowed && !skip.has(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter))) {
-            conflict = { x, p, clearance }; latestAllowed = allowed;
-          }
-        }
-        if (conflict) return conflict;
-      }
-      return null;
-    };
-    const cache = resources.map((_, ri) => conflictOf(ri));
-    for (;;) {
-      if (++guard > 6000) break;
-      let best = null;
-      cache.forEach((c, ri) => { if (c && (!best || c.x.enter < best.x.enter)) best = { R: resources[ri], ri, x: c.x, p: c.p, clearance: c.clearance }; });
-      if (!best) break;
-      let { R, ri, x, p } = best;
-      // the junction tends to empty the tail first: a train leaving the tail goes before one about to enter it
-      if (R.prefer && R.prefer(plans, x, p)) [x, p] = [p, x];
-
-      const a = R.ranges[plans[x.k][x.si][0]][0] + (R.pad || 0);
-      let key = holdKey(plans[x.k], x.si, a, half);
-      const sg = plans[x.k][x.si];
-      let stopD = (R.stopAt && R.stopAt[sg[0]] != null) ? R.stopAt[sg[0]] : a - half - 10;
-      // never wait inside another section (e.g. in the junction waiting for platform 1): wait before it instead
-      for (let n = 0; n < 4; n++) {
-        const inside = resources.find(Q => Q !== R && Q.noWait && Q.ranges[sg[0]] && stopD >= Q.ranges[sg[0]][0] - half && stopD <= Q.ranges[sg[0]][1] + half && Q.ranges[sg[0]][0] < a);
-        if (!inside) break;
-        stopD = (inside.stopAt && inside.stopAt[sg[0]] != null) ? inside.stopAt[sg[0]] : inside.ranges[sg[0]][0] - half - 10;
-      }
-      if (stopD <= sg[4][0] + 1) key = x.si + ':start';       // the wait happens before this movement even starts
-      const lastStop = key.endsWith(':start') ? null : sg[4][+key.split(':')[1]];
-      if ((lastStop === null || stopD - lastStop > 400 || lastStop > stopD) && stopD > sg[4][0] + 1) {
-        // no station just before: stop at the entrance (signal) and wait there
-        const ts = sg[3], ds = sg[4]; let i = 0; while (i < ds.length - 1 && ds[i + 1] <= stopD) i++;
-        if (i < ds.length - 1 && ds[i + 1] > ds[i]) {
-          const tt = ts[i] + (ts[i + 1] - ts[i]) * (stopD - ds[i]) / (ds[i + 1] - ds[i]);
-          const ns = [sg[0], sg[1], sg[2], [...ts.slice(0, i + 1), tt, tt, ...ts.slice(i + 1)], [...ds.slice(0, i + 1), stopD, stopD, ...ds.slice(i + 1)], ...sg.slice(5)];
-          plans[x.k] = plans[x.k].slice(); plans[x.k][x.si] = ns;
-          const old = holds[x.k]; holds[x.k] = {};
-          for (const [kk, vv] of Object.entries(old)) { const [a1, b1] = kk.split(':'); holds[x.k][(+a1 === x.si && b1 !== 'start' && +b1 > i) ? a1 + ':' + (+b1 + 2) : kk] = vv; }
-          key = x.si + ':' + (i + 2);
-        }
-      }
-      const until = Math.min(Math.max(p.exit, p.enter + (best.clearance || 90)) + 2, 30 * 3600);
-      if ((holds[x.k][key] || 0) >= until || until <= x.enter + 1) { skip.add(ri + ':' + x.k + ':' + x.si + ':' + Math.round(x.enter)); cache[ri] = conflictOf(ri); continue; }   // cannot do better here
-      holds[x.k][key] = until; held++;
-      if (log) log.push({ train: x.k, seg: x.si, status: plans[x.k][x.si][1], res: R.name, from: x.enter, until, by: p.k, byStatus: plans[p.k][p.si][1] });
-      res[x.k] = runTrain(plans[x.k], ops, reverse, holds[x.k], profiles, envs && envs[x.k], res[x.k], x.si);
-      resources.forEach((R2, r2) => {
-        const before = occ[r2][x.k], after = occupancy(res[x.k].segs, R2, half);
-        occ[r2][x.k] = after;
-        if (before.length || after.length) cache[r2] = conflictOf(r2);
-      });
-    }
-    return { res, holds, held, plans };
-  }
 
   // ---------------- terminal junction areas ----------------
   // throats: [{ name, edges: [edge index], p1: [edge index] }] from the build; pathEdges: per path [[edge, dir, from, to]]
@@ -346,23 +265,6 @@
     return out;
   }
 
-  // ---------------- block sections along the line ----------------
-  // blocks: [{ name, parts: [[edge, from m, to m], ...] }] in metres along each track piece (from its node a)
-  function blockResources(blocks, pathEdges, netEdges) {
-    return (blocks || []).map(bl => {
-      const R = { name: 'blocco ' + bl.name, ranges: {}, pad: 3, block: true };
-      const byEdge = {}; bl.parts.forEach(([ei, l0, l1]) => (byEdge[ei] = byEdge[ei] || []).push([l0, l1]));
-      pathEdges.forEach((pe, pid) => {
-        if (!pe) return; let a = Infinity, b = -Infinity;
-        pe.e.forEach(([ei, dir, x0, x1]) => {
-          const ps = byEdge[ei]; if (!ps) return; const k = (x1 - x0) / (netEdges[ei].len || 1);
-          ps.forEach(([l0, l1]) => { const p0 = dir > 0 ? x0 + l0 * k : x1 - l1 * k, p1 = dir > 0 ? x0 + l1 * k : x1 - l0 * k; a = Math.min(a, p0); b = Math.max(b, p1); });
-        });
-        if (b - a > 20) R.ranges[pid] = [a, b];
-      });
-      return R;
-    });
-  }
 
   // ---------------- closing San Donato - Rogoredo at time tc ----------------
   // S: section data from the build. Trains inside stop where they are; trains on the San Donato side stay there
@@ -379,119 +281,15 @@
     }
     return { si: segs.length, d: null, v: 0 };
   }
-  const timeAtD = (s, d) => { const ts = s[3], ds = s[4];
-    for (let i = 0; i < ds.length - 1; i++) if (ds[i + 1] >= d && ds[i + 1] > ds[i]) return ts[i] + (ts[i + 1] - ts[i]) * (d - ds[i]) / (ds[i + 1] - ds[i]);
-    return ts[ts.length - 1]; };
-  function closePlan(plan, live, tc, S, ops, reverse, pathLen) {
-    const R = S.ranges, out = [], b = ops.braking_ms2;
-    const now = stateAt(live, tc);
-    let kind = 'north', k = now.si, turned = 0;
-    const cut = (s, t, d, v, label) => {        // stop as soon as possible and stay
-      const ts = [], ds = [];
-      for (let i = 0; i < s[3].length && s[3][i] < t; i++) { ts.push(s[3][i]); ds.push(s[4][i]); }
-      const stopD = Math.min(d + v * v / (2 * b), s[4][s[4].length - 1]);
-      if (!ts.length) { ts.push(t); ds.push(d); }
-      ts.push(Math.max(t, ts[ts.length - 1]) + Math.max(4, v / b * 1.6)); ds.push(Math.max(stopD, ds[ds.length - 1]));
-      out.push([s[0], s[1], s[2], ts, ds]);
-      const te = ts[ts.length - 1], de = ds[ds.length - 1];
-      out.push([s[0], label, -1, [te, te + 40 * 3600], [de, de]]);
-    };
-    for (let i = 0; i < k; i++) out.push(plan[i]);
-    while (k < plan.length) {
-      const s = plan[k], r = R[s[0]] || {}, cur = k === now.si && !now.before;
-      const dNow = cur ? now.d : -Infinity;
-      // just past the Rogoredo crossover: stop and reverse there like the others
-      const nearStub = cur && r.sb && s[1] === 'service' && dNow >= r.sb[0] && dNow + now.v * now.v / (2 * b) <= r.sb[0] + S.stub + 40;
-      // inside the closed section right now: stop on the line
-      if (!nearStub && cur && ((r.sb && dNow >= r.sb[0] && dNow <= r.sb[1]) || (r.nb && dNow >= r.nb[0] && dNow <= r.nb[1]))) {
-        cut(s, tc, dNow, now.v, 'stopped'); kind = 'inside'; return { segs: out, kind, turned };
-      }
-      // coming from Comasina towards San Donato: passengers off at Rogoredo, reverse beyond the crossover
-      if (nearStub || (r.sb && s[1] === 'service' && dNow < r.sb[0] && s[4][s[4].length - 1] > r.sb[0])) {
-        const sb0 = r.sb[0];
-        let dStub = sb0 + S.stub, tStub;
-        if (nearStub) {                                // already over the crossover: brake, then reverse from where it stops
-          const ts = [], ds = [];
-          for (let i = 0; i < s[3].length && s[3][i] < tc; i++) { ts.push(s[3][i]); ds.push(s[4][i]); }
-          const stopD = Math.max(dNow + now.v * now.v / (2 * b), ds[ds.length - 1]);
-          ts.push(tc + Math.max(4, now.v / b * 1.6)); ds.push(stopD);
-          out.push([s[0], s[1], s[2], ts, ds]);
-          tStub = ts[ts.length - 1];
-          if (stopD < dStub) { out.push([s[0], 'turnback', -1, [tStub + 10, tStub + 10 + (dStub - stopD) / (10 / 3.6)], [stopD, dStub]]); tStub += 10 + (dStub - stopD) / (10 / 3.6); }
-          else dStub = stopD;
-        } else {
-          let m = 0; while (m + 1 < s[4].length && s[4][m + 1] < sb0 - 0.5) m++;
-          out.push([s[0], s[1], s[2], s[3].slice(0, m + 1), s[4].slice(0, m + 1)]);
-          const t1 = s[3][m], d1 = s[4][m];
-          tStub = t1 + 20 + (dStub - d1) / (20 / 3.6);
-          out.push([s[0], 'turnback', -1, [t1 + 20, tStub], [d1, dStub]]);
-        }
-        const backBy = dStub - (sb0 + S.stub);      // stopped further than usual: start the reversal from there
-        turned++;
-        // its next run towards Comasina, started from Rogoredo instead of San Donato
-        let j = k + 1; while (j < plan.length && plan[j][1] === 'turnback') j++;
-        const o = plan[j], ro = o && R[o[0]], rv = o && S.rev[o[0]];
-        const tRev = tStub + reverse;
-        if (o && o[1] === 'service' && ro && ro.nb && rv) {
-          const [rp, off, d0r] = rv, d0 = d0r - backBy;
-          let q = 0; while (q < o[4].length && o[4][q] < ro.nb[1]) q++;
-          const tArr = o[3][q], dR = Math.round((o[4][q] + off) * 10) / 10;
-          const tAt = Math.min(tArr, tRev + 30 + (dR - d0) / (25 / 3.6));     // drive over normally, then wait on the platform
-          out.push([rp, 'turnback', -1, [tRev, Math.max(tAt, tRev + 30)], [d0, dR]]);
-          const svT = o[3].slice(q), svD = o[4].slice(q).map(x => Math.round((x + off) * 10) / 10);
-          if (tAt < svT[0] - 1) { svT.unshift(Math.max(tAt, tRev + 30)); svD.unshift(dR); }
-          out.push([rp, 'service', o[2], svT, svD]);
-          k = j + 1;
-          while (k < plan.length && plan[k][0] === o[0]) { const z = plan[k]; out.push([rp, z[1], z[2], z[3], z[4].map(x => Math.round((x + off) * 10) / 10), ...z.slice(5)]); k++; }
-          continue;
-        }
-        // nothing to run from here: go back empty to Comasina and stay there
-        const anyRev = Object.values(S.rev)[0];
-        if (anyRev) { const [rp, , d0r] = anyRev, d0 = d0r - backBy, L = pathLen(rp) - 60; out.push([rp, 'empty', -1, [tRev, tRev + (L - d0) / 12], [d0, L]]); }
-        return { segs: out, kind, turned };
-      }
-      // San Donato side: a run that would go through the section does not leave
-      const crosses = (r.nb && dNow < r.nb[1] && s[4][s[4].length - 1] > r.nb[0]) || (r.sb && dNow < r.sb[1] && s[4][s[4].length - 1] > r.sb[0]);
-      if (crosses) {
-        kind = 'sd';
-        if (cur && s[3][0] < tc) { cut(s, tc, Math.min(dNow, (r.nb || r.sb)[0] - 1), Math.min(now.v, 3), 'held'); return { segs: out, kind, turned }; }
-        while (out.length > now.si && out[out.length - 1][1] === 'from_depot') out.pop();   // stays in the depot
-        if (!out.length) { const f = plan[0]; out.push([f[0], 'to_depot', -1, [1e7, 1e7 + 1], [f[4][0], f[4][0]], ...f.slice(5)]); return { segs: out, kind, turned }; }
-        const last = out[out.length - 1];
-        if (last && last[1] !== 'to_depot' && last[1] !== 'from_depot') { const te = last[3][last[3].length - 1], de = last[4][last[4].length - 1]; out.push([last[0], 'held', -1, [Math.max(te, tc), Math.max(te, tc) + 40 * 3600], [de, de]]); }
-        return { segs: out, kind, turned };
-      }
-      out.push(s); k++;
-    }
-    return { segs: out, kind, turned };
-  }
 
 
-  // ---------------- a stretch of the line closed (the trains then drive themselves: web/agents.js) ----------------
-  // G: the build's "degraded" data (stations in order San Donato -> Comasina, main paths, how a train turns back at
-  // each station, the crossover areas to protect). cl: { a, b } station indices, a < b: the line is closed between.
-  function partsOf(G, cl) {
-    const last = G.names.length - 1, parts = [];
-    if (cl.a > 0) parts.push([0, cl.a]);
-    if (cl.b < last) parts.push([cl.b, last]);
-    return parts;
-  }
   const stopOf = (G, dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[G.names.length - 1 - i];
-  // while a train turns back at the station next to the closure it needs the crossover and the track in front of
-  // the station: one train at a time there (a "lock", in the same form as the block sections)
-  function turnLocks(G, cl) {
-    const out = [];
-    partsOf(G, cl).forEach(P => [[P[0], 'S'], [P[1], 'N']].forEach(([X, dir]) => {
-      const lk = G.locks && G.locks[X + ':' + dir]; if (lk) out.push({ name: 'inversione ' + G.names[X] + ' ' + dir, parts: lk });
-    }));
-    return out;
-  }
   // platforms on each path, for an empty train passing them at 40 km/h: { pid: [[from d, to d, m/s]] }
   function platformZones(G) {
     const out = {}; if (!G || !G.platforms) return out;
     for (const [pid, z] of Object.entries(G.platforms)) out[pid] = z.map(([a, b, st]) => [a, b, 40 / 3.6, st]);
     return out;
   }
-  const api = { runTrain, runFleet, runBooked, closePlan, stateAt, occupancy, cruiseSpeed, buildProfiles, serviceDelay, edgeLimit, partLimit, partBounds, stopTime, makeDwell, throatResources, blockResources, DT, platformZones, turnLocks, partsOf, stopOf };
+  const api = { runTrain, runFleet, stateAt, occupancy, cruiseSpeed, buildProfiles, serviceDelay, edgeLimit, partLimit, partBounds, stopTime, makeDwell, throatResources, DT, platformZones, stopOf };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLEngine = api;
 })(typeof window !== 'undefined' ? window : globalThis);

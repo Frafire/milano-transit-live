@@ -22,20 +22,17 @@ if [ -n "${ALL_LINES:-}" ]; then
   echo "== bus 64";  ROUTE=B64 SIZE=12 DISPLAY=1 python3 "$ROOT/tools/build_bus.py"
 fi
 grep -h "tail clashes\|not covered\|test loop" m3.log || true
+echo "== normal day driven by the agents"
+node "$ROOT/tools/precompute_live.js"
 echo "== tests"
 python3 "$ROOT/tests/check_tails.py"
 python3 "$ROOT/tests/check_depot.py"
 node "$ROOT/tests/engine_test.js"
-node "$ROOT/tests/section_test.js"
-node "$ROOT/tests/block_check.js"
-node "$ROOT/tests/agents_check.js" 4
 node "$ROOT/tests/day_agents_check.js" 5 24
 node "$ROOT/tests/interlocking_check.js" 5 24
 node "$ROOT/tests/timetable_check.js"
 python3 "$ROOT/tests/itineraries_check.py"
 node "$ROOT/tests/headway_check.js" || echo "WARNING: trains closer than 2 minutes"
-echo "== normal day for the page"
-node "$ROOT/tools/precompute_live.js"
 echo "== page"
 python3 "$ROOT/tools/assemble.py"
 echo "== the page in a browser (depot, test loop, radio)"

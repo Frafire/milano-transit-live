@@ -344,7 +344,7 @@ _side_lon = _IL.get('depot_sides', {}).get('lon')
 _sides = [[i for i, sg in enumerate(_rules_['signals']) if sg.get('type') == 'shunt' and (sg['lon'] > _side_lon) == east] for east in (True, False)] if _side_lon else []
 # ---- interlocking: one model (web/interlocking.js). Groups, depot sides, manual signals, block sections, zones ----
 _ix = lambda ns: [i for i in (_sig_index(n) for n in ns) if i is not None]
-_G = [{'name': g.get('name', ''), 'signals': _ix(g['signals']), 'hold': bool(g.get('hold')), 'section': bool(g.get('section')), 'covered': bool(g.get('routes'))} for g in _IL.get('groups', [])]
+_G = [{'name': g.get('name', ''), 'signals': _ix(g['signals']), 'hold': bool(g.get('hold')), 'section': bool(g.get('section'))} for g in _IL.get('groups', [])]
 # the depot: one movement at a time on each side (the signal stays given until the train stops or has gone 400 m)
 for nm_, g_ in zip(('Deposito lato est: una manovra alla volta', 'Deposito lato ovest: una manovra alla volta'), _sides):
     _G.append({'name': nm_, 'signals': g_, 'hold': True, 'section': True})
@@ -352,8 +352,7 @@ _manual = set(_ix(_IL.get('manual', []))) | {i for g_ in _sides for i in g_}    
 _section = _manual | {i for g in _G if g['section'] for i in g['signals']}
 _Z = [{'name': z['name'], 'entry': _ix(z['entry'])} for z in _IL.get('zones', [])]
 _ctl = sorted(_manual | _section | {i for g in _G for i in g['signals']} | {i for z in _Z for i in z['entry']})
-_cov = {i for g in _G if g.get('covered') for i in g['signals']} - {i for g in _G if not g.get('covered') for i in g['signals']} - _manual - {i for z in _Z for i in z['entry']}
-INTERLOCKING = {'signals': {str(i): {'n': _rules_['signals'][i]['_n'], 'manual': i in _manual, 'section': i in _section, 'covered': i in _cov} for i in _ctl},
+INTERLOCKING = {'signals': {str(i): {'n': _rules_['signals'][i]['_n'], 'manual': i in _manual, 'section': i in _section} for i in _ctl},
                 'groups': [{k: v for k, v in g.items() if k != 'section'} for g in _G], 'zones': _Z, 'manual': sorted(_manual)}
 print('interlocking: %d controlled signals, %d groups, %d zones, %d worked by the player, %d with a block section' % (
     len(_ctl), len(_G), len(_Z), len(_manual), len(_section)))

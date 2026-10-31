@@ -66,43 +66,24 @@
     const WHY_TXT = { 'treno davanti in ritardo': 'il treno davanti a te è in ritardo', 'regolarizzare l’intervallo': 'devo regolarizzare l’intervallo',
                       'guasto più avanti': 'c’è un guasto più avanti', 'nessun motivo': 'per servizio' };
     let radioStopSel = 60, radioWhy = RADIO_WHY[0], radioCmdHtml = '';
-    // emergency orders (closure, reopening)
+    // orders to a train standing at a station: hold it there, or let it go (the closures are being rebuilt)
     function emergencyCmds(F, tr) {
-      const em = closureNow(F) || { label: '', ag: F.ag }, G = F.engine.G, a = F.ag.agents()[tr.agentK], s = F.ag.state(tr.agentK); let h = '';
+      const G = F.engine.G, a = F.ag.agents()[tr.agentK], s = F.ag.state(tr.agentK); let h = '';
       if (!a) return '';
-      const closedTxt = `${em.label}`;
-      if (window.activeClosure && window.activeClosure.active && (a.status === 'stopped' || a.red)) h += `<div class="row"><button id="emWhy">Spiega: guasto, tratta ${closedTxt} interrotta</button></div>`;
-      if (a.status === 'stopped') {
-        const nx = F.ag.nextOf(tr.agentK);
-        h += `<div class="lbl">Treno fermo per l'interruzione</div><div class="row">` + (nx != null ? `<button data-em="next">Prosegui vuoto fino a ${cap(G.names[nx])}</button>` : '') +
-             (a.inside && a.inside.dir === 'S' && a.inside.end != null ? `<button data-em="depot">Rientro in deposito, vuoto</button>` : '') + `</div>`;
-      }
       if (a.stopAt != null && s.status === 'service') h += `<div class="lbl">Fermo a ${cap(G.names[a.stopAt])}</div><div class="row">` +
         (a.pcHold ? `<button data-em="release">Riparti</button>` : `<button data-em="hold">Resta fermo a ${cap(G.names[a.stopAt])}</button>`) + `</div>`;
-      if (F.ag.S.reopened != null && s.timed && a.status === 'service') {
-        h += `<div class="lbl">Ritardo ${s.late != null ? (s.late >= 0 ? '+' : '') + Math.round(s.late / 60) + ' min' : ''}</div><div class="row"><button data-em="skip">Salta le prossime fermate</button><button data-em="limit">Limitazione corsa</button>` +
-             (s.dir === 'S' ? `<button data-em="depot">Rientro in deposito</button>` : '') + `</div>`;
-      }
-      return h || `<div class="lbl">${s.mode === 'shuttle' && !s.timed ? 'Navetta, senza orario: parte col verde e con l\'intervallo' : 'Nessun ordine disponibile'}</div>`;
+      return h || `<div class="lbl">Nessun ordine disponibile</div>`;
     }
     function bindEmergencyCmds(F, tr) {
-      const em = closureNow(F) || { label: '', ag: F.ag }, G = F.engine.G, no = radioTrain.no;
-      const why = document.getElementById('emWhy');
-      if (why) why.onclick = () => { say('PC', `Treno ${no}, c'è un guasto alla linea: la tratta ${em.label} è interrotta. Resta in attesa di istruzioni. Passo.`, 'pc'); driverSays('Ricevuto PC, avviso i passeggeri e attendo. Passo.'); };
+      const no = radioTrain.no;
       radioCmds.querySelectorAll('[data-em]').forEach(b => b.onclick = () => {
-        const kind = b.dataset.em, nx = F.ag.nextOf(tr.agentK);
-        const TXT = { next: `Treno ${no}, prosegui senza passeggeri fino a ${nx != null ? cap(G.names[nx]) : 'la prossima stazione'}. Passo.`, depot: `Treno ${no}, rientra in deposito senza passeggeri. Passo.`,
-          hold: `Treno ${no}, resta fermo in stazione a porte aperte fino a nuovo ordine. Passo.`, release: `Treno ${no}, puoi ripartire, segui il segnale. Passo.`,
-          skip: `Treno ${no}, autorizzato il salto delle prossime fermate. Passo.`, limit: `Treno ${no}, limita la corsa alla prima stazione utile e inverti. Passo.` };
+        const kind = b.dataset.em;
+        const TXT = { hold: `Treno ${no}, resta fermo in stazione a porte aperte fino a nuovo ordine. Passo.`, release: `Treno ${no}, puoi ripartire, segui il segnale. Passo.` };
         say('PC', TXT[kind], 'pc');
         const r = F.ag.event({ kind: 'order', k: tr.agentK, what: kind });
         if (!r) { driverSays('Negativo PC, da qui non posso. Passo.'); return; }
         if (kind === 'hold') driverSays(`Ricevuto PC, resto fermo a ${cap(String(r))} e avviso i passeggeri. Passo.`);
-        else if (kind === 'release') driverSays('Ricevuto, chiudo le porte e riparto. Passo.');
-        else if (kind === 'next') { driverSays(pick(['Ricevuto, faccio scendere i passeggeri e proseguo vuoto. Passo.', 'Copiato PC, proseguo a vuoto. Passo.'])); }
-        else if (kind === 'depot') driverSays('Ricevuto, rientro in deposito a vuoto. Passo.');
-        else if (kind === 'skip') driverSays('Ricevuto, salto le fermate e annuncio ai passeggeri. Passo.');
-        else driverSays(`Ricevuto, fine corsa a ${cap(String(r))}, poi inverto. Passo.`);
+        else driverSays('Ricevuto, chiudo le porte e riparto. Passo.');
         radioCmdHtml = ''; drawRadioCmds();
       });
     }
@@ -391,7 +372,7 @@
                due: ag.S.t < a.wait ? a.wait : null, red: a.red && a.red.why && a.red.why.sig === c.si ? a.red.since : null, loop: !!lr };
     }
     function emergencyCalls(F) {
-      const G = F.engine.G, ag = F.ag, R_ = ag.resources(), em = { ag };
+      const G = F.engine.G, ag = F.ag, em = { ag };
       ag.agents().forEach((a, k) => {
         const tr = F.trains[k], no = trainNo(F, tr), c = CALLS[k] = CALLS[k] || {};
         const call = text => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + no, text, 'call'); };
@@ -412,14 +393,9 @@
           else if (c.depKey === key && !c.depAgain && (dq.due != null ? t >= dq.due + 60 : dq.red != null && t - dq.red >= 60)) { c.depAgain = true;
             call(`PC, qui treno ${no}, sono ancora in attesa dell'apertura del segnale ${sigNo(F, dq.si)} per ${dq.what}. Passo.`); }
         } else if (!dq) c.depKey = null;
-        if (a.status === 'stopped' && !c.stopped) {
-          c.stopped = true; const at = a.inside ? G.names[a.inside.stops[a.inside.q].st] : '';
-          call(`PC, qui treno ${no}, fermo a ${cap(at)}: la linea davanti è interrotta. Attendo istruzioni. Passo.`);
-        }
-        if (a.status !== 'stopped') c.stopped = false;
         if (a.red && em.ag.S.t - a.red.since >= 300 && !c.red && !(dq && !dq.open && dq.red != null)) {   // (depot signals on manual: their own calls)
           c.red = true; const w = a.red.why || {};
-          const what = w.sig != null ? 'al segnale ' + sigNo(F, w.sig) : w.res != null ? 'al segnale ' + (R_[w.res].name.replace(/^blocco /, '').replace(/^(N|S) /, '')) : 'dietro al treno ' + trainNo(F, F.trains[w.train] || tr);
+          const what = w.sig != null ? 'al segnale ' + (typeof w.sig === 'number' && w.route !== undefined ? '#A' + String(w.sig).padStart(2, '0') : sigNo(F, w.sig)) : 'dietro al treno ' + trainNo(F, F.trains[w.train] || tr);
           call(`PC, qui treno ${no}, sono fermo ${what} da 5 minuti, via impedita. Chiedo spiegazioni. Passo.`);
         }
         if (!a.red && c.red) { c.red = false; say('T' + no, `Qui ${no}, via libera. Ripartito, passo. Buona giornata.`, 'dr'); }
@@ -435,13 +411,14 @@
           if (!radioEl.hidden && radioTrain && radioTrain.tr === tr) say('T' + no, `Qui ${no}, lasciata ${cap(where)}: fine limitazione, riprendo la velocità normale. Passo.`, 'dr'); }
         if (a.late != null && a.late > 600 && (!c.late || em.ag.S.t - c.late > 900)) {
           c.late = em.ag.S.t;
-          call(`PC, qui treno ${no}, siamo in forte ritardo (+${Math.round(a.late / 60)} min). Chiedo autorizzazione per salto fermate, limitazione corsa o rientro in deposito. Passo.`);
+          call(`PC, qui treno ${no}, siamo in forte ritardo (+${Math.round(a.late / 60)} min). Chiedo istruzioni. Passo.`);
         }
       });
     }
     function dcoTick() {
       const F = m3eng(); if (!F || !state.engine) return;
       if (F.ag) { emergencyCalls(F); return; }
+      return;
       const AR = F.engine.throatR || [], BR = AR.filter(r => r.block), BL = F.engine.blocks || [], half = F.engine.half;
       const occ = F.trains.map(tr => trainState(F, tr, state.t));
       const inside = (R, k) => occ.some((q, j) => j !== k && q.status !== 'parked' && R.ranges[q.pid] && q.d >= R.ranges[q.pid][0] - half + R.pad && q.d <= R.ranges[q.pid][1] + half);

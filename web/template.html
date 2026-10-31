@@ -300,13 +300,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="legend"><span><i class="lg ok"></i>in orario</span><span><i class="lg late"></i>+2 min o più</span><span><i class="lg early"></i>anticipo 3 min o più</span></div>
     <ul class="m3list" id="m3list"></ul>
   </section>
-  <section class="m3panel closures" aria-label="Chiusura tratte M3">
-    <div class="label">Chiusura tratte M3</div>
-    <div class="clgrid" id="clGrid"></div>
-    <div class="row"><button id="reopenBtn" disabled>Riapri la tratta</button><button id="normalBtn" disabled title="Tutti i treni tornano al loro orario programmato">Torna all'orario</button></div>
+  <section class="m3panel closures" aria-label="Deposito M3">
+    <div class="label">Deposito M3</div>
     <div class="row"><button id="depotAuto" aria-pressed="true" title="Automatico: i segnali del deposito si aprono da soli. Manuale: clic sul segnale per dare via libera a un treno">Deposito: automatico</button></div>
     <p class="note" id="ilNote" hidden></p>
-    <p class="note" id="secNote">Chiudendo una tratta i treni dentro si fermano alla stazione successiva; il resto della linea va a navetta, senza orario.</p>
+    <p class="note">Chiusura tratte: in ricostruzione con le nuove regole dell'interlocking.</p>
   </section>
 
   <div class="admin-only">
@@ -695,8 +693,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         fleet.engine.stations = st;
       }
       fleet.engine.prof = F.path_edges ? MTLEngine.buildProfiles(F.path_edges, F.net.edges, fleet.engine.fileSpeeds, fleet.engine.ops, fleet.engine.fileCuts) : null;
-      fleet.engine.throatR = MTLEngine.throatResources(F.throats, F.path_edges)
-        .concat(MTLEngine.blockResources(F.blocks, F.path_edges, F.net.edges));
+      // named stretches of the terminals (tails, junctions): only to know where a train is (radio), they block nothing
+      fleet.engine.throatR = MTLEngine.throatResources(F.throats, F.path_edges);
       fleet.engine.blocks = F.blocks || []; fleet.engine.illegal = F.illegal || [];
       fleet.engine.G = F.degraded || null;
       fleet.trains.forEach(tr => { tr.F = fleet; });
@@ -704,8 +702,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         const dec = a => { let p = 0; return a.map(x => (p += x) / 10); };
         const segs = l => l.map(g => [g[0], g[1], g[2], dec(g[3]), dec(g[4]), ...g.slice(5)]);
         fleet.trains.forEach((tr, k) => { const L0 = LIVE0.trains[k]; tr.live = segs(L0.segs); tr.liveStarts = tr.live.map(x => x[3][0]);
-          tr.liveLog = L0.log.map(([seg, planned, actual]) => ({ seg, planned, actual })); });
-        fleet.book = { holds: LIVE0.holds, plans: LIVE0.plans.map(segs) }; fleet.holds = LIVE0.held;
+          tr.liveLog = L0.log.map(([seg, planned, actual, status]) => ({ seg, planned, actual, status })); });
+        fleet.holds = LIVE0.held;
       } else reliveFleet(fleet);
     }
     fleets.push(fleet);
@@ -752,35 +750,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   const parkedLabel = (F, where) => where && where !== 'depot' ? 'Parked overnight in a ' + where + ' tail track' : 'Parked in the ' + F.home + ' depot';
   // live engine: drive this train from its (possibly changed) plan
-  function sectionResources(F) {
-    const S = F.engine.S; if (!S) return [];
-    if (F.closed) {
-      const stub = { name: 'stub', ranges: {} };
-      for (const [pid, r] of Object.entries(S.ranges)) if (r.sb) stub.ranges[pid] = [r.sb[0] - 5, r.sb[0] + S.stub];
-      for (const v of Object.values(S.rev)) stub.ranges[v[0]] = [v[3] - S.stub - 5, v[3]];
-      return [stub];
-    }
-    return [];
-  }
-  // the whole day for the fleet: terminal junctions one train at a time (+ the Rogoredo stub when closed).
-  // changed: a single train whose plan changed (radio, platform): continue from the last booking instead of starting over
+  // the day of the trains without the others (a train whose plan changed by radio: the agents drive the real thing;
+  // this only keeps its timetable view up to date). Without the day driven at build time: every train like that.
   function reliveFleet(F, changed) {
-    const R = (F.engine.throatR || []).concat(sectionResources(F)), E_ = F.engine;
-    const envs = F.trains.map(tr => tr.env);
-    let r;
-    if (changed && F.book && R.length) {
-      const k = F.trains.indexOf(changed), keep = { holds: F.book.holds.slice(), plans: F.book.plans.slice() };
-      keep.plans[k] = changed.segs; keep.holds[k] = {};
-      const base = F.trains.map((tr, i) => i === k ? MTLEngine.runTrain(tr.segs, E_.ops, E_.rev, null, E_.prof, tr.env) : { segs: tr.live, log: tr.liveLog });
-      r = MTLEngine.runBooked(null, E_.ops, E_.rev, R, E_.half, base, E_.prof, envs, keep);
-    } else if (R.length) r = MTLEngine.runBooked(F.trains.map(tr => tr.segs), E_.ops, E_.rev, R, E_.half, null, E_.prof, envs);
-    else r = { res: F.trains.map(tr => MTLEngine.runTrain(tr.segs, E_.ops, E_.rev, null, E_.prof, tr.env)), held: 0, holds: null, plans: null };
-    F.trains.forEach((tr, k) => { tr.live = r.res[k].segs; tr.liveStarts = tr.live.map(x => x[3][0]); tr.liveLog = r.res[k].log; });
-    F.holds = r.held; F.book = r.holds ? { holds: r.holds, plans: r.plans } : null;
+    const E_ = F.engine;
+    const run = tr => { const r = MTLEngine.runTrain(tr.segs, E_.ops, E_.rev, null, E_.prof, tr.env); tr.live = r.segs; tr.liveStarts = tr.live.map(x => x[3][0]); tr.liveLog = r.log; };
+    if (changed) run(changed); else F.trains.forEach(run);
   }
   function relive(tr) {
     const F = tr.F; if (!F || !F.engine) return;
-    reliveFleet(F, F.closed ? null : tr);
+    reliveFleet(F, tr);
     if (F.ag && tr.agentK != null) F.ag.replan(tr.agentK);
   }
   function trainState(F, tr, t) {
@@ -989,7 +968,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 
   // Passenger-service lateness: empty positioning and depot runs do not count as passenger delay.
   function delayOf(F, tr, t) {
-    if (tr.closedAt !== undefined && tr.live) {      // standing still because of the closure: the wait counts
+    if (false) {
       const st = trainState(F, tr, t);
       if (st.status === 'stopped' || st.status === 'held') return Math.max(0, t - tr.closedAt);
     }
@@ -2082,17 +2061,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   document.querySelectorAll('.role').forEach(b => b.onclick = () => setRole(b.dataset.role === 'player'));
   const m3list = document.getElementById('m3list');
-  // ================= LINE CLOSURES (emergency mode, web/agents.js) =================
-  // Closing a stretch switches the M3 trains to "almost sentient" mode: each train drives itself, looks only at the
-  // signals and the track in front, and the open parts run as shuttles without a timetable. Reopening: the trains take
-  // timetable runs again from the next station (20 km/h for 2 minutes first). "Torna all'orario" ends the emergency
-  // and puts every train back on its planned day.
-  const CLOSURES = [['COMASINA', 'MACIACHINI', 'Comasina – Maciachini'], ['COMASINA', 'SONDRIO', 'Comasina – Sondrio'], ['COMASINA', 'CENTRALE FS', 'Comasina – Centrale'],
-    ['CENTRALE FS', 'MACIACHINI', 'Centrale – Maciachini'], ['CENTRALE FS', 'PORTA ROMANA', 'Centrale – Porta Romana'], ['PORTA ROMANA', 'SAN DONATO', 'Porta Romana – San Donato'],
-    ['PORTA ROMANA', 'ROGOREDO FS', 'Porta Romana – Rogoredo'], ['ROGOREDO FS', 'SAN DONATO', 'Rogoredo – San Donato']];
+  // ================= LINE CLOSURES =================
+  // The old closures (navette, chiusure) are gone: they are being rebuilt from Giovanni's rules (Regole_interlocking_M3).
   window.activeClosure = null;
-  const secNote = document.getElementById('secNote'), clGrid = document.getElementById('clGrid');
-  const reopenBtn = document.getElementById('reopenBtn'), normalBtn = document.getElementById('normalBtn');
   function m3fleet() { return fleets.find(f => f.line === 'M3' && f.engine && f.engine.G); }
   function stopsOfF(F) {
     const G = F.engine.G, idx = {}; G.names.forEach((n, i) => (idx[n] = i));
@@ -2124,10 +2095,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      resources: E_.throatR, planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, interlocking: E_.net.interlocking,
+      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
-      initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)),
-      locks: cl => MTLEngine.blockResources(MTLEngine.turnLocks(G, cl), E_.pathEdges, E_.net.edges).map(r => Object.assign(r, { lock: true })) });
+      initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
   }
   // depot signals: automatic, or worked by the player (a click on the signal clears it for one train)
@@ -2158,45 +2128,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.depot = null; F.loop = null; F.dm = null; makeAgents(F);
     if (keep && F.depotPaths) { depotOf(F).newDay(keep); F.ag.start(DAY_START, bookedPositions(F, DAY_START)); F.ag.snapshot(); }
   }
-  // the closure that applies now, from the events of the time line
-  function closureNow(F) {
-    if (!F || !F.ag) return null;
-    const ev = F.ag.TL.events.filter(e => e.done && (e.kind === 'close' || e.kind === 'normal')).pop();
-    if (!ev || ev.kind !== 'close') return null;
-    return { label: ev.label, t0: ev.t, cl: ev.cl, reopened: F.ag.S.reopened != null, ag: F.ag };
-  }
-  function closeStretch(i) {
-    const F = m3fleet(); if (!F || !F.ag || closureNow(F)) return;
-    const G = F.engine.G, [x, y, label] = CLOSURES[i], a = Math.min(G.names.indexOf(x), G.names.indexOf(y)), b = Math.max(G.names.indexOf(x), G.names.indexOf(y));
-    F.ag.event({ kind: 'close', cl: { a, b }, label });
-    say('', `PC: tratta ${label} chiusa alle ${fmt(F.ag.S.t, true).join('')}. Il resto della linea va a navetta.`, 'sys');
-    syncClosureUI();
-  }
-  function reopenStretch() {
-    const F = m3fleet(), c = closureNow(F); if (!c || c.reopened) return;
-    F.ag.event({ kind: 'reopen' });
-    say('', `PC: tratta ${c.label} riaperta. 20 km/h per 2 minuti, poi i treni riprendono l'orario.`, 'sys');
-    syncClosureUI();
-  }
-  function backToTimetable() {
-    const F = m3fleet(); if (!F || !closureNow(F)) return;
-    F.ag.event({ kind: 'normal' }); syncClosureUI();
-  }
-  function syncClosureUI() {
-    const F = m3fleet(), em = closureNow(F), open = !em || em.reopened;
-    F && (F.emergency = em);
-    window.activeClosure = em ? { segment: em.label, active: !em.reopened, a: em.cl.a, b: em.cl.b, since: em.t0 } : null;
-    clGrid.querySelectorAll('button').forEach((b, i) => { b.setAttribute('aria-pressed', !!(em && em.label === CLOSURES[i][2] && !open)); b.disabled = !!em; });
-    reopenBtn.disabled = !em || open; normalBtn.disabled = !em || !open;
-    if (!em) secNote.textContent = secNote.dataset.idle;
-    else {
-      const c = {}; em.ag.agents().forEach(a => { const k = a.hidden || a.status === 'parked' ? 'in deposito' : a.status === 'stopped' ? 'fermi' : a.mode === 'shuttle' ? (open ? 'in linea' : 'navette') : a.mode === 'static' ? 'trattenuti' : a.mode === 'plan' ? 'in orario' : a.mode; c[k] = (c[k] || 0) + 1; });
-      secNote.textContent = (open ? `Tratta ${em.label} riaperta. ` : `Tratta ${em.label} chiusa dalle ${fmt(em.t0)}. `) + Object.entries(c).map(([k, v]) => `${v} ${k}`).join(', ') + '.';
-    }
-  }
-  secNote.dataset.idle = secNote.textContent;
-  CLOSURES.forEach((c, i) => { const b = document.createElement('button'); b.textContent = c[2]; b.onclick = () => closeStretch(i); clGrid.appendChild(b); });
-  reopenBtn.onclick = reopenStretch; normalBtn.onclick = backToTimetable;
+  const closureNow = () => null;
   const AGLABEL = { service: 'In servizio', stopped: 'Fermo in stazione: tratta interrotta', held: 'Trattenuto: tratta chiusa', turnback: 'In manovra (cambio banco)', empty: 'Vuoto, senza passeggeri', depot: 'Rientrato in deposito', parked: 'In deposito' };
   const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC', pc: ' · trattenuto dal PC', anello: ' · attende al #A94 (anello di prova)' };
   // the line under the train name: the agents' service (shuttles carry passengers: reduced service)
@@ -2321,7 +2253,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const off = 7 / 111000 * side, pos = at || [a[0] - ux / n * off, a[1] + uy / n * off / kx];
       const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[illegal ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
         .bindTooltip(tip, { className: 'st', direction: 'top' });
-      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si, stype });
+      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si, stype, pid, d });
     };
     // block signals, usual direction: one at the start of every block section (stations and in between)
     (F.engine.blocks || []).forEach((bl, bi) => {
@@ -2418,30 +2350,20 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       SIGS.forEach(sg => { if (gone(sg.m.getLatLng())) sg.removed = true; else sg.m.addTo(sg.illegal ? illLayer : sigLayer); }); }
     if (!map.hasLayer(sigLayer)) sigLayer.addTo(map);
     if (showIll && !map.hasLayer(illLayer)) illLayer.addTo(map); else if (!showIll && map.hasLayer(illLayer)) map.removeLayer(illLayer);
-    const BR = (F.engine.throatR || []).filter(r => r.block), half = F.engine.half;
+    const half = F.engine.half;
     const occ = F.trains.map(tr => trainState(F, tr, state.t));
     // route interlocking: a signal shows via libera when a train has its route set; the signals that are normally green
     // (types a, b, c, d on the legal side) also when the stretch behind them is free
-    const RTon = !!(F.ag && F.ag.RT && !F.ag.S.lockCl);
     let green = null;
-    if (RTon) { const fr = {}; F.ag.agents().forEach(a => { fr[a.k] = { pid: a.pid, nose: a.d + half }; }); green = F.ag.RT.green(F.ag.rt(), fr); }
+    if (F.ag) { const fr = {}; F.ag.agents().forEach(a => { fr[a.k] = { pid: a.pid, nose: a.d + half }; }); green = F.ag.RT.green(F.ag.rt(), fr); }
     SIGS.forEach(sg => {
       let busy = true;
-      if (sg.block >= 0) { const R = BR[sg.block], bl = F.engine.blocks[sg.block];
-        const also = (F.engine.throatR || []).filter(Q => !Q.block && Q.ranges[bl.pid] && Q.ranges[bl.pid][0] >= bl.signal_d - 5 && Q.ranges[bl.pid][0] <= bl.signal_d + 40);
-        busy = [R, ...also].some(Q => occ.some(o => { const r = Q && Q.ranges[o.pid]; return r && o.d >= r[0] - half + (Q.pad || 0) && o.d <= r[1] + half; })); }
-      else if (sg.refs && sg.refs.length) {
-        const RR = F.ag ? F.ag.resources() : (F.engine.throatR || []);
-        busy = sg.refs.some(([pid, d]) => {
-          let R = null, best = Infinity;
-          for (const r of RR) { const g = r.ranges[pid]; if (g && g[0] >= d - 5 && g[0] <= d + 150 && g[0] < best) { best = g[0]; R = r; } }
-          if (!R) return occ.some(o => onParts(F, o, sg.ahead));
-          return occ.some(o => { const g = R.ranges[o.pid]; return g && o.status !== 'parked' && o.d + half >= g[0] && o.d - half <= g[1]; });
-        });
-      }
-      else if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
-      if (RTon && !sg.shunt) { const n = parseInt(String(sg.tag || '').slice(2), 10);
-        if (green.has(n)) busy = false; else if (sg.illegal || !/^[abcd]$/.test(sg.stype || 'a')) busy = true; }
+      if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
+      if (green && !sg.shunt) { const n = parseInt(String(sg.tag || '').slice(2), 10);
+        if (green.has(n)) busy = false;
+        else if (sg.illegal || !/^[abcd]$/.test(sg.stype || 'a')) busy = true;
+        else { const at = sg.pid != null ? [sg.pid, sg.d] : (sg.refs && sg.refs[0]);
+          busy = at ? !F.ag.RT.clearAhead(F.ag.rt(), at[0], at[1], F.ag.occ) : busy; } }
       // interlocking signals: via libera only when cleared for a train
       if (sg.si != null && F.ag && F.ag.IL && F.ag.IL.controlled(sg.si)) { const il = F.ag.il();
         busy = il.grant[sg.si] == null && !(F.ag.IL.isManual(sg.si) && !il.auto && il.pass[sg.si] > 0); }   // cleared by the player: red + white
@@ -2511,7 +2433,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
+    if (now - lastPanel > 1000) { lastPanel = now; if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); radioTick(); dcoTick(); closingTick(); updateSignals(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);

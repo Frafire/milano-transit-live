@@ -56,9 +56,84 @@ function runTime(M, prof, pid, d0, d1) {
   const r = E.runTrain([[pid, 'empty', -1, [0, 1], [d0, d1]]], M.ops, 0, null, prof);
   const ts = r.segs[0][3]; return ts[ts.length - 1];
 }
-// the whole day as the game runs it: speed limits, stop times, one train at a time in the terminal junctions
-function runDay(M, D, extra) {
-  const R = E.throatResources(M.throats, M.path_edges).concat(E.blockResources(M.blocks, M.path_edges, M.net.edges), extra || []);
-  return E.runBooked(M.trains, M.ops, M.reverse_s, R, M.half, null, profiles(M), envs(M, D));
+// the timetable stops of a planned move: [{ st (station index), j (index in the times), d }]
+function stopsOfM(M, D) {
+  const G = M.degraded, idx = {}; G.names.forEach((n, i) => (idx[n] = i));
+  return seg => {
+    let st = null;
+    if (seg[6] && seg[6].st) st = seg[6].st;
+    else if (seg[1] === 'service' && seg[2] >= 0) { st = D.trips[seg[2]][5].filter(x => x >= 0).map(x => idx[D.stops[x][0]]); if (st.some(x => x == null)) return []; }
+    else return [];
+    const ds = seg[4], pts = [];
+    for (let i = 0; i < ds.length; i++) if (i === 0 || ds[i] !== ds[i - 1]) pts.push({ d: ds[i], j: i });
+    if (pts.length !== st.length) return [];
+    return pts.map((p, k) => ({ st: st[k], j: p.j, d: p.d }));
+  };
 }
-module.exports = { runDay, E, load, profiles, posOf, stations, envs, stretches, runTime, KX, KY };
+// the agents (web/agents.js) with the built line: the one engine
+function agents(M, D, initAt, extraOpts) {
+  const A = require('../web/agents.js'), envs_ = envs(M, D);
+  return A.create(Object.assign({ G: M.degraded, ops: M.ops, reverse: M.reverse_s, half: M.half, prof: profiles(M), pathEdges: M.path_edges, netEdges: M.net.edges,
+    plans0: M.trains, stopsOf: stopsOfM(M, D), sigpos: M.net.sigpos, sigall: M.net.sigall, interlocking: M.net.interlocking, zones: E.platformZones(M.degraded),
+    dwell: envs_ ? envs_.map(e => e.dwell) : null, extra: () => 0, initAt }, extraOpts || {}));
+}
+// where every train stands before its day starts (its first move, not yet started)
+const dayStart = M => M.trains.map(segs => ({ pid: segs[0][0], d: segs[0][4][0], v: 0, seg: 0, before: true, startAt: segs[0][3][0] }));
+// the whole day driven by the agents, from before the first train to the end of the service, recorded as moves
+// (the same form as the plan: [pid, status, trip, times, distances, ...]) and departure/arrival logs
+function driveDay(M, D) {
+  const n = M.trains.length, rec = Array.from({ length: n }, () => ({ segs: [], log: [], cur: null, lastT: -1, lastV: 0, stop: null, held: 0, red: false }));
+  const r1 = x => Math.round(x * 10) / 10;
+  const record = (k, a, t) => {
+    const R = rec[k], plan = M.trains[k];
+    if (a.mode !== 'plan' || a.si >= plan.length || t < a.wait) {
+      if (R.cur && a.mode === 'static') { R.segs.push(R.cur.seg); R.cur = null; }
+      return;
+    }
+    if (!R.cur || R.cur.si !== a.si) {
+      if (R.cur) R.segs.push(R.cur.seg);
+      while (R.segs.length < a.si) { const s = plan[R.segs.length]; R.segs.push([s[0], s[1], s[2], [t, t], [s[4][0], s[4][0]], ...s.slice(5)]); }   // (never driven)
+      const s = plan[a.si];
+      R.cur = { si: a.si, seg: [s[0], s[1], s[2], [r1(t - 0.5)], [r1(a.d)], ...s.slice(5)] }; R.lastT = t; R.lastV = a.v;
+    }
+    const sg = R.cur.seg, ts = sg[3], ds = sg[4], moving = a.v > 0, wasMoving = R.lastV > 0;
+    if (moving !== wasMoving || (moving && t - R.lastT >= 4)) {
+      if (!moving && wasMoving) { ts.push(r1(t)); ds.push(r1(a.d)); }                      // stops
+      else if (moving && !wasMoving) { ts.push(r1(t - 0.5)); ds.push(ds[ds.length - 1]); ts.push(r1(t)); ds.push(r1(a.d)); }   // leaves
+      else { ts.push(r1(t)); ds.push(r1(a.d)); }
+      R.lastT = t;
+    }
+    R.lastV = a.v;
+    if (a.stopAt != null && R.stop == null && a.arriveT === t) R.log.push({ seg: a.si, status: sg[1], planned: a.arrLate != null ? t - a.arrLate : t, actual: t });
+    R.stop = a.stopAt;
+    if (a.red && !R.red) R.held++; R.red = !!a.red;
+  };
+  const ag = agents(M, D, null, { record });
+  const T0 = Math.min(...M.trains.map(s => s[0][3][0])) - 60, T1 = Math.max(...M.trains.map(s => s[s.length - 1][3][s[s.length - 1][3].length - 1])) + 1800;
+  ag.start(T0, dayStart(M));
+  for (let t = T0; t < T1; t += 600) ag.step(Math.min(T1, t + 600));
+  rec.forEach((R, k) => { if (R.cur) { const ts = R.cur.seg[3], ds = R.cur.seg[4]; ts.push(r1(T1)); ds.push(ds[ds.length - 1]); R.segs.push(R.cur.seg); R.cur = null; }
+    const plan = M.trains[k]; while (R.segs.length < plan.length) { const s = plan[R.segs.length]; R.segs.push([s[0], s[1], s[2], [T1, T1], [s[4][s[4].length - 1], s[4][s[4].length - 1]], ...s.slice(5)]); } });
+  return { res: rec.map(R => ({ segs: R.segs, log: R.log })), held: rec.reduce((x, R) => x + R.held, 0), rt: ag.rt(), T0, T1 };
+}
+// the whole day as the game runs it (the one driven at build time, build/m3_live.json, when it is there)
+function runDay(M, D) {
+  const fs = require('fs'), f = process.cwd() + '/m3_live.json';
+  if (fs.existsSync(f) && !process.env.FRESH_DAY) {
+    const L = JSON.parse(fs.readFileSync(f, 'utf8')), dec = a => { let p = 0; return a.map(x => (p += x) / 10); };
+    if (L.trains.length === M.trains.length) return { res: L.trains.map(x => ({ segs: x.segs.map(g => [g[0], g[1], g[2], dec(g[3]), dec(g[4]), ...g.slice(5)]), log: x.log.map(([seg, planned, actual, st]) => ({ seg, planned, actual, status: st })) })), held: L.held };
+  }
+  return driveDay(M, D);
+}
+// where every train is at time t on a driven day (for the agents' start)
+function posAt(day, t) {
+  return day.res.map(r => {
+    const s = E.stateAt(r.segs, t), sg = r.segs[Math.min(s.si, r.segs.length - 1)];
+    if (s.si >= r.segs.length) return { pid: sg[0], d: sg[4][sg[4].length - 1], v: 0, seg: s.si, status: 'parked' };
+    if (s.before) { const p = s.si > 0 ? r.segs[s.si - 1] : sg; return { pid: s.si > 0 ? p[0] : sg[0], d: s.si > 0 ? p[4][p[4].length - 1] : sg[4][0], v: 0, seg: s.si, before: true, startAt: sg[3][0] }; }
+    let leaveAt = null; const ts = sg[3], ds = sg[4];
+    for (let i = 0; i < ts.length - 1; i++) if (ts[i] <= t && ts[i + 1] > t && ds[i + 1] === ds[i]) leaveAt = ts[i + 1];
+    return { pid: sg[0], d: s.d, v: s.v, seg: s.si, leaveAt, status: sg[1] };
+  });
+}
+module.exports = { runDay, driveDay, agents, dayStart, posAt, stopsOfM, E, load, profiles, posOf, stations, envs, stretches, runTime, KX, KY };

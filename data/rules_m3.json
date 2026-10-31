@@ -4297,33 +4297,6 @@
   "_about": "Signals by their #A number (as on the map in admin mode). groups: only one signal of a group shows via libera at a time. manual: depot signals worked by the player (red until clicked, unless the depot is on automatic).",
   "groups": [
    {
-    "name": "San Donato: uscita deposito e tronchetti",
-    "signals": [
-     6,
-     7,
-     8
-    ],
-    "section": true,
-    "routes": true
-   },
-   {
-    "name": "Comasina: tronchetti",
-    "signals": [
-     9,
-     10
-    ],
-    "routes": true
-   },
-   {
-    "name": "San Donato: partenze binari 2 e 3 (una alla volta)",
-    "signals": [
-     14,
-     45
-    ],
-    "section": true,
-    "routes": true
-   },
-   {
     "name": "Anello di prova: rossi, verdi solo per il treno che entra o esce",
     "signals": [
      46,
@@ -4362,8 +4335,7 @@
     "_about": "one train at a time on the test loop: #A94 clears only for the train holding it (it asks by radio at #A94)"
    }
   ],
-  "_model": "One model: groups (one signal at a time; hold = the grant stays until the movement is over; section = block section to the next signal), manual (worked by the player when the depot is on manual; all shunting signals are manual too), depot_sides (shunting signals east/west of lon: one movement at a time per side), zones (one train at a time, entry signals). Signals by their fixed #A number.",
-  "_routes_about": "groups with \"routes\": the route interlocking (web/routes.js) does their job; they apply only while it is off (closures, for now)"
+  "_model": "One model: groups (one signal at a time; hold = the grant stays until the movement is over; section = block section to the next signal), manual (worked by the player when the depot is on manual; all shunting signals are manual too), depot_sides (shunting signals east/west of lon: one movement at a time per side), zones (one train at a time, entry signals). Signals by their fixed #A number."
  },
  "names": {
   "_about": "Names of tracks by OSM way (w number in the editor). Shown on the map and used by the radio.",
