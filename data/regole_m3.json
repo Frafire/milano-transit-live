@@ -1,0 +1,3463 @@
+{
+ "_about": "Regole dell'interlocking M3 scritte da Giovanni in data/Regole_interlocking_M3.xlsx, lette da tools/rules_from_excel.py. Non modificare a mano: si cambia il file Excel e si rilancia lo script.",
+ "tempi": {
+  "Cambio banco: togliere il setup alla cabina di testa": [
+   25,
+   45,
+   "Giovanni, 30/10/2026"
+  ],
+  "Cambio banco: camminare 105 m fino all'altra cabina": [
+   80,
+   80,
+   "Assunto: 105 m a circa 1,3 m/s (passo normale). Da correggere se serve"
+  ],
+  "Cambio banco: margine in più sulla camminata": [
+   15,
+   15,
+   "Giovanni, 30/10/2026"
+  ],
+  "Cambio banco: setup della nuova cabina di guida": [
+   30,
+   60,
+   "Giovanni, 30/10/2026"
+  ],
+  "Ago dello scambio: tempo per cambiare posizione": [
+   3,
+   4,
+   "Giovanni, 30/10/2026"
+  ],
+  "Via libera della partenza prima dell'orario (semafori tipo e)": [
+   30,
+   30,
+   "Regola già in uso (Giovanni)"
+  ],
+  "Fermo al rosso: dopo quanto il macchinista chiama il PC": [
+   60,
+   120,
+   "Giovanni, 30/10/2026"
+  ],
+  "Ritardo di apertura del segnale (la chiusura è istantanea)": [
+   2,
+   2,
+   "Da compilare (Giovanni)"
+  ],
+  "Distanza minima tra due treni (secondi)": [
+   90,
+   90,
+   "Giovanni: minimo della linea"
+  ],
+  "Distanza normale tra due treni (secondi)": [
+   120,
+   120,
+   "Giovanni: solitamente almeno 120 s"
+  ],
+  "Trattorino di soccorso: velocità massima (km/h, non secondi)": [
+   25,
+   25,
+   "Giovanni 31/10/2026: stima, da verificare"
+  ],
+  "Marcia a vista (km/h, non secondi)": [
+   5,
+   5,
+   "Giovanni 31/10/2026: stima, da verificare"
+  ],
+  "Accostamento al treno da agganciare (km/h, non secondi)": [
+   2,
+   2,
+   "Giovanni 31/10/2026: stima, da verificare"
+  ]
+ },
+ "semafori": {
+  "2": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC, percorso del deposito libero",
+   "comando": "semi-automatico",
+   "note": "usato in: chiusura con navetta"
+  },
+  "3": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC, percorso del deposito libero",
+   "comando": "semi-automatico",
+   "note": "usato in: chiusura con navetta"
+  },
+  "4": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC, ingresso in deposito libero",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "5": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC, ingresso in deposito libero",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "6": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "uscita dal deposito: binario scelto libero; il treno in orario ha la precedenza sui treni dei tronchetti (precedenza 8)",
+   "comando": "automatico",
+   "note": "usato in: chiusura con navetta, guasto binario, servizio normale"
+  },
+  "7": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "30 s prima della partenza, banchina scelta (2 o 3) libera e nessuna partenza da A45/A14 in corso",
+   "comando": "automatico",
+   "note": "usato in: chiusura con navetta, servizio normale"
+  },
+  "8": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "30 s prima della partenza, banchina scelta (2 o 3) libera e nessuna partenza da A45/A14 in corso",
+   "comando": "automatico",
+   "note": "usato in: chiusura con navetta, servizio normale"
+  },
+  "9": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "30 s prima della partenza, banchina partenze libera",
+   "comando": "automatico",
+   "note": "usato in: guasto binario, servizio normale"
+  },
+  "10": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "30 s prima della partenza, banchina partenze libera",
+   "comando": "automatico",
+   "note": "usato in: guasto binario, servizio normale"
+  },
+  "11": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "tronchetto scelto libero (posizione 1 di giorno; la sera posizione 3, poi 2, poi 1: precedenze 2, 3, 9)",
+   "comando": "automatico",
+   "note": "usato in: sera, servizio normale"
+  },
+  "12": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "solo con binario 2 della stazione non disponibile, ritardo o comando del PC (COS-4, CON-19…24)",
+   "comando": "automatico",
+   "note": "usato in: guasto binario"
+  },
+  "13": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "itinerario libero fino alla banchina scelta; di norma binario 1 arrivi (SD-12). Binario 2 (SD-14) solo per ritardo, tronchetti non disponibili o comando del PC. Scelto il binario lo scambio non si muove più",
+   "comando": "automatico",
+   "note": "usato in: ritardo, servizio normale"
+  },
+  "14": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "30 s prima della partenza, sezione libera fino ad A290; mai insieme ad A45 (precedenza 4)",
+   "comando": "automatico",
+   "note": "usato in: servizio normale"
+  },
+  "19": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "dato dal PC: uscita dal tronchetto di Brenta, libero fino ad A308",
+   "comando": "automatico",
+   "note": "usato in: guasto treno"
+  },
+  "20": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "dato dal PC: uscita dal tronchetto di Brenta, libero fino ad A279",
+   "comando": "automatico",
+   "note": "usato in: guasto treno"
+  },
+  "33": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "dato dal PC: blocca la sezione fino a Centrale finché il treno non passa",
+   "comando": "manuale con controllo sezioni",
+   "note": "usato in: guasto treno"
+  },
+  "40": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "per il deposito (SD-3): libero fino ad A04. Per i tronchetti (SD-1, SD-2): tronchetto scelto libero e nessun treno sta per uscirne; scelta definitiva",
+   "comando": "automatico",
+   "note": "usato in: servizio normale"
+  },
+  "41": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi)",
+   "comando": "automatico",
+   "note": "usato in: guasto binario, guasto treno"
+  },
+  "44": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi)",
+   "comando": "automatico",
+   "note": "usato in: guasto treno"
+  },
+  "45": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "30 s prima della partenza, sezione libera fino ad A290; mai insieme ad A14 (precedenza 4)",
+   "comando": "automatico",
+   "note": "usato in: chiusura con navetta, servizio normale"
+  },
+  "46": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (Anello di prova), percorso libero fino al semaforo successivo",
+   "comando": "automatico",
+   "note": null
+  },
+  "47": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (Anello di prova), percorso libero fino al semaforo successivo",
+   "comando": "automatico",
+   "note": null
+  },
+  "48": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "49": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "50": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "51": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "52": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "53": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "54": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "55": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "56": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "57": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "58": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "59": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "60": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "61": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "62": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "63": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "64": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "65": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "66": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "67": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "68": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "69": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "70": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "71": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "72": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "73": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "74": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "75": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "76": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "77": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "78": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "79": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "80": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "81": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "82": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "83": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "84": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "85": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "86": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "87": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "88": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "89": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "90": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "91": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "92": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "93": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "94": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "95": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "96": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (Anello di prova), percorso libero fino al semaforo successivo",
+   "comando": "automatico",
+   "note": null
+  },
+  "97": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (Anello di prova), percorso libero fino al semaforo successivo",
+   "comando": "automatico",
+   "note": null
+  },
+  "98": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (Ingresso deposito), percorso libero fino al semaforo successivo",
+   "comando": "automatico",
+   "note": null
+  },
+  "99": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (Ingresso deposito), percorso libero fino al semaforo successivo",
+   "comando": "automatico",
+   "note": null
+  },
+  "100": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "101": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "102": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "103": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "104": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "semi-automatico: dato dal PC (o dal programma del deposito), percorso libero fino al semaforo successivo",
+   "comando": "semi-automatico",
+   "note": null
+  },
+  "105": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "2 minuti prima del turno, se la posizione 1 è libera il treno avanza; poi via libera per la banchina partenze (precedenza 6)",
+   "comando": "automatico",
+   "note": "usato in: guasto binario, mattina"
+  },
+  "106": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "nel tronchetto di Comasina: il treno che entra si ferma davanti (fine posizione); via libera solo per avanzare alla posizione verso la banchina quando è libera",
+   "comando": "automatico",
+   "note": null
+  },
+  "107": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "nel tronchetto di Comasina: il treno che entra si ferma davanti (fine posizione); via libera solo per avanzare alla posizione verso la banchina quando è libera",
+   "comando": "automatico",
+   "note": null
+  },
+  "108": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "2 minuti prima del turno, se la posizione 1 è libera il treno avanza; poi via libera per la banchina partenze (precedenza 6)",
+   "comando": "automatico",
+   "note": "usato in: guasto binario, mattina"
+  },
+  "109": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "solo se le posizioni 1 e 2 davanti sono libere; uscita di mattina o per il treno del pomeriggio (precedenza 6). Con un guasto: solo verso il deposito (CON-15)",
+   "comando": "automatico",
+   "note": "usato in: guasto binario, mattina"
+  },
+  "110": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "nel tronchetto di Comasina: il treno che entra si ferma davanti (fine posizione); via libera solo per avanzare alla posizione verso la banchina quando è libera",
+   "comando": "automatico",
+   "note": null
+  },
+  "111": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "nel tronchetto di Comasina: il treno che entra si ferma davanti (fine posizione); via libera solo per avanzare alla posizione verso la banchina quando è libera",
+   "comando": "automatico",
+   "note": null
+  },
+  "112": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "solo se le posizioni 1 e 2 davanti sono libere; uscita di mattina o per il treno del pomeriggio (precedenza 6). Con un guasto: solo verso il deposito (CON-18)",
+   "comando": "automatico",
+   "note": "usato in: guasto binario, mattina"
+  },
+  "122": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: ritardo, servizio normale"
+  },
+  "137": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "dato dal PC: uscita dal binario di rimessa di Repubblica",
+   "comando": "manuale con controllo sezioni",
+   "note": "usato in: guasto treno"
+  },
+  "138": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "dato dal PC: arrivo dal raccordo M2 (invii M2, da simulare)",
+   "comando": "manuale con controllo sezioni",
+   "note": "usato in: Invii verso M2 (verranno simulati poi), Invii verso M2 (verrano simulati poi)"
+  },
+  "204": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "205": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "206": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "207": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "208": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "209": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "210": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "211": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: servizio normale"
+  },
+  "212": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "213": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: servizio normale"
+  },
+  "214": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: binario unico, servizio normale"
+  },
+  "215": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "216": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "217": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "218": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "219": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "220": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "221": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "222": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "223": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "224": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "225": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "226": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: Invii verso M2 (verrano simulati poi) , servizio normale"
+  },
+  "228": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "229": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: chiusura servizio limitato, guasto treno, servizio normale"
+  },
+  "231": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: chiusura servizio limitato, servizio normale"
+  },
+  "232": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: binario unico, servizio normale"
+  },
+  "233": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "234": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "235": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: chiusura servizio limitato, servizio normale"
+  },
+  "236": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: binario unico, servizio normale"
+  },
+  "237": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "238": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "239": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "240": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "241": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "242": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "244": {
+   "legale": true,
+   "aspetto": "rosso",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: guasto binario, servizio normale"
+  },
+  "245": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "246": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "247": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "248": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "249": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "250": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "251": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: chiusura servizio limitato, servizio normale"
+  },
+  "252": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: binario unico, servizio normale"
+  },
+  "253": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "254": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "256": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: chiusura servizio limitato, servizio normale"
+  },
+  "257": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: binario unico, servizio normale"
+  },
+  "259": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: chiusura servizio limitato, servizio normale"
+  },
+  "260": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "261": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: servizio normale"
+  },
+  "262": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "273": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: chiusura servizio limitato, servizio normale"
+  },
+  "274": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: servizio normale"
+  },
+  "275": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "276": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: servizio normale"
+  },
+  "277": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "libero fino ad A279 e A19, A20 rossi. Verso il tronchetto (BRE-2) solo per guasto, chiusura o sciopero",
+   "comando": "automatico",
+   "note": "usato in: guasto treno, servizio normale"
+  },
+  "279": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "280": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "281": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "282": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "283": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "284": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "285": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": "usato in: servizio normale"
+  },
+  "290": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": "usato in: servizio normale"
+  },
+  "301": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: navetta San Donato – Rogoredo sul binario 1 (ROG-6) o inversione a Rogoredo (ROG-4, da confermare); su comando del PC",
+   "comando": "automatico",
+   "note": "usato in: chiusura con navetta, chiusura servizio limitato"
+  },
+  "302": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "303": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "304": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "305": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "306": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "307": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "308": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: si apre solo per i treni vuoti in manovra di inversione a Lodi (chiusura San Donato – Lodi, LOD-4) o per un itinerario contromano dato dal PC",
+   "comando": "automatico",
+   "note": "usato in: chiusura con navetta, chiusura servizio limitato"
+  },
+  "309": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "310": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (ROG-3, ROG-5) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico, chiusura con navetta"
+  },
+  "311": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "312": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "313": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "314": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (LOD-3, LOD-5) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico, chiusura servizio limitato"
+  },
+  "315": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (PRS-3, PRS-5) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico, chiusura servizio limitato"
+  },
+  "316": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "317": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "318": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "319": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "320": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "321": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "322": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "323": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (SON-5) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico"
+  },
+  "324": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "325": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (MCS-5) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: chiusura con navetta"
+  },
+  "326": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "327": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "328": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "329": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (COS-5) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico"
+  },
+  "330": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "331": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "332": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "333": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (MCN-5, MCN-7) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico, chiusura servizio limitato"
+  },
+  "334": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "335": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (ZS-5, ZS-7) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico, chiusura servizio limitato"
+  },
+  "336": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (CEN-6, CEN-9) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico, chiusura servizio limitato"
+  },
+  "337": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (REP-6, REP-7, REP-8) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: Invii verso M2 (verranno simulati poi), binario unico, guasto treno"
+  },
+  "343": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (PRN-5, PRN-7) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico, chiusura servizio limitato"
+  },
+  "344": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "345": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (BRE-5, BRE-6) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: chiusura con navetta, guasto treno"
+  },
+  "346": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "347": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "348": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "349": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (SD-15) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: chiusura con navetta"
+  },
+  "350": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "351": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (COS-6) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico"
+  },
+  "352": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "353": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "354": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "355": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "356": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (MCN-6, MCN-8) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico"
+  },
+  "357": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "358": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "359": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (MCS-6) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico"
+  },
+  "360": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (ZS-6, ZS-8) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico, chiusura con navetta"
+  },
+  "361": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "362": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (CEN-7, CEN-10) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico, chiusura servizio limitato"
+  },
+  "363": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (SON-6) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico"
+  },
+  "364": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (REP-9) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico"
+  },
+  "365": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "366": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "367": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "368": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (PRN-6, PRN-8) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico"
+  },
+  "369": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "370": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "371": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (PRS-4, PRS-6) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": "usato in: binario unico, chiusura con navetta"
+  },
+  "375": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "376": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "377": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "378": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "379": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: binario unico sul binario 2 verso San Donato (SD-25, SD-26). Se arriva insieme a un treno ad A13 passa prima lui (precedenza 1)",
+   "comando": "automatico",
+   "note": "usato in: binario unico"
+  },
+  "401": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "402": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "403": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "404": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "405": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "406": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "407": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "408": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "409": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "sezione libera fino al semaforo successivo (e scambi dell'itinerario bloccati, se ci sono)",
+   "comando": "automatico",
+   "note": null
+  },
+  "410": {
+   "legale": true,
+   "aspetto": "via libera",
+   "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi); dalla banchina 30 s prima dell'orario",
+   "comando": "automatico",
+   "note": null
+  },
+  "501": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "502": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "503": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "504": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "505": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "506": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "507": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "508": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  },
+  "509": {
+   "legale": false,
+   "aspetto": "rosso",
+   "via_libera": "normalmente rosso: solo per un itinerario contromano (binario unico) dato o autorizzato dal PC; sezione libera fino al semaforo successivo e nessun treno in senso opposto",
+   "comando": "automatico",
+   "note": null
+  }
+ },
+ "itinerari": {
+  "SD-1": {
+   "quando": "servizio normale",
+   "priorita": "media",
+   "condizioni": "di sera: ricovero, un treno per tronchetto",
+   "note": null,
+   "da": 40,
+   "a": "muro"
+  },
+  "SD-2": {
+   "quando": "servizio normale",
+   "priorita": "media",
+   "condizioni": "di sera: ricovero, un treno per tronchetto",
+   "note": null,
+   "da": 40,
+   "a": "muro"
+  },
+  "SD-3": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 40,
+   "a": "A04"
+  },
+  "SD-4": {
+   "quando": "servizio normale",
+   "priorita": "media",
+   "condizioni": "Solo uno dei due itinerari può essere attivo alla volta fino a quando il treno non libera la sezione",
+   "note": null,
+   "da": 45,
+   "a": "A290"
+  },
+  "SD-5": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": "Solo uno dei due itinerari può essere attivo alla volta fino a quando il treno non libera la sezione",
+   "note": null,
+   "da": 14,
+   "a": "A290"
+  },
+  "SD-6": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 8,
+   "a": "A45"
+  },
+  "SD-7": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 8,
+   "a": "A14"
+  },
+  "SD-8": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 7,
+   "a": "A45"
+  },
+  "SD-9": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 7,
+   "a": "A14"
+  },
+  "SD-10": {
+   "quando": "guasto binario",
+   "priorita": "media",
+   "condizioni": "Anormale, utilizzato solo se c'è un guasto al binario 3 oppure un treno è bloccato sul binario o comunque per qualsiasi motivo per il quale non è utilizzabile. Anormale deve essere richiesto via radio o comandato via radio dal PC",
+   "note": null,
+   "da": 6,
+   "a": "A45"
+  },
+  "SD-11": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 6,
+   "a": "A14"
+  },
+  "SD-12": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 13,
+   "a": "A40"
+  },
+  "SD-13": {
+   "quando": "chiusura con navetta",
+   "priorita": "media",
+   "condizioni": "Utilizzato solo nella rara condizione della chiusura con navetta singola",
+   "note": null,
+   "da": 45,
+   "a": "A301"
+  },
+  "SD-14": {
+   "quando": "ritardo",
+   "priorita": "alta",
+   "condizioni": "Solitamente usato per recuperare i ritardi visto che il cambio banco è più rapido ma si utilizza anche quando i tronchetti non sono disponibili o su comando del PC",
+   "note": null,
+   "da": 13,
+   "a": "A44"
+  },
+  "SD-15": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": "Rarissima binario 2 non disponibile e navetta fa cambio banco sul binario 1 di san donato per continuare, solo nel caso di navetta singola tra SD e Rogoredo",
+   "note": null,
+   "da": 349,
+   "a": "A301"
+  },
+  "SD-16": {
+   "quando": "guasto treno",
+   "priorita": "media",
+   "condizioni": "Solo nel caso di un guasto del treno in cui il treno deve tornare o in deposito sul tronchetto in attesa della fine del servizio e del suo recupero. Avviene solo su dispaccio del PC",
+   "note": null,
+   "da": 44,
+   "a": "muro"
+  },
+  "SD-17": {
+   "quando": "guasto treno",
+   "priorita": "media",
+   "condizioni": null,
+   "note": null,
+   "da": 44,
+   "a": "muro"
+  },
+  "SD-18": {
+   "quando": "guasto treno",
+   "priorita": "media",
+   "condizioni": null,
+   "note": null,
+   "da": 44,
+   "a": "A05"
+  },
+  "SD-19": {
+   "quando": "guasto treno",
+   "priorita": "bassa",
+   "condizioni": null,
+   "note": null,
+   "da": 41,
+   "a": "muro"
+  },
+  "SD-20": {
+   "quando": "guasto treno",
+   "priorita": "bassa",
+   "condizioni": null,
+   "note": null,
+   "da": 41,
+   "a": "muro"
+  },
+  "SD-21": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "utilizzo avviene solo tramite dispaccio del PC, perché la linea è guasta, il treno si è guastato e rientra in deposito subito",
+   "note": null,
+   "da": 41,
+   "a": "A05"
+  },
+  "SD-22": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": "Utilizzato nel caso di chiusura con navetta e utilizzo del binario 1 per essa per indispinibilità degli altri binari",
+   "note": null,
+   "da": 8,
+   "a": "A349"
+  },
+  "SD-23": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": null,
+   "note": null,
+   "da": 7,
+   "a": "A349"
+  },
+  "SD-24": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": null,
+   "note": null,
+   "da": 6,
+   "a": "A349"
+  },
+  "SD-25": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "Situazione rarissima in cui non riesco a farmi venire in mente una situazione possibile però i semafori ci sono e quindi secondo me dovremmo tenerlo valido come itinerario possibile. Immagino un problema al binario 1 tra San Donato e Rogoredo e i treni rientrano in deposito sul illegale",
+   "note": null,
+   "da": 379,
+   "a": "A44"
+  },
+  "SD-26": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": null,
+   "note": null,
+   "da": 379,
+   "a": "A41"
+  },
+  "SD-27": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": "Utilizzato nel caso di chiusura con navetta e utilizzo del binario 1 per essa",
+   "note": null,
+   "da": 2,
+   "a": "A349"
+  },
+  "SD-28": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": null,
+   "note": null,
+   "da": 3,
+   "a": "A349"
+  },
+  "ROG-1": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 285,
+   "a": "A13"
+  },
+  "ROG-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 290,
+   "a": "A204"
+  },
+  "ROG-3": {
+   "quando": "chiusura con navetta",
+   "priorita": "media",
+   "condizioni": "Chiusura Rogoredo – Porta Romana: dopo il cambio banco sul binario 2 di Rogoredo (ROG-2) la navetta torna verso San Donato sul legale",
+   "note": null,
+   "da": 310,
+   "a": "A13"
+  },
+  "ROG-4": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "media",
+   "condizioni": "Chiusura San Donato – Rogoredo:  i treni da Comasina scaricano sul binario 1, proseguono a vuoto oltre lo scambio e rientrano sul binario 2 di Rogoredo.",
+   "note": null,
+   "da": 301,
+   "a": "A204"
+  },
+  "ROG-5": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico San Donato – Rogoredo sul binario 2, insieme a SD-25 / SD-26",
+   "note": null,
+   "da": 310,
+   "a": "A379"
+  },
+  "ROG-6": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": "Chiusura Rogoredo – Porta Romana con binario 2 di Rogoredo non disponibile: navetta di un solo treno binario 2 San Donato (SD-13) ↔ binario 1 Rogoredo",
+   "note": null,
+   "da": 301,
+   "a": "A348"
+  },
+  "BRE-1": {
+   "quando": "guasto treno",
+   "priorita": "bassa",
+   "condizioni": "uscita dal tronchetto di Brenta verso San Donato, su dispaccio del PC",
+   "note": null,
+   "da": 20,
+   "a": "A279"
+  },
+  "BRE-2": {
+   "quando": "guasto treno",
+   "priorita": "bassa",
+   "condizioni": "solo per guasto, chiusura o sciopero, su dispaccio del PC",
+   "note": "capienza: vedi precedenza 28",
+   "da": 277,
+   "a": "A20"
+  },
+  "BRE-3": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 277,
+   "a": "A279"
+  },
+  "BRE-4": {
+   "quando": "guasto treno",
+   "priorita": "bassa",
+   "condizioni": "uscita dal tronchetto di Brenta sul binario 1 verso Lodi, su dispaccio del PC (A19 dato dal PC)",
+   "note": null,
+   "da": 19,
+   "a": "A308"
+  },
+  "BRE-5": {
+   "quando": "guasto treno",
+   "priorita": "bassa",
+   "condizioni": "treno messo nel tronchetto di Brenta dalla banchina, su dispaccio del PC (es. chiusura Rogoredo – Porta Romana: un treno va sul tronchetto)",
+   "note": null,
+   "da": 345,
+   "a": "A19"
+  },
+  "BRE-6": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": "Chiusura Lodi – Porta Romana con binario 2 di Lodi non disponibile: navetta San Donato – Lodi tutta sul binario 1, insieme a LOD-6",
+   "note": null,
+   "da": 345,
+   "a": "A308"
+  },
+  "LOD-1": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 276,
+   "a": "A277"
+  },
+  "LOD-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 211,
+   "a": "A212"
+  },
+  "LOD-3": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "media",
+   "condizioni": "Chiusura Lodi – Porta Romana: dopo il cambio banco sul binario 2 di Lodi (LOD-2) i treni ripartono da A314 verso San Donato sul legale",
+   "note": null,
+   "da": 314,
+   "a": "A277"
+  },
+  "LOD-4": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "media",
+   "condizioni": "Chiusura San Donato – Lodi: dopo aver scaricato sul binario 1 il treno va a vuoto oltre A308 e rientra sul binario 2 di Lodi. A308 si apre solo per questa manovra",
+   "note": null,
+   "da": 308,
+   "a": "A212"
+  },
+  "LOD-5": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Lodi – Brenta sul binario 2 (binario 1 non utilizzabile)",
+   "note": null,
+   "da": 314,
+   "a": "A309"
+  },
+  "LOD-6": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": "navetta sul binario 1 verso Lodi: chiusura Lodi – Porta Romana con binario 2 di Lodi non disponibile (con BRE-6)",
+   "note": null,
+   "da": 308,
+   "a": "A344"
+  },
+  "PRS-1": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 274,
+   "a": "A275"
+  },
+  "PRS-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 213,
+   "a": "A214"
+  },
+  "PRS-3": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "alta",
+   "condizioni": "Chiusura Porta Romana – Centrale / Sondrio: dopo il cambio banco sul binario 2 di Porta Romana (PRS-2) i treni ripartono da A315 verso San Donato sul legale",
+   "note": null,
+   "da": 315,
+   "a": "A275"
+  },
+  "PRS-4": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Lodi – Porta Romana sul binario 1, arrivo sul binario 2 di Porta Romana",
+   "note": null,
+   "da": 371,
+   "a": "A214"
+  },
+  "PRS-5": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Porta Romana – Lodi sul binario 2",
+   "note": null,
+   "da": 315,
+   "a": "A370"
+  },
+  "PRS-6": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": "Chiusura Porta Romana – Centrale / Sondrio con binario 2 di Porta Romana non disponibile: navetta di un treno Lodi – Porta Romana sul binario 1",
+   "note": null,
+   "da": 371,
+   "a": "A343"
+  },
+  "PRN-1": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 214,
+   "a": "A215"
+  },
+  "PRN-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 273,
+   "a": "A274"
+  },
+  "PRN-3": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Porta Romana – Crocetta sul binario 1",
+   "note": null,
+   "da": 214,
+   "a": "A369"
+  },
+  "PRN-4": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "alta",
+   "condizioni": "Chiusura San Donato / Rogoredo / Lodi – Porta Romana: i treni da Comasina arrivano ad A273 ed entrano sul binario 2 di Porta Romana, cambio banco, ripartono sul legale (PRN-1)",
+   "note": null,
+   "da": 273,
+   "a": "A315"
+  },
+  "PRN-5": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "media",
+   "condizioni": "come PRN-4 ma sul binario 1 di Porta Romana: se il binario 2 non è disponibile, o nelle ore di punta insieme a PRN-4 (due treni, uno per binario)",
+   "note": null,
+   "da": 343,
+   "a": "A215"
+  },
+  "PRN-6": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Crocetta – Porta Romana sul binario 2",
+   "note": null,
+   "da": 368,
+   "a": "A274"
+  },
+  "PRN-7": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Porta Romana – Crocetta sul binario 1",
+   "note": null,
+   "da": 343,
+   "a": "A369"
+  },
+  "PRN-8": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Crocetta – Porta Romana sul binario 2",
+   "note": null,
+   "da": 368,
+   "a": "A315"
+  },
+  "REP-1": {
+   "quando": "guasto treno",
+   "priorita": "bassa",
+   "condizioni": "uscita dal binario di rimessa di Repubblica, su dispaccio del PC",
+   "note": "in realtà è l'altra galleria verso la M2; probabilmente ha un semaforo all'interno: la teniamo come rimessa di emergenza",
+   "da": 137,
+   "a": "A262"
+  },
+  "REP-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 226,
+   "a": "A228"
+  },
+  "REP-3": {
+   "quando": "Invii verso M2 (verrano simulati poi)",
+   "priorita": "bassa",
+   "condizioni": null,
+   "note": null,
+   "da": 226,
+   "a": "M2"
+  },
+  "REP-4": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 261,
+   "a": "A262"
+  },
+  "REP-5": {
+   "quando": "Invii verso M2 (verrano simulati poi)",
+   "priorita": "bassa",
+   "condizioni": null,
+   "note": null,
+   "da": 138,
+   "a": "A262"
+  },
+  "REP-6": {
+   "quando": "guasto treno",
+   "priorita": "media",
+   "condizioni": "galleria di collegamento usata come tronchetto di emergenza (un paio di volte l'anno), su dispaccio del PC",
+   "note": "in realtà è l'altra galleria verso la M2; probabilmente ha un semaforo all'interno: la teniamo come rimessa di emergenza",
+   "da": 337,
+   "a": "muro"
+  },
+  "REP-7": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Repubblica – Centrale sul binario 1",
+   "note": null,
+   "da": 337,
+   "a": "A365"
+  },
+  "REP-8": {
+   "quando": "Invii da M2 per M3 (verranno simulati poi)",
+   "priorita": "bassa",
+   "condizioni": null,
+   "note": null,
+   "da": 337,
+   "a": "M2"
+  },
+  "REP-9": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Centrale – Repubblica sul binario 2",
+   "note": null,
+   "da": 364,
+   "a": "A321"
+  },
+  "REP-10": {
+   "quando": "Invii da M2 per M3 (verranno simulati poi)",
+   "priorita": "bassa",
+   "condizioni": null,
+   "note": null,
+   "da": 138,
+   "a": "A321"
+  },
+  "CEN-1": {
+   "quando": "sciopero",
+   "priorita": "bassa",
+   "condizioni": "binario di ricovero, normalmente non usato (Giovanni: usato una volta alla ripresa del servizio durante uno sciopero). Utile anche per il trattorino. Un treno ci entra: la lunghezza di 81 m presa da OpenStreetMap è probabilmente sbagliata",
+   "note": null,
+   "da": 229,
+   "a": "muro"
+  },
+  "CEN-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": "anche nella chiusura Centrale – Maciachini / Comasina: dopo aver scaricato sul binario 2 i treni proseguono in galleria oltre A362 per il cambio banco",
+   "note": null,
+   "da": 229,
+   "a": "A231"
+  },
+  "CEN-3": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 259,
+   "a": "A260"
+  },
+  "CEN-4": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "media",
+   "condizioni": "Chiusura Centrale – Maciachini / Comasina: seconda posizione di cambio banco in galleria, sul binario 1 oltre A259 (le 4 posizioni: uno verso San Donato, due in cambio banco, uno in attesa)",
+   "note": null,
+   "da": 229,
+   "a": "A363"
+  },
+  "CEN-5": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "alta",
+   "condizioni": "Chiusura Porta Romana – Centrale: i treni da Comasina arrivano ad A259 ed entrano sul binario 2 di Centrale, cambio banco, ripartono verso Comasina (CEN-2). Con i due binari fortemente consigliato insieme a CEN-3 / CEN-6",
+   "note": null,
+   "da": 259,
+   "a": "A322"
+  },
+  "CEN-6": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "media",
+   "condizioni": "come CEN-5 ma sul binario 1 di Centrale (binario 2 non disponibile, o insieme a CEN-5)",
+   "note": null,
+   "da": 336,
+   "a": "A231"
+  },
+  "CEN-7": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "media",
+   "condizioni": "Chiusura Centrale – Maciachini / Comasina: rientro dalla galleria sul binario 1 di Centrale dopo il cambio banco oltre A362. Anche chiusura Sondrio – Maciachini / Comasina con binario 1 di Sondrio non disponibile (un solo treno tra Sondrio e Centrale)",
+   "note": null,
+   "da": 362,
+   "a": "A260"
+  },
+  "CEN-8": {
+   "quando": "sciopero",
+   "priorita": "bassa",
+   "condizioni": "binario di ricovero, normalmente non usato (Giovanni: usato una volta alla ripresa del servizio durante uno sciopero). Utile anche per il trattorino. Un treno ci entra: la lunghezza di 81 m presa da OpenStreetMap è probabilmente sbagliata",
+   "note": null,
+   "da": 33,
+   "a": "A322"
+  },
+  "CEN-9": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Centrale – Sondrio sul binario 1",
+   "note": null,
+   "da": 336,
+   "a": "A363"
+  },
+  "CEN-10": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Sondrio – Centrale sul binario 2",
+   "note": null,
+   "da": 362,
+   "a": "A322"
+  },
+  "SON-1": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 257,
+   "a": "A259"
+  },
+  "SON-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 231,
+   "a": "A232"
+  },
+  "SON-3": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Sondrio – Centrale sul binario 2",
+   "note": null,
+   "da": 257,
+   "a": "A362"
+  },
+  "SON-4": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "alta",
+   "condizioni": "Chiusura Sondrio – Maciachini / Comasina: i treni da San Donato passano A231, prendono lo scambio, entrano sul binario 1 di Sondrio, cambio banco con le porte aperte, ripartono verso San Donato (SON-1)",
+   "note": null,
+   "da": 231,
+   "a": "A335"
+  },
+  "SON-5": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "Chiusura Sondrio – Maciachini / Comasina con binario 1 di Sondrio non disponibile (consigliato chiudere fino a Centrale): cambio banco sul binario 2 e ritorno da A323 – A362, un solo treno tra Sondrio e Centrale (con CEN-7)",
+   "note": null,
+   "da": 323,
+   "a": "A362"
+  },
+  "SON-6": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Centrale – Sondrio sul binario 1",
+   "note": null,
+   "da": 363,
+   "a": "A335"
+  },
+  "ZS-1": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 232,
+   "a": "A233"
+  },
+  "ZS-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 256,
+   "a": "A257"
+  },
+  "ZS-3": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Sondrio – Zara sul binario 1",
+   "note": null,
+   "da": 232,
+   "a": "A361"
+  },
+  "ZS-4": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "alta",
+   "condizioni": "Chiusura Porta Romana – Sondrio: i treni da Comasina arrivano ad A256 ed entrano sul binario 2 di Sondrio, cambio banco, ripartono verso Comasina (ZS-1)",
+   "note": null,
+   "da": 256,
+   "a": "A323"
+  },
+  "ZS-5": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "media",
+   "condizioni": "come ZS-4 ma sul binario 1 di Sondrio (binario 2 non disponibile, o insieme a ZS-4)",
+   "note": null,
+   "da": 335,
+   "a": "A233"
+  },
+  "ZS-6": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Zara – Sondrio sul binario 2",
+   "note": null,
+   "da": 360,
+   "a": "A257"
+  },
+  "ZS-7": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Sondrio – Zara sul binario 1",
+   "note": null,
+   "da": 335,
+   "a": "A361"
+  },
+  "ZS-8": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": "Chiusura Maciachini – Comasina con binario 1 di Maciachini non disponibile: navetta Maciachini – Sondrio sull'illegale, arrivo sul binario 2 di Sondrio (con MCS-5)",
+   "note": null,
+   "da": 360,
+   "a": "A323"
+  },
+  "MCS-1": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 252,
+   "a": "A253"
+  },
+  "MCS-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 235,
+   "a": "A236"
+  },
+  "MCS-3": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Maciachini – Zara sul binario 2",
+   "note": null,
+   "da": 252,
+   "a": "A358"
+  },
+  "MCS-4": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "alta",
+   "condizioni": "Chiusura Maciachini – Comasina: i treni da San Donato arrivano da A235 ed entrano sul binario 1 di Maciachini, cambio banco, ripartono sul legale (MCS-1)",
+   "note": null,
+   "da": 235,
+   "a": "A333"
+  },
+  "MCS-5": {
+   "quando": "chiusura con navetta",
+   "priorita": "bassa",
+   "condizioni": "Chiusura Maciachini – Comasina con binario 1 di Maciachini non disponibile: i treni invertono sul binario 2 e un treno fa navetta Maciachini – Sondrio sull'illegale (con ZS-8)",
+   "note": null,
+   "da": 325,
+   "a": "A358"
+  },
+  "MCS-6": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Zara – Maciachini sul binario 1",
+   "note": null,
+   "da": 359,
+   "a": "A333"
+  },
+  "MCN-1": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 236,
+   "a": "A237"
+  },
+  "MCN-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": null,
+   "note": null,
+   "da": 251,
+   "a": "A252"
+  },
+  "MCN-3": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Maciachini – Dergano sul binario 1",
+   "note": null,
+   "da": 236,
+   "a": "A357"
+  },
+  "MCN-4": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "alta",
+   "condizioni": "Chiusura Centrale / Sondrio – Maciachini: i treni da Comasina passano A251 ed entrano sul binario 2 di Maciachini, cambio banco con le porte aperte, ripartono verso Comasina (MCN-1)",
+   "note": null,
+   "da": 251,
+   "a": "A325"
+  },
+  "MCN-5": {
+   "quando": "chiusura servizio limitato",
+   "priorita": "media",
+   "condizioni": "come MCN-4 ma sul binario 1 di Maciachini (binario 2 non disponibile, o nelle ore di punta insieme a MCN-4)",
+   "note": null,
+   "da": 333,
+   "a": "A237"
+  },
+  "MCN-6": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Dergano – Maciachini sul binario 2",
+   "note": null,
+   "da": 356,
+   "a": "A252"
+  },
+  "MCN-7": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Maciachini – Dergano sul binario 1",
+   "note": null,
+   "da": 333,
+   "a": "A357"
+  },
+  "MCN-8": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Dergano – Maciachini sul binario 2",
+   "note": null,
+   "da": 356,
+   "a": "A325"
+  },
+  "COS-1": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": "normale tracciato",
+   "note": null,
+   "da": 244,
+   "a": "A245"
+  },
+  "COS-2": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": "normale tracciato",
+   "note": null,
+   "da": 122,
+   "a": "A11"
+  },
+  "COS-3": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "o guasto al binario 1 di linea (verso San Donato): le partenze vanno contromano sul binario 2. Attivazione di navetta Comasina - Maciachini",
+   "note": null,
+   "da": 244,
+   "a": "A350"
+  },
+  "COS-4": {
+   "quando": "ritardo",
+   "priorita": "media",
+   "condizioni": "o guasto al binario 2 della stazione (banchina arrivi): i treni arrivano sulla banchina 1",
+   "note": null,
+   "da": 122,
+   "a": "A12"
+  },
+  "COS-5": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Comasina – Affori FN sul binario 2",
+   "note": null,
+   "da": 329,
+   "a": "A350"
+  },
+  "COS-6": {
+   "quando": "binario unico",
+   "priorita": "bassa",
+   "condizioni": "binario unico Affori FN – Comasina sul binario 1",
+   "note": null,
+   "da": 351,
+   "a": "A12"
+  },
+  "CON-1": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": "Viene utilizzato per le partenze",
+   "note": "Normale partenza treni",
+   "da": 9,
+   "a": "A244"
+  },
+  "CON-2": {
+   "quando": "mattina",
+   "priorita": "media",
+   "condizioni": "Viene utilizzato per la partenza di mattina o in caso di guasti per far uscire il treno dal tronchino e farlo tornare verso il Deposito",
+   "note": null,
+   "da": 105,
+   "a": "A244"
+  },
+  "CON-3": {
+   "quando": "mattina",
+   "priorita": "media",
+   "condizioni": "Viene utilizzato per la partenza di mattina o in caso di guasti per far uscire il treno dal tronchino e farlo tornare verso il Deposito",
+   "note": null,
+   "da": 109,
+   "a": "A244"
+  },
+  "CON-4": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": "Viene utilizzato per le partenze",
+   "note": "Normale partenza treni",
+   "da": 10,
+   "a": "A244"
+  },
+  "CON-5": {
+   "quando": "mattina",
+   "priorita": "media",
+   "condizioni": "Viene utilizzato per la partenza di mattina o in caso di guasti per far uscire il treno dal tronchino e farlo tornare verso il Deposito",
+   "note": null,
+   "da": 108,
+   "a": "A244"
+  },
+  "CON-6": {
+   "quando": "mattina",
+   "priorita": "media",
+   "condizioni": "Viene utilizzato per la partenza di mattina o in caso di guasti per far uscire il treno dal tronchino e farlo tornare verso il Deposito",
+   "note": null,
+   "da": 112,
+   "a": "A244"
+  },
+  "CON-7": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": "Viene utilizzato mattina e sera come deposito per i treni (se le posizioni 2 e 3 sono già occupate), mentre durante il giorno per le normali inversioni di tronchetto",
+   "note": null,
+   "da": 11,
+   "a": "A106"
+  },
+  "CON-8": {
+   "quando": "sera",
+   "priorita": "media",
+   "condizioni": "e durante i guasti utilizzato per contenere i treni durante la giornata. Viene occupato solo se la posizione 3 è gia occupata",
+   "note": null,
+   "da": 11,
+   "a": "A110"
+  },
+  "CON-9": {
+   "quando": "sera",
+   "priorita": "media",
+   "condizioni": "e durante i guasti utilizzato per contenere i treni durante la giornata.",
+   "note": null,
+   "da": 11,
+   "a": "muro"
+  },
+  "CON-10": {
+   "quando": "servizio normale",
+   "priorita": "alta",
+   "condizioni": "Viene utilizzato mattina e sera come deposito per i treni (se le posizioni 2 e 3 sono già occupate), mentre durante il giorno per le normali inversioni di tronchetto",
+   "note": null,
+   "da": 11,
+   "a": "A107"
+  },
+  "CON-11": {
+   "quando": "sera",
+   "priorita": "media",
+   "condizioni": "e durante i guasti utilizzato per contenere i treni durante la giornata. Viene occupato solo se la posizione 3 è gia occupata",
+   "note": null,
+   "da": 11,
+   "a": "A111"
+  },
+  "CON-12": {
+   "quando": "sera",
+   "priorita": "media",
+   "condizioni": "e durante i guasti utilizzato per contenere i treni durante la giornata.",
+   "note": null,
+   "da": 11,
+   "a": "muro"
+  },
+  "CON-13": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "guasto al binario 1. istituzione navetta Comasina platform 2 - maciachini",
+   "note": null,
+   "da": 9,
+   "a": "A329"
+  },
+  "CON-14": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "guasto al binario 1. istituzione navetta Comasina platform 2 - maciachini",
+   "note": null,
+   "da": 105,
+   "a": "A329"
+  },
+  "CON-15": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "rientro possibile solo come invio al deposito: se un treno lascia la posizione 3, per i limiti dell'infrastruttura deve rientrare in deposito; altrimenti resta lì finché la situazione non torna normale",
+   "note": null,
+   "da": 109,
+   "a": "A329"
+  },
+  "CON-16": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "guasto al binario 1. istituzione navetta Comasina platform 2 - maciachini",
+   "note": null,
+   "da": 10,
+   "a": "A329"
+  },
+  "CON-17": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "guasto al binario 1. istituzione navetta Comasina platform 2 - maciachini",
+   "note": null,
+   "da": 108,
+   "a": "A329"
+  },
+  "CON-18": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "rientro possibile solo come invio al deposito: se un treno lascia la posizione 3, per i limiti dell'infrastruttura deve rientrare in deposito; altrimenti resta lì finché la situazione non torna normale",
+   "note": null,
+   "da": 112,
+   "a": "A329"
+  },
+  "CON-19": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "Guasto al binario 2, utilizzato per alleggerire la situazione al binario 2",
+   "note": null,
+   "da": 12,
+   "a": "A106"
+  },
+  "CON-20": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "Guasto al binario 2, utilizzato per fermare i treni a causa dei troppi treni sulla linea vista la diminuzione di performance dovuto al solo utilizzo del binario 2",
+   "note": null,
+   "da": 12,
+   "a": "A110"
+  },
+  "CON-21": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "Guasto al binario 2, utilizzato per fermare i treni a causa dei troppi treni sulla linea vista la diminuzione di performance dovuto al solo utilizzo del binario 2",
+   "note": null,
+   "da": 12,
+   "a": "muro"
+  },
+  "CON-22": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "Guasto al binario 2, utilizzato per alleggerire la situazione al binario 2",
+   "note": null,
+   "da": 12,
+   "a": "A107"
+  },
+  "CON-23": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "Guasto al binario 2, utilizzato per fermare i treni a causa dei troppi treni sulla linea vista la diminuzione di performance dovuto al solo utilizzo del binario 2",
+   "note": null,
+   "da": 12,
+   "a": "A111"
+  },
+  "CON-24": {
+   "quando": "guasto binario",
+   "priorita": "bassa",
+   "condizioni": "Guasto al binario 2, utilizzato per fermare i treni a causa dei troppi treni sulla linea vista la diminuzione di performance dovuto al solo utilizzo del binario 2",
+   "note": null,
+   "da": 12,
+   "a": "muro"
+  }
+ },
+ "precedenze": [
+  {
+   "N.": 1,
+   "Situazione": "chiusura con navetta",
+   "Dove (gruppo o semafori)": "A13 e A379, San Donato",
+   "Se... (chi chiede cosa)": "arrivano due treni ad A13 e ad A379 nello stesso momento",
+   "Allora... (decisione)": "passa prima quello sul illegale per liberare la linea; l'altro resta al rosso",
+   "Perché": "Illegale blocca la linea",
+   "Note": null
+  },
+  {
+   "N.": 2,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "Comasina, A11",
+   "Se... (chi chiede cosa)": "il tronchetto 1 posizione 1 è occupato",
+   "Allora... (decisione)": "usa il tronchetto 2 posizione 1; se sono pieni tutti e due, il treno aspetta in banchina arrivi",
+   "Perché": "cambio banco sempre in posizione 1",
+   "Note": null
+  },
+  {
+   "N.": 3,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "Comasina, A11",
+   "Se... (chi chiede cosa)": "il tronchetto 2 posizione 1 è occupato",
+   "Allora... (decisione)": "usa il tronchetto 1 posizione 1; se sono pieni tutti e due, il treno aspetta in banchina arrivi",
+   "Perché": "cambio banco sempre in posizione 1",
+   "Note": null
+  },
+  {
+   "N.": 4,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "San Donato, A45 e A14",
+   "Se... (chi chiede cosa)": "Arrivano due treni ad A45 e A14 nello stesso momento",
+   "Allora... (decisione)": "Il via libera viene dato solo al treno in partenza non ad entrambi e solo 30s prima. Rimane poi rosso fino a quando la sezione non è liberarata quando il treno ha superato A290",
+   "Perché": "perché binario 2 e 3 a San Donato condivido lo stesso segmento",
+   "Note": null
+  },
+  {
+   "N.": 5,
+   "Situazione": "mattina",
+   "Dove (gruppo o semafori)": "Comasina, tronchetti e banchina arrivi",
+   "Se... (chi chiede cosa)": "inizio servizio",
+   "Allora... (decisione)": "dei 7 treni ricoverati a Comasina, 6 entrano in servizio direttamente da Comasina; il treno in posizione 3 di uno dei due tronchetti resta fermo",
+   "Perché": "non ci sono più invii a vuoto da San Donato verso Comasina la mattina",
+   "Note": "nel simulatore oggi: 4 invii a vuoto da San Donato (05:08, 05:15, 05:21, 05:27): da togliere"
+  },
+  {
+   "N.": 6,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "Comasina, tronchetto posizione 3",
+   "Se... (chi chiede cosa)": "pomeriggio: invio delle 15",
+   "Allora... (decisione)": "al posto dell'invio da San Donato entra in servizio il treno rimasto in posizione 3 a Comasina. Che 2 minuti prima del turno avanza fino alla posizione 1 e aspetta il segnale per entrare in stazione in orario",
+   "Perché": "il treno è già a Comasina, niente corsa a vuoto",
+   "Note": "nel simulatore oggi: invio a vuoto 15:49 da San Donato, in servizio a Comasina alle 16:33"
+  },
+  {
+   "N.": 7,
+   "Situazione": "sera",
+   "Dove (gruppo o semafori)": "Comasina, tronchetti",
+   "Se... (chi chiede cosa)": "invio delle 20",
+   "Allora... (decisione)": "il treno va a posizionarsi nella posizione 3 di uno dei due tronchetti e resta lì fino a metà giornata del giorno dopo",
+   "Perché": "sarà uno degli invii di metà giornata",
+   "Note": "nel simulatore oggi: corsa a vuoto verso Comasina alle 20:27"
+  },
+  {
+   "N.": 8,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "A06, A07, A08",
+   "Se... (chi chiede cosa)": "Un treno arriva dal deposito ed è fermo ad A06",
+   "Allora... (decisione)": "Se è in orario e non in anticpo ha la precedenza rispetto ai treni sui tronchetti per entrare sul binario 1",
+   "Perché": "Per non bloccare uscita dal deposito",
+   "Note": null
+  },
+  {
+   "N.": 9,
+   "Situazione": "sera",
+   "Dove (gruppo o semafori)": "Comasina, A11",
+   "Se... (chi chiede cosa)": "il treno ha finito il servizio e non ha più altri compiti",
+   "Allora... (decisione)": "va nel tronchetto 1 o 2 (scelta casuale, più realistico) in posizione 3; se la 3 è occupata in posizione 2; se la 2 è occupata in posizione 1; se tutte le posizioni sono occupate rimane in stazione",
+   "Perché": "a fine serata Comasina deve ricoverare 6 treni nei tronchetti + 1 nella banchina arrivi: l'ultimo treno spegne lì",
+   "Note": "7 treni la notte: 6 in tronchetto (2 × 3 posizioni) + 1 in banchina arrivi"
+  },
+  {
+   "N.": 10,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "San Donato, A13",
+   "Se... (chi chiede cosa)": "arriva un treno in ritardo e vorrebbe andare sul binario 2 (SD-14) mentre da A45 sta per partire un treno",
+   "Allora... (decisione)": "parte prima il treno da A45, poi il treno in ritardo entra sul binario 2",
+   "Perché": "la partenza in orario non si ferma per un arrivo",
+   "Note": null
+  },
+  {
+   "N.": 11,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "San Donato, A07 e A08",
+   "Se... (chi chiede cosa)": "due treni pronti nei due tronchetti",
+   "Allora... (decisione)": "parte prima quello con l'orario di partenza più vicino; l'altro resta al rosso",
+   "Perché": "orario",
+   "Note": null
+  },
+  {
+   "N.": 12,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "San Donato, A40",
+   "Se... (chi chiede cosa)": "arriva un treno sul binario 1 mentre un treno sta per uscire dal tronchetto scelto",
+   "Allora... (decisione)": "il treno in uscita (in orario) passa prima; poi A40 dà via libera verso il tronchetto liberato",
+   "Perché": "il tronchetto deve essere libero prima di entrarci",
+   "Note": null
+  },
+  {
+   "N.": 13,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "Comasina, A11 e tronchetti",
+   "Se... (chi chiede cosa)": "un treno vuole entrare in tronchetto mentre un treno sta per uscire dallo stesso tronchetto",
+   "Allora... (decisione)": "esce prima il treno in partenza (in orario), poi entra quello in arrivo",
+   "Perché": "come a San Donato: la partenza in orario ha la precedenza",
+   "Note": null
+  },
+  {
+   "N.": 14,
+   "Situazione": "ritardo",
+   "Dove (gruppo o semafori)": "Comasina, A12 (COS-4)",
+   "Se... (chi chiede cosa)": "un treno in ritardo vorrebbe arrivare sulla banchina partenze",
+   "Allora... (decisione)": "solo se nei prossimi minuti non deve uscire un treno dai tronchetti verso la banchina partenze e approvazzione da parte del PC",
+   "Perché": "la banchina partenze serve ai treni in orario",
+   "Note": null
+  },
+  {
+   "N.": 15,
+   "Situazione": "chiusura servizio limitato",
+   "Dove (gruppo o semafori)": "Rogoredo, Lodi, Porta Romana, Sondrio, Maciachini (lato San Donato)",
+   "Se... (chi chiede cosa)": "un treno arriva per l'inversione mentre il treno precedente sta ripartendo dalla stessa banchina",
+   "Allora... (decisione)": "riparte prima il treno in banchina, poi entra quello in arrivo",
+   "Perché": "una sola banchina per l'inversione",
+   "Note": null
+  },
+  {
+   "N.": 16,
+   "Situazione": "chiusura servizio limitato",
+   "Dove (gruppo o semafori)": "Porta Romana, Centrale, Sondrio, Maciachini (lato Comasina)",
+   "Se... (chi chiede cosa)": "ore di punta con entrambi i binari utilizzabili",
+   "Allora... (decisione)": "i treni in arrivo vanno sulla banchina libera, prima il binario 2; riparte prima il treno arrivato prima",
+   "Perché": "più frequenza: due treni in inversione insieme (scelta del PC)",
+   "Note": null
+  },
+  {
+   "N.": 17,
+   "Situazione": "chiusura servizio limitato",
+   "Dove (gruppo o semafori)": "Centrale, galleria oltre A362 e A259",
+   "Se... (chi chiede cosa)": "più treni in inversione in galleria (4 posizioni)",
+   "Allora... (decisione)": "il treno dalla banchina 2 va nella posizione di galleria libera (prima A362 sul binario 2, poi A259 sul binario 1); rientra per primo verso San Donato quello che ha finito prima il cambio banco; il quarto aspetta in banchina",
+   "Perché": "un treno verso San Donato, due in cambio banco, uno in attesa",
+   "Note": null
+  },
+  {
+   "N.": 18,
+   "Situazione": "chiusura servizio limitato",
+   "Dove (gruppo o semafori)": "Lodi, A308 (chiusura San Donato – Lodi)",
+   "Se... (chi chiede cosa)": "il treno in manovra oltre A308 deve rientrare sul binario 2 mentre arriva il treno successivo sul binario 1",
+   "Allora... (decisione)": "rientra prima il treno in manovra; quello successivo aspetta",
+   "Perché": "come la precedenza 1: chi è sul lato chiuso libera la linea",
+   "Note": null
+  },
+  {
+   "N.": 19,
+   "Situazione": "binario unico",
+   "Dove (gruppo o semafori)": "qualsiasi tratta a binario unico",
+   "Se... (chi chiede cosa)": "treni nei due sensi vogliono entrare nella tratta",
+   "Allora... (decisione)": "un treno alla volta; ha la precedenza il treno già sull'illegale (deve liberare la linea), poi si alterna un senso e l'altro",
+   "Perché": "come la precedenza 1",
+   "Note": null
+  },
+  {
+   "N.": 20,
+   "Situazione": "chiusura con navetta",
+   "Dove (gruppo o semafori)": "tratta della navetta (un solo treno)",
+   "Se... (chi chiede cosa)": "un altro treno chiede di entrare nella tratta della navetta",
+   "Allora... (decisione)": "resta al rosso finché la navetta non è uscita o il PC non la sospende",
+   "Perché": "con un treno solo la tratta è sempre sua",
+   "Note": null
+  },
+  {
+   "N.": 21,
+   "Situazione": "guasto treno",
+   "Dove (gruppo o semafori)": "Brenta, Repubblica, Centrale A33 (tronchetti e rimesse)",
+   "Se... (chi chiede cosa)": "un treno guasto deve entrare o uscire dal tronchetto",
+   "Allora... (decisione)": "solo su dispaccio del PC; i treni di linea hanno la precedenza e il movimento si fa nel primo intervallo libero",
+   "Perché": "non deve fermare il servizio",
+   "Note": null
+  },
+  {
+   "N.": 22,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "Repubblica, raccordo M2",
+   "Se... (chi chiede cosa)": "invio verso o dalla M2",
+   "Allora... (decisione)": "solo su comando del PC, nel primo intervallo libero tra due treni di linea o di notte prima della disalimentazione della linea",
+   "Perché": "da simulare più avanti",
+   "Note": null
+  },
+  {
+   "N.": 23,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "San Donato A13 e A14",
+   "Se... (chi chiede cosa)": "Un treno sta partendo dal binario 3 e un treno sta arrivando sul binario 2 per effettuare cambio banco",
+   "Allora... (decisione)": "entrambi possono avere verde",
+   "Perché": "non condividono gli stessi binari",
+   "Note": null
+  },
+  {
+   "N.": 24,
+   "Situazione": "servizio normale",
+   "Dove (gruppo o semafori)": "San Donato A40 e A07",
+   "Se... (chi chiede cosa)": "Un treno entra deve entrare sul tronchetto 1 A08 e un treno deve uscire da A07 verso la banchina 2 di San Donato",
+   "Allora... (decisione)": "entrambi possono avere verde",
+   "Perché": "non condividono gli stessi binari",
+   "Note": null
+  },
+  {
+   "N.": 25,
+   "Situazione": "soccorso",
+   "Dove (gruppo o semafori)": "tratta del treno guasto (qualsiasi)",
+   "Se... (chi chiede cosa)": "un treno è guasto, non può più muoversi e il PC dà il dispaccio di soccorso",
+   "Allora... (decisione)": "ECCEZIONE: il trattorino (comandato a mano) parte dal deposito, davanti ad A101, e può entrare nella sezione occupata dal treno guasto. Il segnale resta rosso: passa solo con l'autorizzazione via radio del PC, max 25 km/h, in marcia a vista (5 km/h) vicino al treno, accostamento a 2 km/h (valori nel foglio Tempi). La sezione resta bloccata per tutti gli altri treni. Dopo l'aggancio trattorino + treno sono un treno solo e vanno dove dice il PC (deposito o tronchetto più vicino) con itinerari normali",
+   "Perché": "l'unico caso in cui due mezzi stanno nella stessa sezione",
+   "Note": "per dopo (procedure di soccorso). Per l'interlocking adesso conta solo: quali tratte può autorizzare il PC, proteggendo sempre gli altri treni"
+  },
+  {
+   "N.": 26,
+   "Situazione": "soccorso",
+   "Dove (gruppo o semafori)": "tratta del treno guasto (qualsiasi)",
+   "Se... (chi chiede cosa)": "un treno è guasto e non può muoversi; il treno che lo segue può soccorrerlo (soluzione più usata)",
+   "Allora... (decisione)": "ECCEZIONE. Se il treno guasto può ancora muoversi va alla stazione successiva e fa scendere i passeggeri. Se è fermo in galleria e non può ripartire: i passeggeri scendono in galleria, la linea viene disalimentata e la sezione bloccata. Il treno dietro si ferma alla stazione e fa scendere tutti, poi va in soccorso (autorizzazione radio del PC, marcia a vista 5 km/h, accostamento molto basso 2 km/h), aggancia e spinge il treno guasto fino al capolinea (Comasina: nei tronchetti) o al deposito. Se finiscono a Comasina, prima della fine della serata si fa un invio a vuoto con i due treni verso il deposito per liberare i tronchetti",
+   "Perché": "più pratico del trattorino: il treno è già lì",
+   "Note": "per dopo (procedure di soccorso). Per l'interlocking adesso conta solo: quali tratte può autorizzare il PC, proteggendo sempre gli altri treni"
+  },
+  {
+   "N.": 28,
+   "Situazione": "sempre",
+   "Dove (gruppo o semafori)": "tronchetti, rimesse e gallerie di collegamento",
+   "Se... (chi chiede cosa)": "un treno deve essere messo da parte",
+   "Allora... (decisione)": "capienza: Comasina 3 posizioni per tronchetto; Brenta tronchetto (225 m) 1 treno; Repubblica binario di rimessa (225 m, l'altra galleria verso la M2) 2 treni; raccordo M2 (344 m) 3 treni ma blocca gli invii M2; Centrale A33: 1 treno (la lunghezza OSM di 81 m è probabilmente sbagliata) o il trattorino",
+   "Perché": "un treno è lungo 105 m; a Comasina ogni posizione è 110 m",
+   "Note": "Brenta: 1 treno (Giovanni)"
+  }
+ ],
+ "chiusure": [
+  {
+   "CHIUSURA": "CHIUSURA San Donato – Rogoredo FS",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "nessun servizio. I treni in banchina fanno cambio banco in banchina, gli altri rientrano in deposito. Su ordine del PC i treni in stazione possono andare in deposito o sul tronchino in attesa della riapertura.",
+   "Lato Comasina: servizio e dove girano i treni": "servizio a Rogoredo FS. Solo binario 1 o solo binario 2 utilizzabile: navetta fino a Porta Romana.",
+   "Semafori rossi fissi e scambi bloccati": "A14, A45, A349, A379, A13 rossi (San Donato); A310, A290 rossi fissi (Rogoredo). Scambi di San Donato bloccati.",
+   "Treni rimasti nella tratta (su ordine del PC)": "possono continuare verso San Donato (binario libero) e poi deposito o tronchino",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "sì"
+  },
+  {
+   "CHIUSURA": "CHIUSURA San Donato – Lodi T.I.B.B.",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "nessun servizio. I treni in banchina fanno cambio banco in banchina, gli altri rientrano in deposito. Su ordine del PC i treni in stazione possono andare in deposito o sul tronchino in attesa della riapertura.",
+   "Lato Comasina: servizio e dove girano i treni": "Servizio a Lodi T.I.B.B. con entrambi i binari utilizzabili i treni per san donato entrano in stazione, lascaiti giu i passeggeri ripartono in direzione San Donato quando l'intero treno ha superato il segnale A308 fermano il convoglio e tornano indietro immettendosi sul binario 2 di Lodi TIBB. Nel caso a lodi il binario 1 non sia utilizzabile o 2 c'è una navetta composta da 1 solo treno che fa Porta Romana - Lodi TIBB. Mentre i treni provenienti da Comasina (che non sono in modalità navetta ma in normale linea) invertono a Porta Romana grazie allo scambio prima della stazione in uno dei due binari",
+   "Semafori rossi fissi e scambi bloccati": "Tutti i segnali Tra Brenta - SDM sono rossi e gli scambi bloccati in posizione standard. Salvo dispaccio e apertura manuale del PC. Brenta A309 A19 A277 e A20 sono rossi e bloccati pure loro. Salvo che non ci sia bisogno di instradare un treno nel tronchetto (sempre a seguito di un dispatcho)",
+   "Treni rimasti nella tratta (su ordine del PC)": "possono continuare verso San Donato (binario libero) e poi deposito o tronchino oppure fermarsi alla stazione più vicina",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "A308 si apre solo per i treni vuoti in manovra di inversione a Lodi (oltre A308 e ritorno sul binario 2).",
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA San Donato – Porta Romana",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "nessun servizio. I treni in banchina fanno cambio banco in banchina, gli altri rientrano in deposito. Su ordine del PC i treni in stazione possono andare in deposito o sul tronchino in attesa della riapertura.",
+   "Lato Comasina: servizio e dove girano i treni": "I treni Arrivano ad A273 e si immettono sul binario 2 di porta romana (o 1 se il binario 2 non è disponibile) e il treno torna indietro sul legale. Durante le rush hour il PC deve tenere in considerazione, se disponibile di tenere 2 treni su entrambi i binari per aumentare la frequenza",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": "possono continuare verso San Donato (binario libero) e poi deposito o tronchino oppure fermarsi alla stazione più vicina",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "La tratta è limitata a Porta Romana niente navette.",
+   "Nel programma oggi": "sì"
+  },
+  {
+   "CHIUSURA": "CHIUSURA San Donato – Centrale FS",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA San Donato – Sondrio",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA San Donato – Maciachini",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Rogoredo FS – Lodi T.I.B.B.",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Rogoredo FS – Porta Romana",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "I treni da San Donato arrivano ad A290 ed entrano sul binario 2 di Rogoredo (ROG-2), fanno cambio banco e ripartono da A310 rimettendosi sul legale verso San Donato (ROG-3). Nel caso il binario 2 non fosse disponibile: navetta di un treno solo, binario 1 Rogoredo – binario 2 San Donato (SD-13, ROG-6, ROG-1).",
+   "Lato Comasina: servizio e dove girano i treni": "I treni Arrivano ad A273 e si immettono sul binario 2 di porta romana (o 1 se il binario 2 non è disponibile) e il treno torna indietro sul legale. Durante le rush hour il PC deve tenere in considerazione, se disponibile di tenere 2 treni su entrambi i binari per aumentare la frequenza",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": "i treni quando istruiti raggiungo la stazione più vicina. Possono essere istrutiti di conntinuare verso il deposito (come invii a vuoto) e 1 treno può andare sul tronchetto di brenta",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "Navetta tra SDM e Rogoredo. Il resto della linea limita a Porta Romana. È possibile instradare un treno a Brenta in direzione S. Donato  Lato San Donato con il binario 1 non disponibile: binario unico sul binario 2 (non c'è altra soluzione).",
+   "Nel programma oggi": "sì"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Rogoredo FS – Centrale FS",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Rogoredo FS – Sondrio",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Rogoredo FS – Maciachini",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Rogoredo FS – Comasina",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": "nessun servizio (chiusura di fondo). Su ordine del PC i treni in stazione o nel tunnel possono rientrare sui tronchini in attesa della riapertura.",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Lodi T.I.B.B. – Porta Romana",
+   "Succede davvero?": "raramente",
+   "Lato San Donato: servizio e dove girano i treni": "I treni da San Donato Arrivano ad A211 continuano dirtti per entrare in stazione sul binario 2 effettuano cambio banco e passato A314 tornano sul legale. Nel caso il binario 2 non fosse disponibile si crea navetta SDM binario 2 (tutto il tragitto binario 1) Lodi TIBB binario 1",
+   "Lato Comasina: servizio e dove girano i treni": "I treni Arrivano ad A273 e si immettono sul binario 2 di porta romana (o 1 se il binario 2 non è disponibile) e il treno torna indietro sul legale. Durante le rush hour il PC deve tenere in considerazione, se disponibile di tenere 2 treni su entrambi i binari per aumentare la frequenza",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": "I treni rimasti sulla tratta invertono e tornano a San Donato, per il legale o illegale dipende da quali binari sono utilizzabili",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "Linea limitata Comasina - Porta Romana e San Donato e Lodi TIBB  Lato San Donato con il binario 1 non disponibile: binario unico sul binario 2 (non c'è altra soluzione).",
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Lodi T.I.B.B. – Centrale FS",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Lodi T.I.B.B. – Sondrio",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Lodi T.I.B.B. – Maciachini",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Lodi T.I.B.B. – Comasina",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": "nessun servizio (chiusura di fondo). Su ordine del PC i treni in stazione o nel tunnel possono rientrare sui tronchini in attesa della riapertura.",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Porta Romana – Centrale FS",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "I treni arrivano da A213 entrano sul binario 2 di Porta Romana effettuano cambio banco e ripartono da A315 per rimmetersi sul legale in direzione San Donato. Nel caso il binario 2 non fosse disponibile è consigliabile chiudere fino a Lodi TIBB comunque come possibilità c'è navetta 1 treno LODI TIBB - Porta romana si mantengono sul binario 1 e i treni provenienti da San Donato invertono sul binario 2 di Lodi",
+   "Lato Comasina: servizio e dove girano i treni": "i treni che arrivano ad A259 si instradano sul binario 2 dove effettuano cambio banco in stazione nel caso il binario 2 non fosse disponibile utilizzano 1 (quindi continuano dritti) e poi tornano sul legale. Nel caso entrambi i binari fossero disponibil il PC può utilizzarli conteporaneamente, nel caso di centrale questo è fortemente consigliato.",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": "I treni rimasti sulla tratta si fermano alla stazione più vicina e ci rimangono fino alla riapertura. Nel caso di un treno guasto i treni possono essere istruiti di fare invii a vuoto verso i capolinea",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "La linea è limitata tra San Donato e Porta Romana e Tra Sondrio e Centrale  Lato San Donato con il binario 1 non disponibile: binario unico sul binario 2 (non c'è altra soluzione).",
+   "Nel programma oggi": "sì"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Porta Romana – Sondrio",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "I treni arrivano da A213 entrano sul binario 2 di Porta Romana effettuano cambio banco e ripartono da A315 per rimmetersi sul legale in direzione San Donato. Nel caso il binario 2 non fosse disponibile è consigliabile chiudere fino a Lodi TIBB comunque come possibilità c'è navetta 1 treno LODI TIBB - Porta romana si mantengono sul binario 1 e i treni provenienti da San Donato invertono sul binario 2 di Lodi",
+   "Lato Comasina: servizio e dove girano i treni": "i treni che arrivano ad A256 si instradano sul binario 2 dove effettuano cambio banco in stazione nel caso il binario 2 non fosse disponibile utilizzano 1 (quindi continuano dritti) e poi tornano sul legale. Nel caso entrambi i binari fossero disponibil il PC può utilizzarli conteporaneamente",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": "I treni rimasti sulla tratta si fermano alla stazione più vicina e ci rimangono fino alla riapertura. Nel caso di un treno guasto i treni possono essere istruiti di fare invii a vuoto verso i capolinea",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "La linea è limitata tra San Donato e Porta Romana e Tra Sondrio e Comasina  Lato San Donato con il binario 1 non disponibile: binario unico sul binario 2 (non c'è altra soluzione).",
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Porta Romana – Maciachini",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Porta Romana – Comasina",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": "nessun servizio (chiusura di fondo). Su ordine del PC i treni in stazione o nel tunnel possono rientrare sui tronchini in attesa della riapertura.",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Centrale FS – Sondrio",
+   "Succede davvero?": "mai successo",
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Centrale FS – Maciachini",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "In questo caso c'è solo la possibilità che entrambi i binari siano disponibili perché se uno dei due non lo fosse e a causa dell'elevato affluso di persone e la posizione degli scambi si creerebero situazioni di disagio e di pericolo, il PC nel caso il guasto o il problema riguardasse un binario di centrale dovrà tenere in considerazione di chiudere il tratto di centrale. I treni provenienti da San Donato entraranno sul legale (binario 2, dove faranno scendere i passeggeri e continueranno in galleria fino al sorpasso del segnale A259 e A362 dove effettueranno cambio banco in galleria e rientreranno sul legale direzione San donato binario 1. è previsto che nel caso di massima affluenza i treni possano avere tutte e 4 le posizioni occupate quindi un treno che sta andando in direzione San Donato, due che stanno effettuando cambio banco in galleria e uno che sta aspettando un posto",
+   "Lato Comasina: servizio e dove girano i treni": "I treni provenienti da comasina passano il semaforo A251 e si instradano sul binario 2 dove effettuano il cambio banco in stazione con le porte aperte. Alla ripartenza partono direzione comasina sul binario legale. Nel caso in cui il Binario 2 non fosse disponibile i treni entreranno sul binario 1 dove effettueranno cambio banco in stazione e ripartiranno sul lato legale passando quindi A333 e A356. Un altra possibilità è contemplata ovvero utilizzare entrambi i binari così da rendere più alta la frequenza. Questa è una scelta che il PC deve mettere in conto durante le rush hours",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": "treni rimasti sulla tratta raggiungono la stazione più vicina e rimangono fermi in attesa della riapertura. Nel caso questa non avvenisse prima del termine del servizio. I treni verrano istruiti di rientratre in deposito o a comasina",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "sì"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Centrale FS – Comasina",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "In questo caso c'è solo la possibilità che entrambi i binari siano disponibili perché se uno dei due non lo fosse e a causa dell'elevato affluso di persone e la posizione degli scambi si creerebero situazioni di disagio e di pericolo, il PC nel caso il guasto o il problema riguardasse un binario di centrale dovrà tenere in considerazione di chiudere il tratto di centrale. I treni provenienti da San Donato entraranno sul legale (binario 2, dove faranno scendere i passeggeri e continueranno in galleria fino al sorpasso del segnale A259 e A362 dove effettueranno cambio banco in galleria e rientreranno sul legale direzione San donato binario 1. è previsto che nel caso di massima affluenza i treni possano avere tutte e 4 le posizioni occupate quindi un treno che sta andando in direzione San Donato, due che stanno effettuando cambio banco in galleria e uno che sta aspettando un posto",
+   "Lato Comasina: servizio e dove girano i treni": "nessun servizio (chiusura di fondo). Su ordine del PC i treni in stazione o nel tunnel possono rientrare sui tronchini in attesa della riapertura.",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": "I treni rimasti sulla tratta raggiungono la stazione più vicina se instruiti dal PC posso arrivare a comasina ed instradarsi sui tronchi",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "sì"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Sondrio – Maciachini",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "I treni arrivano da A231 prendono lo scambio ed entrano a Sondrio sul binario 1, effettuano cambio banco in stazione con le oorte aperte e ripartono in direzione San Donato. Questa configurazione è valida anche se il binario 2 è indisponibile essendo non utilizzato. Se invece il binario 1 non fosse disponibile è consigliabile chiudere la tratta fino a Centrale comunque i treni passano A231 entrano sul 2 di sondrio effettuano cambio banco in stazione ripartono A323-A362 utilizzano lo scambio per rimettersi sul legale ed entrare al binario 1 in stazione centrale. in questo caso un solo treno è consentito tra le stazioni di Sondrio e Centrale",
+   "Lato Comasina: servizio e dove girano i treni": "I treni provenienti da comasina passano il semaforo A251 e si instradano sul binario 2 dove effettuano il cambio banco in stazione con le porte aperte. Alla ripartenza partono direzione comasina sul binario legale. Nel caso in cui il Binario 2 non fosse disponibile i treni entreranno sul binario 1 dove effettueranno cambio banco in stazione e ripartiranno sul lato legale passando quindi A333 e A356. Un altra possibilità è contemplata ovvero utilizzare entrambi i binari così da rendere più alta la frequenza. Questa è una scelta che il PC deve mettere in conto durante le rush hours",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": "I treni rimasti sulla tratta raggiungono la stazione più vicina se instruiti dal PC posso arrivare a comasina ed instradarsi sui tronchi",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "Linea Limitata a Sondrio e tra Comasina Maciachini",
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Sondrio – Comasina",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "I treni arrivano da A231 prendono lo scambio ed entrano a Sondrio sul binario 1, effettuano cambio banco in stazione con le oorte aperte e ripartono in direzione San Donato. Questa configurazione è valida anche se il binario 2 è indisponibile essendo non utilizzato. Se invece il binario 1 non fosse disponibile è consigliabile chiudere la tratta fino a Centrale comunque i treni passano A231 entrano sul 2 di sondrio effettuano cambio banco in stazione ripartono A323-A362 utilizzano lo scambio per rimettersi sul legale ed entrare al binario 1 in stazione centrale. in questo caso un solo treno è consentito tra le stazioni di Sondrio e Centrale",
+   "Lato Comasina: servizio e dove girano i treni": "nessun servizio (chiusura di fondo). Su ordine del PC i treni in stazione o nel tunnel possono rientrare sui tronchini in attesa della riapertura.",
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": "I treni rimasti sulla tratta raggiungono la stazione più vicina se instruiti dal PC posso arrivare a comasina ed instradarsi sui tronchi",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "Linea limitata a Sondrio niente Navette",
+   "Nel programma oggi": "sì"
+  },
+  {
+   "CHIUSURA": "CHIUSURA Maciachini – Comasina",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "I treni arrivano da A235 e vengono instradati sul binario 1 della stazione di Maciachini dove aprono le porte ed effettuano il cambio banco in stazione. Alla ripartenza rimangono sul legale. Nel caso fosse successo qualcosa sul binario 1 i treni invertono sul 2 e un treno fa navetta tra maciachini e sondrio sul illegale",
+   "Lato Comasina: servizio e dove girano i treni": "nessun servizio (chiusura di fondo). Su ordine del PC i treni in stazione o nel tunnel possono rientrare sui tronchini in attesa della riapertura.",
+   "Semafori rossi fissi e scambi bloccati": "I semafori fissi sono tutti quella della linea da A236 ad A333.",
+   "Treni rimasti nella tratta (su ordine del PC)": "I treni rimasti sulla tratta raggiungono la stazione più vicina se instruiti dal PC posso arrivare a comasina ed instradarsi sui tronchi",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "In questo caso non ci sono navette la linea è semplicemente limitata a Maciachini (vecchio capolinea della linea, fun fact)",
+   "Nel programma oggi": "sì"
+  },
+  {
+   "CHIUSURA": "CHIUSURA totale della linea",
+   "Succede davvero?": "sì",
+   "Lato San Donato: servizio e dove girano i treni": "nessun servizio. I treni in banchina fanno cambio banco in banchina, gli altri rientrano in deposito. Su ordine del PC i treni in stazione possono andare in deposito o sul tronchino in attesa della riapertura.",
+   "Lato Comasina: servizio e dove girano i treni": "nessun servizio (chiusura di fondo). Su ordine del PC i treni in stazione o nel tunnel possono rientrare sui tronchini in attesa della riapertura.",
+   "Semafori rossi fissi e scambi bloccati": "Tutti i semafori sono rossi, tranne quelli in cui PC da dispatcho per tornare in deposito o fermarsi sui tronchetti",
+   "Treni rimasti nella tratta (su ordine del PC)": "Se è stato schiacciato il pulsante blocco di emergenza tutti i segnali diventano rossi, una volta che il blocco è sollevato e viene data la chiusura totale della linea i treni arrivano alla stazione più vicina e lasciano giù i passeggeri fanno richiesta su dove devono andare",
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": "non ancora"
+  },
+  {
+   "CHIUSURA": "Anche se mai successo quelle tratte dovrebbero essere calcolate tanto è molto semplice per tutti vale che se io chiudo la tratta Lodi Maciachini i treni San Donato Lodi per girarsi faranno la stessa per l'interruzione Lodi Porta romana e a maciachini i treni per comasina faranno la stessa cosa che fanno per la chiusura centrale FS Maciachini",
+   "Succede davvero?": null,
+   "Lato San Donato: servizio e dove girano i treni": null,
+   "Lato Comasina: servizio e dove girano i treni": null,
+   "Semafori rossi fissi e scambi bloccati": null,
+   "Treni rimasti nella tratta (su ordine del PC)": null,
+   "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
+   "Nel programma oggi": null
+  }
+ ],
+ "situazioni": [
+  "sempre",
+  "servizio normale",
+  "ritardo",
+  "guasto treno",
+  "guasto binario",
+  "chiusura tratta",
+  "chiusura con navetta",
+  "binario unico",
+  "chiusura servizio limitato",
+  "emergenza",
+  "sera",
+  "mattina",
+  "notte",
+  "sciopero",
+  "soccorso",
+  "manovra deposito",
+  "mai"
+ ]
+}

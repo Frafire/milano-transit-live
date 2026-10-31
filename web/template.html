@@ -2095,7 +2095,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, interlocking: E_.net.interlocking,
+      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
@@ -2142,9 +2142,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (s.hidden || s.status === 'parked') return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: 0, status: 'parked', label: s.hidden ? AGLABEL.depot : parkedLabel(F, 'depot'), trip: -1, seg: s.seg, store: tr.segs[s.seg] && tr.segs[s.seg][5] };
     const why = s.v === 0 ? (WHY[s.why] || (s.red ? WHY.segnale : '')) : '';
     let label;
-    if (s.mode === 'plan') label = (STATUS[s.status] || s.status) + why;
-    else if (s.status === 'service') label = (s.mode === 'shuttle' && !s.timed ? 'Navetta · servizio ridotto' : 'In servizio') + (s.to != null ? ' per ' + cap(G.names[s.to]) : '') + why;
-    else label = (AGLABEL[s.status] || s.status) + why;
+    label = (s.mode === 'plan' ? STATUS[s.status] || s.status : AGLABEL[s.status] || s.status) + why;
+    // the movements of the table (Regole_interlocking_M3, foglio Itinerari) set for it now
+    const ids = [...new Set((F.ag.rt().routes[tr.agentK] || []).map(r => r.id).filter(Boolean))];
+    if (ids.length) label += ' · itinerario ' + ids.join(', ');
     return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: s.v, status: s.status, label, trip: s.mode === 'plan' ? s.trip : -1, seg: s.mode === 'plan' ? s.seg : -1, agent: s };
   }
   // ================= RADIO TERRA-TRENO (M3): web/radio.js =================

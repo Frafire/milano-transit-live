@@ -74,7 +74,7 @@ function stopsOfM(M, D) {
 function agents(M, D, initAt, extraOpts) {
   const A = require('../web/agents.js'), envs_ = envs(M, D);
   return A.create(Object.assign({ G: M.degraded, ops: M.ops, reverse: M.reverse_s, half: M.half, prof: profiles(M), pathEdges: M.path_edges, netEdges: M.net.edges,
-    plans0: M.trains, stopsOf: stopsOfM(M, D), sigpos: M.net.sigpos, sigall: M.net.sigall, interlocking: M.net.interlocking, zones: E.platformZones(M.degraded),
+    plans0: M.trains, stopsOf: stopsOfM(M, D), sigpos: M.net.sigpos, sigall: M.net.sigall, itineraries: M.net.itineraries, interlocking: M.net.interlocking, zones: E.platformZones(M.degraded),
     dwell: envs_ ? envs_.map(e => e.dwell) : null, extra: () => 0, initAt }, extraOpts || {}));
 }
 // where every train stands before its day starts (its first move, not yet started)

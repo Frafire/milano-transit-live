@@ -13,7 +13,7 @@
 // It never moves a train; it only answers. The state is a plain object kept by the caller (saved, going back in time).
 (function (root) {
   function create(o) {
-    // o: { sigall: { pid: [[d, n, flags]] }, pathEdges: [{ e: [[edge, dir, from, to]] }], netEdges: [{ a, b, len }] }
+    // o: { sigall: { pid: [[d, n, flags]] }, pathEdges: [{ e: [[edge, dir, from, to]] }], netEdges: [{ a, b, len }], itineraries }
     const SA = o.sigall || {}, PE = o.pathEdges, NE = o.netEdges;
 
     function fresh() { return { routes: {} }; }          // routes[k] = [{ pid, d0, d1, n, pieces: [[edge, l0, l1, pEnd]], nodes: [[node, p]] }]
@@ -63,6 +63,37 @@
     NE.forEach((e, i) => { for (const nd of [e.a, e.b]) { if (!NODE_EDGES.has(nd)) NODE_EDGES.set(nd, []); NODE_EDGES.get(nd).push(i); } });
     const nodeEdges = nd => NODE_EDGES.get(nd) || [];
 
+    // the table of the itineraries (o.itineraries, from the build): which movement of the table a route is.
+    // A route runs from a signal to the next one on the train's path; the movement of the table from its start signal
+    // to its end signal: the same track pieces, in the same order, one way or the other (the usual one or another)
+    const BY_START = new Map();
+    for (const it of o.itineraries || []) { if (it.start == null) continue; if (!BY_START.has(it.start)) BY_START.set(it.start, []); BY_START.get(it.start).push(it); }
+    const isSwitch = nd => nodeEdges(nd).length >= 3;
+    // a switch of the depot (all its track pieces in the depot): the depot moves are not in the table (depot rules)
+    const depotSwitch = nd => nodeEdges(nd).every(ei => NE[ei].cat === 'yard');
+    function identify(n, pieces) {
+      const R = []; for (const [ei] of pieces) if (R[R.length - 1] !== ei) R.push(ei);
+      let best = null;
+      // (a movement that starts with no signal behind it, out of a tail position: any movement of the table that goes
+      // over the same pieces from there)
+      for (const it of n != null ? BY_START.get(n) || [] : o.itineraries || []) it.ways.forEach((W, wi) => {
+        // (a signal at the very end of a track piece: the table starts on that piece, the route on the next one)
+        const o0 = n == null ? W.indexOf(R[0]) : W[0] === R[0] ? 0 : W[1] === R[0] ? 1 : -1; if (o0 < 0) return;
+        const m = Math.min(W.length - o0, R.length); for (let i = 0; i < m; i++) if (W[i + o0] !== R[i]) return;
+        // the longest match; the same length: the usual way first
+        const score = m * 10 - wi;
+        if (!best || score > best.score) best = { score, id: it.id, way: wi };
+      });
+      return best;
+    }
+    // the switches of the line on a path between two points (not the depot ones): [[d, node]]
+    const SW = {};
+    function switchesOn(pid, a, b) {
+      if (!SW[pid]) { SW[pid] = []; const pe = PE[pid]; if (pe) for (const [ei, dir, x0, x1] of pe.e) { const nd = dir > 0 ? NE[ei].b : NE[ei].a; if (isSwitch(nd) && !depotSwitch(nd)) SW[pid].push([x1, nd]); } }
+      return SW[pid].filter(([x]) => x > a && x <= b);
+    }
+    // does train k hold a route over this switch? (check for the tests: no train goes over a switch without a route)
+    const heldNode = (st, k, nd) => (st.routes[k] || []).some(r => r.nodes.some(x => x[0] === nd));
     function held(st, k, pid, d) { return (st.routes[k] || []).some(r => r.pid === pid && Math.abs(r.d0 - d) < 1); }
     // train k asks for the route that starts at the signal at d on its path: true if it is set (now or before)
     function request(st, k, pid, d, n, occ, blocked) {
@@ -70,7 +101,13 @@
       const d1 = nextSignal(pid, d), { pieces, nodes } = span(pid, d, d1);
       const why = free(st, k, pieces, nodes, occ) || (blocked ? blocked(pieces) : null);
       if (why) { st.lastNo = why; return false; }
-      (st.routes[k] = st.routes[k] || []).push({ pid, d0: d, d1, n, pieces, nodes });
+      const r = { pid, d0: d, d1, n, pieces, nodes };
+      if (BY_START.size) {
+        const it = identify(n, pieces);
+        if (it) { r.id = it.id; r.way = it.way; st.uses = st.uses || {}; st.uses[it.id] = (st.uses[it.id] || 0) + 1; }
+        else if (nodes.some(([nd]) => isSwitch(nd) && !depotSwitch(nd))) { st.noId = (st.noId || 0) + 1; st.noIdAt = st.noIdAt || {}; const key = n + '@' + pid; st.noIdAt[key] = (st.noIdAt[key] || 0) + 1; }
+      }
+      (st.routes[k] = st.routes[k] || []).push(r);
       return true;
     }
     // behind the train's tail: release; another path or switched off: release all
@@ -88,7 +125,7 @@
     // the signals showing via libera now: numbers of the routes set (not yet passed by the front of the train)
     function green(st, fronts) {
       const out = new Set();
-      for (const [k, rs] of Object.entries(st.routes)) for (const r of rs) { const f = fronts[k]; if (!f || f.pid !== r.pid || f.nose < r.d0 + 1) out.add(r.n); }
+      for (const [k, rs] of Object.entries(st.routes)) for (const r of rs) { const f = fronts[k]; if (r.n != null && (!f || f.pid !== r.pid || f.nose < r.d0 + 1)) out.add(r.n); }
       return out;
     }
     // is the stretch behind a signal free (for the signals that are normally green: a, b, c, d on the legal side)?
@@ -96,7 +133,7 @@
       const d1 = nextSignal(pid, d), { pieces, nodes } = span(pid, d, d1);
       return !free(st, -1, pieces, nodes, occ);
     }
-    return { fresh, ahead, request, release, held, green, clearAhead, nextSignal, span };
+    return { fresh, ahead, request, release, held, green, clearAhead, nextSignal, span, identify, switchesOn, heldNode };
   }
   const api = { create };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLRoutes = api;

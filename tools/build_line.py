@@ -1751,6 +1751,18 @@ for pid_, pe_ in enumerate(PATH_EDGES):
             ded.append(x)
         SIGALL[str(pid_)] = ded
 NET['sigall'] = SIGALL
+# the table of the itineraries (tools/itineraries.py, from the track) with Giovanni's rules (tools/rules_from_excel.py):
+# every movement over a switch, its ways (the usual one first, then the others), when it is used and who sets it
+_ITF, _RGF = 'itineraries_%s.json' % LINE.lower(), 'regole_%s.json' % LINE.lower()
+_IT = json.load(open(_ITF))['itineraries'] if os.path.exists(_ITF) else []
+_RG = json.load(open(_RGF)) if os.path.exists(_RGF) else {}
+_rit, _rsg = _RG.get('itinerari', {}), _RG.get('semafori', {})
+NET['itineraries'] = [{'id': m['id'], 'group': m['group'], 'sense': m['sense'], 'start': m['start_signal'], 'end': m['end_signal'], 'kmh': m.get('limit_kmh'),
+                       'frm': m['frm'], 'to': m['to'], 'ways': [[x[0] for x in w] for w in [m['edges']] + (m.get('alt') or [])],
+                       'when': (_rit.get(m['id']) or {}).get('quando'), 'prio': (_rit.get(m['id']) or {}).get('priorita'),
+                       'cmd': (_rsg.get(str(m['start_signal'])) or {}).get('comando')} for m in _IT]
+NET['rules'] = {'tempi': _RG.get('tempi', {})}
+print('itineraries: %d (%d with other ways), rules for %d of them' % (len(_IT), sum(1 for m in _IT if m.get('alt')), sum(1 for m in _IT if m['id'] in _rit)))
 print('route interlocking: signals on the paths', sum(len(v) for v in SIGALL.values()), '| signals', len(_SIGAT))
 json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in paths],
            'trains': [tl.segs for tl in out],

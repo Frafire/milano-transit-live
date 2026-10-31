@@ -45,7 +45,7 @@
     // depot and test-loop signals (web/interlocking.js); the line: route interlocking (web/routes.js)
     const IL = o.interlocking && ILmod ? ILmod.create(Object.assign({}, o.interlocking, { sigpos: o.sigpos, half: o.half })) : null;
     S.il = IL ? IL.fresh(null) : null;
-    const RT = RTmod.create({ sigall: o.sigall || {}, pathEdges, netEdges });
+    const RT = RTmod.create({ sigall: o.sigall || {}, pathEdges, netEdges, itineraries: o.itineraries });
     S.rt = RT.fresh();
 
     // pos[k]: { pid, d, v, seg, before, startAt, leaveAt, status } where each train is at time t
@@ -136,6 +136,16 @@
         if (c.d - nose > Math.max(120, a.v * a.v / (2 * brk) + 80)) { lim = Math.min(lim, stop); break; }
         if (RT.request(S.rt, a.k, a.pid, c.d, c.n, ei => edgeMap.get(ei))) continue;
         lim = stop; why = { sig: c.n, route: S.rt.lastNo }; break;
+      }
+      // a movement that starts with no signal between the train and its first switch (out of a tail position at
+      // Comasina): it sets its route from where it stands, up to the next signal, before going over the switch
+      const sw = RT.switchesOn(a.pid, nose - 1, nose + LOOK)[0];
+      if (sw && sw[0] - half - 3 < lim && !RT.heldNode(S.rt, a.k, sw[1])) {
+        const c0 = RT.ahead(a.pid, nose, LOOK)[0];
+        if (!c0 || sw[0] < c0.d - 1) {
+          const stop = Math.max(a.d, sw[0] - half - 3);
+          if (sw[0] - nose > Math.max(120, a.v * a.v / (2 * brk) + 80) || !RT.request(S.rt, a.k, a.pid, nose, null, ei => edgeMap.get(ei))) { if (stop < lim) { lim = stop; why = { route: S.rt.lastNo, start: true }; } }
+        }
       }
       // depot and test-loop signals: pass only with via libera for this train
       if (IL) for (const c of IL.ahead(a.pid, nose, LOOK)) {
@@ -246,6 +256,11 @@
               S.rt.passed = (S.rt.passed || 0) + 1;
               if (!RT.held(S.rt, a.k, a.pid, c.d)) { S.rt.viol = (S.rt.viol || 0) + 1; (S.rt.violAt = S.rt.violAt || []).length < 5 && S.rt.violAt.push([a.k, a.pid, c.n, Math.round(S.t), a.status]); }
             }
+          }
+          if (a.pid === p0 && !a.hidden && a.d + half > n0) for (const [, nd] of RT.switchesOn(a.pid, n0, a.d + half)) {
+            // check: a front that goes over a switch of the line must have a route over it (counted for the tests)
+            S.rt.swPassed = (S.rt.swPassed || 0) + 1;
+            if (!RT.heldNode(S.rt, a.k, nd)) { S.rt.swViol = (S.rt.swViol || 0) + 1; S.rt.swAt = S.rt.swAt || {}; const key = nd + '@' + a.pid + ':' + a.status; S.rt.swAt[key] = (S.rt.swAt[key] || 0) + 1; }
           }
           RT.release(S.rt, a.k, a.pid, a.d - half, a.hidden || a.status === 'parked' || a.mode === 'static');
           if (o.record) o.record(a.k, a, S.t);

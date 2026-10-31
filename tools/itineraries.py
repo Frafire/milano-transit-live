@@ -404,7 +404,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 2:      # the data the interlocking reads
         num = lambda x: int(x[0][1:]) if x else None
         its = [dict(id=m['id'], group=k, sense=m['sense'], frm=m['frm'], to=m['to'], start_signal=num(m['start']), end_signal=num(m['end']),
-                    limit_kmh=15 if m['deviata'] else None, stops_end=m['stops_end'], edges=[list(x) for x in m['steps']], switches=[list(x) for x in m['switches']])
+                    limit_kmh=15 if m['deviata'] else None, stops_end=m['stops_end'], edges=[list(x) for x in m['steps']], alt=[[list(x) for x in w] for w in m.get('alt') or []], switches=[list(x) for x in m['switches']])
                for k, g in R.items() for m in g['moves']]
-        json.dump({'_about': 'Itinerari M3 su tutta la linea, calcolati da tools/itineraries.py dal tracciato: geometria degli scambi (niente inversioni a U), un treno inverte solo fermo in banchina o in tronchetto (cambio banco). start_signal: #A del segnale che apre il movimento (null = manca un segnale). sense: legale, contromano, va contromano (da legale a contromano), rientra sul legale.',
+        json.dump({'_about': 'Itinerari M3 su tutta la linea, calcolati da tools/itineraries.py dal tracciato: geometria degli scambi (niente inversioni a U), un treno inverte solo fermo in banchina o in tronchetto (cambio banco). start_signal: #A del segnale che apre il movimento (null = manca un segnale). sense: legale, contromano, va contromano (da legale a contromano), rientra sul legale. edges: la strada normale [pezzo, da nodo, a nodo]; alt: le altre strade possibili per lo stesso movimento.',
                    'itineraries': its}, open(sys.argv[2], 'w'), ensure_ascii=False, indent=1)
