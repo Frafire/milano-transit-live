@@ -17,5 +17,47 @@
   "braking_ms2": 1.2,
   "curve_radius_m": 400,
   "curve_minus_kmh": 10,
-  "ato_cruise_pct": 85
+  "ato_cruise_pct": 85,
+  "performance": {
+    "_about": "Per tipo di treno (Giovanni, 1/11/2026). Accelerazione a pieno carico e a vuoto (m/s²): in servizio il carico va dal vuoto al pieno con l'ora (load_by_hour); frenata di servizio e di emergenza (m/s²).",
+    "meneghino": {
+      "acc_full": 0.81,
+      "acc_empty": 1.1,
+      "brake_service": 1.2,
+      "brake_emergency": null
+    },
+    "serie8000": {
+      "acc_full": 0.75,
+      "acc_empty": 1.1,
+      "brake_service": 1.1,
+      "brake_emergency": 1.5
+    }
+  },
+  "load_by_hour": {
+    "_about": "Quanto è carico un treno in servizio (0 vuoto, 1 pieno): ore di punta, giorno, sera e notte. Stima, da correggere.",
+    "peak": 1.0,
+    "day": 0.5,
+    "night": 0.25,
+    "peak_hours": [
+      [
+        7.25,
+        9.5
+      ],
+      [
+        17.0,
+        19.5
+      ]
+    ],
+    "day_hours": [
+      6.5,
+      21.0
+    ]
+  },
+  "ato": {
+    "_about": "ATO intelligente: la percentuale della velocità massima del tratto a cui viaggia il treno, tra min e max, scelta per tenere i treni distanziati (e un po' di più se il treno è in ritardo). Sotto il minimo: blocco in stazione dal PC.",
+    "min_pct": 80,
+    "max_pct": 100,
+    "base_pct": 90,
+    "every_s": 5
+  }
 }

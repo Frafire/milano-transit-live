@@ -1892,7 +1892,10 @@ NET['rules'] = {'tempi': _tm}
 # what the route interlocking needs from the rules: times, capacities, the signals worked by the PC
 NET['route_rules'] = {'times': {'blade': _tval('Ago dello scambio'), 'signal': _tval('Ritardo di apertura del segnale')},
                       'capacity': {k: v for k, v in _rules_.get('capacity', {}).get('edges', {}).items()},
-                      'pcSignals': sorted(int(n) for n, v in _rsg.items() if (v.get('comando') or '').startswith('manuale')),
+                      # worked by the PC: "manuale..." in Chi lo comanda, or a via libera "dato dal PC" (A19, A20 at Brenta)
+                      'pcSignals': sorted(int(n) for n, v in _rsg.items() if (v.get('comando') or '').startswith('manuale') or (v.get('via_libera') or '').lower().startswith('dato dal pc')),
+                      # normally red (Aspetto normale: rosso): via libera only for the train whose route is set
+                      'redNormal': sorted(int(n) for n, v in _rsg.items() if (v.get('aspetto') or '').strip().lower() == 'rosso'),
                       'tailSlots': {k: v for k, v in (_rules_.get('tail_slots') or {}).items() if k in ('positions', 'slot_m')}}
 print('route rules:', NET['route_rules'])
 NET['variants'] = {str(k): v for k, v in VARIANTS.items()}

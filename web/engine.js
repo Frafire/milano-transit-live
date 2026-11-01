@@ -165,7 +165,9 @@
     return e.kmh;
   }
   function edgeLimit(e, speeds) { return partLimit(e, 0, speeds, null); }
-  // per path: [[from, to, m/s]] from the track pieces (and their parts) + 15 km/h on the diverging side of junctions
+  // per path: [[from, to, m/s, the limit itself (m/s), 1 if the ATO cruises under it]] from the track pieces (and their
+  // parts) + 15 km/h on the diverging side of junctions. The third value already has the usual ATO cruise in it
+  // (ops.ato_cruise_pct); the agents' smart ATO uses the limit and its own percentage (web/agents.js)
   function buildProfiles(pathEdges, netEdges, speeds, ops, cuts) {
     const div = (ops.diverging_kmh || 15) / 3.6, w = 25;
     return pathEdges.map(pe => {
@@ -174,22 +176,22 @@
       pe.e.forEach(([ei, dir, a, b]) => {
         const e = netEdges[ei], bd = partBounds(e, cuts), k = (b - a) / (e.len || 1);
         for (let i = 0; i < bd.length - 1; i++) {
-          const v = partLimit(e, i, speeds, cuts) / 3.6 * (e.fixed ? 1 : reg);
+          const raw = partLimit(e, i, speeds, cuts) / 3.6, v = raw * (e.fixed ? 1 : reg);
           const x0 = dir > 0 ? a + bd[i] * k : b - bd[i + 1] * k, x1 = dir > 0 ? a + bd[i + 1] * k : b - bd[i] * k;
-          out.push([x0, x1, v]);
+          out.push([x0, x1, v, raw, e.fixed ? 0 : 1]);
         }
       });
       // curves: 10 km/h less than the track's limit (ops.curve_minus_kmh), never below the depot speed
       const cm = (ops.curve_minus_kmh || 0) / 3.6;
       if (cm > 0 && pe.curves) {
         const base = out.slice();
-        pe.curves.forEach(([c0, c1]) => base.forEach(([a0, a1, v]) => {
+        pe.curves.forEach(([c0, c1]) => base.forEach(([a0, a1, v, raw, sc]) => {
           if (a1 <= c0 || a0 >= c1) return;
-          out.push([Math.max(a0, c0), Math.min(a1, c1), Math.max(v - cm, 15 / 3.6)]);
+          out.push([Math.max(a0, c0), Math.min(a1, c1), Math.max(v - cm, 15 / 3.6), Math.max(raw - cm, 15 / 3.6), sc]);
         }));
       }
       pe.div.forEach(x => { const d = Array.isArray(x) ? x[0] : x, j = Array.isArray(x) && speeds ? speeds['J' + x[1]] : null;
-        out.push([d - w, d + w, j != null ? j / 3.6 : div]); });
+        const vj = j != null ? j / 3.6 : div; out.push([d - w, d + w, vj, vj, 0]); });
       return out.sort((x, y) => x[0] - y[0]);
     });
   }

@@ -30,6 +30,50 @@
     const { G, ops, reverse, half, prof, pathEdges, netEdges, stopsOf } = o;
     const planOf = k => o.planOf ? o.planOf(k) : o.plans0[k];
     const acc = ops.acceleration_ms2 || 1.1, brk = ops.braking_ms2 || 1.2;
+    // ---------- the trains' performance and the smart ATO (Giovanni, 1 Nov 2026) ----------
+    // each kind of train (o.kindOf(k, t): 'meneghino' or 'serie8000'): acceleration full and empty, service brake. In
+    // service the load goes with the hour (ops.load_by_hour). The ATO cruises at a percentage of the limit of the
+    // stretch, between min and max, chosen every few seconds to keep the trains evenly spaced (and a little more when
+    // the train is late); at the minimum, a train still too close to the one ahead is an alarm for the PC (a stop held
+    // at a station, his tool, is more efficient than going slower still)
+    const PERF = ops.performance || {}, LOAD = ops.load_by_hour || {}, ATO = ops.ato || {};
+    const ATO_MIN = (ATO.min_pct || 80) / 100, ATO_MAX = (ATO.max_pct || 100) / 100, ATO_BASE = (ATO.base_pct || (ops.ato_cruise_pct || 85)) / 100, ATO_EVERY = ATO.every_s || 5;
+    function loadAt(t) {
+      const h = ((t / 3600) % 24 + 24) % 24;
+      if ((LOAD.peak_hours || []).some(([a, b]) => h >= a && h <= b)) return LOAD.peak != null ? LOAD.peak : 1;
+      const dh = LOAD.day_hours || [6.5, 21]; return h >= dh[0] && h <= dh[1] ? (LOAD.day != null ? LOAD.day : 0.5) : (LOAD.night != null ? LOAD.night : 0.25);
+    }
+    function perfOf(a) {
+      const P = PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'];
+      if (!P) { a.accCap = acc; a.brk = brk; return; }
+      const load = a.status === 'service' ? loadAt(S.t) : 0;
+      a.accCap = P.acc_empty - (P.acc_empty - P.acc_full) * load; a.brk = P.brake_service || brk;
+    }
+    let atoLast = -Infinity;
+    function atoTick() {
+      if (S.t - atoLast < ATO_EVERY) return; atoLast = S.t;
+      // where each train in service is along the line, each way (metres on the main path of that way)
+      const pos = { N: [], S: [] };
+      for (const a of S.agents) {
+        if (a.hidden) continue; perfOf(a);
+        const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, dir = leg && leg.dir;
+        if (!dir || a.status !== 'service') { a.ato = ATO_BASE; a.atoWarn = false; continue; }
+        const main = dir === 'N' ? G.N : G.S, x = main && mapTo(a.pid, a.d, main.pid);
+        if (x == null) { a.ato = ATO_BASE; a.atoWarn = false; continue; }
+        pos[dir].push({ a, x });
+      }
+      for (const L of Object.values(pos)) {
+        L.sort((p, q) => p.x - q.x);
+        L.forEach((p, i) => {
+          const ahead = i + 1 < L.length ? L[i + 1].x - p.x : null, behind = i > 0 ? p.x - L[i - 1].x : null;
+          // evenly spaced: as far from the one ahead as from the one behind
+          const e = ahead != null && behind != null ? (ahead - behind) / (ahead + behind) : 0;
+          const late = Math.max(0, Math.min(0.1, (p.a.late || 0) / 2400));
+          const pc = Math.max(ATO_MIN, Math.min(ATO_MAX, ATO_BASE + 0.25 * e + late));
+          p.a.ato = pc; p.a.atoGap = ahead; p.a.atoWarn = pc <= ATO_MIN + 1e-6 && ahead != null && behind != null && ahead < 0.55 * behind;
+        });
+      }
+    }
     // stn[station]: what the PC set for a station (radio alla stazione): closed to the public (trains do not stop), the
     // text on its platform screens
     const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {} };
@@ -89,7 +133,7 @@
     // pos[k]: { pid, d, v, seg, before, startAt, leaveAt, status } where each train is at time t
     function start(t, pos) {
       S.il = IL ? IL.fresh(S.il) : null; S.rt = RT.fresh();
-      S.t = t; S.log = []; S.lastDep = {}; S.cl = null; S.parts = []; S.reopened = null; CLOSED = null; usedRuns.clear();
+      S.t = t; S.log = []; S.lastDep = {}; S.cl = null; S.parts = []; S.reopened = null; CLOSED = null; usedRuns.clear(); atoLast = -Infinity;
       S.agents = pos.map((p, k) => {
         const plan = planOf(k), a = { k, pid: p.pid, d: p.d, v: 0, status: 'parked', legs: [], stopAt: null, wait: 0, mode: 'plan', si: p.seg, red: null };
         if (p.seg >= plan.length) { a.mode = 'static'; a.status = 'parked'; return a; }
@@ -173,7 +217,7 @@
         const next = leg.stops && leg.stops.length && a.stopAt == null ? leg.stops[0].d : leg.end;
         if (next != null && next < c.d - half) break;           // it stops before the signal first: it asks when it leaves
         // it asks when it is near (it could still stop before the signal): a route set too early only holds up the others
-        if (c.d - nose > Math.max(120, a.v * a.v / (2 * brk) + 80)) { lim = Math.min(lim, stop); break; }
+        if (c.d - nose > Math.max(120, a.v * a.v / (2 * (a.brk || brk)) + 80)) { lim = Math.min(lim, stop); break; }
         const occ = ei => edgeMap.get(ei), upTo = leg.end != null ? leg.end + half + 3 : null;
         // a signal close behind this one, before the train's stop, during a closure (a crossover onto a track used both
         // ways, as in its turns): this route only if the next one can be set too (the train must not stop half way,
@@ -201,7 +245,7 @@
         const c0 = RT.ahead(a.pid, nose, LOOK)[0];
         if (!c0 || sw[0] < c0.d - 1) {
           const stop = Math.max(a.d, sw[0] - half - 3);
-          if ((a.v > 0 && sw[0] - nose > Math.max(120, a.v * a.v / (2 * brk) + 80)) || !RT.request(S.rt, a.k, a.pid, nose, null, ei => edgeMap.get(ei), closedBlock(a), leg.end != null ? leg.end + half + 3 : null)) { if (stop < lim) { lim = stop; why = { route: S.rt.lastNo, start: true }; } }
+          if ((a.v > 0 && sw[0] - nose > Math.max(120, a.v * a.v / (2 * (a.brk || brk)) + 80)) || !RT.request(S.rt, a.k, a.pid, nose, null, ei => edgeMap.get(ei), closedBlock(a), leg.end != null ? leg.end + half + 3 : null)) { if (stop < lim) { lim = stop; why = { route: S.rt.lastNo, start: true }; } }
         }
       } else if (sw && sw[0] - half - 3 < lim && !RT.readyNode(S.rt, a.k, sw[1])) {
         const stop = Math.max(a.d, sw[0] - half - 3);
@@ -221,18 +265,20 @@
     function speedLimit(a, leg) {
       let v = (ops.train_max_kmh || 90) / 3.6;
       const p = prof[a.pid];
+      const B = a.brk || brk, pc = a.ato || ATO_BASE;
       if (p) for (const sg of p) { if (sg[0] > a.d + half + 400) break; if (sg[1] < a.d - half) continue;
-        v = Math.min(v, sg[0] <= a.d + half ? sg[2] : Math.sqrt(sg[2] * sg[2] + 2 * brk * (sg[0] - a.d - half))); }
+        const vs = sg[3] != null ? (sg[4] ? sg[3] * pc : sg[3]) : sg[2];
+        v = Math.min(v, sg[0] <= a.d + half ? vs : Math.sqrt(vs * vs + 2 * B * (sg[0] - a.d - half))); }
       // empty (no passengers), shunting: through the platforms at 40 km/h
       const z = o.zones && o.zones[a.pid];
       if (z && (leg.status !== 'service' || leg.skip)) for (const [z0, z1, zv] of z) {
         if (z1 < a.d - half || z0 > a.d + half + 300) continue;
-        v = Math.min(v, z0 <= a.d + half ? zv : Math.sqrt(zv * zv + 2 * brk * (z0 - a.d - half))); }
+        v = Math.min(v, z0 <= a.d + half ? zv : Math.sqrt(zv * zv + 2 * B * (z0 - a.d - half))); }
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
       // after reopening: 40 km/h on the stretch that was closed, for 20 minutes (Giovanni)
       if (SLOW && S.t < SLOW.until) { const pe = pathEdges[a.pid], vz = SLOW.kmh / 3.6;
         if (pe) for (const [ei, , x0, x1] of pe.e) { if (x1 < a.d - half) continue; if (x0 > a.d + half + 300) break;
-          if (SLOW.set.has(ei)) v = Math.min(v, x0 <= a.d + half ? vz : Math.sqrt(vz * vz + 2 * brk * (x0 - a.d - half))); } }
+          if (SLOW.set.has(ei)) v = Math.min(v, x0 <= a.d + half ? vz : Math.sqrt(vz * vz + 2 * B * (x0 - a.d - half))); } }
       if (a.vlim) v = Math.min(v, a.vlim);                                   // speed limit ordered by the PC
       return v;
     }
@@ -241,7 +287,7 @@
     function limitHere(a) {
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : { status: a.status };
       let v = (ops.train_max_kmh || 90) / 3.6;
-      for (const sg of prof[a.pid] || []) { if (sg[0] > a.d + half) break; if (sg[1] < a.d - half) continue; v = Math.min(v, sg[2]); }
+      for (const sg of prof[a.pid] || []) { if (sg[0] > a.d + half) break; if (sg[1] < a.d - half) continue; v = Math.min(v, sg[3] != null ? sg[3] : sg[2]); }
       const z = o.zones && o.zones[a.pid];
       if (z && (leg.status !== 'service' || leg.skip)) for (const [z0, z1, zv] of z) if (!(z1 < a.d - half || z0 > a.d + half)) v = Math.min(v, zv);
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
@@ -819,8 +865,8 @@
       while (leg.status === 'service' && leg.stops.length > 1 && a.stopAt == null && S.stn[leg.stops[0].st] && S.stn[leg.stops[0].st].closed && leg.stops[0].d > a.d + 1) leg.stops.shift();
       const target = leg.stops.length ? leg.stops[0].d : leg.end;
       const au = authority(a, leg), goal = Math.min(target, au.lim);
-      const vmax = Math.min(speedLimit(a, leg), Math.sqrt(2 * brk * Math.max(0, goal - a.d)));
-      if (a.v < vmax) a.v = Math.min(vmax, a.v + acc * DT); else a.v = Math.max(vmax, a.v - brk * 1.5 * DT);
+      const B = a.brk || brk, vmax = Math.min(speedLimit(a, leg), Math.sqrt(2 * B * Math.max(0, goal - a.d)));
+      if (a.v < vmax) a.v = Math.min(vmax, a.v + (a.accCap || acc) * DT); else a.v = Math.max(vmax, a.v - B * 1.5 * DT);
       if (goal - a.d > 0.4 && a.v < 0.3) a.v = 0.3;
       a.d = Math.min(goal, a.d + a.v * DT);
       if (goal - a.d < 0.4 && a.v <= 0.8) {
@@ -843,7 +889,7 @@
       while (S.t + DT <= t && guard++ < 40000) {
         // events whose time has come (again, after going back in time)
         for (const e of TL.events) if (!e.done && e.t <= S.t + DT) { e.done = true; apply(e); }
-        S.t += DT; S.rt.t = S.t; refresh();
+        S.t += DT; S.rt.t = S.t; refresh(); atoTick();
         for (const a of S.agents) {
           const p0 = a.pid, n0 = a.d + half;
           stepAgent(a);
@@ -883,7 +929,7 @@
       S.turnOv = c.turnOv || {}; S.nav = c.nav || []; S.navInfo = c.navInfo || {}; S.navWant = c.navWant || {}; NAVHOLD = c.navHold ? new Set(c.navHold) : null; SLOW = c.slow ? { set: new Set(c.slow.set), until: c.slow.until, kmh: c.slow.kmh } : null;
       S.clEff = c.clEff || null;
       if (S.cl) { CLOSED0 = closedPieces(S.cl); CLOSED = S.clEff && (S.clEff.a !== S.cl.a || S.clEff.b !== S.cl.b) ? closedPieces(S.clEff) : CLOSED0; } else { CLOSED = CLOSED0 = null; }
-      usedRuns.clear(); (c.usedRuns || []).forEach(x => usedRuns.add(x));
+      usedRuns.clear(); (c.usedRuns || []).forEach(x => usedRuns.add(x)); atoLast = -Infinity;
       TL.events.forEach(e => { e.done = e.t <= S.t; });
     }
     let lastResult = null;
@@ -1058,7 +1104,7 @@
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
       return { inside: a.inside, to: leg && leg.arrive ? leg.arrive.at : null, pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, trip: a.trip,
                seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold, vlim: a.vlim ? Math.round(a.vlim * 3.6) : null, vlimTo: a.vlimTo,
-               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6) };
+               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn };
     }
     // a radio change to a train's day (platform, tail, test loop...): it takes it from where it is
     function replan(k) {

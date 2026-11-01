@@ -1436,6 +1436,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <circle cx="60" cy="60" r="56.5" fill="url(#tf)" stroke="#c9d35a" stroke-opacity=".55" stroke-width="1.6" filter="url(#tg)"/>
       <g filter="url(#tg)">${ticks}<g font-family="'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', Arial, sans-serif" font-size="10.5" font-weight="700" fill="#e4ee6a" text-anchor="middle" letter-spacing="-.3">${nums}</g>
       <text x="60" y="98" text-anchor="middle" font-family="'Arial Narrow', 'Helvetica Neue', Arial, sans-serif" font-size="10.5" font-weight="700" fill="#e4ee6a">km/h</text></g>
+      <text id="tachoAto" x="60" y="112" text-anchor="middle" font-family="'Arial Narrow', 'Helvetica Neue', Arial, sans-serif" font-size="8" font-weight="700" fill="#8fd3ff" letter-spacing=".3"></text>
       <g id="tachoLim" transform="rotate(135 60 60)" style="display:none"><path d="M60 7.5 L56 0.8 L64 0.8 Z" fill="#ff4a1c" stroke="#6a1505" stroke-width=".6"/></g>
       <g id="tachoNeedle" transform="rotate(${TACHO.cur != null ? TACHO.cur.toFixed(2) : -135} 60 60)" filter="url(#tg)"><path d="M57.4 60 L58.8 15 L61.2 15 L62.6 60 Z" fill="#e2ec4e"/></g>
       <circle cx="60" cy="60" r="10.5" fill="#050505" stroke="#1e1e1e" stroke-width="1"/></svg>`;
@@ -1447,6 +1448,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (sp && sp.textContent !== String(kmh)) sp.textContent = kmh;
     // the needle follows the speed smoothly (tachoAnim), the red mark shows the limit where the train is
     if (nd) { TACHO.target = -135 + Math.min(92, v) / 90 * 270; if (!TACHO.run) { TACHO.run = true; TACHO.last = 0; requestAnimationFrame(tachoAnim); } }
+    const at = document.getElementById('tachoAto'), atv = st.agent && st.agent.ato != null && st.agent.status === 'service' ? 'ATO ' + st.agent.ato + '%' : '';
+    if (at && at.textContent !== atv) at.textContent = atv;
     const lm = document.getElementById('tachoLim'), lim = st.agent && st.agent.vmaxHere;
     if (lm) { const a = lim ? (-135 + Math.min(92, lim) / 90 * 270).toFixed(1) : null; if (lm.dataset.a !== String(a)) { lm.dataset.a = a; lm.style.display = a == null ? 'none' : ''; if (a != null) lm.setAttribute('transform', `rotate(${a} 60 60)`); } }
     const fr = document.getElementById('trainFront');
@@ -2436,7 +2439,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
+      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
@@ -2787,7 +2791,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (green && !sg.shunt) { const n = parseInt(String(sg.tag || '').slice(2), 10);
         if (F.ag.rt().redFix && F.ag.rt().redFix[n]) busy = true;
         else if (green.has(n)) busy = false;
-        else if (sg.illegal || !/^[abcd]$/.test(sg.stype || 'a')) busy = true;
+        else if (sg.illegal || !/^[abcd]$/.test(sg.stype || 'a') || (F.engine.net.route_rules && (F.engine.net.route_rules.redNormal || []).includes(n))) busy = true;
         else { const at = sg.pid != null ? [sg.pid, sg.d] : (sg.refs && sg.refs[0]);
           busy = at ? !F.ag.RT.clearAhead(F.ag.rt(), at[0], at[1], F.ag.occ) : busy; } }
       // interlocking signals: via libera only when cleared for a train
@@ -2825,6 +2829,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (a.red && a.v === 0 && S_.t - a.red.since >= 120) out.push({ k: a.k, cls: 'late', t: `Treno ${tno(a.k)} fermo al rosso${w != null ? ' #A' + String(w).padStart(2, '0') : ''} da ${mm(S_.t - a.red.since)}` });
       if (a.status === 'stopped') out.push({ k: a.k, cls: 'late', t: `Treno ${tno(a.k)} fermo a ${cap(G.names[a.at])}: attende istruzioni` });
       if (a.pcHold) out.push({ k: a.k, t: `Treno ${tno(a.k)} trattenuto a ${cap(G.names[a.stopAt != null ? a.stopAt : a.at])}` });
+      if (a.atoWarn) out.push({ k: a.k, cls: 'late', t: `Treno ${tno(a.k)} troppo vicino al treno davanti, ATO al minimo: valuta un blocco in stazione` });
     });
     for (const n of Object.keys(rt.redFix || {})) out.push({ g: n, t: `#A${String(n).padStart(2, '0')} rosso fisso` });
     for (const [n, r] of Object.entries(rt.pcRoutes || {})) out.push({ g: n, t: `Itinerario ${r.id} preparato da #A${String(n).padStart(2, '0')}` });
@@ -2891,7 +2896,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
   }
-  window.mtl = { map, state, fleets, renderCard, scrPage, trainFront, tachoSVG, trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
+  window.mtl = { map, state, fleets, renderCard, scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
 </script>
