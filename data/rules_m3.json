@@ -4938,5 +4938,69 @@
    "183": "raccordo verso la M2",
    "184": "Centrale tronchino A33"
   }
+ },
+ "closure_turns": {
+  "_about": "Chiusure (Regole_interlocking_M3, foglio Chiusure, tutti i binari utilizzabili): come girano i treni alla stazione dove finisce la tratta chiusa. Chiave 'stazione:senso di arrivo' (N: arrivano da San Donato, S: arrivano da Comasina), indice della stazione da San Donato (0) a Comasina (20). A: oltre l'incrocio dopo la stazione e ritorno; B: incrocio prima della stazione, arrivo sull'altro binario e cambio banco in banchina; C: cambio banco in banchina e ripartenza all'indietro sull'incrocio alle spalle. In ordine di preferenza.",
+  "1:N": [
+   "C"
+  ],
+  "5:N": [
+   "C",
+   "A"
+  ],
+  "6:N": [
+   "C",
+   "A"
+  ],
+  "13:N": [
+   "A"
+  ],
+  "14:N": [
+   "B",
+   "A"
+  ],
+  "16:N": [
+   "B",
+   "A"
+  ],
+  "1:S": [
+   "A"
+  ],
+  "5:S": [
+   "A",
+   "B"
+  ],
+  "6:S": [
+   "B",
+   "C",
+   "A"
+  ],
+  "13:S": [
+   "B",
+   "C"
+  ],
+  "14:S": [
+   "B",
+   "C",
+   "A"
+  ],
+  "16:S": [
+   "B",
+   "C",
+   "A"
+  ]
+ },
+ "closures_list": {
+  "_about": "Le tratte che il PC può chiudere (foglio Chiusure): stazioni dove girano i treni, da San Donato. 'often': succede davvero (sì / raramente).",
+  "stations": [
+   0,
+   1,
+   5,
+   6,
+   13,
+   14,
+   16,
+   20
+  ]
  }
 }

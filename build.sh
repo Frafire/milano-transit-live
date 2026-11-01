@@ -33,6 +33,7 @@ node "$ROOT/tests/interlocking_check.js" 5 24
 node "$ROOT/tests/timetable_check.js"
 python3 "$ROOT/tests/itineraries_check.py"
 node "$ROOT/tests/routes_rules_check.js"
+node "$ROOT/tests/closures_check.js"
 node "$ROOT/tests/headway_check.js" || echo "WARNING: trains closer than 2 minutes"
 echo "== page"
 python3 "$ROOT/tools/assemble.py"

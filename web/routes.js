@@ -30,10 +30,11 @@
     const BLADE = (o.times && o.times.blade) || 0, SIGNAL = (o.times && o.times.signal) || 0;
     const CAP = o.capacity || {}, PC_SIG = new Set(o.pcSignals || []);
     const NORMAL = new Set(o.normal || ['servizio normale', 'sempre', 'mattina', 'sera', 'ritardo', 'manovra deposito']);
-    const WHEN = {}, PRIO = {}, P = { alta: 3, media: 2, bassa: 1 };
-    for (const it of o.itineraries || []) { WHEN[it.id] = it.when; PRIO[it.id] = P[it.prio] || 0; }
+    const WHEN = {}, PRIO = {}, WAYS = {}, P = { alta: 3, media: 2, bassa: 1 };
+    for (const it of o.itineraries || []) { WHEN[it.id] = it.when; PRIO[it.id] = P[it.prio] || 0; WAYS[it.id] = it.ways; }
 
     // routes[k] = [{ pid, d0, d1, n, pieces: [[edge, l0, l1, pEnd]], nodes: [[node, p]], id, way, ready }]
+    // allow: situations in force now besides the normal service (a closure: its movements need no authorisation)
     // sw[node]: the position of a switch (the two pieces it joins); pc[key]: authorisations given by the PC
     function fresh() { return { routes: {}, sw: {}, pc: {}, t: 0 }; }
 
@@ -142,13 +143,25 @@
     function authorize(st, key) { st.pc[key] = (st.pc[key] || 0) + 1; return true; }
     // train k asks for the route that starts at the signal at d on its path: true if it is set (now or before)
     // (upTo: the train stops before the next signal, at the end of its move: the route ends there, a tail position)
-    function request(st, k, pid, d, n, occ, blocked, upTo) {
+    // dry: only tell whether it would be set now (nothing changes)
+    function request(st, k, pid, d, n, occ, blocked, upTo, dry) {
       if (held(st, k, pid, d)) return true;
       const d1 = Math.min(nextSignal(pid, d), upTo != null && upTo > d + 1 ? upTo : Infinity), { pieces, nodes } = span(pid, d, d1);
-      const it = BY_START.size ? identify(n, pieces) : null;
+      let it = BY_START.size ? identify(n, pieces) : null;
+      // the rest of a movement this train is already making (a signal half way along it, as #A363 at Sondrio inside
+      // SON-4): the same movement, not the one that starts at that signal
+      if (BY_START.size && (!it || (WHEN[it.id] && !NORMAL.has(WHEN[it.id]))) && nodes.some(([nd]) => isSwitch(nd) && !depotSwitch(nd))) {
+        const R = []; for (const [ei] of pieces) if (R[R.length - 1] !== ei) R.push(ei);
+        for (const r0 of st.routes[k] || []) {
+          const W = r0.id && WAYS[r0.id] && WAYS[r0.id][r0.way || 0]; if (!W || r0.id === (it && it.id)) continue;
+          const i0 = W.indexOf(R[0]); if (i0 < 0) continue;
+          let okW = true; for (let i = 0; i < R.length && i0 + i < W.length; i++) if (W[i0 + i] !== R[i]) { okW = false; break; }
+          if (okW && i0 > 0 && i0 + R.length <= W.length + 1) { it = { id: r0.id, way: r0.way || 0, cont: true }; break; }
+        }
+      }
       // the PC's signals and the movements that are not for the normal service: only with the PC's authorisation
-      const needPc = (n != null && PC_SIG.has(n) ? 'n:' + n : null) || (it && WHEN[it.id] && !NORMAL.has(WHEN[it.id]) ? 'id:' + it.id : null);
-      if (needPc && !(st.pc[needPc] > 0)) { st.lastNo = { pc: needPc }; return false; }
+      const needPc = (n != null && PC_SIG.has(n) ? 'n:' + n : null) || (it && WHEN[it.id] && !NORMAL.has(WHEN[it.id]) && !(st.allow || []).includes(WHEN[it.id]) ? 'id:' + it.id : null);
+      if (needPc && !(st.pc[needPc] > 0)) { if (!dry) st.lastNo = { pc: needPc }; return false; }
       // precedence (Giovanni's priorities, Itinerari: alta / media / bassa): a train waiting for a movement of higher
       // priority that needs the same pieces or switches goes first; this one waits for it
       const prio = it ? PRIO[it.id] || 0 : 0;
@@ -156,13 +169,20 @@
       const nodeSet = new Set(nodes.map(x => x[0]));
       let why = null;
       for (const [k2, w] of Object.entries(st.wants)) {
-        if (+k2 === k || w.prio <= prio || (st.t || 0) - w.t > 2) continue;
-        if (w.nodes.some(nd => nodeSet.has(nd)) || w.pieces.some(([e, m0, m1]) => pieces.some(([e2, l0, l1]) => e2 === e && overlap(l0, l1, m0, m1)))) { why = { yield: +k2, id: w.id }; break; }
+        // (only when that movement could be set now, but for this one: else it would wait for nothing, or two
+        // trains would wait for each other)
+        // (a train that waits a long time for the same thing goes first too, at the same priority: no train waits for ever)
+        const mine = st.wants[k], older = w.prio === prio && w.since + 90 < (mine ? mine.since : (st.t || 0));
+        if (+k2 === k || (w.prio <= prio && !older) || (st.t || 0) - w.t > 150 || w.by === k) continue;
+        if (!(w.nodes.some(nd => nodeSet.has(nd)) || w.pieces.some(([e, m0, m1]) => pieces.some(([e2, l0, l1]) => e2 === e && overlap(l0, l1, m0, m1))))) continue;
+        if (free(st, +k2, w.pieces, w.nodes.map(nd => [nd, 0]), occ)) continue;
+        why = { yield: +k2, id: w.id }; break;
       }
       why = why || free(st, k, pieces, nodes, occ) || full(st, k, pieces, occ) || (blocked ? blocked(pieces) : null);
+      if (dry) return !why;
       if (why) {
         st.lastNo = why;
-        if (it && why.yield == null) st.wants[k] = { pieces: pieces.map(x => x.slice(0, 3)), nodes: nodes.map(x => x[0]), prio, t: st.t || 0, id: it.id };
+        if (it && why.yield == null) { const w0 = st.wants[k]; st.wants[k] = { pieces: pieces.map(x => x.slice(0, 3)), nodes: nodes.map(x => x[0]), prio, t: st.t || 0, since: w0 && w0.id === it.id ? w0.since : st.t || 0, id: it.id, by: why.train != null ? why.train : why.route }; }
         else if (why.yield != null) st.yields = (st.yields || 0) + 1;
         return false;
       }
@@ -182,6 +202,8 @@
       (st.routes[k] = st.routes[k] || []).push(r);
       return true;
     }
+    // take back a route not entered yet (the train asked for two routes together and got only the first)
+    function cancel(st, k, pid, d) { const rs = st.routes[k]; if (!rs) return; st.routes[k] = rs.filter(r => !(r.pid === pid && Math.abs(r.d0 - d) < 1)); if (!st.routes[k].length) delete st.routes[k]; }
     // is the route of train k from d on its path ready (switches in place, signal open)?
     const readyNode = (st, k, nd) => (st.routes[k] || []).filter(r => r.nodes.some(x => x[0] === nd)).every(r => r.ready == null || r.ready <= (st.t || 0));
     function ready(st, k, pid, d) { const r = (st.routes[k] || []).find(x => x.pid === pid && Math.abs(x.d0 - d) < 1); return !r || r.ready == null || r.ready <= (st.t || 0); }
@@ -210,7 +232,7 @@
       const d1 = nextSignal(pid, d), { pieces, nodes } = span(pid, d, d1);
       return !free(st, -1, pieces, nodes, occ);
     }
-    return { fresh, ahead, request, release, held, ready, readyNode, authorize, green, clearAhead, nextSignal, span, identify, switchesOn, heldNode };
+    return { fresh, ahead, request, release, held, ready, readyNode, authorize, cancel, green, clearAhead, nextSignal, span, identify, switchesOn, heldNode };
   }
   const api = { create };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLRoutes = api;

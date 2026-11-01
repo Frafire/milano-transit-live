@@ -55,7 +55,10 @@ const odd = M.net.itineraries.find(i => i.start != null && !['servizio normale',
 { const st = RT.fresh(); st.t = 500; const a = onPath('SD-6'), b = onPath('SD-1'), W = IT['SD-6'].ways[0];
   const blockedOcc = ei => +ei === W[W.length - 1] ? [[9, 0, 5]] : [];          // something still in the way of SD-6
   const r1 = RT.request(st, 2, a.pid, a.d, 8, blockedOcc);
-  const r2 = RT.request(st, 1, b.pid, b.d, 40, none);
+  ok(RT.request(st, 3, b.pid, b.d, 40, blockedOcc) || st.lastNo.yield == null, 'while SD-6 cannot be set anyway, SD-1 does not wait for it');
+  RT.release(st, 3, -1, 0, true);
+  const r2 = RT.request(st, 1, b.pid, b.d, 40, none);        // now SD-6 could be set: SD-1 lets it go first
   ok(!r1 && !r2 && st.lastNo && st.lastNo.yield === 2, `SD-1 waits for the train waiting for SD-6 (${JSON.stringify(st.lastNo)})`);
-  st.t = 510; ok(RT.request(st, 1, b.pid, b.d, 40, none), 'and goes when that train is no longer waiting for it'); }
+  delete st.wants[2];         // that train has gone (the agents forget a want when the train moves)
+  ok(RT.request(st, 1, b.pid, b.d, 40, none), 'and goes when that train is no longer waiting for it'); }
 process.exit(fail ? 1 : 0);

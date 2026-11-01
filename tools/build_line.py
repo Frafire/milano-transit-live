@@ -1396,8 +1396,13 @@ if CFG.get('degraded'):
                         if kD >= len(PATH_STATES[Dp]): continue
                         e_next, dn = PATH_STATES[Dp][kD]
                         if edges[e_next]['len'] < TRAIN_HALF + 20: continue
-                        goal = min((n for n, d in nO if d > dXo + TRAIN_HALF + 10), key=lambda n: posO[n], default=None)
+                        # (Giovanni: back over the crossover next to the station and into the other platform, through
+                        # it: the route goes to the last node of the other track before its platform, the rest is that track)
+                        goal = max((n for n, d in nO if d < dXo - TRAIN_HALF - 10 and d > dXo - 700), key=lambda n: posO[n], default=None)
                         r = free_route([(e_next, -dn)], goal) if goal is not None else None
+                        if not r or not has_xov(r) or rlen(r) > 1500:
+                            goal = min((n for n, d in nO if d > dXo + TRAIN_HALF + 10), key=lambda n: posO[n], default=None)
+                            r = free_route([(e_next, -dn)], goal) if goal is not None else None
                         if not r or not has_xov(r) or rlen(r) > 8000: continue
                         kg = [n for n, _ in nO].index(goal)
                         pid = make_path(('turnA', nm, dr_), r + PATH_STATES[Op][kg:])
@@ -1854,6 +1859,16 @@ NET['route_rules'] = {'times': {'blade': _tval('Ago dello scambio'), 'signal': _
                       'tailSlots': {k: v for k, v in (_rules_.get('tail_slots') or {}).items() if k in ('positions', 'slot_m')}}
 print('route rules:', NET['route_rules'])
 NET['variants'] = {str(k): v for k, v in VARIANTS.items()}
+# closures (foglio Chiusure): how trains turn at the station where the closed stretch ends, and which closures there are
+NET['closure_turns'] = {k: v for k, v in _rules_.get('closure_turns', {}).items() if not k.startswith('_')}
+_cst = _rules_.get('closures_list', {}).get('stations', [])
+_often = {}
+for _c in _RG.get('chiusure', []):
+    _nm = (_c.get('CHIUSURA') or '').replace('CHIUSURA ', '').strip(); _often[_nm] = _c.get('Succede davvero?')
+_nm_of = lambda i: {'SAN DONATO': 'San Donato', 'ROGOREDO FS': 'Rogoredo FS', 'LODI T.I.B.B.': 'Lodi T.I.B.B.', 'PORTA ROMANA': 'Porta Romana', 'CENTRALE FS': 'Centrale FS', 'SONDRIO': 'Sondrio', 'MACIACHINI': 'Maciachini', 'COMASINA': 'Comasina'}.get(DEGRADED['names'][i], DEGRADED['names'][i]) if DEGRADED else str(i)
+NET['closures'] = [{'a': x, 'b': y, 'label': '%s – %s' % (_nm_of(x), _nm_of(y)), 'often': _often.get('%s – %s' % (_nm_of(x), _nm_of(y)))}
+                   for i, x in enumerate(_cst) for y in _cst[i + 1:] if not (x == 0 and y == 20)] if DEGRADED else []
+print('closures:', len(NET['closures']), [c['label'] + ' (' + str(c['often']) + ')' for c in NET['closures'] if c['often'] in ('sì', 'raramente')])
 print('itineraries: %d (%d with other ways), rules for %d of them' % (len(_IT), sum(1 for m in _IT if m.get('alt')), sum(1 for m in _IT if m['id'] in _rit)))
 print('route interlocking: signals on the paths', sum(len(v) for v in SIGALL.values()), '| signals', len(_SIGAT))
 json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in paths],

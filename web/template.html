@@ -195,7 +195,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .closures .clgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0; }
 .closures .clgrid button { font-size: 13px; padding: 6px 6px; text-align: left; }
 .closures .clgrid button[aria-pressed=true] { background: #d60012; color: #fff; border-color: #d60012; }
-.closures .row { display: flex; gap: 6px; }
+.closures .row { display: flex; gap: 6px; flex-wrap: wrap; }
+.closures select { width: 100%; font-size: 13px; padding: 5px; margin: 6px 0 4px; }
+.closures .clends { display: grid; gap: 4px; margin: 0 0 6px; font-size: 12px; }
+.closures .clends label { display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+.closures .clends select { width: auto; margin: 0; font-size: 12px; padding: 3px; }
 .picker { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
 .picker .row { margin-top: 0; }
 .picker .warn { color: #ff9b6a; font-size: 12px; }
@@ -300,11 +304,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="legend"><span><i class="lg ok"></i>in orario</span><span><i class="lg late"></i>+2 min o più</span><span><i class="lg early"></i>anticipo 3 min o più</span></div>
     <ul class="m3list" id="m3list"></ul>
   </section>
-  <section class="m3panel closures" aria-label="Deposito M3">
-    <div class="label">Deposito M3</div>
+  <section class="m3panel closures" aria-label="Chiusura tratte M3">
+    <div class="label">Chiudi tratta M3</div>
+    <select id="clSel" aria-label="Tratta da chiudere"></select>
+    <div class="clends" id="clEnds"></div>
+    <div class="row"><button id="closeBtn">Chiudi la tratta</button><button id="reopenBtn" disabled>Riapri la tratta</button><button id="normalBtn" disabled title="Tutti i treni tornano al loro orario programmato">Torna all'orario</button></div>
+    <p class="note" id="secNote">I treni sui lati aperti girano alle stazioni dove finisce la tratta, come nelle regole; quelli dentro si fermano alla stazione successiva e aspettano il PC.</p>
     <div class="row"><button id="depotAuto" aria-pressed="true" title="Automatico: i segnali del deposito si aprono da soli. Manuale: clic sul segnale per dare via libera a un treno">Deposito: automatico</button></div>
     <p class="note" id="ilNote" hidden></p>
-    <p class="note">Chiusura tratte: in ricostruzione con le nuove regole dell'interlocking.</p>
   </section>
 
   <div class="admin-only">
@@ -2061,9 +2068,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   document.querySelectorAll('.role').forEach(b => b.onclick = () => setRole(b.dataset.role === 'player'));
   const m3list = document.getElementById('m3list');
-  // ================= LINE CLOSURES =================
-  // The old closures (navette, chiusure) are gone: they are being rebuilt from Giovanni's rules (Regole_interlocking_M3).
+  // ================= LINE CLOSURES (foglio Chiusure, web/agents.js) =================
+  // The PC picks the stretch to close (the list of the rules: "succede davvero" first) and, for each station where it
+  // ends, which tracks can be used there. The trains on the open sides turn there; those inside stop at the next
+  // station and wait for the PC (radio). "Riapri" reopens it (20 km/h for 2 minutes, then back to the timetable);
+  // "Torna all'orario" ends the closure and puts every train back on its planned day.
   window.activeClosure = null;
+  const secNote = document.getElementById('secNote'), clSel = document.getElementById('clSel'), clEnds = document.getElementById('clEnds');
+  const closeBtn = document.getElementById('closeBtn'), reopenBtn = document.getElementById('reopenBtn'), normalBtn = document.getElementById('normalBtn');
   function m3fleet() { return fleets.find(f => f.line === 'M3' && f.engine && f.engine.G); }
   function stopsOfF(F) {
     const G = F.engine.G, idx = {}; G.names.forEach((n, i) => (idx[n] = i));
@@ -2095,7 +2107,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
+      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
@@ -2128,7 +2140,61 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.depot = null; F.loop = null; F.dm = null; makeAgents(F);
     if (keep && F.depotPaths) { depotOf(F).newDay(keep); F.ag.start(DAY_START, bookedPositions(F, DAY_START)); F.ag.snapshot(); }
   }
-  const closureNow = () => null;
+  // the closure that applies now, from the events of the time line
+  function closureNow(F) {
+    if (!F || !F.ag) return null;
+    const ev = F.ag.TL.events.filter(e => e.done && (e.kind === 'close' || e.kind === 'normal')).pop();
+    if (!ev || ev.kind !== 'close') return null;
+    return { label: ev.label, t0: ev.t, cl: ev.cl, reopened: F.ag.S.reopened != null, ag: F.ag };
+  }
+  const CL_LIST = () => { const F = m3fleet(); return F && F.engine.net.closures ? F.engine.net.closures : []; };
+  const capS = n => n.toLowerCase().replace(/(^|[\s.(–-])\S/g, m => m.toUpperCase());
+  function fillClosures() {
+    const L_ = CL_LIST(), grp = { 'sì': 'Succede davvero', 'raramente': 'Raramente', other: 'Mai successo (calcolata dalle altre)' }, by = {};
+    L_.forEach((c, i) => { const g = c.often === 'sì' || c.often === 'raramente' ? c.often : 'other'; (by[g] = by[g] || []).push([c, i]); });
+    clSel.innerHTML = Object.entries(grp).filter(([g]) => by[g]).map(([g, nm]) => `<optgroup label="${nm}">` + by[g].map(([c, i]) => `<option value="${i}">${c.label}</option>`).join('') + '</optgroup>').join('');
+    drawEnds();
+  }
+  // for each end of the closure: which tracks can be used there (tutti / solo binario 1 / solo binario 2)
+  function drawEnds() {
+    const c = CL_LIST()[+clSel.value], F = m3fleet(); if (!c || !F) { clEnds.innerHTML = ''; return; }
+    const G = F.engine.G, last = G.names.length - 1, ends = [];
+    if (c.a > 0) ends.push(c.a); if (c.b < last) ends.push(c.b);
+    const nm = x => x === c.a ? c.label.split(' – ')[0] : c.label.split(' – ')[1];
+    clEnds.innerHTML = ends.map(x => `<label>${nm(x)}<select data-end="${x}"><option value="all">tutti i binari utilizzabili</option><option value="1" disabled>solo binario 1 (in arrivo)</option><option value="2" disabled>solo binario 2 (in arrivo)</option></select></label>`).join('')
+      + (c.b === last ? '<label>Comasina<span>nessun binario: chiusura di fondo</span></label>' : '') + (c.a === 0 ? '<label>San Donato<span>nessun servizio: i treni restano in deposito o in tronchetto</span></label>' : '');
+  }
+  clSel.onchange = drawEnds;
+  function closeStretch() {
+    const F = m3fleet(); if (!F || !F.ag || closureNow(F)) return;
+    const c = CL_LIST()[+clSel.value]; if (!c) return;
+    const ends = {}; clEnds.querySelectorAll('select[data-end]').forEach(x => { ends[x.dataset.end] = x.value; });
+    F.ag.event({ kind: 'close', cl: { a: c.a, b: c.b, ends }, label: c.label });
+    say('', `PC: tratta ${c.label} chiusa alle ${fmt(F.ag.S.t, true).join('')}. I treni girano alle stazioni di fine tratta.`, 'sys');
+    syncClosureUI();
+  }
+  function reopenStretch() {
+    const F = m3fleet(), c = closureNow(F); if (!c || c.reopened) return;
+    F.ag.event({ kind: 'reopen' });
+    say('', `PC: tratta ${c.label} riaperta. 20 km/h per 2 minuti, poi i treni riprendono l'orario.`, 'sys');
+    syncClosureUI();
+  }
+  function backToTimetable() { const F = m3fleet(); if (!F || !closureNow(F)) return; F.ag.event({ kind: 'normal' }); syncClosureUI(); }
+  function syncClosureUI() {
+    const F = m3fleet(), em = closureNow(F), open = !em || em.reopened;
+    if (F) F.emergency = em;
+    window.activeClosure = em ? { segment: em.label, active: !em.reopened, a: em.cl.a, b: em.cl.b, since: em.t0 } : null;
+    clSel.disabled = !!em; closeBtn.disabled = !!em || !CL_LIST().length; clEnds.querySelectorAll('select').forEach(x => { x.disabled = !!em; });
+    reopenBtn.disabled = !em || open; normalBtn.disabled = !em || !open;
+    if (!em) secNote.textContent = secNote.dataset.idle;
+    else {
+      const c = {}; em.ag.agents().forEach(a => { const k = a.hidden || a.status === 'parked' ? 'in deposito' : a.status === 'stopped' ? 'fermi in attesa del PC' : a.mode === 'shuttle' ? (open ? 'in linea' : 'in servizio limitato') : a.mode === 'static' ? 'trattenuti' : a.mode === 'plan' ? 'in orario' : a.mode; c[k] = (c[k] || 0) + 1; });
+      secNote.textContent = (open ? `Tratta ${em.label} riaperta. ` : `Tratta ${em.label} chiusa dalle ${fmt(em.t0)}. `) + Object.entries(c).map(([k, v]) => `${v} ${k}`).join(', ') + '.';
+    }
+  }
+  secNote.dataset.idle = secNote.textContent;
+  closeBtn.onclick = closeStretch; reopenBtn.onclick = reopenStretch; normalBtn.onclick = backToTimetable;
+  setTimeout(fillClosures, 0);
   const AGLABEL = { service: 'In servizio', stopped: 'Fermo in stazione: tratta interrotta', held: 'Trattenuto: tratta chiusa', turnback: 'In manovra (cambio banco)', empty: 'Vuoto, senza passeggeri', depot: 'Rientrato in deposito', parked: 'In deposito' };
   const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC', pc: ' · trattenuto dal PC', anello: ' · attende al #A94 (anello di prova)' };
   // the line under the train name: the agents' service (shuttles carry passengers: reduced service)
@@ -2142,7 +2208,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (s.hidden || s.status === 'parked') return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: 0, status: 'parked', label: s.hidden ? AGLABEL.depot : parkedLabel(F, 'depot'), trip: -1, seg: s.seg, store: tr.segs[s.seg] && tr.segs[s.seg][5] };
     const why = s.v === 0 ? (WHY[s.why] || (s.red ? WHY.segnale : '')) : '';
     let label;
-    label = (s.mode === 'plan' ? STATUS[s.status] || s.status : AGLABEL[s.status] || s.status) + why;
+    if (s.mode === 'plan') label = (STATUS[s.status] || s.status) + why;
+    else if (s.status === 'service') label = (s.mode === 'shuttle' ? 'Servizio limitato' : 'In servizio') + (s.to != null ? ' per ' + cap(G.names[s.to]) : '') + why;
+    else label = (AGLABEL[s.status] || s.status) + why;
     // the movements of the table (Regole_interlocking_M3, foglio Itinerari) set for it now
     const ids = [...new Set((F.ag.rt().routes[tr.agentK] || []).map(r => r.id).filter(Boolean))];
     if (ids.length) label += ' · itinerario ' + ids.join(', ');
@@ -2434,7 +2502,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); radioTick(); dcoTick(); closingTick(); updateSignals(); }
+    if (now - lastPanel > 1000) { lastPanel = now; if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
