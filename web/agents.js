@@ -231,6 +231,11 @@
           break;
         }
         if (RT.request(S.rt, a.k, a.pid, c.d, c.n, occ, closedBlock(a), upTo)) {
+          // the pair (a closure, the signal close behind): the second route is set together with the first, or neither
+          // (else another train could take the second meanwhile, and the two would face each other half way)
+          if (c2 && next != null && c2.d < next + half && !RT.held(S.rt, a.k, a.pid, c2.d) && !RT.request(S.rt, a.k, a.pid, c2.d, c2.n, occ, closedBlock(a), upTo)) {
+            RT.cancel(S.rt, a.k, a.pid, c.d); lim = stop; why = { sig: c2.n, route: Object.assign({ next: true }, S.rt.lastNo || {}) }; break;
+          }
           if (RT.ready(S.rt, a.k, a.pid, c.d)) continue;
           lim = stop; why = { sig: c.n, route: { wait: 'scambio' } }; break;          // switches moving, signal opening
         }
