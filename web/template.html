@@ -1329,8 +1329,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // (coordinates measured on the photos of 958, 956, 954, 941: the front is 255 wide; grey, yellow edges, the upper
     // part black and narrowing towards the roof)
     const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
-    // the sign: the train number in green in its own box on the left, the destination in orange in the middle
-    const V = { x: 40, y: 8, w: 181, h: 22 }, NB = { x: 40, w: 30 }, DB = { x: 74, w: 147 };
+    // the sign, one display: the train number in green on the left, the destination in orange in the middle
+    const V = { x: 38, y: 8, w: 185, h: 22 };
     const ledText = (t, x0, p, fill) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;
       for (const ch of t) { const g = F57[ch] || F57[' '];
         for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .43).toFixed(2)}"/>`;
@@ -1338,8 +1338,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       return `<g fill="${fill}" filter="url(#led)">${out}</g>`; };
     const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
     let sign = '';
-    if (num) { const p = 2.3, c = colsOf(num); sign += ledText(num, NB.x + (NB.w - c * p) / 2, p, '#3dff6e'); }
-    if (txt) { const cols = colsOf(txt), p = Math.min(2.45, (DB.w - 8) / cols, (V.h - 4) / 7); sign += ledText(txt, DB.x + (DB.w - cols * p) / 2, p, '#ff8a1a'); }
+    const numEnd = num ? V.x + 5 + colsOf(num) * 2.3 + 5 : V.x + 4;
+    if (num) sign += ledText(num, V.x + 5, 2.3, '#3dff6e');
+    if (txt) { const cols = colsOf(txt), p = Math.min(2.45, (V.x + V.w - 4 - numEnd) / cols, (V.h - 4) / 7);
+      sign += ledText(txt, Math.max(numEnd, V.x + (V.w - cols * p) / 2), p, '#ff8a1a'); }
     // the two lamps of each unit are the same: white below when running, red above when standing
     const red = lights === 'red', on = red ? '#ff3826' : '#fffaf0', glow = red ? '#ff2a14' : '#fff4c8';
     const housing = (x, lx, sx) => `<rect x="${x}" y="139" width="47.5" height="40" rx="7" fill="url(#hsg)" stroke="#8e949a" stroke-width="1.3"/>
@@ -1362,18 +1364,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         <filter id="led" x="-.1" y="-.6" width="1.2" height="2.2"><feGaussianBlur stdDeviation=".8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
       <!-- mirrors (black, on their arms) -->
-      <path d="M3 30 h-4 l-3 -3 h-8 a3 3 0 0 0 -3 3 v34 a3 3 0 0 0 3 3 h8 l3 -3 h4 z" fill="#17181a"/><path d="M-13 33 h7 v26 h-7 z" fill="#25272a"/>
-      <path d="M258 30 h4 l3 -3 h8 a3 3 0 0 1 3 3 v34 a3 3 0 0 1 -3 3 h-8 l-3 -3 h-4 z" fill="#17181a"/><path d="M267 33 h7 v26 h-7 z" fill="#25272a"/>
+      <path d="M3 26 h-4 l-3 -3 h-8 a3 3 0 0 0 -3 3 v54 a3 3 0 0 0 3 3 h8 l3 -3 h4 z" fill="#17181a"/><path d="M-13 29 h7 v48 h-7 z" fill="#25272a"/>
+      <path d="M258 26 h4 l3 -3 h8 a3 3 0 0 1 3 3 v54 a3 3 0 0 1 -3 3 h-8 l-3 -3 h-4 z" fill="#17181a"/><path d="M267 29 h7 v48 h-7 z" fill="#25272a"/>
       <!-- the grey body and, above the light units, the black upper part narrowing towards the roof -->
-      <path d="M3 44 Q4 16 22 6 Q30 1 46 0.5 H215 Q231 1 239 6 Q257 16 258 44 V203 H3 Z" fill="url(#bd)"/>
-      <path d="M3 44 Q4 16 22 6 Q30 1 46 0.5 H215 Q231 1 239 6 Q257 16 258 44 V203 H3 Z" fill="url(#sd)"/>
-      <path d="M13 136 V44 Q14 20 28 11 Q35 6 48 5.5 H213 Q226 6 233 11 Q247 20 248 44 V136 Z" fill="url(#up)"/>
-      <rect x="${V.x - 1.5}" y="${V.y - 1.5}" width="${V.w + 3}" height="${V.h + 3}" rx="2" fill="#2c2e31"/>
-      <rect x="${NB.x}" y="${V.y}" width="${NB.w}" height="${V.h}" rx="1" fill="#040405"/><rect x="${DB.x}" y="${V.y}" width="${DB.w}" height="${V.h}" rx="1" fill="#040405"/>
+      <path d="M3 9 Q3 2 10 2 H251 Q258 2 258 9 V203 H3 Z" fill="url(#bd)"/>
+      <path d="M3 9 Q3 2 10 2 H251 Q258 2 258 9 V203 H3 Z" fill="url(#sd)"/>
+      <path d="M13 136 V2 H248 V136 Z" fill="url(#up)"/>
+      <rect x="${V.x - 1.5}" y="${V.y - 1.5}" width="${V.w + 3}" height="${V.h + 3}" rx="2" fill="#2c2e31"/><rect x="${V.x}" y="${V.y}" width="${V.w}" height="${V.h}" rx="1" fill="#040405"/>
       ${sign}
       <!-- the yellow edges, curving with the roof -->
-      <path d="M3 44 Q4 16 22 6 Q30 1 46 0.5 L47 4.5 Q34 5.5 27 10 Q14.5 19 13.5 44 V203 H3 Z" fill="url(#yl)"/>
-      <path d="M258 44 Q257 16 239 6 Q231 1 215 0.5 L214 4.5 Q227 5.5 234 10 Q246.5 19 247.5 44 V203 H258 Z" fill="url(#yl)"/>
+      <path d="M3 9 Q3 2 10 2 H13.5 V203 H3 Z" fill="url(#yl)"/><path d="M258 9 Q258 2 251 2 H247.5 V203 H258 Z" fill="url(#yl)"/>
       <!-- windscreen: two panes and the door between them -->
       <rect x="15" y="39.75" width="69" height="92.25" rx="2" fill="url(#gl)"/><rect x="162.75" y="39.75" width="75" height="92.25" rx="2" fill="url(#gl)"/>
       <rect x="87.75" y="34.5" width="71.25" height="151.5" fill="#0f1012"/>
@@ -1596,8 +1596,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 '°':['111','101','111','000','000','000','000'],'½':['10000','10000','10010','00101','00001','00010','00111'],"'":['1','1','0','0','0','0','0']};
   // the half minute on the big line, as on the real screens: a small 1 up on the left, a small 2 down on the right
   // (with the slant bar between them: two rows taller than the digits, it reaches up into the space above them)
-  const HALF_BIG = ['010000000', '110000000', '010000000', '010000000', '010000010', '010000100', '111000100', '000001000',
-    '000001000', '000010000', '000010110', '000101001', '000100001', '000000010', '000000100', '000001000', '000001111'];
+  const HALF_BIG = ['01000000', '11000000', '01000001', '01000001', '01000010', '11100010', '00000100', '00001000',
+    '00010110', '00101001', '00100010', '01000100', '01001000', '10001111'];
+  const ONE_BIG = ['000100', '001100', '010100', '000100', '000100', '000100', '000100'].flatMap(r => [r, r]);
   // three sizes of the same 5x7 letters: small (the top line, the notices), big (the destination and the minutes:
   // twice as tall and one dot wider) and mid (the "2°" at the start: half as tall again)
   const MID_ROWS = [0, 1, 1, 2, 3, 3, 4, 5, 5, 6];
@@ -1608,9 +1609,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     let out = g;
     // (one dot wider: the middle column twice; not the letters with a single stroke in the middle, or their stroke
     // would come out twice as thick)
-    if (size === 'big') out = ch === '½' ? HALF_BIG : g.flatMap(r => { const w = r.length !== 5 || '1IiTl!|'.includes(ch) ? r : r.slice(0, 3) + r[2] + r.slice(3); return [w, w]; });
+    if (size === 'big') out = ch === '½' ? HALF_BIG : ch === '1' ? ONE_BIG : g.flatMap(r => { const w = r.length !== 5 || 'IiTl!|'.includes(ch) ? r : r.slice(0, 3) + r[2] + r.slice(3); return [w, w]; });
     // thin: as tall as the big letters, as narrow as the small ones (a long destination: PORTA ROMANA)
-    else if (size === 'thin') out = g.flatMap(r => [r, r]);
+    else if (size === 'thin' || size === 'thin1') out = g.flatMap(r => [r, r]);
     else if (size === 'mid') out = MID_ROWS.map(k => g[k]);
     GLYPHS.set(key, out); return out;
   }
@@ -1641,7 +1642,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     for (let j = 0; j < SCR.H; j++) for (let i = 0; i < SCR.W; i++) dot(sx + (i + 0.5) * P, sy + (j + 0.5) * P, dots[j * SCR.W + i]);
     if (clock) {
       const cw = txtW(clock, 'small'), cg = new Array(TW * SCR.H).fill(null);
-      put({ text: clock, x: Math.floor((TW - cw) / 2), y: 16, color: SCR_A, size: 'small' }, cg, TW, SCR.H);
+      put({ text: clock, x: Math.floor((TW - cw) / 2), y: Math.round((SCR.H - 7) / 2), color: SCR_A, size: 'small' }, cg, TW, SCR.H);
       for (let j = 0; j < SCR.H; j++) for (let i = 0; i < TW; i++) if (cg[j * TW + i]) dot((FR + i + 0.5) * P, sy + (j + 0.5) * P, cg[j * TW + i]);
     }
     const url = c.toDataURL(); if (SCR.cache.size > 200) SCR.cache.clear(); SCR.cache.set(key, url); return url;
@@ -1651,7 +1652,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const s = Math.floor(((t % 86400) + 86400) % 86400), hm = String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0');
     const W = SCR.W, X0 = 12, L = [];
     // the destination in big letters, in the narrow ones if it does not fit before the minutes
-    const dest = (y, room) => ({ text: data.dest, x: X0, y, color: SCR_A, size: X0 + txtW(data.dest, 'big') <= room ? 'big' : X0 + txtW(data.dest, 'thin') <= room ? 'thin' : 'small', ...(X0 + txtW(data.dest, 'thin') <= room ? {} : { y: y + 5 }) });
+    const dest = (y, room) => {
+      if (X0 + txtW(data.dest, 'big') <= room) return { text: data.dest, x: X0, y, color: SCR_A, size: 'big' };
+      if (X0 - 2 + txtW(data.dest, 'thin1') <= room - 3) return { text: data.dest, x: X0 - 2, y, color: SCR_A, size: 'thin1' };
+      if (X0 - 2 + txtW(data.dest, 'thin') <= room) return { text: data.dest, x: X0 - 2, y, color: SCR_A, size: 'thin' };
+      return { text: data.dest, x: X0, y: y + 5, color: SCR_A, size: 'small' }; };
     if (kind === 'train') {
       const m = data.min, num = String(Math.floor(m)) + (m % 1 ? '½' : ''), xn = W - 2 - txtW(num, 'big') + 1, xm = xn - 2;
       L.push({ text: data.n + '°', x: 1, y: 2, color: SCR_G, size: 'mid' }, { text: 'Treno per', x: X0, y: 2, color: SCR_G }, { text: 'attesa', x: W - 2, y: 2, color: SCR_G, right: true },
