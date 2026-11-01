@@ -10,10 +10,10 @@
   "Come si risolve / soccorso": "Riarmo; altrimenti soccorso con il treno dietro o con il trattorino",
   "Tempi (min - max)": "1 - 10 min",
   "Quanto spesso / come si attiva": "casuale / dal menu admin",
+  "Volte al giorno (stima)": 0.3,
   "Nel programma oggi": "no",
   "Note": "Riarmo: un paio di minuti dopo aver dato comunicazione al PC",
-  "_mine": [],
-  "Volte al giorno (stima)": 0.3
+  "_mine": []
  },
  {
   "N.": 2,
@@ -26,10 +26,12 @@
   "Come si risolve / soccorso": "Porta esclusa fino al deposito",
   "Tempi (min - max)": "1 - 3 min",
   "Quanto spesso / come si attiva": "casuale",
+  "Volte al giorno (stima)": 3,
   "Nel programma oggi": "no",
-  "Note": null,
-  "_mine": [],
-  "Volte al giorno (stima)": 3
+  "Note": "La verifica dell'agente può dare esito negativo: nessun oggetto tra le porte, il treno riparte",
+  "_mine": [
+   "Note"
+  ]
  },
  {
   "N.": 3,
@@ -42,10 +44,10 @@
   "Come si risolve / soccorso": "Riarmo; altrimenti soccorso",
   "Tempi (min - max)": "1 - 5 min",
   "Quanto spesso / come si attiva": "casuale",
+  "Volte al giorno (stima)": 0.5,
   "Nel programma oggi": "no",
   "Note": "Riarmo: un paio di minuti dopo aver dato comunicazione al PC",
-  "_mine": [],
-  "Volte al giorno (stima)": 0.5
+  "_mine": []
  },
  {
   "N.": 4,
@@ -58,10 +60,10 @@
   "Come si risolve / soccorso": "Rientro in deposito",
   "Tempi (min - max)": "-",
   "Quanto spesso / come si attiva": "casuale",
+  "Volte al giorno (stima)": 0.05,
   "Nel programma oggi": "no",
   "Note": null,
-  "_mine": [],
-  "Volte al giorno (stima)": 0.05
+  "_mine": []
  },
  {
   "N.": 5,
@@ -74,10 +76,10 @@
   "Come si risolve / soccorso": "Prosegue manuale",
   "Tempi (min - max)": "-",
   "Quanto spesso / come si attiva": "casuale",
+  "Volte al giorno (stima)": 0.2,
   "Nel programma oggi": "no",
   "Note": null,
-  "_mine": [],
-  "Volte al giorno (stima)": 0.2
+  "_mine": []
  },
  {
   "N.": 6,
@@ -87,13 +89,15 @@
   "Cosa fa il macchinista (e quanto ci mette)": "Verifica, riarma",
   "Cosa fa il PC": "Manda l'agente di stazione",
   "Quando diventa soccorso": "Mai",
-  "Come si risolve / soccorso": "Verifica dell'agente",
+  "Come si risolve / soccorso": "Verifica dell'agente - Se la situazione è un passegero che si sente male si passa al punto 21",
   "Tempi (min - max)": "1 - 5 min",
   "Quanto spesso / come si attiva": "casuale",
+  "Volte al giorno (stima)": 1,
   "Nel programma oggi": "no",
   "Note": null,
-  "_mine": [],
-  "Volte al giorno (stima)": 1
+  "_mine": [
+   "Come si risolve / soccorso"
+  ]
  },
  {
   "N.": 7,
@@ -106,10 +110,10 @@
   "Come si risolve / soccorso": "Manovra a mano dello scambio, poi itinerari con autorizzazione",
   "Tempi (min - max)": "10 - 30 min",
   "Quanto spesso / come si attiva": "dal menu admin",
+  "Volte al giorno (stima)": 0.1,
   "Nel programma oggi": "no",
   "Note": null,
-  "_mine": [],
-  "Volte al giorno (stima)": 0.1
+  "_mine": []
  },
  {
   "N.": 8,
@@ -122,10 +126,10 @@
   "Come si risolve / soccorso": "Marcia a vista 5 km/h",
   "Tempi (min - max)": "-",
   "Quanto spesso / come si attiva": "dal menu admin",
+  "Volte al giorno (stima)": 0.2,
   "Nel programma oggi": "no",
   "Note": null,
-  "_mine": [],
-  "Volte al giorno (stima)": 0.2
+  "_mine": []
  },
  {
   "N.": 9,
@@ -138,10 +142,10 @@
   "Come si risolve / soccorso": "Marcia a vista fino al segnale successivo",
   "Tempi (min - max)": "-",
   "Quanto spesso / come si attiva": "casuale",
+  "Volte al giorno (stima)": 0.3,
   "Nel programma oggi": "no",
   "Note": null,
-  "_mine": [],
-  "Volte al giorno (stima)": 0.3
+  "_mine": []
  },
  {
   "N.": 10,
@@ -154,10 +158,10 @@
   "Come si risolve / soccorso": "Ritorno della tensione; evacuazione se lunga",
   "Tempi (min - max)": "5 - 60 min",
   "Quanto spesso / come si attiva": "dal menu admin",
+  "Volte al giorno (stima)": 0.03,
   "Nel programma oggi": "no",
   "Note": null,
-  "_mine": [],
-  "Volte al giorno (stima)": 0.03
+  "_mine": []
  },
  {
   "N.": 11,
@@ -170,10 +174,12 @@
   "Come si risolve / soccorso": "Recupero della persona, poi ridà tensione",
   "Tempi (min - max)": "10 - 30 min",
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
+  "Volte al giorno (stima)": 0.1,
   "Nel programma oggi": "no",
-  "Note": null,
-  "_mine": [],
-  "Volte al giorno (stima)": 0.1
+  "Note": "La verifica dell'agente può dare esito negativo (circa 1 volta su 3): nessuno e niente sul binario. Il PC ridà tensione e via libera, i treni ripartono (5 - 10 min)",
+  "_mine": [
+   "Note"
+  ]
  },
  {
   "N.": 12,
@@ -181,17 +187,17 @@
   "Guasto": "Investimento",
   "Come si presenta (cosa vedono macchinista e PC)": "L'agente o il macchinista avvisa",
   "Cosa fa il macchinista (e quanto ci mette)": "Si ferma",
-  "Cosa fa il PC": "il pc chiama la polizia e i servizi di emergenza. il pc disalimenta la linea. L'agente di stazione informa il pc di come sta  succendendo a questo punto la stazione non sarà più utilizzabile e nemmeno i binari fino a quando 3/4 ore dopo l'agente di stazione avviserà che la polizia ha fatto i rilievi e che il treno bisogna portarlo in deposito. Dopo la stazione può tornare attiva",
+  "Cosa fa il PC": "il pc chiama la polizia e i servizi di emergenza. il pc disalimenta la linea. L'agente di stazione informa il pc di cosa sta  succendendo a questo punto la stazione non sarà più utilizzabile e nemmeno i binari fino a quando 3/4 ore dopo l'agente di stazione avviserà che la polizia ha fatto i rilievi e che il treno bisogna portarlo in deposito. Dopo la stazione può tornare attiva",
   "Quando diventa soccorso": "Sempre",
   "Come si risolve / soccorso": "soccorso alla persona, alla fine delle indagini si rià tensione e dopo aver tolto il treno la stazione tornerà disponibile",
   "Tempi (min - max)": "3 - 5 ore",
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
+  "Volte al giorno (stima)": 0.005,
   "Nel programma oggi": "no",
   "Note": null,
   "_mine": [
    "Nel programma oggi"
-  ],
-  "Volte al giorno (stima)": 0.005
+  ]
  },
  {
   "N.": 13,
@@ -204,6 +210,7 @@
   "Come si risolve / soccorso": "La persona viene allontanata dalla polizia; poi si ridà tensione e i treni ripartono in marcia a vista nella tratta",
   "Tempi (min - max)": "15 - 60 min",
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
+  "Volte al giorno (stima)": 0.02,
   "Nel programma oggi": "no",
   "Note": null,
   "_mine": [
@@ -211,8 +218,7 @@
    "Nel programma oggi",
    "Quando diventa soccorso",
    "Tempi (min - max)"
-  ],
-  "Volte al giorno (stima)": 0.02
+  ]
  },
  {
   "N.": 14,
@@ -225,12 +231,12 @@
   "Come si risolve / soccorso": "Spinta fino alla stazione / al tronchetto / al deposito",
   "Tempi (min - max)": "aggancio 5 min",
   "Quanto spesso / come si attiva": "-",
+  "Volte al giorno (stima)": "conseguenza",
   "Nel programma oggi": "no",
   "Note": "Preparazione del soccorso 10 min (Giovanni, da correggere); spinta a 25 km/h max, marcia a vista vicino al treno (da confermare)",
   "_mine": [
    "Note"
-  ],
-  "Volte al giorno (stima)": "conseguenza"
+  ]
  },
  {
   "N.": 15,
@@ -243,13 +249,13 @@
   "Come si risolve / soccorso": "Traino fino al deposito o a un tronchetto",
   "Tempi (min - max)": "aggancio 5 min, preparazione 10 min",
   "Quanto spesso / come si attiva": "-",
+  "Volte al giorno (stima)": "conseguenza",
   "Nel programma oggi": "no",
   "Note": "Movimento contromano autorizzato dal PC; 25 km/h max (da confermare)",
   "_mine": [
    "Note",
    "Tempi (min - max)"
-  ],
-  "Volte al giorno (stima)": "conseguenza"
+  ]
  },
  {
   "N.": 16,
@@ -262,13 +268,13 @@
   "Come si risolve / soccorso": "Traino fino al deposito",
   "Tempi (min - max)": "uscita 10 min, aggancio 5 min",
   "Quanto spesso / come si attiva": "-",
+  "Volte al giorno (stima)": "conseguenza",
   "Nel programma oggi": "no",
   "Note": "A inizio giornata è nel deposito di San Donato; il PC può spostarlo in uno dei tronchetti per averlo più vicino",
   "_mine": [
    "Note",
    "Tempi (min - max)"
-  ],
-  "Volte al giorno (stima)": "conseguenza"
+  ]
  },
  {
   "N.": 17,
@@ -281,13 +287,13 @@
   "Come si risolve / soccorso": "Evacuazione a piedi",
   "Tempi (min - max)": "20 - 45 min",
   "Quanto spesso / come si attiva": "-",
+  "Volte al giorno (stima)": "conseguenza",
   "Nel programma oggi": "no",
   "Note": "Il treno resta fermo finché i passeggeri non sono in stazione",
   "_mine": [
    "Note",
    "Tempi (min - max)"
-  ],
-  "Volte al giorno (stima)": "conseguenza"
+  ]
  },
  {
   "N.": 18,
@@ -300,6 +306,7 @@
   "Come si risolve / soccorso": "Finisce a fine giornata",
   "Tempi (min - max)": "tutta la giornata",
   "Quanto spesso / come si attiva": "giornata di sciopero dal menu admin (adesione in % casuale)",
+  "Volte al giorno (stima)": 0.03,
   "Nel programma oggi": "no",
   "Note": null,
   "_mine": [
@@ -309,8 +316,7 @@
    "Quando diventa soccorso",
    "Quanto spesso / come si attiva",
    "Tempi (min - max)"
-  ],
-  "Volte al giorno (stima)": 0.03
+  ]
  },
  {
   "N.": 19,
@@ -323,6 +329,7 @@
   "Come si risolve / soccorso": "escludendo porta",
   "Tempi (min - max)": "30 secondi - 2 minuti",
   "Quanto spesso / come si attiva": "casuale, soprattutto nelle ore di punta",
+  "Volte al giorno (stima)": 20,
   "Nel programma oggi": "no",
   "Note": null,
   "_mine": [
@@ -330,8 +337,7 @@
    "Cosa fa il PC",
    "Nel programma oggi",
    "Quanto spesso / come si attiva"
-  ],
-  "Volte al giorno (stima)": 20
+  ]
  },
  {
   "N.": 20,
@@ -342,8 +348,9 @@
   "Cosa fa il PC": "Chiude la stazione (i treni non fermano), chiama i vigili del fuoco, l'agente fa uscire i passeggeri; se c'è fumo in galleria ferma i treni e toglie tensione",
   "Quando diventa soccorso": "Se un treno resta fermo nel fumo: evacuazione",
   "Come si risolve / soccorso": "Spegnimento e verifica dei vigili del fuoco, poi la stazione riapre",
-  "Tempi (min - max)": "30 min - 3 ore",
+  "Tempi (min - max)": "30 min - 5 ore",
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
+  "Volte al giorno (stima)": 0.003,
   "Nel programma oggi": "no",
   "Note": null,
   "_mine": [
@@ -354,9 +361,75 @@
    "Nel programma oggi",
    "Quando diventa soccorso",
    "Quanto spesso / come si attiva",
-   "Tempi (min - max)",
    "Tipo"
-  ],
-  "Volte al giorno (stima)": 0.003
+  ]
+ },
+ {
+  "N.": 21,
+  "Tipo": "stazione",
+  "Guasto": "Persona si sente male sul treno",
+  "Come si presenta (cosa vedono macchinista e PC)": "Agente di stazione, macchinista avvisano il PC. passegero tira la manopola di emergenza (no freno di emergenza) se il treno sta viaggiando si ferma alla stazioen successiva dove l'agente di stazione controlla la situazione e nel caso chiama i soccorsi ",
+  "Cosa fa il macchinista (e quanto ci mette)": "rimane in stazione o si ferma alla stazione piàù vicina ",
+  "Cosa fa il PC": "chiude la tratta. Appena la persona è stata soccorsa il treno può riprendere la corsa e la tratta riaperta",
+  "Quando diventa soccorso": "-",
+  "Come si risolve / soccorso": "Quando agente di stazione fa rientrare l'emergenza",
+  "Tempi (min - max)": "20 minuti a 1 ora",
+  "Quanto spesso / come si attiva": "casuale (radio di stazione)",
+  "Volte al giorno (stima)": 0.5,
+  "Nel programma oggi": "no",
+  "Note": null,
+  "_mine": [
+   "Nel programma oggi",
+   "Quando diventa soccorso"
+  ]
+ },
+ {
+  "N.": 22,
+  "Tipo": "stazione",
+  "Guasto": "Persona si sente male in stazione",
+  "Come si presenta (cosa vedono macchinista e PC)": "agente di stazione avvisa il pc ",
+  "Cosa fa il macchinista (e quanto ci mette)": "il traffico continua normale salvo nei momenti in cui agente di stazione chiede al PC di fermare momentaneamente la linea per permettere una migliore soccorso da parte dei soccorritori ",
+  "Cosa fa il PC": "protegge la stazione e rallenta  i treni in entrata ",
+  "Quando diventa soccorso": "-",
+  "Come si risolve / soccorso": "Quando agente di stazione fa rientrare l'emergenza",
+  "Tempi (min - max)": "10 - 30 min",
+  "Quanto spesso / come si attiva": "casuale (radio di stazione)",
+  "Volte al giorno (stima)": 0.4,
+  "Nel programma oggi": "no",
+  "Note": null,
+  "_mine": [
+   "Nel programma oggi",
+   "Quando diventa soccorso",
+   "Tipo"
+  ]
+ },
+ {
+  "N.": 23,
+  "Tipo": "treno",
+  "Guasto": "Il treno funziona ma chiede continuamente di essere riarmato",
+  "Come si presenta (cosa vedono macchinista e PC)": "Il treno si ferma più volte lungo la linea; ogni volta il macchinista chiama il PC e riarma",
+  "Cosa fa il macchinista (e quanto ci mette)": "Riarma (un paio di minuti dopo aver avvisato il PC) e prosegue",
+  "Cosa fa il PC": "Chiama la Manutenzione di linea a San Donato e indica il treno su cui deve salire il tecnico (e in quale stazione)",
+  "Quando diventa soccorso": "Se il tecnico non risolve e il treno non riparte più",
+  "Come si risolve / soccorso": "Il tecnico sale a bordo in stazione e sistema il treno in marcia; se non si può, il treno finisce la corsa e rientra in deposito",
+  "Tempi (min - max)": "tecnico in stazione 15 - 45 min (dipende da quanto è lontana da San Donato); a bordo 10 - 30 min",
+  "Quanto spesso / come si attiva": "casuale",
+  "Volte al giorno (stima)": 0.3,
+  "Nel programma oggi": "no",
+  "Note": "Pulsante Radio Manutenzione di linea (San Donato) sul pannello del PC",
+  "_mine": [
+   "Tipo",
+   "Guasto",
+   "Come si presenta (cosa vedono macchinista e PC)",
+   "Cosa fa il macchinista (e quanto ci mette)",
+   "Cosa fa il PC",
+   "Quando diventa soccorso",
+   "Come si risolve / soccorso",
+   "Tempi (min - max)",
+   "Quanto spesso / come si attiva",
+   "Volte al giorno (stima)",
+   "Nel programma oggi",
+   "Note"
+  ]
  }
 ]

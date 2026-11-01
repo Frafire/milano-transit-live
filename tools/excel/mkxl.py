@@ -207,10 +207,12 @@ PC=[
  ('Radio alla stazione','Chiamare una stazione','Il PC parla con l\'agente di stazione (tutte le stazioni sono presenziate); messaggio libero e risposta','Sempre','Registro della radio di stazione','no'),
  ('Radio alla stazione','Annuncio ai passeggeri','L\'agente fa l\'annuncio in stazione: ritardo, servizio limitato, tratta chiusa, navetta, treno che non ferma','Ritardi, chiusure, guasti','Annuncio fatto (ora)','no'),
  ('Radio alla stazione','Messaggio sugli schermi di banchina','Al posto degli avvisi normali gli schermi mostrano un testo del PC (es. SERVIZIO LIMITATO A …)','Chiusure, guasti, sciopero','Testo sugli schermi della stazione','no'),
- ('Radio alla stazione','Verifica in banchina','L\'agente controlla e riferisce: porte, passeggero sui binari, oggetto caduto, treno fermo in banchina','Su segnalazione del macchinista o del PC','Risposta dell\'agente, tempo','no'),
+ ('Radio alla stazione','Verifica in banchina','L\'agente controlla e riferisce: porte, passeggero sui binari, oggetto caduto, treno fermo in banchina. L\'esito può essere negativo: nessun oggetto e nessuno sul binario','Su segnalazione del macchinista o del PC','Risposta dell\'agente (trovato / niente da segnalare), tempo','no'),
  ('Radio alla stazione','Assistenza a un treno','L\'agente va sul treno fermo in stazione (malore, guasto, porte bloccate, evacuazione)','Guasti, emergenze','Agente sul treno, treno trattenuto','no'),
  ('Radio alla stazione','Chiudere o riaprire gli accessi della stazione','Ingressi chiusi: i treni passano senza fermare o fermano solo per scendere','Sovraffollamento, emergenza, chiusura tratta','Stazione chiusa al pubblico','no'),
  ('Radio alla stazione','Chiamate dalla stazione al PC','L\'agente avvisa il PC: persona sui binari, investimento, incendio, sovraffollamento, guasto in stazione','Sempre','Allarme sul pannello con la stazione e il motivo','no'),
+ ('Radio manutenzione','Radio Manutenzione di linea (San Donato)','Il PC chiama la centrale di manutenzione di San Donato','Guasti a treni, scambi, segnali','Registro della radio di manutenzione','no'),
+ ('Radio manutenzione','Tecnico a bordo di un treno','Il PC indica il treno su cui deve salire il tecnico e la stazione: il tecnico arriva da San Donato e sistema il treno in marcia (treno che funziona ma chiede di essere riarmato)','Treno da riarmare più volte','Tecnico in arrivo (stazione, ora), tecnico a bordo, esito','no'),
 ]
 r=2
 for i,(g,cmd,what,when,sees,now) in enumerate(PC,1):
@@ -255,7 +257,7 @@ if len(sys.argv)>1:
     import openpyxl
     old=openpyxl.load_workbook(sys.argv[1]); KEYN={'Stazioni limite':3}; n_cp=0
     # cells changed here after his remarks (1 Nov 2026: no emergency button on the M3 platforms): his old text must not come back
-    KEEP_NEW={('Pannello PC',29,h) for h in ('Comando o informazione','Cosa fa','Quando si può usare','Cosa vede il PC (prima e dopo)')}|{('Pannello PC',42,'Cosa fa')}
+    KEEP_NEW={('Pannello PC',29,h) for h in ('Comando o informazione','Cosa fa','Quando si può usare','Cosa vede il PC (prima e dopo)')}|{('Pannello PC',42,'Cosa fa'),('Pannello PC',39,'Cosa fa'),('Pannello PC',39,'Cosa vede il PC (prima e dopo)')}
     for ws in wb:
         if ws.title not in old.sheetnames or ws.title=='Situazioni' or ws.title in os.environ.get('BASE_ONLY','').split(','): continue
         if ws.title=='Istruzioni':      # what he added himself: only cells that are empty here
