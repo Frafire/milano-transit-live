@@ -11,9 +11,10 @@
 // - stazione: radio alla stazione, Corvetto closed to the public: trains go through, the screens say so
 // - segnale: the PC holds #A13 at red from its card: no route from it
 // - linea: admin menu Guasti, a signal in front of a running train stays red: the driver asks, the PC gives the marcia a vista
+// - emergenza: Emergenze PC, pulsante rosso on the stretch of a running train: it stops; Togli from the alarms: it goes again
 // - guasto: admin menu Guasti, a train in service does not start again: the call among the PC alarms, the PC answers Riarma
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
-// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea ...]   (no argument: all of them). Exit code 1 if one fails.
+// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea|emergenza ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html');
@@ -247,6 +248,22 @@ const SCENARIOS = {
       st.sel = 'f' + M.fleets.indexOf(F) + ':' + a.k; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(300);
       const log = document.getElementById('radioLog').innerText;
       return { ok: /non si apre/.test(call) && went && vmax <= 5.5 && /marcia a vista/.test(log), sig: sig.n, call: call.slice(0, 120), went, vmax: +vmax.toFixed(1), log: log.split('\n').filter(l => /vista|guasto/i.test(l)).slice(-4) };
+    });
+  },
+  async emergenza(p) {  // the PC by hand (fase D3): red button between two stations; then taken away from the alarms
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      st.playing = false; st.t = 8 * 3600; await sleep(2500); st.playing = true; st.speed = 30; await sleep(3000); st.playing = false; await sleep(300);
+      const a = F.ag.agents().find(x => !x.hidden && x.status === 'service' && x.v > 8 && x.at > 3 && x.at < 15); if (!a) return { ok: false, why: 'no train running' };
+      const dir = (a.legs[0] || {}).dir, A = dir === 'S' ? a.at - 1 : a.at, B = A + 1;
+      document.getElementById('emA').value = String(A); document.getElementById('emB').value = String(B); document.getElementById('emRed').click(); await sleep(300);
+      st.playing = true; st.speed = 10; await sleep(3000); st.playing = false; await sleep(300);
+      const stopped = a.v === 0 && a.why === 'rosso', btn = [...document.querySelectorAll('#pcAlarms [data-fxa="fix"]')].find(b => /pulsante rosso/.test(b.closest('li').innerText));
+      if (!btn) return { ok: false, why: 'no PC alarm with Togli', stopped, alarms: document.getElementById('pcAlarms').innerText.slice(0, 200) };
+      btn.click(); await sleep(300); const d0 = a.d;
+      st.playing = true; st.speed = 10; await sleep(4000); st.playing = false; await sleep(200);
+      return { ok: stopped && Math.abs(a.d - d0) > 5 && !F.ag.zones().length, train: a.k, stretch: [A, B], stopped, movedAfter: Math.round(Math.abs(a.d - d0)) };
     });
   },
 };

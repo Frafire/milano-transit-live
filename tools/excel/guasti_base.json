@@ -175,7 +175,7 @@
   "Tempi (min - max)": "10 - 30 min",
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
   "Volte al giorno (stima)": 0.1,
-  "Nel programma oggi": "no",
+  "Nel programma oggi": "sì (fase D3)",
   "Note": "Esito negativo raro: quando arriva l'agente la persona non c'è più (risalita o uscita). Allora il PC ridà tensione e via libera",
   "_mine": [
    "Note"
@@ -193,7 +193,7 @@
   "Tempi (min - max)": "3 - 5 ore",
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
   "Volte al giorno (stima)": 0.005,
-  "Nel programma oggi": "no",
+  "Nel programma oggi": "sì (fase D3)",
   "Note": null,
   "_mine": [
    "Nel programma oggi"
@@ -211,7 +211,7 @@
   "Tempi (min - max)": "15 - 60 min",
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
   "Volte al giorno (stima)": 0.02,
-  "Nel programma oggi": "no",
+  "Nel programma oggi": "sì (fase D3)",
   "Note": null,
   "_mine": [
    "Come si risolve / soccorso",
@@ -351,7 +351,7 @@
   "Tempi (min - max)": "30 min - 5 ore",
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
   "Volte al giorno (stima)": 0.003,
-  "Nel programma oggi": "no",
+  "Nel programma oggi": "sì (fase D3)",
   "Note": null,
   "_mine": [
    "Come si presenta (cosa vedono macchinista e PC)",
@@ -395,7 +395,7 @@
   "Tempi (min - max)": "10 - 30 min",
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
   "Volte al giorno (stima)": 0.4,
-  "Nel programma oggi": "no",
+  "Nel programma oggi": "sì (fase D3)",
   "Note": null,
   "_mine": [
    "Nel programma oggi",
@@ -444,7 +444,7 @@
   "Tempi (min - max)": "verifica 2 - 5 min; recupero 5 - 15 min",
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
   "Volte al giorno (stima)": 1,
-  "Nel programma oggi": "no",
+  "Nel programma oggi": "sì (fase D3)",
   "Note": null,
   "_mine": [
    "Tipo",

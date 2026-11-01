@@ -197,7 +197,7 @@ PC=[
  ('Servizio e orario','Inserire o togliere un treno','Far uscire un treno in più dal deposito o ritirarne uno (orario flessibile, fase E)','Ritardi, guasti, sciopero','Treni in linea, corse scoperte','no'),
  ('Guasti ed emergenze','Treno guasto: soccorso','Soccorso con un altro treno o con il trattorino (fase D)','Guasto treno','Treno guasto, mezzo di soccorso, tratta impegnata','no'),
  ('Guasti ed emergenze','Guasto a scambio o segnale','Segnare il guasto: gli itinerari che lo usano non si formano (fase D)','Guasto binario','Elemento guasto sul quadro','no'),
- ('Guasti ed emergenze','Pulsante rosso: tutti i semafori a rosso','Il PC mette a rosso tutti i semafori (della linea o di una tratta); chi è vicino frena d\'emergenza','Persona sui binari, investimento, emergenze','Semafori rossi, treni fermi','no'),
+ ('Guasti ed emergenze','Pulsante rosso: tutti i semafori a rosso','Il PC mette a rosso tutti i semafori (della linea o di una tratta); chi è vicino frena d\'emergenza','Persona sui binari, investimento, emergenze','Semafori rossi, treni fermi','sì'),
  ('Guasti ed emergenze','Sciopero / fasce garantite','Servizio ridotto negli orari dello sciopero','Sciopero','Treni in linea','no'),
  ('Cosa vede il PC','Quadro della linea: treni e sezioni occupate','Schema della linea con i binari, le sezioni occupate e il numero del treno',None,None,'in parte (mappa)'),
  ('Cosa vede il PC','Stato di semafori, scambi e itinerari','Colore dei semafori, posizione degli scambi, itinerari formati e in attesa',None,None,'in parte'),
@@ -257,7 +257,7 @@ if len(sys.argv)>1:
     import openpyxl
     old=openpyxl.load_workbook(sys.argv[1]); KEYN={'Stazioni limite':3}; n_cp=0
     # cells changed here after his remarks (1 Nov 2026: no emergency button on the M3 platforms): his old text must not come back
-    KEEP_NEW={('Pannello PC',29,h) for h in ('Comando o informazione','Cosa fa','Quando si può usare','Cosa vede il PC (prima e dopo)')}|{('Pannello PC',42,'Cosa fa'),('Pannello PC',39,'Cosa fa'),('Pannello PC',39,'Cosa vede il PC (prima e dopo)')}
+    KEEP_NEW={('Pannello PC',29,h) for h in ('Comando o informazione','Cosa fa','Quando si può usare','Cosa vede il PC (prima e dopo)','Nel programma oggi')}|{('Pannello PC',42,'Cosa fa'),('Pannello PC',39,'Cosa fa'),('Pannello PC',39,'Cosa vede il PC (prima e dopo)')}
     for ws in wb:
         if ws.title not in old.sheetnames or ws.title=='Situazioni' or ws.title in os.environ.get('BASE_ONLY','').split(','): continue
         if ws.title=='Istruzioni':      # what he added himself: only cells that are empty here

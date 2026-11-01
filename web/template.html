@@ -350,6 +350,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="row"><button id="depotAuto" aria-pressed="true" title="Automatico: i segnali del deposito si aprono da soli. Manuale: clic sul segnale per dare via libera a un treno">Deposito: automatico</button></div>
     <p class="note" id="ilNote" hidden></p>
   </section>
+  <section class="m3panel faults" aria-label="Emergenze del PC">
+    <div class="label">Emergenze PC</div>
+    <div class="row"><select id="emA" aria-label="Da stazione" style="flex:1"></select><select id="emB" aria-label="A stazione" style="flex:1"></select></div>
+    <div class="row"><button id="emRed" title="Tutti i semafori della tratta a rosso: i treni nella tratta frenano d'emergenza">Pulsante rosso</button><button id="emPower">Togli tensione</button><button id="emStop">Ferma i treni</button></div>
+    <p class="note">Su una stazione sola (da e a uguali) vale per le sue banchine; tra due stazioni per i binari in mezzo. Si tolgono dagli Allarmi PC.</p>
+  </section>
   <section class="m3panel faults admin-only" aria-label="Guasti (admin)">
     <div class="label">Guasti M3 (admin)</div>
     <label><input type="checkbox" id="fxRandom"> Guasti casuali, quante volte al giorno come nell'Excel (valgono anche per il player)</label>
@@ -2558,7 +2564,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   closeBtn.onclick = closeStretch; reopenBtn.onclick = reopenStretch; normalBtn.onclick = backToTimetable;
   setTimeout(fillClosures, 0);
   const AGLABEL = { service: 'In servizio', stopped: 'Fermo in stazione: tratta interrotta', held: 'Trattenuto: tratta chiusa', turnback: 'In manovra (cambio banco)', empty: 'Vuoto, senza passeggeri', depot: 'Rientrato in deposito', parked: 'In deposito' };
-  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC', pc: ' · trattenuto dal PC', anello: ' · attende al #A94 (anello di prova)', guasto: ' · guasto' };
+  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC', pc: ' · trattenuto dal PC', anello: ' · attende al #A94 (anello di prova)', guasto: ' · guasto', tensione: ' · senza tensione', rosso: ' · pulsante rosso', fermo: ' · fermato dal PC' };
   // the line under the train name: the agents' service (shuttles carry passengers: reduced service)
   function cardSub(st) {
     const a = st.agent;
@@ -2838,7 +2844,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const FX_PH = { rearm: 'riarmo in corso', help: 'serve il soccorso', rescue: 'soccorso in arrivo', verify: "l'agente verifica", held: 'fermo in banchina', manual: 'guida manuale',
                   dwell: 'in banchina', armed: 'alla prossima stazione', stopping: 'si ferma', call: 'chiama il PC', run: 'in servizio',
                   on: 'in attesa della riparazione', failed: 'da manovrare a mano', team: 'squadra in arrivo', pos: 'squadra allo scambio', hand: 'manovrato a mano, treni con autorizzazione',
-                  off: 'senza tensione', ready: 'riparato: ridare tensione', go: 'marcia a vista' };
+                  off: 'senza tensione', ready: 'riparato: ridare tensione', go: 'marcia a vista',
+                  alarm: 'allarme', recover: 'tratta ferma, recupero in corso', told: 'da verificare', found: 'oggetto sul binario', ask: 'chiede di fermare i treni',
+                  holding: 'treni fermi in stazione', fire: 'stazione chiusa, vigili del fuoco', };
   const fxPhase = f => (f.tech === 'wait' ? 'tecnico in attesa a San Donato' : f.tech === 'board' ? 'tecnico a bordo' : FX_PH[f.ph] || f.ph);
   function fxAnswer(F, id, what) {
     if (!F || !F.ag) return;
@@ -2862,7 +2870,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     for (const m of F.ag.FX.feed()) {
       const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
       const txt = m.text.replace(/\{T\}/g, no(m.k));
-      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'pc' ? 'PC' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : '';
+      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'pc' ? 'PC' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : '';
       MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
     }
   }
@@ -2882,6 +2890,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const v = tSel.value, h = rows.join(''); if (tSel.dataset.h !== h) { tSel.dataset.h = h; tSel.innerHTML = h; if ([...tSel.options].some(o => o.value === v)) tSel.value = v; }
     }
   }
+  // Emergenze: the PC by hand on a stretch (or one station)
+  function emFill(F) { const a = document.getElementById('emA'), b = document.getElementById('emB'); if (!a || a.options.length || !F) return;
+    const h = F.engine.G.names.map((n, i) => `<option value="${i}">${cap(n)}</option>`).join(''); a.innerHTML = h; b.innerHTML = h; }
+  for (const [id, zone] of [['emRed', 'red'], ['emPower', 'power'], ['emStop', 'stop']]) document.getElementById(id).onclick = () => {
+    const F = m3eng(); if (!F || !F.ag) return; emFill(F);
+    F.ag.event({ kind: 'fault', what: 'pczone', zone, a: +document.getElementById('emA').value, b: +document.getElementById('emB').value }); fxFeed(F); renderAlarms(); };
   document.getElementById('fxKind').onchange = () => { const t = document.getElementById('fxTrain'); t.dataset.h = ''; fxPanel(m3eng()); };
   document.getElementById('fxRandom').onchange = e => { const F = m3eng(); if (!F || !F.ag) return; F.ag.event({ kind: 'fault', what: 'random', on: e.target.checked }); };
   document.getElementById('fxGo').onclick = () => { const F = m3eng(); if (!F || !F.ag) return;
@@ -2889,6 +2903,18 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const r = F.ag.event(kd && kd.on !== 'train' ? { kind: 'fault', what: 'new', fault: kind, target: tv === '' ? null : +tv } : { kind: 'fault', what: 'new', fault: kind, k: +tv });
     document.getElementById('fxNote').textContent = r ? 'Guasto partito: guarda gli Allarmi PC e la radio.' : 'Non si può su quel treno (fermo, fuori servizio o con lo stesso guasto).';
     fxFeed(F); renderAlarms(); };
+  // the zones on the map (no power, red button, held, slow, marcia a vista): a coloured band over the two tracks
+  const zoneLayer = L.layerGroup().addTo(map), ZCOL = { red: '#ff2a2a', power: '#ff8a00', stop: '#c84dff', slow: '#ffd400', vista: '#3db7ff' };
+  function drawZones(F) {
+    const Z = F.ag.zones(), h = JSON.stringify(Z.map(z => [z.id, z.kind, z.a, z.b, z.done])); if (zoneLayer._h === h) return; zoneLayer._h = h; zoneLayer.clearLayers();
+    const G = F.engine.G, half = F.engine.half, last = G.names.length - 1, stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
+    for (const z of Z) for (const dir of ['N', 'S']) {
+      if (z.kind === 'vista' && z.done[dir]) continue;
+      const pid = G[dir].pid, [lo, hi] = z.a === z.b ? [stopOf(dir, z.a) - half - 30, stopOf(dir, z.a) + half + 30] : dir === 'N' ? [stopOf('N', z.a) + half + 5, stopOf('N', z.b) - half - 5] : [stopOf('S', z.b) + half + 5, stopOf('S', z.a) - half - 5];
+      const pts = [], n = Math.max(2, Math.ceil((hi - lo) / 20)); for (let i = 0; i <= n; i++) pts.push(trackAt(F, pid, lo + (hi - lo) * i / n));
+      L.polyline(pts, { color: ZCOL[z.kind] || '#fff', weight: 10, opacity: .45, interactive: false }).addTo(zoneLayer);
+    }
+  }
   function renderAlarms() {
     const el = document.getElementById('pcAlarms'), F = m3eng(); if (!el) return;
     if (!F || !F.ag) { el.innerHTML = '<li class="note">Motore spento</li>'; return; }
@@ -2903,16 +2929,17 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (a.atoWarn) out.push({ k: a.k, cls: 'late', t: `Treno ${tno(a.k)} troppo vicino al treno davanti, ATO al minimo: valuta un blocco in stazione` });
     });
     // failures: the calls waiting for the PC first, with their answers
-    if (F.ag.FX) { fxFeed(F); fxPanel(F);
+    if (F.ag.FX) { fxFeed(F); fxPanel(F); emFill(F); drawZones(F);
       const fl = F.ag.FX.list();
-      fl.filter(f => !f.call && f.kind !== 'vista').forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, g: f.kind === 'segnale' || f.kind === 'sezione' ? f.target : undefined, cls: 'fx', t: f.k != null ? `⚠ Treno ${tno(f.k)}: ${f.label} · ${fxPhase(f)}` : `⚠ ${f.label}: ${f.what} · ${fxPhase(f)}`, fx: f }));
+      fl.filter(f => !f.call && f.kind !== 'vista').forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, g: f.kind === 'segnale' || f.kind === 'sezione' ? f.target : undefined, cls: 'fx', t: f.k != null ? `⚠ Treno ${tno(f.k)}: ${f.label} · ${fxPhase(f)}`
+        : f.kind === 'pc' ? `⛔ PC: ${f.zone === 'red' ? 'pulsante rosso' : f.zone === 'power' ? 'tensione tolta' : 'treni fermi'} · ${f.what}` : `⚠ ${f.label}: ${f.what} · ${fxPhase(f)}`, fx: f }));
       fl.filter(f => f.call).forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, cls: 'late fx', t: '📻 ' + f.call.text.replace(/\{T\}/g, tno(f.k)), fx: f })); }
     for (const n of Object.keys(rt.redFix || {})) out.push({ g: n, t: `#A${String(n).padStart(2, '0')} rosso fisso` });
     for (const [n, r] of Object.entries(rt.pcRoutes || {})) out.push({ g: n, t: `Itinerario ${r.id} preparato da #A${String(n).padStart(2, '0')}` });
     for (const nd of Object.keys(rt.swLock || {})) out.push({ t: `Scambio ${nd} bloccato` });
     for (const [x, v] of Object.entries(S_.stn || {})) { if (v.closed) out.push({ b: +x, t: `${cap(G.names[x])} chiusa al pubblico` }); if (v.msg) out.push({ b: +x, t: `${cap(G.names[x])}: schermi "${v.msg}"` }); }
     const em = closureNow(F); if (em) out.unshift({ cls: 'late', t: em.reopened ? `Tratta ${em.label} riaperta` : `Tratta ${em.label} chiusa` });
-    const fxBtns = f => `<span class="fxb">${(f.call ? f.call.answers : []).map(([w, l]) => `<button data-fxid="${f.id}" data-fxa="${w}">${l}</button>`).join('')}${f.kind === 'riarmo' && !f.tech && !(f.call && f.call.opts.includes('tech')) ? `<button data-fxid="${f.id}" data-fxa="tech">🔧 Tecnico a bordo</button>` : ''}</span>`;
+    const fxBtns = f => `<span class="fxb">${(f.call ? f.call.answers : []).map(([w, l]) => `<button data-fxid="${f.id}" data-fxa="${w}">${l}</button>`).join('')}${f.kind === 'riarmo' && !f.tech && !(f.call && f.call.opts.includes('tech')) ? `<button data-fxid="${f.id}" data-fxa="tech">🔧 Tecnico a bordo</button>` : ''}${f.kind === 'pc' ? `<button data-fxid="${f.id}" data-fxa="fix">Togli</button>` : ''}</span>`;
     const html = out.map((x, i) => `<li data-i="${i}" class="${x.cls || ''}"><span class="where">${x.t}</span>${x.fx ? fxBtns(x.fx) : ''}</li>`).join('') || '<li class="note">Nessun allarme</li>';
     if (el.dataset.h === html) return; el.dataset.h = html; el.innerHTML = html;
     el.querySelectorAll('[data-fxid]').forEach(b => b.onclick = ev => { ev.stopPropagation(); fxAnswer(F, +b.dataset.fxid, b.dataset.fxa); });

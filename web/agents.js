@@ -80,7 +80,7 @@
     }
     // stn[station]: what the PC set for a station (radio alla stazione): closed to the public (trains do not stop), the
     // text on its platform screens
-    const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null };
+    const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null, zones: [] };
     // failures (web/faults.js, foglio Guasti): emergency brake of each kind of train
     const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
       line: {
@@ -88,7 +88,9 @@
         sigs: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => (o.sigall && o.sigall[pid] || []).map(x => x[1])))].filter(n => !RT.isPcSignal(n)).sort((x, y) => x - y),
         switches: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => RT.switchesOn(pid, -Infinity, Infinity).map(x => x[1])))].sort((x, y) => x - y),
         sigEdges: n => { for (const [pid, l] of Object.entries(o.sigall || {})) { const x = l.find(y => y[1] === n); if (x) return RT.span(+pid, x[0], RT.nextSignal(+pid, x[0])).pieces.map(p => p[0]); } return []; },
-        positions: nd => RT.switchPositions(nd), power: (a, b) => setPower(a, b), last: () => last,
+        positions: nd => RT.switchPositions(nd), last: () => last,
+        zone: (kind, a, b, extra) => addZone(kind, a, b, extra), unzone: id => dropZone(id),
+        station: (X, closed) => { const x = S.stn[X] = Object.assign({}, S.stn[X]); if (closed) x.closed = true; else delete x.closed; if (!Object.keys(x).length) delete S.stn[X]; },
       } }) : null;
     const VISTA = (ops.marcia_a_vista_kmh || 5) / 3.6;          // marcia a vista: 5 km/h (Giovanni)
     const last = G ? G.names.length - 1 : 0;
@@ -301,6 +303,11 @@
           if (SLOW.set.has(ei)) v = Math.min(v, x0 <= a.d + half ? vz : Math.sqrt(vz * vz + 2 * B * (x0 - a.d - half))); } }
       if (a.vlim) v = Math.min(v, a.vlim);                                   // speed limit ordered by the PC
       if (a.avista) { if (a.avista.pid !== a.pid || a.d + half > a.avista.d1 + 1) a.avista = null; else v = Math.min(v, VISTA); }   // marcia a vista
+      // zones: slow (a passenger taken ill in a station), marcia a vista (the first train after a stretch was closed)
+      for (const Z of ZONES) { const kz = Z.z.kind === 'slow' ? Z.z.kmh / 3.6 : Z.z.kind === 'vista' ? VISTA : null; if (kz == null) continue;
+        const pe = pathEdges[a.pid]; if (pe) for (const [ei, , x0, x1] of pe.e) { if (x1 < a.d - half) continue; if (x0 > a.d + half + 300) break;
+          const p = Z.map.get(ei); if (!p || (Z.z.kind === 'vista' && Z.z.done[p[2]])) continue;
+          v = Math.min(v, x0 <= a.d + half ? kz : Math.sqrt(kz * kz + 2 * B * (x0 - a.d - half))); } }
       return v;
     }
 
@@ -363,20 +370,39 @@
       const C = a.mode === 'navetta' || a.navOut ? CLOSED0 : CLOSED;
       return S.cl && C && a.mode !== 'inside' && a.mode !== 'held' && !a.exitClosed ? pieces => { for (const [ei, l0, l1] of pieces) if (C.has(ei) && l1 - l0 > 8) return { closed: ei }; return null; } : null; };
     let CLOSED0 = null;
-    // ---------- no power on a stretch (guasto: mancanza di tensione, fase D2) ----------
-    // the main tracks between two stations: the trains on them brake to a stop and stand; no route into it
-    let POWER = null;
-    function setPower(a, b) {
-      S.power = a == null ? null : { a: Math.min(a, b), b: Math.max(a, b) }; POWER = null; if (!S.power) return;
-      // (the stretch on each track piece, in metres along the piece: the platforms stay out of it)
-      const { a: x, b: y } = S.power; POWER = new Map();
-      const span = (pid, lo, hi) => { for (const [ei, l0, l1] of RT.span(pid, lo, hi).pieces) POWER.set(ei, [l0, l1]); };
-      span(G.N.pid, stopOf('N', x) + half + 5, stopOf('N', y) - half - 5); span(G.S.pid, stopOf('S', y) + half + 5, stopOf('S', x) - half - 5);
+    // ---------- zones of the line (failures, fase D2-D3; the PC's emergency commands) ----------
+    // a stretch of the main tracks between two stations (or one station: its platforms): no power, all signals red
+    // (pulsante rosso: the trains in it brake at once, emergency brake), trains held by the PC, slow (km/h), marcia a
+    // vista (the first train on each track at walking pace). No route into a zone that stops the trains.
+    let ZONES = [];
+    function zoneMap(a, b) {
+      const map = new Map(), add = (pid, lo, hi, T) => { for (const [ei, l0, l1] of RT.span(pid, lo, hi).pieces) map.set(ei, [l0, l1, T]); };
+      if (a === b) { add(G.N.pid, stopOf('N', a) - half - 30, stopOf('N', a) + half + 30, 'N'); add(G.S.pid, stopOf('S', a) - half - 30, stopOf('S', a) + half + 30, 'S'); }
+      else { add(G.N.pid, stopOf('N', a) + half + 5, stopOf('N', b) - half - 5, 'N'); add(G.S.pid, stopOf('S', b) + half + 5, stopOf('S', a) - half - 5, 'S'); }
+      return map;
     }
-    const inPower = (ei, l0, l1) => { const p = POWER.get(ei); return p && l0 < p[1] - 2 && p[0] + 2 < l1; };
-    const noPower = a => POWER && footprint(a).some(f => inPower(f[0], f[1], f[2]));
-    const blockOf = a => { const cb = closedBlock(a); if (!POWER) return cb;
-      return pieces => (cb && cb(pieces)) || (pieces.some(([ei, l0, l1]) => inPower(ei, l0, l1)) ? { power: true } : null); };
+    function setZones() { ZONES = (S.zones || []).map(z => ({ z, map: zoneMap(z.a, z.b) })); }
+    function addZone(kind, a, b, extra) {
+      const x = Math.max(0, Math.min(a, b)), y = Math.min(last, Math.max(a, b)); S.zoneSeq = (S.zoneSeq || 0) + 1;
+      S.zones = (S.zones || []).concat([Object.assign({ id: S.zoneSeq, kind, a: x, b: y, done: {} }, extra || {})]); setZones(); return S.zoneSeq;
+    }
+    function dropZone(id) { S.zones = (S.zones || []).filter(z => z.id !== id); setZones(); }
+    const inZ = (Z, ei, l0, l1) => { const p = Z.map.get(ei); return p && l0 < p[1] - 2 && p[0] + 2 < l1 ? p[2] : null; };
+    const STOPZ = { power: 1, red: 1, stop: 1 };
+    function zoneHold(a) {
+      let w = null; const fp = footprint(a);
+      for (const Z of ZONES) if (STOPZ[Z.z.kind] && fp.some(f => inZ(Z, f[0], f[1], f[2]) != null)) { if (Z.z.kind === 'red') return Z.z; w = w || Z.z; }
+      return w;
+    }
+    const blockOf = a => { const cb = closedBlock(a); if (!ZONES.some(Z => STOPZ[Z.z.kind])) return cb;
+      return pieces => (cb && cb(pieces)) || (ZONES.some(Z => STOPZ[Z.z.kind] && pieces.some(([ei, l0, l1]) => inZ(Z, ei, l0, l1) != null)) ? { zone: true } : null); };
+    // marcia a vista after a stretch was closed (persona nel tunnel): a track is done when its first train has gone through
+    function zoneTick() {
+      for (const Z of ZONES) { if (Z.z.kind !== 'vista') continue;
+        for (const a of S.agents) { if (a.hidden) continue; const T = footprint(a).map(f => inZ(Z, f[0], f[1], f[2])).find(x => x != null);
+          if (T) a.zv = { id: Z.z.id, T }; else if (a.zv && a.zv.id === Z.z.id) { Z.z.done[a.zv.T] = true; a.zv = null; } }
+        if (Z.z.done.N && Z.z.done.S) { for (const a of S.agents) if (a.zv && a.zv.id === Z.z.id) a.zv = null; dropZone(Z.z.id); return; } }
+    }
     // ---------- the navetta: one train back and forth on one track between two stations ----------
     function navRun(a, nv, pid, d) {
       const Tdir = nv.track === 1 ? 'S' : 'N', legal = pid === nv.legal;
@@ -837,7 +863,8 @@
       }
       if (a.status === 'stopped') return;
       if (FX && FX.hold(a)) return;                      // a failure: it brakes to a stop and stands (web/faults.js)
-      if (POWER && noPower(a)) { if (a.v > 0) { a.v = Math.max(0, a.v - (a.brk || brk) * DT); a.d += a.v * DT; } a.why = 'tensione'; return; }
+      const zh = ZONES.length ? zoneHold(a) : null;         // no power, pulsante rosso, held by the PC: it stops and stands
+      if (zh) { if (a.v > 0) { a.v = Math.max(0, a.v - (zh.kind === 'red' ? FX.emBrake(a) : (a.brk || brk)) * DT); a.d += a.v * DT; } a.why = zh.kind === 'power' ? 'tensione' : zh.kind === 'red' ? 'rosso' : 'fermo'; return; }
       // held where it stands before this move of its day (test loop: waiting at #A94 for the loop, or for a depot place)
       if (a.mode === 'plan' && o.holdAt && o.holdAt(a.k, a.si, a)) { a.v = 0; a.why = 'anello'; return; }
       let leg = a.legs[0];
@@ -928,7 +955,7 @@
       while (S.t + DT <= t && guard++ < 40000) {
         // events whose time has come (again, after going back in time)
         for (const e of TL.events) if (!e.done && e.t <= S.t + DT) { e.done = true; apply(e); }
-        S.t += DT; S.rt.t = S.t; refresh(); atoTick(); if (FX) FX.tick();
+        S.t += DT; S.rt.t = S.t; refresh(); atoTick(); if (FX) FX.tick(); if (ZONES.length) zoneTick();
         for (const a of S.agents) {
           const p0 = a.pid, n0 = a.d + half;
           stepAgent(a);
@@ -957,14 +984,14 @@
     // ---------- time line: saved states and events ----------
     const SNAP = 600, TL = { snaps: [], events: [] };
     function snapshot() {
-      const snap = structuredClone({ power: S.power, faults: S.faults, stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
+      const snap = structuredClone({ zones: S.zones, zoneSeq: S.zoneSeq, faults: S.faults, stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
       TL.snaps = TL.snaps.filter(x => x.t < S.t); TL.snaps.push(snap);
       if (TL.snaps.length > 220) TL.snaps.splice(1, 1);
     }
     function restore(snap) {
       const c = structuredClone(snap);
       Object.assign(S, { t: c.t, il: c.il, rt: c.rt || RT.fresh(), agents: c.agents, log: c.log, lastDep: c.lastDep || {}, cl: c.cl || null, parts: c.parts || [], reopened: c.reopened != null ? c.reopened : null });
-      S.stn = c.stn || {}; S.faults = c.faults || null; setPower(c.power ? c.power.a : null, c.power ? c.power.b : null);
+      S.stn = c.stn || {}; S.faults = c.faults || null; S.zones = c.zones || []; S.zoneSeq = c.zoneSeq || 0; setZones();
       S.turnOv = c.turnOv || {}; S.nav = c.nav || []; S.navInfo = c.navInfo || {}; S.navWant = c.navWant || {}; NAVHOLD = c.navHold ? new Set(c.navHold) : null; SLOW = c.slow ? { set: new Set(c.slow.set), until: c.slow.until, kmh: c.slow.kmh } : null;
       S.clEff = c.clEff || null;
       if (S.cl) { CLOSED0 = closedPieces(S.cl); CLOSED = S.clEff && (S.clEff.a !== S.cl.a || S.clEff.b !== S.cl.b) ? closedPieces(S.clEff) : CLOSED0; } else { CLOSED = CLOSED0 = null; }
@@ -1144,7 +1171,7 @@
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
       return { inside: a.inside, to: leg && leg.arrive ? leg.arrive.at : null, pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, trip: a.trip,
                seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold, vlim: a.vlim ? Math.round(a.vlim * 3.6) : null, vlimTo: a.vlimTo,
-               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn, manual: !!(FX && FX.manual(a)), faults: FX ? FX.list().filter(f => f.k === k) : [] };
+               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn, zones: S.zones, manual: !!(FX && FX.manual(a)), faults: FX ? FX.list().filter(f => f.k === k) : [] };
     }
     // a radio change to a train's day (platform, tail, test loop...): it takes it from where it is
     function replan(k) {
@@ -1158,7 +1185,7 @@
         if (a.stopAt != null && fresh.stops.length && Math.abs(fresh.stops[0].d - a.d) > 1) a.stopAt = null; a.legs = [fresh]; a.red = null; }
       return true;
     }
-    return { S, TL, IL, RT, FX, departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
+    return { S, TL, IL, RT, FX, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
   }
 
   const api = { create, DT, HEADWAY };
