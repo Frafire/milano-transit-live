@@ -1596,8 +1596,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 '°':['111','101','111','000','000','000','000'],'½':['10000','10000','10010','00101','00001','00010','00111'],"'":['1','1','0','0','0','0','0']};
   // the half minute on the big line, as on the real screens: a small 1 up on the left, a small 2 down on the right
   // (with the slant bar between them: two rows taller than the digits, it reaches up into the space above them)
-  const HALF_BIG = ['01000000', '11000000', '01000001', '01000001', '01000010', '11100010', '00000100', '00001000',
-    '00010110', '00101001', '00100010', '01000100', '01001000', '10001111'];
+  // (the bar: one column every two rows, straight)
+  const HALF_BIG = ['0100000010', '1100000010', '0100000100', '0100000100', '0100001000', '1110001000', '0000010000', '0000010000',
+    '0000100110', '0000101001', '0001000010', '0001000100', '0010001000', '0010001111'];
   const ONE_BIG = ['000100', '001100', '010100', '000100', '000100', '000100', '000100'].flatMap(r => [r, r]);
   // three sizes of the same 5x7 letters: small (the top line, the notices), big (the destination and the minutes:
   // twice as tall and one dot wider) and mid (the "2°" at the start: half as tall again)
