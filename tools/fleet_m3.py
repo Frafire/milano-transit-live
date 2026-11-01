@@ -8,7 +8,16 @@ U1 = [f'{a}-{a+1}' for a in range(8001, 8041, 2)] + [f'{a}-{a+1}' for a in range
 MENEGHINO = [('987-988', 2010, 'trasferito dalla M2 nel 2021'), ('989-990', 2010, 'trasferito dalla M2 nel 2021'),
              ('951-952', 2009, 'trasferito dalla M1 nel 2010'), ('953-954', 2009, 'trasferito dalla M1 nel 2010'),
              ('955-956', 2009, 'trasferito dalla M1 nel 2010'), ('957-958', 2009, 'trasferito dalla M1 nel 2010')]
-MENEGHINO_NEW = [('941-942', 2009, 'assegnato alla M3'), ('943-944', 2009, 'assegnato alla M3'), ('947-948', 2009, 'assegnato alla M3')]
+MENEGHINO_NEW = [('941-942', 2009, ''), ('943-944', 2009, ''), ('947-948', 2009, '')]
+# who built them (Giovanni, Nov 2026): the 1st lot by unit number, all with ABB inverters; the 2nd lot AnsaldoBreda; the Meneghino AnsaldoBreda and Firema
+BUILDER1 = lambda u: 'Stanga' if int(u[:4]) <= 8028 else 'Fiat' if int(u[:4]) <= 8054 else 'Breda'
+def built(units, year):
+    us = [u.strip() for u in units.split('+')]
+    if int(us[0].split('-')[0]) < 8000: return f'costruito nel {year} da AnsaldoBreda e Firema'
+    if int(us[0][:4]) >= 8100: return f'costruito da AnsaldoBreda con inverter ABB nel {year}'
+    b = [BUILDER1(u) for u in us]
+    who = b[0] if len(set(b)) == 1 else ' e '.join(f'{x} ({u})' for x, u in zip(b, us))
+    return f'costruito da {who} con inverter ABB nel {year}'
 YEAR1 = lambda u: 1989 if int(u[:4]) <= 8040 else 1990
 # 8105-8106: stopped, alone, on the depot track after shunting signal #A76 (OSM way 32, dead end node 73)
 SOLO = [{'units': '8105-8106', 'type': 'Tradizionale 2° lotto', 'year': '2003', 'display': 'LED',
@@ -17,7 +26,7 @@ SOLO = [{'units': '8105-8106', 'type': 'Tradizionale 2° lotto', 'year': '2003',
 def trains():
     out = []
     for m, y, note in MENEGHINO:
-        out.append({'units': m, 'type': 'Meneghino (Alstom)', 'year': str(y), 'display': 'LED', 'note': note})
+        out.append({'units': m, 'type': 'Meneghino', 'year': str(y), 'display': 'LED', 'note': note})
     out.append({'units': '8101-8102 + 8103-8104', 'type': 'Tradizionale 2° lotto', 'year': '2003', 'display': 'LED', 'note': ''})
     out.append({'units': '8109-8110 + 8107-8108', 'type': 'Tradizionale 2° lotto', 'year': '2003-2004', 'display': 'LED', 'note': ''})
     out.append({'units': '8065-8066 + 8067-8068', 'type': 'Tradizionale 1° lotto', 'year': '1990', 'display': 'dot-matrix', 'note': ''})
@@ -26,6 +35,7 @@ def trains():
         a, b = rest[i], rest[i + 1]
         out.append({'units': f'{a} + {b}', 'type': 'Tradizionale 1° lotto', 'year': str(YEAR1(a)), 'display': 'dot-matrix', 'note': ''})
     for m, y, note in MENEGHINO_NEW:
-        out.append({'units': m, 'type': 'Meneghino (Alstom)', 'year': str(y), 'display': 'LED', 'note': note})
+        out.append({'units': m, 'type': 'Meneghino', 'year': str(y), 'display': 'LED', 'note': note})
+    for t in out + SOLO: t['built'] = built(t['units'], t['year'])
     spare = rest[-1] if len(rest) % 2 else None
     return out, spare

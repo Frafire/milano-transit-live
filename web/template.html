@@ -1190,7 +1190,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     const rt = realTrain(F, tr, state.t);
     const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>' : rt.none ? ''
-      : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
+      : `<p class="sub" style="margin-top:8px">${(rt.built ? [rt.units, rt.type, rt.built, rt.note] : [rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note]).filter(Boolean).join(rt.built ? ' - ' : ' · ')}</p>`) : '';
     const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
     const tiles = (F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div><div class="tile delay" id="delayTile">IN ORARIO</div></div>`)
       + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
@@ -1322,7 +1322,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     const url = c.toDataURL(); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url;
   }
-  // the Meneghino (Alstom), drawn from the photos of 958 and 941: black cap with the destination sign (red LEDs), wide
+  // the Meneghino (AnsaldoBreda and Firema), drawn from the photos of 958 and 941: black cap with the destination sign (red LEDs), wide
   // windscreen in three (the door in the middle), yellow side edges, two light units, the city arms on the door,
   // black bumper with the coupler. lights: white running, red standing in the depot or a tail
   function meneghinoSVG(dest, lights, no) {
@@ -1482,7 +1482,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     const rt = realTrain(F, tr, state.t);
     const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>'
-      : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
+      : `<p class="sub" style="margin-top:8px">${(rt.built ? [rt.units, rt.type, rt.built, rt.note] : [rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note]).filter(Boolean).join(rt.built ? ' - ' : ' · ')}</p>`) : '';
     const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
     // rail: the front of the train (M3, by type) and the cab speedometer; then doors and lateness
     const fr = F.bus ? null : frontOf(F, tr, st);
