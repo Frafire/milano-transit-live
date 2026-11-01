@@ -3845,6 +3845,83 @@
    "Serve? Priorità": null,
    "Nel programma oggi": "in parte (radio)",
    "Note": null
+  },
+  {
+   "N.": 36,
+   "Gruppo": "Radio alla stazione",
+   "Comando o informazione": "Chiamare una stazione",
+   "Cosa fa": "Il PC parla con l'agente di stazione (tutte le stazioni sono presenziate); messaggio libero e risposta",
+   "Quando si può usare": "Sempre",
+   "Cosa vede il PC (prima e dopo)": "Registro della radio di stazione",
+   "Serve? Priorità": null,
+   "Nel programma oggi": "no",
+   "Note": null
+  },
+  {
+   "N.": 37,
+   "Gruppo": "Radio alla stazione",
+   "Comando o informazione": "Annuncio ai passeggeri",
+   "Cosa fa": "L'agente fa l'annuncio in stazione: ritardo, servizio limitato, tratta chiusa, navetta, treno che non ferma",
+   "Quando si può usare": "Ritardi, chiusure, guasti",
+   "Cosa vede il PC (prima e dopo)": "Annuncio fatto (ora)",
+   "Serve? Priorità": null,
+   "Nel programma oggi": "no",
+   "Note": null
+  },
+  {
+   "N.": 38,
+   "Gruppo": "Radio alla stazione",
+   "Comando o informazione": "Messaggio sugli schermi di banchina",
+   "Cosa fa": "Al posto degli avvisi normali gli schermi mostrano un testo del PC (es. SERVIZIO LIMITATO A …)",
+   "Quando si può usare": "Chiusure, guasti, sciopero",
+   "Cosa vede il PC (prima e dopo)": "Testo sugli schermi della stazione",
+   "Serve? Priorità": null,
+   "Nel programma oggi": "no",
+   "Note": null
+  },
+  {
+   "N.": 39,
+   "Gruppo": "Radio alla stazione",
+   "Comando o informazione": "Verifica in banchina",
+   "Cosa fa": "L'agente controlla e riferisce: porte, passeggero sui binari, oggetto caduto, treno fermo in banchina",
+   "Quando si può usare": "Su segnalazione del macchinista o del PC",
+   "Cosa vede il PC (prima e dopo)": "Risposta dell'agente, tempo",
+   "Serve? Priorità": null,
+   "Nel programma oggi": "no",
+   "Note": null
+  },
+  {
+   "N.": 40,
+   "Gruppo": "Radio alla stazione",
+   "Comando o informazione": "Assistenza a un treno",
+   "Cosa fa": "L'agente va sul treno fermo in stazione (malore, guasto, porte bloccate, evacuazione)",
+   "Quando si può usare": "Guasti, emergenze",
+   "Cosa vede il PC (prima e dopo)": "Agente sul treno, treno trattenuto",
+   "Serve? Priorità": null,
+   "Nel programma oggi": "no",
+   "Note": null
+  },
+  {
+   "N.": 41,
+   "Gruppo": "Radio alla stazione",
+   "Comando o informazione": "Chiudere o riaprire gli accessi della stazione",
+   "Cosa fa": "Ingressi chiusi: i treni passano senza fermare o fermano solo per scendere",
+   "Quando si può usare": "Sovraffollamento, emergenza, chiusura tratta",
+   "Cosa vede il PC (prima e dopo)": "Stazione chiusa al pubblico",
+   "Serve? Priorità": null,
+   "Nel programma oggi": "no",
+   "Note": null
+  },
+  {
+   "N.": 42,
+   "Gruppo": "Radio alla stazione",
+   "Comando o informazione": "Chiamate dalla stazione al PC",
+   "Cosa fa": "L'agente avvisa il PC: persona sui binari, pulsante di emergenza, sovraffollamento, guasto in stazione",
+   "Quando si può usare": "Sempre",
+   "Cosa vede il PC (prima e dopo)": "Allarme sul pannello con la stazione e il motivo",
+   "Serve? Priorità": null,
+   "Nel programma oggi": "no",
+   "Note": null
   }
  ]
 }

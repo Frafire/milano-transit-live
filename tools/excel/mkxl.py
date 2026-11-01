@@ -203,6 +203,13 @@ PC=[
  ('Cosa vede il PC','Ritardo e anticipo dei treni','Per ogni treno: ritardo/anticipo, prossima stazione, corsa',None,None,'sì (pannello M3)'),
  ('Cosa vede il PC','Allarmi','Treno fermo al rosso da troppo, porte, emergenze, guasti: con l\'ora',None,None,'in parte'),
  ('Cosa vede il PC','Registro degli eventi','Ordini dati, risposte, chiusure e riaperture, con l\'ora',None,None,'in parte (radio)'),
+ ('Radio alla stazione','Chiamare una stazione','Il PC parla con l\'agente di stazione (tutte le stazioni sono presenziate); messaggio libero e risposta','Sempre','Registro della radio di stazione','no'),
+ ('Radio alla stazione','Annuncio ai passeggeri','L\'agente fa l\'annuncio in stazione: ritardo, servizio limitato, tratta chiusa, navetta, treno che non ferma','Ritardi, chiusure, guasti','Annuncio fatto (ora)','no'),
+ ('Radio alla stazione','Messaggio sugli schermi di banchina','Al posto degli avvisi normali gli schermi mostrano un testo del PC (es. SERVIZIO LIMITATO A …)','Chiusure, guasti, sciopero','Testo sugli schermi della stazione','no'),
+ ('Radio alla stazione','Verifica in banchina','L\'agente controlla e riferisce: porte, passeggero sui binari, oggetto caduto, treno fermo in banchina','Su segnalazione del macchinista o del PC','Risposta dell\'agente, tempo','no'),
+ ('Radio alla stazione','Assistenza a un treno','L\'agente va sul treno fermo in stazione (malore, guasto, porte bloccate, evacuazione)','Guasti, emergenze','Agente sul treno, treno trattenuto','no'),
+ ('Radio alla stazione','Chiudere o riaprire gli accessi della stazione','Ingressi chiusi: i treni passano senza fermare o fermano solo per scendere','Sovraffollamento, emergenza, chiusura tratta','Stazione chiusa al pubblico','no'),
+ ('Radio alla stazione','Chiamate dalla stazione al PC','L\'agente avvisa il PC: persona sui binari, pulsante di emergenza, sovraffollamento, guasto in stazione','Sempre','Allarme sul pannello con la stazione e il motivo','no'),
 ]
 r=2
 for i,(g,cmd,what,when,sees,now) in enumerate(PC,1):
