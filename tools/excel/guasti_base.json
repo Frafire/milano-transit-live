@@ -28,7 +28,7 @@
   "Quanto spesso / come si attiva": "casuale",
   "Volte al giorno (stima)": 3,
   "Nel programma oggi": "no",
-  "Note": "La verifica dell'agente può dare esito negativo: nessun oggetto tra le porte, il treno riparte",
+  "Note": "Di solito non è una cosa che blocca le porte: sono persone che vogliono entrare all'ultimo e non fanno ripartire il treno (vedi riga 19)",
   "_mine": [
    "Note"
   ]
@@ -176,7 +176,7 @@
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
   "Volte al giorno (stima)": 0.1,
   "Nel programma oggi": "no",
-  "Note": "La verifica dell'agente può dare esito negativo (circa 1 volta su 3): nessuno e niente sul binario. Il PC ridà tensione e via libera, i treni ripartono (5 - 10 min)",
+  "Note": "Esito negativo raro: quando arriva l'agente la persona non c'è più (risalita o uscita). Allora il PC ridà tensione e via libera",
   "_mine": [
    "Note"
   ]
@@ -409,14 +409,43 @@
   "Guasto": "Il treno funziona ma chiede continuamente di essere riarmato",
   "Come si presenta (cosa vedono macchinista e PC)": "Il treno si ferma più volte lungo la linea; ogni volta il macchinista chiama il PC e riarma",
   "Cosa fa il macchinista (e quanto ci mette)": "Riarma (un paio di minuti dopo aver avvisato il PC) e prosegue",
-  "Cosa fa il PC": "Chiama la Manutenzione di linea a San Donato e indica il treno su cui deve salire il tecnico (e in quale stazione)",
+  "Cosa fa il PC": "Chiama la Manutenzione di linea a San Donato e indica il treno: il tecnico sale sempre a San Donato, quando il treno ci arriva",
   "Quando diventa soccorso": "Se il tecnico non risolve e il treno non riparte più",
-  "Come si risolve / soccorso": "Il tecnico sale a bordo in stazione e sistema il treno in marcia; se non si può, il treno finisce la corsa e rientra in deposito",
-  "Tempi (min - max)": "tecnico in stazione 15 - 45 min (dipende da quanto è lontana da San Donato); a bordo 10 - 30 min",
+  "Come si risolve / soccorso": "Il tecnico sale a San Donato e va con il treno sul tronchetto: mentre il macchinista fa il cambio banco verifica tutto. Poi scende a San Donato e torna in postazione, oppure resta a bordo fino a Rogoredo e torna a San Donato con il treno dopo. Se non si sistema, il treno rientra in deposito",
+  "Tempi (min - max)": "finché il treno arriva a San Donato (con i riarmi); verifica durante il cambio banco, 5 - 15 min",
   "Quanto spesso / come si attiva": "casuale",
   "Volte al giorno (stima)": 0.3,
   "Nel programma oggi": "no",
-  "Note": "Pulsante Radio Manutenzione di linea (San Donato) sul pannello del PC",
+  "Note": "Pulsante Tecnico a bordo (Radio manutenzione) sul pannello del PC",
+  "_mine": [
+   "Come si presenta (cosa vedono macchinista e PC)",
+   "Come si risolve / soccorso",
+   "Cosa fa il PC",
+   "Cosa fa il macchinista (e quanto ci mette)",
+   "Guasto",
+   "Nel programma oggi",
+   "Note",
+   "Quando diventa soccorso",
+   "Quanto spesso / come si attiva",
+   "Tempi (min - max)",
+   "Tipo",
+   "Volte al giorno (stima)"
+  ]
+ },
+ {
+  "N.": 24,
+  "Tipo": "stazione",
+  "Guasto": "Oggetto caduto sul binario",
+  "Come si presenta (cosa vedono macchinista e PC)": "Un passeggero o il macchinista avvisano che è caduto qualcosa sul binario",
+  "Cosa fa il macchinista (e quanto ci mette)": "Avvisa il PC; se è in arrivo entra piano e si ferma",
+  "Cosa fa il PC": "Chiede la verifica all'agente di stazione (Radio stazione); se c'è davvero un oggetto toglie tensione al binario per recuperarlo",
+  "Quando diventa soccorso": "-",
+  "Come si risolve / soccorso": "2 volte su 3 l'agente non trova niente e i treni proseguono; altrimenti recupera l'oggetto a tensione tolta, poi il PC ridà tensione",
+  "Tempi (min - max)": "verifica 2 - 5 min; recupero 5 - 15 min",
+  "Quanto spesso / come si attiva": "casuale (radio di stazione)",
+  "Volte al giorno (stima)": 1,
+  "Nel programma oggi": "no",
+  "Note": null,
   "_mine": [
    "Tipo",
    "Guasto",
@@ -428,8 +457,7 @@
    "Tempi (min - max)",
    "Quanto spesso / come si attiva",
    "Volte al giorno (stima)",
-   "Nel programma oggi",
-   "Note"
+   "Nel programma oggi"
   ]
  }
 ]
