@@ -247,7 +247,7 @@ const SCENARIOS = {
       st.playing = false; await sleep(200);
       st.sel = 'f' + M.fleets.indexOf(F) + ':' + a.k; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(300);
       const log = document.getElementById('radioLog').innerText;
-      return { ok: /non si apre/.test(call) && went && vmax <= 5.5 && /marcia a vista/.test(log), sig: sig.n, call: call.slice(0, 120), went, vmax: +vmax.toFixed(1), log: log.split('\n').filter(l => /vista|guasto/i.test(l)).slice(-4) };
+      return { ok: /non si apre/.test(call) && went && vmax <= 15.5 && /marcia a vista/.test(log), sig: sig.n, call: call.slice(0, 120), went, vmax: +vmax.toFixed(1), log: log.split('\n').filter(l => /vista|guasto/i.test(l)).slice(-4) };
     });
   },
   async emergenza(p) {  // the PC by hand (fase D3): red button between two stations; then taken away from the alarms

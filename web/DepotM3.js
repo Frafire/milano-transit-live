@@ -199,8 +199,8 @@
       tr.segs.splice(idx, 0, ...segs); shiftRefs(tr, idx - 1, segs.length); restamp(tr);
       a.mode = 'plan'; a.si = idx - 1; a.legs = []; a.wait = 0; a.status = 'parked';
       const g = laps === 1 ? 'un giro' : laps + ' giri';
-      env.say('PC', `Treno ${no(k)}, dal ${name(p)} vai al segnale #A94 e chiedi l'anello di prova: ${g}. Passo.`, 'pc');
-      env.say('T' + no(k), `Ricevuto PC, ${g} sull'anello di prova, vado al #A94. Passo.`, 'dr');
+      env.say('DCT', `Treno ${no(k)}, dal ${name(p)} vai al segnale #A94 e chiedi l'anello di prova: ${g}. Passo.`, 'pc');
+      env.say('T' + no(k), `Ricevuto DCT, ${g} sull'anello di prova, vado al #A94. Passo.`, 'dr');
       D.loopMsg = (laps === 1 ? '1 giro' : laps + ' giri') + ', di ritorno verso le ' + env.fmt(end) + ' (se l\'anello è libero).';
       if (next && next[3][0] < RESERVE_T && end > next[3][0] - 300) D.loopMsg += ' Attenzione: il prossimo turno parte alle ' + env.fmt(next[3][0]) + ', sarà in ritardo.';
       return true;
@@ -221,7 +221,7 @@
     }
     function grant(k, si, again) {
       const man = F.ag.il() && !F.ag.il().auto;
-      env.say('PC', again ? `Treno ${no(k)}, l'anello di prova è libero: ${man ? 'attendi l\'apertura del #A94 ed' : 'via libera al #A94,'} entra. Passo.`
+      env.say('DCT', again ? `Treno ${no(k)}, l'anello di prova è libero: ${man ? 'attendi l\'apertura del #A94 ed' : 'via libera al #A94,'} entra. Passo.`
         : man ? `Treno ${no(k)}, autorizzato: l'anello di prova è tuo, attendi l'apertura del #A94. Passo.` : `Treno ${no(k)}, autorizzato: via libera al #A94, entra nell'anello di prova. Passo.`, 'pc');
       env.say('T' + no(k), 'Ricevuto, entro nell\'anello. Passo.', 'dr'); release(k, si, 'in2');
     }
@@ -276,7 +276,7 @@
       // the loop is free when the train's tail is past the flag beyond #A95: a notice, then the next one goes in
       const freed = k => {
         const by94 = S.exit[k] && S.exit[k].a94; delete S.exit[k];
-        env.say('T' + no(k), `PC, qui treno ${no(k)}: sono fuori dall'anello, dopo il ${by94 ? '#A94' : '#A95'}. Anello di prova libero. Passo.`, 'ok');
+        env.say('T' + no(k), `DCT, qui treno ${no(k)}: sono fuori dall'anello, dopo il ${by94 ? '#A94' : '#A95'}. Anello di prova libero. Passo.`, 'ok');
         const nx = IL().zoneFree(il, zi, k); if (nx != null && S.asked[nx] && S.asked[nx].r === 'gate') grant(nx, S.asked[nx].si, true);
       };
       // before leaving the loop: it says it has finished and gets its place
@@ -286,15 +286,15 @@
         if (r === 'lap' && loopRole(tr.segs[a.si + 1]) === 'ret' && a.d > T.lap - 450 && !S.exit[k]) {
           const si = a.si + 2, q = placeForExit(k, si);
           S.exit[k] = { q };
-          env.say('T' + no(k), `PC, qui treno ${no(k)}: giri finiti, esco dall'anello dal #A96. Passo.`, 'ok');
-          if (q == null) { env.say('PC', `Ricevuto treno ${no(k)}: nessun posto libero, fermati dopo il #A95 e attendi. Passo.`, 'pc'); return; }
+          env.say('T' + no(k), `DCT, qui treno ${no(k)}: giri finiti, esco dall'anello dal #A96. Passo.`, 'ok');
+          if (q == null) { env.say('DCT', `Ricevuto treno ${no(k)}: nessun posto libero, fermati dopo il #A95 e attendi. Passo.`, 'pc'); return; }
           if (viaA94(q)) {                 // west sheds: back through #A94 (nobody is going there now: kept so until it is in)
             routeOut94(k, si, q); S.exit[k].a94 = true; S.a94 = k;
-            env.say('PC', `Ricevuto treno ${no(k)}, vai in ${name(q)}: esci dall'anello passando dal #A94. Passo.`, 'pc');
+            env.say('DCT', `Ricevuto treno ${no(k)}, vai in ${name(q)}: esci dall'anello passando dal #A94. Passo.`, 'pc');
             env.say('T' + no(k), `Vado in ${name(q)} dal #A94. Passo.`, 'dr'); return;
           }
           const straight = routeOut(k, si, q);
-          env.say('PC', `Ricevuto treno ${no(k)}, vai in ${name(q)}${straight ? '' : ': fermati dopo il #A95 e cambia banco'}. Passo.`, 'pc');
+          env.say('DCT', `Ricevuto treno ${no(k)}, vai in ${name(q)}${straight ? '' : ': fermati dopo il #A95 e cambia banco'}. Passo.`, 'pc');
           env.say('T' + no(k), `Vado in ${name(q)}. Passo.`, 'dr');
         }
         const ex = S.exit[k];
@@ -310,14 +310,14 @@
         if (!a || a.si !== w.si || loopRole(tr.segs[w.si]) !== w.r) { delete S.asked[k]; continue; }
         if (w.r === 'gate' && !w.said) {
           w.said = true; const h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? 'Buongiorno' : 'Buonasera';
-          env.call(tr, `${hi} PC, qui treno ${no(k)}, fermo al segnale #A94: chiedo l'autorizzazione per entrare nell'anello di prova. Passo.`);
+          env.call(tr, `${hi} DCT, qui treno ${no(k)}, fermo al segnale #A94: chiedo l'autorizzazione per entrare nell'anello di prova. Passo.`);
           if (IL().zoneAsk(il, zi, k)) grant(k, w.si, false);
-          else { env.say('PC', `Negativo treno ${no(k)}: l'anello di prova è occupato dal treno ${no(holder())}. Resta fermo al #A94, ti richiamo io. Passo.`, 'pc'); env.say('T' + no(k), 'Ricevuto, resto fermo al #A94. Passo.', 'dr'); }
+          else { env.say('DCT', `Negativo treno ${no(k)}: l'anello di prova è occupato dal treno ${no(holder())}. Resta fermo al #A94, ti richiamo io. Passo.`, 'pc'); env.say('T' + no(k), 'Ricevuto, resto fermo al #A94. Passo.', 'dr'); }
         } else if (w.r === 'homewait') {
           // standing past #A95 without a place (none was free before it left the loop): try again
           const q = placeForExit(k, w.si, true); if (q == null) continue;
           if (S.exit[k] && !S.exit[k].free) { S.exit[k].free = true; freed(k); }
-          env.say('PC', `Treno ${no(k)}, vai in ${name(q)}. Passo.`, 'pc');
+          env.say('DCT', `Treno ${no(k)}, vai in ${name(q)}. Passo.`, 'pc');
           const tr2 = F.trains[k], s = tr2.segs[w.si], H = T.home[q], tt = Math.round(t + (H.straight ? 5 : T.reverse)); let x = tt;
           const segs = H.legs.map((l, i) => { const dur = Math.max(2, Math.abs(l[2] - l[1]) / T.v_yard), last = i === H.legs.length - 1;
             const sg = [l[0], 'to_depot', -1, [Math.round(x), Math.round(x + dur)], [i === 0 && H.straight ? s[4][0] : l[1], l[2]], last ? +q : null, 'loop:home']; x += dur + (l[3] ? T.reverse : 0); return sg; });

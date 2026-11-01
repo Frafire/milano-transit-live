@@ -50,6 +50,7 @@
       const load = a.status === 'service' ? loadAt(S.t) : 0;
       a.accCap = P.acc_empty - (P.acc_empty - P.acc_full) * load; a.brk = P.brake_service || brk;
       if (FX && FX.manual(a)) a.accCap *= 0.85;                 // ATO failed: the driver accelerates less (Giovanni)
+      if (FX && FX.half(a)) a.accCap *= 0.5;                    // one of its two units cut out: half the traction
     }
     let atoLast = -Infinity;
     function atoTick() {
@@ -90,9 +91,10 @@
         sigEdges: n => { for (const [pid, l] of Object.entries(o.sigall || {})) { const x = l.find(y => y[1] === n); if (x) return RT.span(+pid, x[0], RT.nextSignal(+pid, x[0])).pieces.map(p => p[0]); } return []; },
         positions: nd => RT.switchPositions(nd), last: () => last,
         zone: (kind, a, b, extra) => addZone(kind, a, b, extra), unzone: id => dropZone(id),
+        home: (k, endOfRun) => goHome(S.agents[k], endOfRun), rescue: k => startRescue(k),
         station: (X, closed) => { const x = S.stn[X] = Object.assign({}, S.stn[X]); if (closed) x.closed = true; else delete x.closed; if (!Object.keys(x).length) delete S.stn[X]; },
       } }) : null;
-    const VISTA = (ops.marcia_a_vista_kmh || 5) / 3.6;          // marcia a vista: 5 km/h (Giovanni)
+    const VISTA = (ops.marcia_a_vista_kmh || 15) / 3.6;         // marcia a vista: 15 km/h (30 on paper; Giovanni's colleague, Nov 2026)
     const last = G ? G.names.length - 1 : 0;
     const stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
     const opp = d => d === 'N' ? 'S' : 'N';
@@ -291,10 +293,13 @@
       if (p) for (const sg of p) { if (sg[0] > a.d + half + 400) break; if (sg[1] < a.d - half) continue;
         const vs = sg[3] != null ? (sg[4] ? sg[3] * pc : sg[3]) : sg[2];
         v = Math.min(v, sg[0] <= a.d + half ? vs : Math.sqrt(vs * vs + 2 * B * (sg[0] - a.d - half))); }
-      // empty (no passengers), shunting: through the platforms at 40 km/h
-      const z = o.zones && o.zones[a.pid];
-      if (z && (leg.status !== 'service' || leg.skip)) for (const [z0, z1, zv] of z) {
+      // empty (no passengers), shunting: through the platforms at 40 km/h. Also a train in service through a station
+      // closed to the public: in M3 a train goes through a station without stopping only by hand, slowly (the
+      // interlocking: Giovanni's colleague, Nov 2026)
+      const z = o.zones && o.zones[a.pid], thru = leg.status === 'service' && !leg.skip && anyClosed();
+      if (z && (leg.status !== 'service' || leg.skip || thru)) for (const [z0, z1, zv] of z) {
         if (z1 < a.d - half || z0 > a.d + half + 300) continue;
+        if (thru && ((leg.stops || []).some(x => x.d >= z0 - 10 && x.d <= z1 + 10) || (a.lastStop && a.lastStop.pid === a.pid && a.lastStop.d >= z0 - 10 && a.lastStop.d <= z1 + 10))) continue;
         v = Math.min(v, z0 <= a.d + half ? zv : Math.sqrt(zv * zv + 2 * B * (z0 - a.d - half))); }
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
       // after reopening: 40 km/h on the stretch that was closed, for 20 minutes (Giovanni)
@@ -302,6 +307,7 @@
         if (pe) for (const [ei, , x0, x1] of pe.e) { if (x1 < a.d - half) continue; if (x0 > a.d + half + 300) break;
           if (SLOW.set.has(ei)) v = Math.min(v, x0 <= a.d + half ? vz : Math.sqrt(vz * vz + 2 * B * (x0 - a.d - half))); } }
       if (a.vlim) v = Math.min(v, a.vlim);                                   // speed limit ordered by the PC
+      if (FX) v = Math.min(v, FX.vcap(a));                                   // a failure (ATP: limited speed)
       if (a.avista) { if (a.avista.pid !== a.pid || a.d + half > a.avista.d1 + 1) a.avista = null; else v = Math.min(v, VISTA); }   // marcia a vista
       // zones: slow (a passenger taken ill in a station), marcia a vista (the first train after a stretch was closed)
       for (const Z of ZONES) { const kz = Z.z.kind === 'slow' ? Z.z.kmh / 3.6 : Z.z.kind === 'vista' ? VISTA : null; if (kz == null) continue;
@@ -338,6 +344,7 @@
     // the track pieces of the closed stretch: the main tracks between the two stations, less what the turns at its ends
     // use (the crossovers, the stub beyond an A turn)
     let CLOSED = null, SLOW = null;
+    const anyClosed = () => { for (const k in S.stn) if (S.stn[k].closed) return true; return false; };
     function closedPieces(cl) {
       const out = new Set(), keep = new Set();
       for (const [X, dir] of [[cl.a, 'N'], [cl.b, 'S']]) {
@@ -402,6 +409,47 @@
         for (const a of S.agents) { if (a.hidden) continue; const T = footprint(a).map(f => inZ(Z, f[0], f[1], f[2])).find(x => x != null);
           if (T) a.zv = { id: Z.z.id, T }; else if (a.zv && a.zv.id === Z.z.id) { Z.z.done[a.zv.T] = true; a.zv = null; } }
         if (Z.z.done.N && Z.z.done.S) { for (const a of S.agents) if (a.zv && a.zv.id === Z.z.id) a.zv = null; dropZone(Z.z.id); return; } }
+    }
+    // ---------- a train with a failure leaves the service (fase D4) ----------
+    // It lets the passengers off (at the next station; endOfRun: at the end of the run it is making, ATP failed) and goes
+    // empty to the depot of Rogoredo (ROD) through San Donato, or northbound to a tail at Comasina. At a terminus: there.
+    function goHome(a, endOfRun) {
+      if (!a || a.hidden || a.mode === 'static') return false;
+      const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, dir = (leg && leg.dir) || a.arr || 'S';
+      if (a.v === 0 && (a.at === 0 || a.at === last) && (a.stopAt != null || S.t < a.wait || !leg || a.status !== 'service')) {
+        a.legs = [{ kind: 'unload' }, a.at === 0 ? { kind: 'depot' } : { kind: 'tailpark' }]; a.stopAt = null;
+      } else if (leg && leg.stops && leg.stops.length && a.stopAt == null) {
+        if (!endOfRun) { leg.stops = leg.stops.slice(0, 1); leg.end = leg.stops[0].d; }
+        a.legs = [leg, { kind: 'unload' }, { kind: 'home', dir }];
+      } else if (leg && endOfRun && leg.stops && leg.stops.length > 1) a.legs = [leg, { kind: 'unload' }, { kind: 'home', dir }];
+      else { a.legs = [{ kind: 'unload' }, { kind: 'home', dir }]; a.stopAt = null; }
+      a.mode = 'home'; a.pcHold = false; return true;
+    }
+    // the rescue (soccorso, rarissimo: both units of the train dead): the train behind it on the same track lets its
+    // passengers off at its next station, comes up to it in marcia a vista (it may go into the section of the broken
+    // train: S.rt.rescue), couples (5 minutes) and pushes it at 15 km/h; the broken train lets its passengers off at
+    // the next station; the two go to the depot (southbound) or to the tails of Comasina
+    function startRescue(fk) {
+      const f = S.agents[fk]; if (!f || f.hidden) return null;
+      const leg = f.legs[0] && !f.legs[0].kind ? f.legs[0] : null, dir = (leg && leg.dir) || f.arr || 'S', main = dir === 'N' ? G.N : G.S;
+      const xf = mapTo(f.pid, f.d, main.pid); if (xf == null) return null;
+      let best = null;
+      for (const r of S.agents) { if (r.k === fk || r.hidden || r.mode === 'static' || r.attached != null || r.rescuing != null) continue;
+        const rl = r.legs[0] && !r.legs[0].kind ? r.legs[0] : null; if (!rl || rl.dir !== dir) continue;
+        const xr = mapTo(r.pid, r.d, main.pid); if (xr == null || xr >= xf) continue;
+        if (!best || xr > best.x) best = { r, x: xr }; }
+      if (!best) return null;
+      const r = best.r; S.rt.rescue = S.rt.rescue || {}; S.rt.rescue[r.k] = fk; r.rescuing = fk; f.rescue = { rk: r.k, stage: 'coming' };
+      const rl = r.legs[0] && !r.legs[0].kind ? r.legs[0] : null;
+      if (rl && rl.stops && rl.stops.length && r.stopAt == null && rl.stops[0].d < (mapTo(f.pid, f.d, rl.pid) || Infinity)) { rl.stops = rl.stops.slice(0, 1); rl.end = rl.stops[0].d; r.legs = [rl, { kind: 'unload' }, { kind: 'approach', f: fk, dir }]; }
+      else { r.legs = [{ kind: 'unload' }, { kind: 'approach', f: fk, dir }]; r.stopAt = null; }
+      r.mode = 'home'; r.pcHold = false; return r.k;
+    }
+    function follow(a) {                     // the rescuing train coupled behind: it goes where the broken one goes
+      const f = S.agents[a.attached];
+      if (!f || f.hidden) { a.attached = null; a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.v = 0; delete S.rt.routes[a.k]; return; }
+      if (f.status === 'parked' || (f.legs[0] && f.legs[0].tailOf)) { a.attached = null; a.v = 0; a.mode = 'home'; a.status = 'empty'; a.legs = [{ kind: 'tailpark' }]; if (f.rescue) f.rescue.stage = 'done'; return; }
+      const d = f.d - 2 * half - 3; a.pid = f.pid; a.d = d; a.v = f.v; a.why = 'soccorso'; a.status = 'empty';
     }
     // ---------- the navetta: one train back and forth on one track between two stations ----------
     function navRun(a, nv, pid, d) {
@@ -694,6 +742,26 @@
       // stays protected by the train itself standing there)
       if (m.kind === 'stopped') { a.status = 'stopped'; a.stoppedSince = S.t; delete S.rt.routes[a.k]; return false; }
       if (m.kind === 'depot') { a.hidden = true; a.mode = 'static'; a.status = 'depot'; return false; }
+      // fase D4: passengers off; then empty to the depot (southbound) or to a tail at Comasina (northbound)
+      if (m.kind === 'unload') { a.status = 'empty'; a.stopAt = null; a.wait = S.t + (ops.terminus_unload_s || 45); return false; }
+      if (m.kind === 'home') {
+        const main = m.dir === 'N' ? G.N : G.S, d = mapTo(a.pid, a.d, main.pid);
+        if (d == null) { a.status = 'stopped'; a.stoppedSince = S.t; return false; }
+        if (m.dir === 'N') a.legs.unshift({ pid: main.pid, status: 'empty', stops: [], start: d, end: main.stops[main.stops.length - 1] }, { kind: 'tailpark' });
+        else { const pe = pathEdges[main.pid].e; a.legs.unshift({ pid: main.pid, status: 'empty', stops: [], start: d, end: pe[pe.length - 1][3] - half - 5 }, { kind: 'depot' }); }
+        return true;
+      }
+      if (m.kind === 'approach') {           // the rescue: up to 3 m from the broken train, in marcia a vista
+        const f = S.agents[m.f], main = m.dir === 'N' ? G.N : G.S, d = mapTo(a.pid, a.d, main.pid), xf = f && mapTo(f.pid, f.d, main.pid);
+        if (d == null || xf == null) { a.status = 'stopped'; a.stoppedSince = S.t; return false; }
+        a.vlim = VISTA; a.legs.unshift({ pid: main.pid, status: 'empty', stops: [], start: d, end: xf - 2 * half - 3 }, { kind: 'couple', f: m.f }); return true;
+      }
+      if (m.kind === 'couple') { const f = S.agents[m.f]; if (f && f.rescue) f.rescue.stage = 'coupling'; a.wait = S.t + 300; a.legs.unshift({ kind: 'convoy', f: m.f }); return false; }
+      if (m.kind === 'convoy') {
+        const f = S.agents[m.f]; a.vlim = null; delete S.rt.routes[a.k]; if (S.rt.rescue) delete S.rt.rescue[a.k];
+        if (!f) { a.rescuing = null; a.legs = [{ kind: 'home', dir: m.dir || 'S' }]; return true; }
+        a.attached = m.f; a.rescuing = null; f.rescue.stage = 'towed'; f.vlim = 15 / 3.6; goHome(f, false); return false;
+      }
       if (m.kind === 'assign') { assign(a); return a.legs.length > 0; }
       if (m.kind === 'retry') { a.legs.unshift(...nextShuttleLegs(a)); return a.legs[0] && a.legs[0].kind !== 'retry'; }
       if (m.kind === 'navback') {
@@ -851,6 +919,7 @@
     // ---------- one step of one agent ----------
     function stepAgent(a) {
       if (a.mode === 'static' || a.hidden) return;
+      if (a.attached != null) { follow(a); return; }       // coupled behind a broken train (rescue)
       if (S.t < a.wait) {
         // its next move starts in a few seconds (the cab change is done): the route is set in advance, the switches
         // move while the driver gets ready
@@ -922,7 +991,7 @@
         if (S.lastDep[key] != null && S.t - S.lastDep[key] < (leg.status === 'service' ? HEADWAY : NON_SERVICE_HEADWAY)) { a.why = 'intervallo'; return; }
         const au = authority(a, leg);
         if (au.lim < a.d + 5) { a.why = 'segnale'; if (!a.red) a.red = { since: S.t, why: au.why }; a.red.now = au.why; return; }
-        S.lastDep[key] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift();
+        S.lastDep[key] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift(); a.lastStop = { pid: a.pid, d: a.d };
         if (a.vlim && a.vlimTo === st.st) { a.vlim = null; a.vlimTo = null; }    // speed limit "as far as this station": over
         a.late = st.dep && leg.timed ? S.t - st.dep : null; a.depSi = leg.si;
         a.at = st.st; a.arr = leg.dir;
@@ -961,14 +1030,14 @@
           stepAgent(a);
           if (a.v > 0.5 && S.rt.wants && S.rt.wants[a.k]) delete S.rt.wants[a.k];     // it moves: it no longer waits
           if (IL) IL.release(S.il, a.k, a.pid, a.d + half, a.hidden || a.status === 'parked', a.pid === p0 ? n0 : null, a.v);
-          if (a.pid === p0 && !a.hidden && a.d + half > n0) {
+          if (a.pid === p0 && !a.hidden && a.attached == null && a.d + half > n0) {
             // check: a front that went over a signal must have had its route (counted for the tests)
             for (const c of RT.ahead(a.pid, n0 + 12, a.d + half - n0)) if (c.d > n0 && c.d <= a.d + half) {
               S.rt.passed = (S.rt.passed || 0) + 1;
               if (!RT.held(S.rt, a.k, a.pid, c.d)) { S.rt.viol = (S.rt.viol || 0) + 1; (S.rt.violAt = S.rt.violAt || []).length < 5 && S.rt.violAt.push([a.k, a.pid, c.n, Math.round(S.t), a.status]); }
             }
           }
-          if (a.pid === p0 && !a.hidden && a.d + half > n0) for (const [, nd] of RT.switchesOn(a.pid, n0, a.d + half)) {
+          if (a.pid === p0 && !a.hidden && a.attached == null && a.d + half > n0) for (const [, nd] of RT.switchesOn(a.pid, n0, a.d + half)) {
             // check: a front that goes over a switch of the line must have a route over it (counted for the tests)
             S.rt.swPassed = (S.rt.swPassed || 0) + 1;
             if (!RT.heldNode(S.rt, a.k, nd)) { S.rt.swViol = (S.rt.swViol || 0) + 1; S.rt.swAt = S.rt.swAt || {}; const key = nd + '@' + a.pid + ':' + a.status; S.rt.swAt[key] = (S.rt.swAt[key] || 0) + 1; }

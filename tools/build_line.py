@@ -1906,7 +1906,7 @@ NET['navette'] = NAVETTE if DEGRADED else {}
 NET['rev_paths'] = REV_PATHS if DEGRADED else {}
 # failures (foglio Guasti, fase D): which rows the program simulates, and how many times a day each happens (Volte al giorno)
 import re as _re
-_FK = [('trazione', r'non riparte'), ('porta', r'porta non si chiude'), ('freno', r'frenatura di emergenza'), ('ato', r'guasto ato'),
+_FK = [('trazione', r'non riparte'), ('porta', r'porta non si chiude'), ('freno', r'frenatura di emergenza'), ('ato', r'guasto ato'), ('atp', r'guasto atp'),
        ('allarme', r'allarme passeggero'), ('porte_persone', r'bloccano la chiusura'), ('malore_treno', r'male sul treno'), ('riarmo', r'continuamente di essere riarmato'),
        ('scambio', r'scambio guasto'), ('segnale', r'segnale guasto'), ('sezione', r'sezione occupata'), ('tensione', r'mancanza di tensione'),
        ('persona', r'persona sui binari'), ('oggetto', r'oggetto caduto'), ('malore_stazione', r'male in stazione'), ('tunnel', r'persona nel tunnel'),

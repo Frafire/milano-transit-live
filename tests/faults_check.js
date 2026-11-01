@@ -21,27 +21,29 @@ function overlaps(ag) {
     if (list[i][0] !== list[j][0] && Math.max(list[j][1] - list[i][2], list[i][1] - list[j][2]) < 0) n++;
   return n;
 }
-const T0 = 8 * 3600, T1 = 10 * 3600;
+const T0 = 8 * 3600, T1 = 10 * 3600, T1x = { soccorso: 11 * 3600, atp: 11 * 3600, udt: 10.5 * 3600 };
 for (const kind of ARG === 'line' || ARG === 'people' ? [] : KINDS) {
   const ag = L.agents(M, D, t => L.posAt(day, t)), t0 = Date.now();
   ag.start(T0 - 600, L.posAt(day, T0 - 600)); ag.step(T0);
   // a train in service, running, in the middle of the line
   const a = ag.agents().find(x => !x.hidden && x.status === 'service' && x.v > 8 && x.at > 3 && x.at < 17);
   const id = ag.event({ kind: 'fault', what: 'new', fault: kind, k: a.k });
-  let ov = 0, stood = 0, longDwell = 0, endT = null, phases = new Set(), lastD = a.d;
-  for (let t = T0 + 10; t <= T1; t += 10) {
+  let ov = 0, stood = 0, longDwell = 0, endT = null, phases = new Set(), lastD = a.d, vAtp = 0, rk = null;
+  for (let t = T0 + 10; t <= (T1x[kind] || T1); t += 10) {
     ag.step(t);
     const f = ag.S.faults.list.find(x => x.id === id);
-    phases.add(f.ph + (f.tech ? '/' + f.tech : ''));
+    phases.add(f.ph + (f.tech ? '/' + f.tech : '')); if (f.rk != null) rk = f.rk; if (kind === 'atp' && !f.done) vAtp = Math.max(vAtp, a.v * 3.6);
     if (f.done && endT == null) endT = f.done;
     if (!f.done) { if (a.v === 0 && a.stopAt == null) stood += 10; if (a.stopAt != null && a.v === 0) longDwell += 10; }
     if (t % 60 === 0) ov += overlaps(ag);
   }
   const rt = ag.rt(), f = ag.S.faults.list.find(x => x.id === id), say = ag.S.faults.feed.filter(x => x.id === id || x.k === a.k);
   // what must happen: the train stands (re-arming), longer at a station, manual driving, the failure is over
-  const want = { trazione: stood + longDwell >= 240, freno: stood >= 200, riarmo: stood >= 100, porta: longDwell >= 60, porte_persone: longDwell >= 30,
+  const homed = a.hidden || a.status === 'parked' || a.mode === 'home';
+  const want = { udt: homed && [...phases].includes('udt'), atp: homed && vAtp <= 30.5, soccorso: [...phases].includes('towed') && homed && (rk == null || ag.agents()[rk].hidden || ag.agents()[rk].status === 'parked' || ag.agents()[rk].mode === 'home'),
+                 trazione: stood + longDwell >= 240, freno: stood >= 200, riarmo: stood >= 100, porta: longDwell >= 60, porte_persone: longDwell >= 30,
                  allarme: longDwell >= 60, malore_treno: longDwell >= 1200, ato: true }[kind];
-  const ended = kind === 'ato' ? !f.done || a.hidden || a.status === 'parked' : f.done != null;
+  const ended = kind === 'ato' ? !f.done || a.hidden || a.status === 'parked' : kind === 'atp' || kind === 'soccorso' || kind === 'udt' ? homed : f.done != null;
   const techOk = kind !== 'riarmo' || [...phases].some(x => x.endsWith('/board'));
   const bad = !id || ov || rt.viol || rt.swViol || !want || !ended || !techOk;
   console.log(`${bad ? 'FAIL' : 'ok  '} ${kind} on train ${a.k + 1}: phases ${[...phases].join(' > ')} | standing in the line ${Math.round(stood / 60)} min, at stations ${Math.round(longDwell / 60)} min | ${kind === 'ato' ? (f.done ? 'manual until it left the service' : 'still manual at 10:00') : 'over at ' + (endT ? new Date(endT * 1000).toISOString().slice(11, 16) : 'never')} | radio ${say.length} | overlaps ${ov} | without route: signals ${rt.viol || 0}, switches ${rt.swViol || 0} | ${Date.now() - t0} ms`);
@@ -74,7 +76,7 @@ for (const kind of ARG === 'people' ? [] : LINE) {
   vistaGo = ag.S.faults.list.filter(x => x.kind === 'vista' && x.ph === 'go').length;
   const rt = ag.rt(), f = ag.S.faults.list.find(x => x.id === id);
   const stuck = ag.agents().filter(x => { const m = moved.get(x.k); return !x.hidden && x.status !== 'parked' && x.mode !== 'static' && m && TE - m.t > 1500 && !(ag.S.t < x.wait); }).length;
-  const want = kind === 'tensione' ? stoodOff > 0 && inside > 0 : vistaGo > 0 && vistaMax <= 5.5;
+  const want = kind === 'tensione' ? stoodOff > 0 && inside > 0 : vistaGo > 0 && vistaMax <= 15.5;
   const bad = !id || ov || rt.viol || rt.swViol || !want || endT == null || stuck;
   console.log(`${bad ? 'FAIL' : 'ok  '} ${kind} ${f.what}: phases ${[...phases].join(' > ')} | over at ${endT ? new Date(endT * 1000).toISOString().slice(11, 16) : 'never'} | marcia a vista: ${vistaGo} trains, fastest ${vistaMax.toFixed(1)} km/h${kind === 'tensione' ? ' | trains standing: ' + stoodOff + ' (in the stretch: ' + inside + ')' : ''} | stuck 25+ min at the end: ${stuck} | overlaps ${ov} | without route: signals ${rt.viol || 0}, switches ${rt.swViol || 0} | ${Date.now() - t0} ms`);
   for (const m of ag.S.faults.feed.filter(x => x.id === id).slice(0, 5)) console.log('       ' + new Date(m.t * 1000).toISOString().slice(11, 19) + ' ' + m.who + ': ' + m.text);
@@ -107,7 +109,7 @@ for (const kind of PEOPLE) {
   }
   const rt = ag.rt(), f = ag.S.faults.list.find(x => x.id === id);
   const stuck = ag.agents().filter(x => { const m = moved.get(x.k); return !x.hidden && x.status !== 'parked' && x.mode !== 'static' && m && t - m.t > 1500 && !(ag.S.t < x.wait); }).length;
-  const want = { persona: zonesSeen.has('red') && zonesSeen.has('power') && !movingRed, tunnel: zonesSeen.has('red') && zonesSeen.has('vista') && vistaMax <= 5.5 && !movingRed,
+  const want = { persona: zonesSeen.has('red') && zonesSeen.has('power') && !movingRed, tunnel: zonesSeen.has('red') && zonesSeen.has('vista') && vistaMax <= 15.5 && !movingRed,
                  investimento: zonesSeen.has('red') && closedSeen && !(ag.S.stn[X] && ag.S.stn[X].closed), incendio: closedSeen && !(ag.S.stn[X] && ag.S.stn[X].closed),
                  malore_stazione: zonesSeen.has('slow') && slowMax <= 15.5, oggetto: true }[kind];
   const bad = !id || ov || rt.viol || rt.swViol || !want || endT == null || stuck || ag.zones().some(z => z.kind !== 'vista');

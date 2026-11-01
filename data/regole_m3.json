@@ -3960,7 +3960,7 @@
    "Quanto spesso / come si attiva": "casuale / dal menu admin",
    "Volte al giorno (stima)": 0.3,
    "Nel programma oggi": "sì (fase D1)",
-   "Note": "Riarmo: un paio di minuti dopo aver dato comunicazione al PC"
+   "Note": "Riarmo (interruttore rapido, IR): un paio di minuti dopo aver dato comunicazione al DCT. Dopo 3 riarmi falliti si esclude l'UdT guasta (ogni treno ha 2 UdT indipendenti) e si prosegue con l'altra: passeggeri giù alla prossima stazione, poi vuoto al deposito di Rogoredo (ROD). Soccorso solo se si fermano tutte e due (rarissimo)"
   },
   {
    "N.": 2,
@@ -4004,8 +4004,8 @@
    "Tempi (min - max)": "-",
    "Quanto spesso / come si attiva": "casuale",
    "Volte al giorno (stima)": 0.05,
-   "Nel programma oggi": "no",
-   "Note": null
+   "Nel programma oggi": "sì (fase D4)",
+   "Note": "Nel programma: marcia limitata a 30 km/h, a fine corsa rientro vuoto al deposito di Rogoredo (ROD)"
   },
   {
    "N.": 5,
@@ -4060,7 +4060,7 @@
    "Cosa fa il macchinista (e quanto ci mette)": "Chiama il PC",
    "Cosa fa il PC": "Autorizza il passaggio a rosso: marcia a vista fino al segnale successivo",
    "Quando diventa soccorso": "-",
-   "Come si risolve / soccorso": "Marcia a vista 5 km/h",
+   "Come si risolve / soccorso": "Marcia a vista 15 km/h (30 sulla carta) fino al semaforo successivo",
    "Tempi (min - max)": "-",
    "Quanto spesso / come si attiva": "dal menu admin",
    "Volte al giorno (stima)": 0.2,
@@ -4154,8 +4154,8 @@
    "Tempi (min - max)": "aggancio 5 min",
    "Quanto spesso / come si attiva": "-",
    "Volte al giorno (stima)": "conseguenza",
-   "Nel programma oggi": "no",
-   "Note": "Preparazione del soccorso 10 min (Giovanni, da correggere); spinta a 25 km/h max, marcia a vista vicino al treno (da confermare)"
+   "Nel programma oggi": "sì (fase D4)",
+   "Note": "Soccorso tra treni: 30 km/h se il soccorritore traina con l'accoppiamento pneumatico, altrimenti 15 km/h. Nel programma: il treno dietro scarica i passeggeri, arriva in marcia a vista, aggancia in 5 min e spinge a 15 km/h fino al deposito di Rogoredo o ai tronchetti di Comasina"
   },
   {
    "N.": 15,
@@ -4170,7 +4170,7 @@
    "Quanto spesso / come si attiva": "-",
    "Volte al giorno (stima)": "conseguenza",
    "Nel programma oggi": "no",
-   "Note": "Movimento contromano autorizzato dal PC; 25 km/h max (da confermare)"
+   "Note": "Traino con accoppiamento pneumatico: 30 km/h. Non ancora nel programma (c'è la spinta)"
   },
   {
    "N.": 16,
@@ -4185,7 +4185,7 @@
    "Quanto spesso / come si attiva": "-",
    "Volte al giorno (stima)": "conseguenza",
    "Nel programma oggi": "no",
-   "Note": "A inizio giornata è nel deposito di San Donato; il PC può spostarlo in uno dei tronchetti per averlo più vicino"
+   "Note": "Il Badoni sta nel deposito di Rogoredo (ROD); per mandarlo in linea serve l'interruzione: rarissimo, non simulato"
   },
   {
    "N.": 17,

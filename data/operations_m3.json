@@ -59,5 +59,6 @@
     "max_pct": 100,
     "base_pct": 90,
     "every_s": 5
-  }
+  },
+  "marcia_a_vista_kmh": 15
 }

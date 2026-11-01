@@ -63,10 +63,12 @@
     // is the route free for train k? occ(ei) -> [[k, l0, l1]] other trains on that piece now
     function free(st, k, pieces, nodes, occ, skipPc) {
       const nodeSet = new Set(nodes.map(x => x[0]));
-      for (const [ei, l0, l1] of pieces) for (const [k2, m0, m1] of occ(ei) || []) if (k2 !== k && overlap(l0, l1, m0, m1)) return { train: k2 };
+      // (the rescue: the train sent to a broken one may go into its section, up to it: st.rescue[k] = the broken train)
+      const res = st.rescue && st.rescue[k] != null ? st.rescue[k] : null;
+      for (const [ei, l0, l1] of pieces) for (const [k2, m0, m1] of occ(ei) || []) if (k2 !== k && k2 !== res && overlap(l0, l1, m0, m1)) return { train: k2 };
       // a train standing on a switch (touching the node from any side)
       for (const nd of nodeSet) for (const ei of nodeEdges(nd)) for (const [k2, m0, m1] of occ(ei) || []) {
-        if (k2 === k) continue;
+        if (k2 === k || k2 === res) continue;
         const L = NE[ei].len, atA = NE[ei].a === nd;
         if (atA ? m0 < 1 : m1 > L - 1) return { train: k2, node: nd };
       }
@@ -77,7 +79,7 @@
         for (const nd of r.nodes) if (nodeSet.has(nd)) return { pcRoute: +n2, id: r.id, node: nd };
       }
       for (const [k2, rs] of Object.entries(st.routes)) {
-        if (+k2 === k) continue;
+        if (+k2 === k || +k2 === res) continue;
         for (const r of rs) {
           for (const [ei, m0, m1] of r.pieces) for (const [e2, l0, l1] of pieces) if (e2 === ei && overlap(l0, l1, m0, m1)) return { route: +k2, n: r.n };
           for (const [nd] of r.nodes) if (nodeSet.has(nd)) return { route: +k2, n: r.n, node: nd };
