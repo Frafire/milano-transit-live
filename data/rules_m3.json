@@ -5157,5 +5157,16 @@
     ]
    }
   }
- }
+ },
+ "track_lengths": [
+  {
+   "_about": "Lunghezza vera di un binario tronco (collega di Giovanni, nov 2026): il binario viene allungato o accorciato a questa lunghezza.",
+   "name": "Centrale tronchino A33",
+   "end": [
+    45.486857,
+    9.203225
+   ],
+   "len": 102.5
+  }
+ ]
 }

@@ -417,7 +417,7 @@
   "Cosa fa il macchinista (e quanto ci mette)": "Riarma (un paio di minuti dopo aver avvisato il PC) e prosegue",
   "Cosa fa il PC": "Chiama la Manutenzione di linea a San Donato e indica il treno: il tecnico sale sempre a San Donato, quando il treno ci arriva",
   "Quando diventa soccorso": "Se il tecnico non risolve e il treno non riparte più",
-  "Come si risolve / soccorso": "Il tecnico sale a San Donato e va con il treno sul tronchetto: mentre il macchinista fa il cambio banco verifica tutto. Poi scende a San Donato e torna in postazione, oppure resta a bordo fino a Rogoredo e torna a San Donato con il treno dopo. Se non si sistema, il treno rientra in deposito",
+  "Come si risolve / soccorso": "Il tecnico sale a San Donato e verifica durante il cambio banco e fino a Rogoredo. Sistemato: scende a Rogoredo e torna con il treno dopo. Non sistemato: passeggeri giù a Rogoredo, il treno inverte con lo scambio di Rogoredo e torna vuoto al deposito di Rogoredo (ROD) con il tecnico",
   "Tempi (min - max)": "finché il treno arriva a San Donato (con i riarmi); verifica durante il cambio banco, 5 - 15 min",
   "Quanto spesso / come si attiva": "casuale",
   "Volte al giorno (stima)": 0.3,
@@ -464,6 +464,35 @@
    "Quanto spesso / come si attiva",
    "Volte al giorno (stima)",
    "Nel programma oggi"
+  ]
+ },
+ {
+  "N.": 25,
+  "Tipo": "treno",
+  "Guasto": "Problema secondario del treno: serve il tecnico a bordo",
+  "Come si presenta (cosa vedono macchinista e PC)": "Il macchinista segnala un problema che non ferma il treno (climatizzazione, display, luci, anomalia diagnostica)",
+  "Cosa fa il macchinista (e quanto ci mette)": "Prosegue in servizio e avvisa il DCT",
+  "Cosa fa il PC": "Chiama la Manutenzione di linea (ROD): il tecnico sale a San Donato",
+  "Quando diventa soccorso": "Mai",
+  "Come si risolve / soccorso": "Il tecnico verifica durante il cambio banco e fino a Rogoredo; se non risolve il treno resta in servizio e lo vedono in deposito a fine giornata",
+  "Tempi (min - max)": "fino a Rogoredo",
+  "Quanto spesso / come si attiva": "casuale, raramente",
+  "Volte al giorno (stima)": 0.5,
+  "Nel programma oggi": "sì (fase D4)",
+  "Note": "Richiesto da Giovanni (2 nov 2026)",
+  "_mine": [
+   "Tipo",
+   "Guasto",
+   "Come si presenta (cosa vedono macchinista e PC)",
+   "Cosa fa il macchinista (e quanto ci mette)",
+   "Cosa fa il PC",
+   "Quando diventa soccorso",
+   "Come si risolve / soccorso",
+   "Tempi (min - max)",
+   "Quanto spesso / come si attiva",
+   "Volte al giorno (stima)",
+   "Nel programma oggi",
+   "Note"
   ]
  }
 ]

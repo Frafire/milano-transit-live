@@ -540,8 +540,8 @@
           call(`DCT, qui treno ${no}, fermo a ${cap(at)}: la linea davanti è interrotta. Attendo istruzioni. Passo.`);
         }
         if (a.status !== 'stopped') c.stopped = false;
-        // stopped at a red signal: in the line the driver calls the DCT after 30 seconds (M3 rule); at a station after 5 minutes
-        const redCall = a.stopAt == null && a.status !== 'turnback' ? 30 : 300;
+        // stopped at a red signal: the driver calls the DCT after 30 seconds (M3 rule), in the line and at a station
+        const redCall = a.status === 'turnback' ? 300 : a.stopAt == null ? 30 : a.why === 'segnale' && !a.pcHold && !a.vlim ? 30 : Infinity;     // (at a station: 30 s too, unless the DCT ordered something)
         if (a.red && a.v === 0 && em.ag.S.t - a.red.since >= redCall && !c.red && !(dq && !dq.open && dq.red != null) && !(a.why === 'guasto' || a.why === 'tensione' || a.why === 'rosso' || a.why === 'fermo') && !(((a.red.now || a.red.why || {}).route || {}).sigFail != null || ((a.red.now || a.red.why || {}).route || {}).ghost != null || ((a.red.now || a.red.why || {}).route || {}).swHand != null)) {   // (depot signals on manual: their own calls; failures: their own calls)
           c.red = true; const w = a.red.now || a.red.why || {};
           const what = w.sig != null ? 'al segnale ' + (typeof w.sig === 'number' && w.route !== undefined ? '#A' + String(w.sig).padStart(2, '0') : sigNo(F, w.sig)) : 'dietro al treno ' + trainNo(F, F.trains[w.train] || tr);

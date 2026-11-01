@@ -31,6 +31,25 @@ for w in W:
                 node_pos[start] = cur[0]; node_pos[n] = cur[-1]
             cur = [cur[-1]]; start = n
 
+# dead-end tracks whose real length is known (rules file, track_lengths: Giovanni's colleague, Nov 2026: the tail
+# after Centrale is 102.5 m): the track is made that long, straight on beyond its last point (or cut short)
+_RF = 'rules_%s.json' % os.environ.get('LINE', 'M3').lower()
+for _tl in (json.load(open(_RF)).get('track_lengths', []) if os.path.exists(_RF) else []):
+    _ex, _ey = xy(*_tl['end'])
+    _n = min((n for n in node_edges if len(node_edges[n]) == 1), key=lambda n: math.hypot(node_pos[n][0] - _ex, node_pos[n][1] - _ey), default=None)
+    if _n is None or math.hypot(node_pos[_n][0] - _ex, node_pos[_n][1] - _ey) > 30: continue
+    _e = edges[node_edges[_n][0]]; _p = _e['pts'] if _e['b'] == _n else _e['pts'][::-1]
+    _dx, _dy = _p[-1][0] - _p[-2][0], _p[-1][1] - _p[-2][1]; _l = math.hypot(_dx, _dy) or 1
+    _more = _tl['len'] - _e['len']
+    if _more > 0: _p = _p + [(_p[-1][0] + _dx / _l * _more, _p[-1][1] + _dy / _l * _more)]
+    else:
+        while len(_p) > 2 and _e['len'] + _more < _e['len'] - math.hypot(_p[-1][0] - _p[-2][0], _p[-1][1] - _p[-2][1]): _more += math.hypot(_p[-1][0] - _p[-2][0], _p[-1][1] - _p[-2][1]); _p = _p[:-1]
+        _dx, _dy = _p[-1][0] - _p[-2][0], _p[-1][1] - _p[-2][1]; _l = math.hypot(_dx, _dy) or 1
+        _p = _p[:-1] + [(_p[-1][0] + _dx / _l * _more, _p[-1][1] + _dy / _l * _more)]
+    _e['pts'] = _p if _e['b'] == _n else _p[::-1]; _e['len'] = sum(math.hypot(_e['pts'][i][0] - _e['pts'][i - 1][0], _e['pts'][i][1] - _e['pts'][i - 1][1]) for i in range(1, len(_e['pts'])))
+    node_pos[_n] = _p[-1]
+    print('track length:', _tl.get('name'), round(_e['len'], 1), 'm')
+
 def poly(ei, d):
     p = edges[ei]['pts']
     return p if d > 0 else p[::-1]

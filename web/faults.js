@@ -49,6 +49,7 @@
     porte_persone: { label: 'Persone bloccano le porte' },
     malore_treno: { label: 'Persona si sente male sul treno' },
     riarmo: { label: 'Il treno chiede continuamente il riarmo' },
+    secondario: { label: 'Problema secondario (tecnico a bordo)' },
     segnale: { label: 'Segnale guasto (resta rosso)', on: 'signal' },
     sezione: { label: 'Sezione occupata falsa', on: 'signal' },
     scambio: { label: 'Scambio guasto (non va in posizione)', on: 'switch' },
@@ -98,6 +99,8 @@
       if (f.kind === 'ato') { f.ph = 'manual'; call(f, `DCT, treno {T}: guasto all'ATO, proseguo in guida manuale.`, ['ack']); }
       else if (f.kind === 'atp') { f.ph = 'limited'; call(f, `DCT, treno {T}: guasto all'ATP, proseguo in marcia limitata a 30 km/h.`, ['homeEnd']); }
       else if (f.kind === 'riarmo') { f.ph = 'run'; f.next = S.t + between(120, 420); }
+      else if (f.kind === 'secondario') { f.ph = 'run'; const what = ['la climatizzazione di una cassa non funziona', 'un display interno per i passeggeri è spento', 'una luce di cabina non si accende', 'il pannello diagnostico segnala un\'anomalia su un carrello', 'un annuncio automatico non parte'];
+        call(f, `DCT, treno {T}: ${what[Math.floor(rnd() * what.length)]}. Il treno marcia, chiedo un tecnico a bordo.`, ['tech']); }
       else if (f.kind === 'trazione') f.ph = 'stopping';              // it stops where it is (at a station: when leaving)
       else if (f.kind === 'malore_treno' && a.stopAt != null) atStation(f, a);
     }
@@ -169,9 +172,7 @@
       }
       else if (f.kind === 'oggetto' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; call(f, `DCT, qui ${name(f.st)}: oggetto recuperato, puoi ridare tensione.`, ['clear']); }
       else if (f.kind === 'malore_stazione') {
-        if (f.holdAt && S.t >= f.holdAt && f.ph === 'help' && !f.call) { f.holdAt = null;      // the agent closes his signals himself for a moment
-          f.zones = (f.zones || []).concat([L.zone('stop', f.st, f.st)]); f.ph = 'holding'; f.holdUntil = S.t + between(120, 300);
-          say(f, 'ag', `DCT, qui ${name(f.st)}: ho chiuso un momento i segnali della stazione, i soccorritori lavorano in banchina.`); }
+        if (f.holdAt && S.t >= f.holdAt && f.ph === 'help' && !f.call) { f.holdAt = null; f.ph = 'ask'; call(f, `DCT, qui ${name(f.st)}: fermate un momento i treni in stazione, i soccorritori lavorano in banchina.`, ['hold']); }
         if (f.ph === 'holding' && S.t >= f.holdUntil) { unzone(f, 'stop'); f.ph = 'help'; say(f, 'ag', `Qui ${name(f.st)}: i treni possono ripartire, grazie.`); }
         if (f.ph === 'help' && !f.holdAt && S.t >= f.until) { unLine(f); end(f, `Qui ${name(f.st)}: la persona è stata soccorsa, emergenza rientrata.`, 'ag'); }
       }
@@ -215,8 +216,8 @@
       if (what === 'fix') { unLine(f); if (f.st != null && (f.kind === 'investimento' || f.kind === 'incendio')) L.station(f.st, false);
         end(f, f.kind === 'pc' ? `DCT: tolto ${f.zone === 'red' ? 'il pulsante rosso' : f.zone === 'power' ? 'il taglio di tensione' : 'il fermo dei treni'} tra ${f.what}.` : 'Guasto risolto (admin).', f.kind === 'pc' ? 'pc' : 'sys'); return null; }
       if (what === 'tech') {
-        if (f.kind !== 'riarmo' || f.tech) return { no: true };
-        f.tech = 'wait'; say(f, 'pc', 'Manutenzione di linea del deposito di Rogoredo, mandate un tecnico sul treno {T}: chiede continuamente il riarmo.');
+        if ((f.kind !== 'riarmo' && f.kind !== 'secondario') || f.tech) return { no: true };
+        f.tech = 'wait'; say(f, 'pc', f.kind === 'riarmo' ? 'Manutenzione di linea del deposito di Rogoredo, mandate un tecnico sul treno {T}: chiede continuamente il riarmo.' : 'Manutenzione di linea del deposito di Rogoredo, mandate un tecnico sul treno {T}: ha un problema secondario.');
         say(f, 'man', 'Ricevuto DCT, il tecnico sale sul treno {T} a San Donato.');
         if (f.call && f.call.opts.includes('tech')) { f.call.opts = f.call.opts.filter(x => x !== 'tech'); if (!f.call.opts.length) f.call = null; }
         return null;
@@ -263,7 +264,7 @@
         else { f.ph = 'rescue'; f.until = S.t + between(1800, 3600); say(f, 'pc', 'Treno {T}: nessun treno può arrivare da dietro. Serve il Badoni da ROD, con l\'interruzione della linea (non ancora simulato: il treno riparte dopo l\'attesa).'); }
       }
       else if (what === 'home' || what === 'homeEnd') {
-        if (!L.home || !L.home(f.k, what === 'homeEnd')) return { no: true };
+        if (!L.home || !L.home(f.k, what === 'homeEnd', f.turnX)) return { no: true };
         f.ph = 'homing'; say(f, 'pc', what === 'homeEnd' ? 'Treno {T}, finisci la corsa, fai scendere i passeggeri al capolinea e rientra vuoto al deposito di Rogoredo.' : 'Treno {T}, fai scendere i passeggeri alla prossima stazione e rientra vuoto al deposito di Rogoredo.');
         say(f, 'dr', 'Ricevuto DCT. Passo.');
       }
@@ -340,15 +341,18 @@
           } else end(f, `Qui ${name(f.st)}: verificato, niente di grave. Il treno {T} può ripartire.`, 'ag');
         }
         if (f.kind === 'malore_treno' && f.ph === 'held' && S.t >= f.until) end(f, `Qui ${name(f.st)}: il passeggero è stato soccorso, emergenza rientrata. Il treno {T} può ripartire.`, 'ag');
-        if (f.kind === 'riarmo') {
-          if (f.ph === 'run' && !f.tech0 && S.t >= f.next && a.v > 3 && a.stopAt == null) { f.ph = 'stopping'; }
+        if (f.kind === 'riarmo' || f.kind === 'secondario') {
+          if (f.kind === 'riarmo' && f.ph === 'run' && !f.tech0 && S.t >= f.next && a.v > 3 && a.stopAt == null) { f.ph = 'stopping'; }
           if (f.ph === 'stopping' && a.v === 0) { f.ph = 'call'; call(f, `DCT, treno {T}: il treno mi chiede di nuovo il riarmo${where(a)}.`, f.tech ? ['rearm'] : ['rearm', 'tech']); }
-          // the technician: on at San Donato, he checks during the change of cab (the train waits for him if he needs longer)
-          if (f.tech === 'wait' && a.at === SD && a.v === 0) { f.tech = 'board'; f.tech0 = S.t; f.techUntil = S.t + between(300, 900); say(f, 'man', 'Tecnico a bordo del treno {T} a San Donato: verifico durante il cambio banco.'); }
-          if (f.tech === 'board' && S.t >= f.techUntil) {
-            if (rnd() < 0.8) { end(f, 'Tecnico: treno {T} sistemato. Scendo e torno in postazione.', 'man'); continue; }
-            f.tech = null; f.tech0 = null; f.ph = 'udt';
-            f.callWho = 'man'; call(f, 'DCT, qui il tecnico: non riesco a sistemare il treno {T}, va mandato al deposito di Rogoredo.', ['home']);
+          // the technician: on at San Donato, he checks during the change of cab and on to Rogoredo. There: fixed, he gets off
+          // (back with the next train); not fixed: passengers off, the train turns over the crossover of Rogoredo and goes
+          // back empty to ROD with him (Giovanni)
+          if (f.tech === 'wait' && a.at === SD && a.v === 0) { f.tech = 'board'; f.tech0 = S.t; say(f, 'man', 'Tecnico a bordo del treno {T} a San Donato: verifico durante il cambio banco e fino a Rogoredo.'); }
+          if (f.tech === 'board' && a.stopAt === 1 && a.v === 0 && !f.call) {
+            if (rnd() < (f.fixP != null ? f.fixP : f.kind === 'secondario' ? 0.9 : 0.8)) { end(f, 'Tecnico: treno {T} sistemato. Scendo a Rogoredo e torno a San Donato con il treno dopo.', 'man'); continue; }
+            if (f.kind === 'secondario') { end(f, 'Tecnico: non riesco a sistemarlo qui, ma il treno {T} può restare in servizio: lo vediamo in deposito a fine giornata. Scendo a Rogoredo.', 'man'); continue; }
+            f.tech = null; f.tech0 = null; f.ph = 'udt'; f.turnX = 1;
+            f.callWho = 'man'; call(f, 'DCT, qui il tecnico: non riesco a sistemare il treno {T}. Facciamo scendere i passeggeri qui a Rogoredo e torniamo vuoti al deposito.', ['home']);
           }
         }
       }
@@ -373,8 +377,7 @@
     // the train k may not drive this step (it brakes to a stop and stands): true
     function hold(a) {
       for (const f of of(a)) {
-        const stop = (f.kind === 'trazione' || f.kind === 'freno' || f.kind === 'riarmo') && ['stopping', 'call', 'rearm', 'help', 'rescue', 'udt', 'coming', 'coupling'].includes(f.ph)
-          || f.kind === 'riarmo' && f.tech === 'board' && a.at === SD && a.v === 0 && S.t >= a.wait;
+        const stop = (f.kind === 'trazione' || f.kind === 'freno' || f.kind === 'riarmo') && ['stopping', 'call', 'rearm', 'help', 'rescue', 'udt', 'coming', 'coupling'].includes(f.ph);
         if (!stop) continue;
         if (f.kind === 'trazione' && a.stopAt != null && S.t < a.dwellUntil) return false;     // the doors are still open: it fails when leaving
         if (a.v > 0) { const B = f.kind === 'freno' ? c.emBrake(a) : (a.brk || 1.1); a.v = Math.max(0, a.v - B * DT); a.d += a.v * DT; }
@@ -411,7 +414,7 @@
         say(f, 'pc', `Treno {T}, autorizzato a superare il ${tag(e.n)} in marcia a vista fino al semaforo successivo.`); say(f, 'dr', `Ricevuto DCT, supero il ${tag(e.n)} in marcia a vista.`);
         return a.k;
       }
-      if (e.what === 'new') { if (e.k == null) { const a = S.agents.find(x => !x.hidden && x.status === 'service' && x.mode !== 'static'); if (!a) return null; e.k = a.k; } return add(e.fault, e.k); }
+      if (e.what === 'new') { if (e.k == null) { const a = S.agents.find(x => !x.hidden && x.status === 'service' && x.mode !== 'static'); if (!a) return null; e.k = a.k; } return add(e.fault, e.k, e.opts ? { fixP: e.opts.fixP } : undefined); }
       if (e.what === 'answer') return answer(e.id, e.answer);
       return null;
     }

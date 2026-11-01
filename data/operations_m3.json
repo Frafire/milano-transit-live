@@ -24,14 +24,17 @@
       "acc_full": 0.81,
       "acc_empty": 1.1,
       "brake_service": 1.2,
-      "brake_emergency": 1.5
+      "brake_emergency": 1.5,
+      "one_unit": 0.5
     },
     "serie8000": {
       "acc_full": 0.75,
       "acc_empty": 1.1,
       "brake_service": 1.1,
-      "brake_emergency": 1.5
-    }
+      "brake_emergency": 1.5,
+      "one_unit": 0.5
+    },
+    "_one_unit": "one_unit: con una delle due UdT esclusa il treno ha questa parte della trazione (accelerazione) — Giovanni, nov 2026: metà"
   },
   "load_by_hour": {
     "_about": "Quanto è carico un treno in servizio (0 vuoto, 1 pieno): ore di punta, giorno, sera e notte. Stima, da correggere.",

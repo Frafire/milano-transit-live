@@ -49,8 +49,8 @@
       if (!P) { a.accCap = acc; a.brk = brk; return; }
       const load = a.status === 'service' ? loadAt(S.t) : 0;
       a.accCap = P.acc_empty - (P.acc_empty - P.acc_full) * load; a.brk = P.brake_service || brk;
-      if (FX && FX.manual(a)) a.accCap *= 0.85;                 // ATO failed: the driver accelerates less (Giovanni)
-      if (FX && FX.half(a)) a.accCap *= 0.5;                    // one of its two units cut out: half the traction
+      if ((FX && FX.manual(a)) || a.manualTo != null) a.accCap *= 0.85;      // manual driving (ATO failed, through a closed station): it accelerates less (Giovanni)
+      if (FX && FX.half(a)) a.accCap *= P.one_unit != null ? P.one_unit : 0.5;  // one of its two units cut out: half the traction (performance: one_unit)
     }
     let atoLast = -Infinity;
     function atoTick() {
@@ -77,7 +77,7 @@
         });
       }
       // ATO failed: manual driving, no even cruise (the speed goes up and down between 75 and 95% of the limit)
-      if (FX) for (const a of S.agents) if (!a.hidden && FX.manual(a)) { a.ato = 0.75 + 0.2 * (0.5 + 0.5 * Math.sin(S.t / 37 + a.k)); a.atoWarn = false; }
+      if (FX) for (const a of S.agents) if (!a.hidden && (FX.manual(a) || a.manualTo != null)) { a.ato = 0.75 + 0.2 * (0.5 + 0.5 * Math.sin(S.t / 37 + a.k)); a.atoWarn = false; }
     }
     // stn[station]: what the PC set for a station (radio alla stazione): closed to the public (trains do not stop), the
     // text on its platform screens
@@ -91,7 +91,7 @@
         sigEdges: n => { for (const [pid, l] of Object.entries(o.sigall || {})) { const x = l.find(y => y[1] === n); if (x) return RT.span(+pid, x[0], RT.nextSignal(+pid, x[0])).pieces.map(p => p[0]); } return []; },
         positions: nd => RT.switchPositions(nd), last: () => last,
         zone: (kind, a, b, extra) => addZone(kind, a, b, extra), unzone: id => dropZone(id),
-        home: (k, endOfRun) => goHome(S.agents[k], endOfRun), rescue: k => startRescue(k),
+        home: (k, endOfRun, turnX) => goHome(S.agents[k], endOfRun, turnX), rescue: k => startRescue(k),
         station: (X, closed) => { const x = S.stn[X] = Object.assign({}, S.stn[X]); if (closed) x.closed = true; else delete x.closed; if (!Object.keys(x).length) delete S.stn[X]; },
       } }) : null;
     const VISTA = (ops.marcia_a_vista_kmh || 15) / 3.6;         // marcia a vista: 15 km/h (30 on paper; Giovanni's colleague, Nov 2026)
@@ -293,13 +293,10 @@
       if (p) for (const sg of p) { if (sg[0] > a.d + half + 400) break; if (sg[1] < a.d - half) continue;
         const vs = sg[3] != null ? (sg[4] ? sg[3] * pc : sg[3]) : sg[2];
         v = Math.min(v, sg[0] <= a.d + half ? vs : Math.sqrt(vs * vs + 2 * B * (sg[0] - a.d - half))); }
-      // empty (no passengers), shunting: through the platforms at 40 km/h. Also a train in service through a station
-      // closed to the public: in M3 a train goes through a station without stopping only by hand, slowly (the
-      // interlocking: Giovanni's colleague, Nov 2026)
-      const z = o.zones && o.zones[a.pid], thru = leg.status === 'service' && !leg.skip && anyClosed();
-      if (z && (leg.status !== 'service' || leg.skip || thru)) for (const [z0, z1, zv] of z) {
+      // empty (no passengers), shunting: through the platforms at 40 km/h
+      const z = o.zones && o.zones[a.pid];
+      if (z && (leg.status !== 'service' || leg.skip)) for (const [z0, z1, zv] of z) {
         if (z1 < a.d - half || z0 > a.d + half + 300) continue;
-        if (thru && ((leg.stops || []).some(x => x.d >= z0 - 10 && x.d <= z1 + 10) || (a.lastStop && a.lastStop.pid === a.pid && a.lastStop.d >= z0 - 10 && a.lastStop.d <= z1 + 10))) continue;
         v = Math.min(v, z0 <= a.d + half ? zv : Math.sqrt(zv * zv + 2 * B * (z0 - a.d - half))); }
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
       // after reopening: 40 km/h on the stretch that was closed, for 20 minutes (Giovanni)
@@ -344,7 +341,6 @@
     // the track pieces of the closed stretch: the main tracks between the two stations, less what the turns at its ends
     // use (the crossovers, the stub beyond an A turn)
     let CLOSED = null, SLOW = null;
-    const anyClosed = () => { for (const k in S.stn) if (S.stn[k].closed) return true; return false; };
     function closedPieces(cl) {
       const out = new Set(), keep = new Set();
       for (const [X, dir] of [[cl.a, 'N'], [cl.b, 'S']]) {
@@ -413,9 +409,10 @@
     // ---------- a train with a failure leaves the service (fase D4) ----------
     // It lets the passengers off (at the next station; endOfRun: at the end of the run it is making, ATP failed) and goes
     // empty to the depot of Rogoredo (ROD) through San Donato, or northbound to a tail at Comasina. At a terminus: there.
-    function goHome(a, endOfRun) {
+    function goHome(a, endOfRun, turnX) {
       if (!a || a.hidden || a.mode === 'static') return false;
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, dir = (leg && leg.dir) || a.arr || 'S';
+      if (turnX != null && a.stopAt === turnX && dir === 'N') { a.legs = [{ kind: 'unload' }, { kind: 'turnhome', X: turnX }]; a.stopAt = null; a.mode = 'home'; a.pcHold = false; return true; }
       if (a.v === 0 && (a.at === 0 || a.at === last) && (a.stopAt != null || S.t < a.wait || !leg || a.status !== 'service')) {
         a.legs = [{ kind: 'unload' }, a.at === 0 ? { kind: 'depot' } : { kind: 'tailpark' }]; a.stopAt = null;
       } else if (leg && leg.stops && leg.stops.length && a.stopAt == null) {
@@ -751,6 +748,17 @@
         else { const pe = pathEdges[main.pid].e; a.legs.unshift({ pid: main.pid, status: 'empty', stops: [], start: d, end: pe[pe.length - 1][3] - half - 5 }, { kind: 'depot' }); }
         return true;
       }
+      if (m.kind === 'turnhome') {           // back the other way at station X over its crossover, empty to ROD
+        const tr0 = G.turns[m.X + ':N'] || {}, endOf = pid => { const pe = pathEdges[pid].e; return pe[pe.length - 1][3] - half - 5; };
+        // the DCT authorises the movements of the turn that are not for the normal service (as ROG-3 at Rogoredo)
+        const auth = (pid, d0) => { for (const c of RT.ahead(pid, d0 + half - 1, 900)) { RT.request(S.rt, a.k, pid, c.d, c.n, ei => edgeMap.get(ei), null, null, true);
+          const w = S.rt.dryNo; if (w && w.pc) RT.authorize(S.rt, w.pc); } };
+        if (tr0.C) auth(tr0.C.pid, tr0.C.d_dep); else if (tr0.A) auth(tr0.A.pid, tr0.A.d0);
+        if (tr0.C) { const tr = tr0.C; a.legs.unshift({ pid: tr.pid, status: 'empty', stops: [], start: tr.d_dep, end: endOf(tr.pid), rev: true }, { kind: 'depot' }); return true; }
+        if (tr0.A) { const tr = tr0.A, stub = a.d + (tr.stub_d - stopOf('N', m.X));
+          a.legs.unshift({ pid: a.pid, status: 'turnback', stops: [], end: stub, start: a.d }, { pid: tr.pid, status: 'empty', stops: [], end: endOf(tr.pid), start: tr.d0, rev: true }, { kind: 'depot' }); return true; }
+        a.legs.unshift({ kind: 'home', dir: 'N' }); return true;
+      }
       if (m.kind === 'approach') {           // the rescue: up to 3 m from the broken train, in marcia a vista
         const f = S.agents[m.f], main = m.dir === 'N' ? G.N : G.S, d = mapTo(a.pid, a.d, main.pid), xf = f && mapTo(f.pid, f.d, main.pid);
         if (d == null || xf == null) { a.status = 'stopped'; a.stoppedSince = S.t; return false; }
@@ -991,7 +999,10 @@
         if (S.lastDep[key] != null && S.t - S.lastDep[key] < (leg.status === 'service' ? HEADWAY : NON_SERVICE_HEADWAY)) { a.why = 'intervallo'; return; }
         const au = authority(a, leg);
         if (au.lim < a.d + 5) { a.why = 'segnale'; if (!a.red) a.red = { since: S.t, why: au.why }; a.red.now = au.why; return; }
-        S.lastDep[key] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift(); a.lastStop = { pid: a.pid, d: a.d };
+        S.lastDep[key] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift();
+        // a station closed to the public before its next stop: in M3 a train goes through a station without stopping only
+        // by hand (the interlocking: Giovanni's colleague, Nov 2026): manual driving from here to the station after it
+        { let i = 0; while (i < leg.stops.length && S.stn[leg.stops[i].st] && S.stn[leg.stops[i].st].closed) i++; a.manualTo = i > 0 && i < leg.stops.length ? leg.stops[i].st : null; }
         if (a.vlim && a.vlimTo === st.st) { a.vlim = null; a.vlimTo = null; }    // speed limit "as far as this station": over
         a.late = st.dep && leg.timed ? S.t - st.dep : null; a.depSi = leg.si;
         a.at = st.st; a.arr = leg.dir;
@@ -1011,6 +1022,7 @@
           if (leg.stops && leg.stops.length) {
             const st = leg.stops[0];
             if (leg.skipSet && leg.skipSet.has(st.st) && leg.stops.length > 1) { leg.stops.shift(); return; }
+            if (a.manualTo === st.st) a.manualTo = null;
             a.stopAt = st.st; a.at = st.st; a.arrLate = st.arr != null ? S.t - st.arr : null; a.exitClosed = false; if (a.navOut && a.part && st.st >= a.part[0] && st.st <= a.part[1] && !(S.cl && S.navInfo && Object.values(S.navInfo).some(x => x.open === st.st))) a.navOut = false;
             if (leg.plan) { planDwell(a, leg, st); a.dwellUntil = S.t + a.dwBase; }
             else { a.arriveT = S.t; a.stopKey = null; a.dwBase = leg.status !== 'service' ? 1 : Math.abs(st.d - leg.start) < 1 ? 30 : 20; a.dwellUntil = S.t + a.dwBase; }
@@ -1240,7 +1252,7 @@
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
       return { inside: a.inside, to: leg && leg.arrive ? leg.arrive.at : null, pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, trip: a.trip,
                seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold, vlim: a.vlim ? Math.round(a.vlim * 3.6) : null, vlimTo: a.vlimTo,
-               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn, zones: S.zones, manual: !!(FX && FX.manual(a)), faults: FX ? FX.list().filter(f => f.k === k) : [] };
+               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn, manual: !!((FX && FX.manual(a)) || a.manualTo != null), faults: FX ? FX.list().filter(f => f.k === k) : [] };
     }
     // a radio change to a train's day (platform, tail, test loop...): it takes it from where it is
     function replan(k) {
