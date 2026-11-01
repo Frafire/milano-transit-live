@@ -22,7 +22,7 @@ for (const [ci, ends] of runs) {
   const endTxt = Object.entries(ends).map(([x, t]) => ` [${M.degraded.names[x]}: solo binario ${t === '1' ? 2 : 1}]`).join('');
   let navMoved = 0, navT = null;
   const closed = ag.closed(), closed0 = ag.closed0() || closed, before = new Set(Object.values(ag.rt().routes).flat());
-  let overlap = 0, minGap = Infinity, intoClosed = 0, moved = new Map(), stuckOpen = 0;
+  let overlap = 0, minGap = Infinity, intoClosed = 0, moved = new Map(), stuckOpen = 0, fastAfter = 0, vAfter = 0;
   const modes = {}; ag.agents().forEach(a => { modes[a.mode] = (modes[a.mode] || 0) + 1; });
   for (let t = TC + 30; t <= TE; t += 30) {
     ag.step(t);
@@ -30,6 +30,9 @@ for (const [ci, ends] of runs) {
       ag.agents().forEach(a => { const m = moved.get(a.k); if (a.mode === 'shuttle' && !a.hidden && !(ag.S.t < a.wait) && m && TR - m.t > 1200) stuckOpen++; });
       ag.event({ kind: 'reopen' });
     }
+    // after reopening: at most 40 km/h on the stretch that was closed, for 20 minutes
+    if (t > TR + 30 && t < TR + 1200) ag.agents().forEach(a => { if (a.hidden) return; const pe = M.path_edges[a.pid]; if (!pe) return;
+      const e = pe.e.find(([, , x0, x1]) => a.d >= x0 && a.d <= x1); if (e && closed.has(e[0])) { vAfter = Math.max(vAfter, a.v * 3.6); if (a.v * 3.6 > 41) fastAfter++; } });
     const byEdge = new Map();
     ag.agents().forEach(a => { if (a.hidden) return; const pe = M.path_edges[a.pid]; if (!pe) return;
       for (const [ei, dir, x0, x1] of pe.e) { if (x1 < a.d - H || x0 > a.d + H) continue;
@@ -45,9 +48,9 @@ for (const [ci, ends] of runs) {
   const stuck = ag.agents().filter(a => { const m = moved.get(a.k); return !a.hidden && a.status !== 'parked' && a.mode !== 'static' && a.status !== 'stopped' && m && TE - m.t > 1500 && !(ag.S.t < a.wait); }).length;
   const navNeeded = ag.S.log.some(x => x.nav && !x.none) || ag.S.log.some(x => x.nav && x.none);
   const navBad = Object.keys(ends).length && ag.S.log.some(x => x.nav) && navMoved < 3;
-  const bad = overlap || rt.viol || rt.swViol || intoClosed || stuck || stuckOpen || navBad;
+  const bad = overlap || rt.viol || rt.swViol || intoClosed || stuck || stuckOpen || navBad || fastAfter;
   console.log(`${bad ? 'FAIL' : 'ok  '} ${c.label}${endTxt}: ${navNeeded ? `navetta: ${ag.S.log.filter(x => x.nav).map(x => x.none ? 'nessun treno' : 'treno ' + (x.k + 1)).join(', ')}, stazioni servite ${navMoved} | ` : ''}at closing ${JSON.stringify(modes)} | overlaps ${overlap} (closest ${Math.round(minGap)} m) | without route: signals ${rt.viol || 0}, switches ${rt.swViol || 0} | routes into the closed stretch ${intoClosed} | open side standing 20+ min at 09:00: ${stuckOpen}`);
-  console.log(`     10:00 ${JSON.stringify(after)} | stuck 25+ min: ${stuck} | timetable runs taken after reopening: ${ag.S.log.filter(x => x.ref != null || x.at).length} | ${Date.now() - t0} ms`);
+  console.log(`     10:00 ${JSON.stringify(after)} | stuck 25+ min: ${stuck} | fastest on the reopened stretch 09:00-09:20: ${Math.round(vAfter)} km/h | timetable runs taken after reopening: ${ag.S.log.filter(x => x.ref != null || x.at).length} | ${Date.now() - t0} ms`);
   if (bad) fail++;
 }
 process.exit(fail ? 1 : 0);

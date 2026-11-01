@@ -62,6 +62,7 @@ body:not(.player) .player-only { display: none !important; }
 .m3list li { display: grid; grid-template-columns: 30px 1fr auto; gap: 6px; align-items: center; font-size: 12px; padding: 3px 4px; border-radius: 4px; cursor: pointer; }
 .m3list li:hover { background: var(--panel-solid); }
 .m3list .tn { font: 700 13px var(--display); text-align: center; border-radius: 4px; padding: 1px 0; color: #111; }
+.pcal .m3list li { grid-template-columns: 1fr; } .pcal .m3list li.late .where { color: #ff8a7a; }
 .m3list .where { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .m3list .dl { font-variant-numeric: tabular-nums; font-weight: 600; }
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 6px; }
@@ -150,6 +151,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .log time { color: #6f8f77; margin-right: 6px; }
 .radio .cmds { border-top: 3px solid #2a3a2e; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
 .radio .cmds .lbl { color: #6f8f77; text-transform: uppercase; font-size: 16px; }
+.radio .cmds .lbl.warn { color: #ffb020; }
+.radio .cmds select { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 .radio .cmds details { border: 2px solid #2a3a2e; }
 .radio .cmds details[open] { border-color: #3b5e45; }
 .radio .cmds summary { cursor: pointer; list-style: none; padding: 2px 8px; color: #8dff9e; font-size: 18px; text-transform: uppercase; }
@@ -209,8 +212,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .closures .row { display: flex; gap: 6px; flex-wrap: wrap; }
 .closures select { width: 100%; font-size: 13px; padding: 5px; margin: 6px 0 4px; }
 .closures .clends { display: grid; gap: 4px; margin: 0 0 6px; font-size: 12px; }
-.closures .clends label { display: flex; justify-content: space-between; gap: 6px; align-items: center; }
-.closures .clends select { width: auto; margin: 0; font-size: 12px; padding: 3px; }
+.closures .clends { grid-template-columns: minmax(0, 1fr); }
+.closures .clends label { display: flex; justify-content: space-between; gap: 6px; align-items: center; min-width: 0; }
+.closures .clends select { width: auto; max-width: 62%; min-width: 0; margin: 0; font-size: 12px; padding: 3px; }
 .picker { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
 .picker .row { margin-top: 0; }
 .picker .warn { color: #ff9b6a; font-size: 12px; }
@@ -240,6 +244,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .tile.delay { grid-column: 1 / -1; font: 700 15px/1.2 var(--display); letter-spacing: .04em; color: #cfd6dc; }
 .cab + .tiles .tile.delay { grid-column: auto; }
 .cab + .tiles { grid-template-columns: 1fr 1fr; }
+.pcnote { color: #ffb4a8; min-height: 1em; }
+.pcbtns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pclbl { margin: 12px 0 4px; font: 600 12px var(--display); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.pclist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.pclist li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.pclist li span { display: flex; flex-direction: column; min-width: 0; } .pclist small { color: var(--muted); font-size: 11px; }
+.pclist .pcsw { flex-direction: row; gap: 4px; flex-wrap: wrap; justify-content: flex-end; } .pclist em { color: #ffcf3f; font-style: normal; font-size: 12px; }
 .cab { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 10px; }
 .cab .tfront { width: 140px; height: auto; image-rendering: pixelated; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
 .cab .tacho { width: 120px; height: 120px; flex: 0 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
@@ -322,6 +333,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="legend"><span><i class="lg ok"></i>in orario</span><span><i class="lg late"></i>+2 min o più</span><span><i class="lg early"></i>anticipo 3 min o più</span></div>
     <ul class="m3list" id="m3list"></ul>
   </section>
+  <section class="m3panel pcal" aria-label="Allarmi del Posto Centrale">
+    <div class="label">Allarmi PC</div>
+    <ul class="m3list" id="pcAlarms"></ul>
+  </section>
   <section class="m3panel closures" aria-label="Chiusura tratte M3">
     <div class="label">Chiudi tratta M3</div>
     <select id="clSel" aria-label="Tratta da chiudere"></select>
@@ -386,7 +401,6 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   <div class="rhd"><span class="tx" id="radioTx"></span><span>Radio terra-treno · <b id="radioWho">M3</b></span><button class="rx" id="radioClose" aria-label="Chiudi la radio">X</button></div>
   <div class="log" id="radioLog" aria-live="polite"></div>
   <div class="cmds" id="radioCmds"></div>
-  <form class="free" id="radioFree" autocomplete="off"><input id="radioText" maxlength="160" placeholder="Messaggio libero al treno…" aria-label="Messaggio libero al treno"><button class="send" type="submit">▶ Invia</button></form>
 </section>
 <aside class="drawer" id="drawer" hidden aria-label="Track editor">
   <h2>Track editor</h2>
@@ -1074,6 +1088,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (state.sel == null) { card.hidden = true; return; }
     if (typeof state.sel === 'string' && state.sel[0] === 'b') return renderBoard();
     if (typeof state.sel === 'string' && state.sel[0] === 's') return renderStop();
+    if (typeof state.sel === 'string' && state.sel[0] === 'g') return renderSignalCard();
     if (typeof state.sel === 'string') return renderTrainCard();
     const tr = trips[state.sel], r = routes[tr.r], t = state.t;
     if (t > tr.end + 30) { state.sel = null; card.hidden = true; return; }
@@ -1543,9 +1558,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     return `<img class="scr" alt="${(data.dest || (data.lines || []).join(' ')).replace(/"/g, '')}" src="${scrImage(key, L, hm)}">`;
   }
   // one screen: items = [{ t, here }] for the trains of this platform, sorted; info = notices only (Comasina arrivals)
-  function platformScreen(t, items, dest, info) {
-    const slot = Math.floor(Date.now() / 10000) % 4, notice = { lines: SCR_NOTICES[slot === 1 ? 0 : 1] };
-    if (info) return scrPage('notice', t, { lines: SCR_NOTICES[Math.floor(Date.now() / 10000) % 2] });
+  // stn: what the PC set for the station (closed: no train stops; msg: its text instead of the usual notices)
+  const scrLines = txt => { const out = []; for (const w of String(txt).split(' ')) { const l = out[out.length - 1]; if (l != null && (l + ' ' + w).length <= 20) out[out.length - 1] = l + ' ' + w; else out.push(w); } return out.slice(0, 3); };
+  function platformScreen(t, items, dest, info, stn) {
+    const slot = Math.floor(Date.now() / 10000) % 4, notice = { lines: stn && stn.msg ? scrLines(stn.msg) : SCR_NOTICES[slot === 1 ? 0 : 1] };
+    if (stn && stn.closed) return scrPage('notice', t, { lines: ['STAZIONE CHIUSA', 'I TRENI', 'NON FERMANO'] });
+    if (info) return scrPage('notice', t, stn && stn.msg ? notice : { lines: SCR_NOTICES[Math.floor(Date.now() / 10000) % 2] });
     const next = items.filter(x => x.here || x.t >= t - 5);
     if (!next.length || !next[0].here && next[0].t - t > 30 * 60) return scrPage('end', t, { dest });      // no train in the next half hour
     const first = next[0];
@@ -1566,13 +1584,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const dSD = dirs.find(d => /san donato/i.test(d)), dCO = dirs.find(d => /comasina/i.test(d));
     const box = (label, img) => `<div class="scrbox"><div class="scrlab">${label}</div>${img}</div>`;
     const items = d => d ? (liveBoard(F, b, d, t) || []) : [];
+    const G = F.engine && F.engine.G, X = G ? G.names.findIndex(n => n.toUpperCase().replace(/\s+M\d$/, '') === name.replace(/\s+M\d$/, '')) : -1;
+    const stn = F.ag && X >= 0 ? F.ag.S.stn[X] : null;
     if (/^SAN DONATO$/.test(name)) {
       const it = items(dCO || 'COMASINA');
-      return ['2', '3'].map(pl => box('Binario ' + pl, platformScreen(t, it.filter(x => sdPlatOf(F, x.pid) === pl), 'COMASINA'))).join('');
+      return ['2', '3'].map(pl => box('Binario ' + pl, platformScreen(t, it.filter(x => sdPlatOf(F, x.pid) === pl), 'COMASINA', false, stn))).join('');
     }
     if (/^COMASINA$/.test(name))
-      return box('Binario 1 · partenze', platformScreen(t, items(dSD || 'SAN DONATO'), 'SAN DONATO')) + box('Binario 2 · arrivi', platformScreen(t, [], '', true));
-    return box('Binario 1', platformScreen(t, items(dSD), 'SAN DONATO')) + box('Binario 2', platformScreen(t, items(dCO), 'COMASINA'));
+      return box('Binario 1 · partenze', platformScreen(t, items(dSD || 'SAN DONATO'), 'SAN DONATO', false, stn)) + box('Binario 2 · arrivi', platformScreen(t, [], '', true, stn));
+    return box('Binario 1', platformScreen(t, items(dSD), 'SAN DONATO', false, stn)) + box('Binario 2', platformScreen(t, items(dCO), 'COMASINA', false, stn));
   }
   function renderBoard() {
     const [fi, bi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], b = F.boards[bi], t = state.t;
@@ -1608,13 +1628,59 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     card.innerHTML = F.line === 'M3'
       ? `<div class="stsign${nm.length > 11 ? ' long' : ''}" role="heading" aria-level="2"><span class="lb"></span><span class="lb"></span><b style="font-size:${nm.length > 13 ? 18 : nm.length > 11 ? 20 : nm.length > 9 ? 23 : 27}px">${nm}</b><span class="lb"></span><span class="lb"></span></div>
       <div class="screens">${m3Screens(F, b, t)}</div>${platformDiagram(F, b, t)}${stationClock(t)}
-      <div class="row"><button id="closeBtn">Close</button></div>`
+      <div class="row">${F.ag ? '<button class="radiobtn" id="stRadio">📻 Radio alla stazione</button>' : ''}<button id="closeBtn">Close</button></div>`
       : `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
       <div><h2>${b.n}</h2><div class="sub">Prossimi treni</div></div></div>
       <div class="board">${rows}</div>${platformDiagram(F, b, t)}
       <div class="row"><button id="closeBtn">Close</button></div>`;
     card.hidden = false;
     document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
+    const sr = document.getElementById('stRadio');
+    if (sr) sr.onclick = () => { const G = F.engine.G, X = G.names.findIndex(n => n.toUpperCase().replace(/\s+M\d$/, '') === nm); if (X >= 0) MR.openStationRadio(F, X); };
+  }
+  // ---- the PC on a signal (Pannello PC, provisional until Giovanni's drawing): via libera, red, the itineraries from
+  // it (form by hand, take back), the switches they go over (move, lock) ----
+  let pcNoteMsg = null;
+  function renderSignalCard() {
+    const F = m3eng(), n = +state.sel.slice(1); if (!F || !F.ag) { state.sel = null; card.hidden = true; return; }
+    const RT_ = F.ag.RT, st = F.ag.rt(), tag = '#A' + String(n).padStart(2, '0'), half = F.engine.half;
+    const fr = {}; F.ag.agents().forEach(a => { fr[a.k] = { pid: a.pid, nose: a.d + half }; });
+    const green = RT_.green(st, fr).has(n), red = !!(st.redFix && st.redFix[n]), pcR = st.pcRoutes && st.pcRoutes[n];
+    const setBy = Object.entries(st.routes).flatMap(([k, rs]) => rs.filter(r => r.n === n && (!fr[k] || fr[k].pid !== r.pid || fr[k].nose < r.d0 + 1)).map(r => ({ k: +k, id: r.id })));
+    const its = RT_.fromSignal(n), sws = [...new Set(its.flatMap(x => x.switches))];
+    const posTxt = p => 'come ' + p.ids.join(', ');
+    const tno = k => { const tr = F.trains[k]; const rt = tr && realTrain(F, tr, state.t); return rt && rt.n ? rt.n : k + 1; };
+    let h = `<div class="hd"><span class="badge" style="background:${red ? '#d60012' : green ? '#1f9d55' : '#333'};color:#fff">${tag}</span>
+      <div><h2>Semaforo ${tag}</h2><div class="sub">${red ? 'Rosso fisso (PC)' : green ? 'Via libera' : 'Rosso'}${RT_.isPcSignal(n) ? ' · comandato dal PC' : ''}${setBy.length ? ' · itinerario ' + setBy.map(x => (x.id || '') + ' treno ' + tno(x.k)).join(', ') : ''}</div></div></div>
+      <div class="pcbtns">`;
+    if (RT_.isPcSignal(n)) h += `<button data-pc="clear">Via libera al prossimo treno</button>`;
+    h += red ? `<button data-pc="unred">Togli il rosso fisso</button>` : `<button data-pc="red">Rosso fisso</button>`;
+    if (setBy.length || pcR) h += `<button data-pc="cancel">Annulla l'itinerario${pcR ? ' preparato (' + pcR.id + ')' : ''}</button>`;
+    h += `</div>`;
+    if (its.length) h += `<div class="lbl pclbl">Itinerari da questo semaforo</div><ul class="pclist">` + its.map(x => `<li><span><b>${x.id}</b> ${cap(x.to || '')}<small>${x.when || ''}</small></span>${pcR && pcR.id === x.id ? '<em>preparato</em>' : `<button data-form="${x.id}">Forma</button>`}</li>`).join('') + `</ul>`;
+    if (sws.length) h += `<div class="lbl pclbl">Scambi</div><ul class="pclist">` + sws.map(nd => {
+      const ps = RT_.switchPositions(nd), cur = st.sw[nd], lk = st.swLock && st.swLock[nd];
+      return `<li><span><b>Scambio ${nd}</b><small>${cur ? posTxt(ps.find(p => p.pos === cur) || { ids: [cur] }) : 'nessun comando ancora'}${lk ? ' · bloccato' : ''}</small></span><span class="pcsw">` +
+        ps.map(p => `<button data-sw="${nd}" data-pos="${p.pos}" ${p.pos === cur ? 'aria-pressed="true"' : ''} title="${posTxt(p)}">${p.ids[0]}</button>`).join('') +
+        (lk ? `<button data-unlock="${nd}">Sblocca</button>` : cur ? `<button data-lock="${nd}" data-pos="${cur}">Blocca</button>` : '') + `</span></li>`; }).join('') + `</ul>`;
+    const nm = pcNoteMsg && pcNoteMsg.sel === state.sel && Date.now() < pcNoteMsg.until ? pcNoteMsg.text : '';
+    h += `<p class="note pcnote" id="pcNote" aria-live="polite">${nm}</p><div class="row"><button id="closeBtn">Close</button></div>`;
+    card.innerHTML = h; card.hidden = false;
+    document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
+    const note = t => { pcNoteMsg = { sel: state.sel, text: t, until: Date.now() + 8000 }; const e = document.getElementById('pcNote'); if (e) e.textContent = t; };
+    const WHY = w => !w ? '' : w.train != null ? 'c\'è il treno ' + tno(w.train) + ' sopra' : w.route != null ? 'impegnato dall\'itinerario del treno ' + tno(w.route) : w.pcRoute != null ? 'impegnato dall\'itinerario preparato ' + (w.id || '') : w.swLock != null ? 'scambio ' + w.swLock + ' bloccato nell\'altra posizione' : w.nothing ? 'nessun itinerario da annullare' : 'non possibile';
+    const run = (e, ok) => { const r = F.ag.event(Object.assign({ kind: 'pccmd' }, e)); if (r) { note('Non si può: ' + WHY(r) + '.'); return; } say('', 'PC: ' + ok, 'pc'); if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals(); renderCard(); };
+    card.querySelectorAll('[data-pc]').forEach(b => b.onclick = () => {
+      const w = b.dataset.pc;
+      if (w === 'clear') { F.ag.event({ kind: 'pc', key: 'n:' + n }); say('', `PC: ${tag} via libera al prossimo treno.`, 'pc'); renderCard(); return; }
+      if (w === 'red') run({ what: 'red', n, on: true }, `${tag} rosso fisso.`);
+      if (w === 'unred') run({ what: 'red', n, on: false }, `${tag} restituito all'apparato.`);
+      if (w === 'cancel') run({ what: 'cancel', n }, `itinerario da ${tag} annullato.`);
+    });
+    card.querySelectorAll('[data-form]').forEach(b => b.onclick = () => run({ what: 'form', id: b.dataset.form }, `itinerario ${b.dataset.form} preparato da ${tag}.`));
+    card.querySelectorAll('[data-sw]').forEach(b => b.onclick = () => run({ what: 'sw', nd: +b.dataset.sw, pos: b.dataset.pos }, `scambio ${b.dataset.sw} in posizione ${b.textContent}.`));
+    card.querySelectorAll('[data-lock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.lock, pos: b.dataset.pos }, `scambio ${b.dataset.lock} bloccato.`));
+    card.querySelectorAll('[data-unlock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.unlock, pos: null }, `scambio ${b.dataset.unlock} sbloccato.`));
   }
   // schematic of the terminal platforms with the train standing on each
   function platformDiagram(F, b, t) {
@@ -2257,7 +2323,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
+      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
@@ -2339,7 +2405,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   function reopenStretch() {
     const F = m3fleet(), c = closureNow(F); if (!c || c.reopened) return;
     F.ag.event({ kind: 'reopen' });
-    say('', `PC: tratta ${c.label} riaperta. 20 km/h per 2 minuti, poi i treni riprendono l'orario.`, 'sys');
+    say('', `PC: tratta ${c.label} riaperta. 40 km/h sulla tratta per 20 minuti. Ogni treno prende la prima partenza scoperta (il PC può assegnarne un'altra via radio).`, 'sys');
     syncClosureUI();
   }
   function backToTimetable() { const F = m3fleet(); if (!F || !closureNow(F)) return; F.ag.event({ kind: 'normal' }); syncClosureUI(); }
@@ -2380,7 +2446,20 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: s.v, status: s.status, label, trip: s.mode === 'plan' ? s.trip : -1, seg: s.mode === 'plan' ? s.seg : -1, agent: s };
   }
   // ================= RADIO TERRA-TRENO (M3): web/radio.js =================
-  const MR = MTLRadio.create({ D, trips, state, P2WAY, fmt: (...a) => fmt(...a),
+  // the way a train will go when the PC sends it (Pannello PC): drawn on the map before confirming
+  const routeLayer = L.layerGroup().addTo(map);
+  function showRoute(F, segs) {
+    routeLayer.clearLayers(); if (!F || !segs || !segs.length) return;
+    for (const [pid, d0, d1] of segs) { const pts = [], n = Math.max(2, Math.ceil(Math.abs(d1 - d0) / 15));
+      for (let i = 0; i <= n; i++) pts.push(trackAt(F, pid, d0 + (d1 - d0) * i / n));
+      L.polyline(pts, { color: '#000', weight: 9, opacity: .55, interactive: false }).addTo(routeLayer);
+      L.polyline(pts, { color: '#ffb020', weight: 5, dashArray: '10 7', interactive: false }).addTo(routeLayer);
+      L.circleMarker(pts[pts.length - 1], { radius: 7, color: '#000', weight: 2, fillColor: '#ffb020', fillOpacity: 1, interactive: false }).addTo(routeLayer); }
+    // out of sight: the map moves to show it
+    const bb = L.latLngBounds(segs.flatMap(([pid, d0, d1]) => [trackAt(F, pid, d0), trackAt(F, pid, d1)]));
+    if (!map.getBounds().contains(bb)) map.fitBounds(bb.pad(0.6), { maxZoom: 16 });
+  }
+  const MR = MTLRadio.create({ D, trips, state, P2WAY, fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
     get p2Msg() { return p2Msg; }, set p2Msg(v) { p2Msg = v; },
     resetSigs: () => { if (SIGS) SIGS.forEach(x => { x.a = null; }); },
     trackAt: (...a) => trackAt(...a),
@@ -2444,6 +2523,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     else { F.ag.event({ kind: 'il', what: 'clear', si }); flashNote(tag + ': via libera al prossimo treno (deposito in manuale)'); }
     if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals();
   }
+  function openSignal(tag) { if (sigDel) return; const n = parseInt(String(tag).slice(2), 10); if (!n) return; state.sel = 'g' + n; state.follow = false; renderCard(); }
   function flashNote(t) { const n = document.getElementById('ilNote'); if (!n) return; n.textContent = t; n.hidden = false; clearTimeout(flashNote.h); flashNote.h = setTimeout(() => n.hidden = true, 4000); }
   // names of tracks (tails, platforms) and depot places, with the signals
   const trkNameLayer = L.layerGroup(); let NAMES = false;
@@ -2484,7 +2564,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const side = other != null ? outward(other, a, ux / n, uy / n) : 1;
       const off = 7 / 111000 * side, pos = at || [a[0] - ux / n * off, a[1] + uy / n * off / kx];
       const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[illegal ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
-        .bindTooltip(tip, { className: 'st', direction: 'top' });
+        .bindTooltip(tip, { className: 'st', direction: 'top' }).on('click', () => openSignal(tag));
       out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si, stype, pid, d });
     };
     // block signals, usual direction: one at the start of every block section (stations and in between)
@@ -2505,7 +2585,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         .bindTooltip(tag + ' · ' + (shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ilNote(F, (F.engine.net.signals || []).indexOf(x.sg)) + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
       // where it is on the paths that go over it: it shows the section right behind it (junction, tail, block)
       const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
-      if (F.ag && F.ag.IL && F.ag.IL.isManual(si)) m.on('click', () => clearManual(F, si, tag));
+      if (F.ag && F.ag.IL && F.ag.IL.isManual(si)) m.on('click', () => clearManual(F, si, tag)); else m.on('click', () => openSignal(tag));
       for (const [pid, list] of Object.entries(F.engine.net.sigpos || {})) for (const [d, i] of list) if (i === si) refs.push([pid, d]);
       const ill = x.sg.legal === false;
       if (x.sg.stype) m.setTooltipContent(m.getTooltip().getContent().replace(tag + ' · ', tag + ' · tipo ' + x.sg.stype + (ill ? ' · senso illegale' : '') + ' · '));
@@ -2592,7 +2672,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       let busy = true;
       if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
       if (green && !sg.shunt) { const n = parseInt(String(sg.tag || '').slice(2), 10);
-        if (green.has(n)) busy = false;
+        if (F.ag.rt().redFix && F.ag.rt().redFix[n]) busy = true;
+        else if (green.has(n)) busy = false;
         else if (sg.illegal || !/^[abcd]$/.test(sg.stype || 'a')) busy = true;
         else { const at = sg.pid != null ? [sg.pid, sg.d] : (sg.refs && sg.refs[0]);
           busy = at ? !F.ag.RT.clearAhead(F.ag.rt(), at[0], at[1], F.ag.occ) : busy; } }
@@ -2617,6 +2698,33 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   illBtn.onclick = () => { showIll = !showIll; illBtn.setAttribute('aria-pressed', showIll); try { localStorage.setItem('mtl-sigs-ill', showIll ? '1' : '0'); } catch (e) {} updateSignals(); };
   map.on('zoomend', updateSignals);
 
+  // the alarms of the PC (provisional panel, until Giovanni's drawing): trains standing at a red signal for 2 minutes or
+  // more, trains held or waiting for instructions, what the PC set (signals at red, switches locked, itineraries
+  // prepared, stations closed or with a message on the screens), the closure in force
+  function renderAlarms() {
+    const el = document.getElementById('pcAlarms'), F = m3eng(); if (!el) return;
+    if (!F || !F.ag) { el.innerHTML = '<li class="note">Motore spento</li>'; return; }
+    const fi = fleets.indexOf(F), G = F.engine.G, rt = F.ag.rt(), S_ = F.ag.S, out = [], tno = k => { const r = realTrain(F, F.trains[k], state.t); return r && r.n ? r.n : k + 1; };
+    const mm = s => Math.floor(s / 60) + ' min';
+    F.ag.agents().forEach(a => {
+      if (a.hidden) return;
+      const w = a.red && a.red.now && a.red.now.sig != null ? a.red.now.sig : a.red && a.red.why && a.red.why.sig;
+      if (a.red && a.v === 0 && S_.t - a.red.since >= 120) out.push({ k: a.k, cls: 'late', t: `Treno ${tno(a.k)} fermo al rosso${w != null ? ' #A' + String(w).padStart(2, '0') : ''} da ${mm(S_.t - a.red.since)}` });
+      if (a.status === 'stopped') out.push({ k: a.k, cls: 'late', t: `Treno ${tno(a.k)} fermo a ${cap(G.names[a.at])}: attende istruzioni` });
+      if (a.pcHold) out.push({ k: a.k, t: `Treno ${tno(a.k)} trattenuto a ${cap(G.names[a.stopAt != null ? a.stopAt : a.at])}` });
+    });
+    for (const n of Object.keys(rt.redFix || {})) out.push({ g: n, t: `#A${String(n).padStart(2, '0')} rosso fisso` });
+    for (const [n, r] of Object.entries(rt.pcRoutes || {})) out.push({ g: n, t: `Itinerario ${r.id} preparato da #A${String(n).padStart(2, '0')}` });
+    for (const nd of Object.keys(rt.swLock || {})) out.push({ t: `Scambio ${nd} bloccato` });
+    for (const [x, v] of Object.entries(S_.stn || {})) { if (v.closed) out.push({ b: +x, t: `${cap(G.names[x])} chiusa al pubblico` }); if (v.msg) out.push({ b: +x, t: `${cap(G.names[x])}: schermi "${v.msg}"` }); }
+    const em = closureNow(F); if (em) out.unshift({ cls: 'late', t: em.reopened ? `Tratta ${em.label} riaperta` : `Tratta ${em.label} chiusa` });
+    const html = out.map((x, i) => `<li data-i="${i}" class="${x.cls || ''}"><span class="where">${x.t}</span></li>`).join('') || '<li class="note">Nessun allarme</li>';
+    if (el.dataset.h === html) return; el.dataset.h = html; el.innerHTML = html;
+    el.querySelectorAll('li[data-i]').forEach(li => li.onclick = () => { const x = out[+li.dataset.i];
+      if (x.k != null) state.sel = 'f' + fi + ':' + x.k; else if (x.g != null) state.sel = 'g' + x.g;
+      else if (x.b != null) { const bi = F.boards.findIndex(b => b.n.toUpperCase().replace(/\s+M\d$/, '') === G.names[x.b].replace(/\s+M\d$/, '')); if (bi >= 0) state.sel = 'b' + fi + ':' + bi; else return; }
+      else return; state.follow = false; renderCard(); });
+  }
   function renderPanel() {
     if (!isPlayer) return;
     const fi = fleets.findIndex(f => f.line === 'M3'); if (fi < 0) return;
@@ -2665,7 +2773,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
+    if (now - lastPanel > 1000) { lastPanel = now; if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);

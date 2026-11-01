@@ -61,7 +61,7 @@
     }
     const overlap = (a0, a1, b0, b1) => a0 < b1 - 0.5 && b0 < a1 - 0.5;
     // is the route free for train k? occ(ei) -> [[k, l0, l1]] other trains on that piece now
-    function free(st, k, pieces, nodes, occ) {
+    function free(st, k, pieces, nodes, occ, skipPc) {
       const nodeSet = new Set(nodes.map(x => x[0]));
       for (const [ei, l0, l1] of pieces) for (const [k2, m0, m1] of occ(ei) || []) if (k2 !== k && overlap(l0, l1, m0, m1)) return { train: k2 };
       // a train standing on a switch (touching the node from any side)
@@ -69,6 +69,12 @@
         if (k2 === k) continue;
         const L = NE[ei].len, atA = NE[ei].a === nd;
         if (atA ? m0 < 1 : m1 > L - 1) return { train: k2, node: nd };
+      }
+      // the itineraries prepared by the PC (formed by hand, waiting for their train)
+      for (const [n2, r] of Object.entries(st.pcRoutes || {})) {
+        if (skipPc != null && +n2 === skipPc) continue;
+        for (const [ei, m0, m1] of r.pieces) for (const [e2, l0, l1] of pieces) if (e2 === ei && overlap(l0, l1, m0, m1)) return { pcRoute: +n2, id: r.id };
+        for (const nd of r.nodes) if (nodeSet.has(nd)) return { pcRoute: +n2, id: r.id, node: nd };
       }
       for (const [k2, rs] of Object.entries(st.routes)) {
         if (+k2 === k) continue;
@@ -186,7 +192,13 @@
         if (free(st, +k2, w.pieces, w.nodes.map(nd => [nd, 0]), occ)) continue;
         why = { yield: +k2, id: w.id }; break;
       }
-      why = why || free(st, k, pieces, nodes, occ) || full(st, k, pieces, occ) || (blocked ? blocked(pieces) : null);
+      // the PC: a signal held at red; a switch locked in the other position; an itinerary it prepared by hand for this
+      // movement (taken by the train: it is not a conflict)
+      const mine = n != null && st.pcRoutes && st.pcRoutes[n] && it && st.pcRoutes[n].id === it.id ? n : null;
+      if (!why && n != null && st.redFix && st.redFix[n]) why = { redFix: n };
+      if (!why && st.swLock) for (let i = 0; i + 1 < pieces.length && i < nodes.length; i++) { const nd = nodes[i][0], lk = st.swLock[nd];
+        if (lk != null && isSwitch(nd) && lk !== Math.min(pieces[i][0], pieces[i + 1][0]) + '-' + Math.max(pieces[i][0], pieces[i + 1][0])) { why = { swLock: nd }; break; } }
+      why = why || free(st, k, pieces, nodes, occ, mine) || full(st, k, pieces, occ) || (blocked ? blocked(pieces) : null);
       if (dry) { st.dryNo = why; return !why; }
       if (why) {
         st.lastNo = why;
@@ -196,6 +208,7 @@
       }
       delete st.wants[k];
       if (needPc) st.pc[needPc]--;
+      if (mine != null) delete st.pcRoutes[mine];
       // the switches: the ones that must change position take the time of the blade, then the signal opens
       let moved = false;
       for (let i = 0; i + 1 < pieces.length && i < nodes.length; i++) {
@@ -232,7 +245,7 @@
     // the signals showing via libera now: numbers of the routes set (not yet passed by the front of the train)
     function green(st, fronts) {
       const out = new Set();
-      for (const [k, rs] of Object.entries(st.routes)) for (const r of rs) { const f = fronts[k]; if (r.n != null && (r.ready == null || r.ready <= (st.t || 0)) && (!f || f.pid !== r.pid || f.nose < r.d0 + 1)) out.add(r.n); }
+      for (const [k, rs] of Object.entries(st.routes)) for (const r of rs) { const f = fronts[k]; if (r.n != null && !(st.redFix && st.redFix[r.n]) && (r.ready == null || r.ready <= (st.t || 0)) && (!f || f.pid !== r.pid || f.nose < r.d0 + 1)) out.add(r.n); }
       return out;
     }
     // is the stretch behind a signal free (for the signals that are normally green: a, b, c, d on the legal side)?
@@ -240,7 +253,63 @@
       const d1 = nextSignal(pid, d), { pieces, nodes } = span(pid, d, d1);
       return !free(st, -1, pieces, nodes, occ);
     }
-    return { fresh, ahead, request, release, held, ready, readyNode, authorize, cancel, green, clearAhead, nextSignal, span, identify, switchesOn, heldNode };
+    // ---------- the PC's commands (Pannello PC, Regole_interlocking_M3.xlsx) ----------
+    // the positions of every switch of the line, from the ways of the itineraries: [{ pos: 'e1-e2', ids }]
+    const nodeOf = (e1, e2) => { const a = NE[e1], b = NE[e2]; return a.a === b.a || a.a === b.b ? a.a : a.b === b.a || a.b === b.b ? a.b : null; };
+    const SWPOS = {};
+    for (const it of o.itineraries || []) for (const W of it.ways || []) for (let i = 0; i + 1 < W.length; i++) {
+      const nd = nodeOf(W[i], W[i + 1]); if (nd == null || !isSwitch(nd) || depotSwitch(nd)) continue;
+      const pos = Math.min(W[i], W[i + 1]) + '-' + Math.max(W[i], W[i + 1]), L = SWPOS[nd] = SWPOS[nd] || [];
+      let x = L.find(y => y.pos === pos); if (!x) L.push(x = { pos, ids: [] }); if (!x.ids.includes(it.id)) x.ids.push(it.id);
+    }
+    const switchPositions = nd => SWPOS[nd] || [];
+    // the itineraries that start at signal n, and the switches they go over
+    function fromSignal(n) {
+      return (BY_START.get(n) || []).map(it => {
+        const W = it.ways[0], sws = []; for (let i = 0; i + 1 < W.length; i++) { const nd = nodeOf(W[i], W[i + 1]); if (nd != null && isSwitch(nd) && !depotSwitch(nd)) sws.push(nd); }
+        return { id: it.id, frm: it.frm, to: it.to, when: it.when, switches: sws };
+      });
+    }
+    const isPcSignal = n => PC_SIG.has(n);
+    // a signal held at red by the PC (on) or given back to the interlocking (off)
+    function setRed(st, n, on) { st.redFix = st.redFix || {}; if (on) st.redFix[n] = true; else delete st.redFix[n]; return true; }
+    // take back the routes set from signal n that their train has not entered yet (front: k -> { pid, nose })
+    function cancelAt(st, n, front) {
+      let c = 0;
+      for (const [k, rs] of Object.entries(st.routes)) { const f = front(+k);
+        st.routes[k] = rs.filter(r => { const keep = !(r.n === n && (!f || f.pid !== r.pid || f.nose < r.d0 + 1)); if (!keep) c++; return keep; });
+        if (!st.routes[k].length) delete st.routes[k]; }
+      if (st.pcRoutes && st.pcRoutes[n]) { delete st.pcRoutes[n]; c++; }
+      return c;
+    }
+    // the PC forms itinerary id (from its signal) by hand: the switches go into position and the pieces are locked
+    // for the next train that takes it; refused when something on it is taken or locked the other way
+    function formPc(st, id, occ) {
+      const it = (o.itineraries || []).find(x => x.id === id); if (!it || it.start == null) return { no: 'itinerario' };
+      // the same stretch a train would ask for: from the signal to the next one, on a path that takes this movement
+      let pieces = null, nodes = null;
+      for (const [pid, list] of Object.entries(SA)) { const x = list.find(y => y[1] === it.start); if (!x) continue;
+        const sp = span(+pid, x[0], nextSignal(+pid, x[0])), m = identify(it.start, sp.pieces);
+        if (m && m.id === id) { pieces = sp.pieces; nodes = sp.nodes; break; } }
+      if (!pieces) return { no: 'percorso' };
+      const W = it.ways[0];
+      const why = free(st, -1, pieces, nodes, occ, it.start);
+      if (why) return why;
+      for (let i = 0; i + 1 < W.length; i++) { const nd = nodeOf(W[i], W[i + 1]); if (nd == null || !isSwitch(nd)) continue;
+        const pos = Math.min(W[i], W[i + 1]) + '-' + Math.max(W[i], W[i + 1]); if (st.swLock && st.swLock[nd] != null && st.swLock[nd] !== pos) return { swLock: nd }; }
+      for (let i = 0; i + 1 < W.length; i++) { const nd = nodeOf(W[i], W[i + 1]); if (nd != null && isSwitch(nd)) st.sw[nd] = Math.min(W[i], W[i + 1]) + '-' + Math.max(W[i], W[i + 1]); }
+      st.pcRoutes = st.pcRoutes || {}; st.pcRoutes[it.start] = { id, pieces: pieces.map(x => x.slice(0, 3)), nodes: nodes.map(x => x[0]), t: st.t || 0 };
+      return null;
+    }
+    // a switch moved by hand (only free: no route over it, no train on it) and locked or unlocked in a position
+    function setSwitch(st, nd, pos, occ) {
+      if (st.swLock && st.swLock[nd] != null && st.swLock[nd] !== pos) return { swLock: nd };
+      const why = free(st, -1, [], [[nd, 0]], occ); if (why) return why;
+      st.sw[nd] = pos; return null;
+    }
+    function lockSwitch(st, nd, pos) { st.swLock = st.swLock || {}; if (pos == null) delete st.swLock[nd]; else st.swLock[nd] = pos; return true; }
+    return { fresh, ahead, request, release, held, ready, readyNode, authorize, cancel, green, clearAhead, nextSignal, span, identify, switchesOn, heldNode,
+             switchPositions, fromSignal, isPcSignal, setRed, cancelAt, formPc, setSwitch, lockSwitch };
   }
   const api = { create };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLRoutes = api;

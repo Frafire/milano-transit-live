@@ -3,13 +3,15 @@
 //   reports the loop free; both get a depot place on the way back (never the same one)
 // - manual: depot on manual, a train going to the loop calls at a red depot signal after 2 and after 7 minutes
 // - twice: a train goes round the loop, comes back, and can go again
-// - radio: the radio on a train in service: a longer stop, a speed limit, a free message, the answers
+// - radio: the radio on a train in service: a longer stop, a speed limit, the answers (no free message)
 // - laps: two laps; it stops a few seconds at each test stop and nowhere else on the loop, faster than 15 km/h
 // - a94: a train given a west shed leaves the loop back through #A94; meanwhile no other train is sent to the loop
 // - place: a train on its way into the depot gets a place; the player changes it by radio
 // - navetta: closure San Donato – Rogoredo with Rogoredo solo binario 1: the menu offers it, a navetta runs
+// - stazione: radio alla stazione, Corvetto closed to the public: trains go through, the screens say so
+// - segnale: the PC holds #A13 at red from its card: no route from it
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
-// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta ...]   (no argument: all of them). Exit code 1 if one fails.
+// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html');
@@ -66,7 +68,7 @@ const SCENARIOS = {
       return { ok: /da 2 minuti/.test(log) && /da 7 minuti/.test(log) && !/da 5 minuti, via impedita/.test(log), calls: log.split('\n').filter(l => /minuti/.test(l)).slice(0, 4) };
     });
   },
-  async radio(p) {      // the radio on a train in service: stop order, speed limit, free text, the driver's answers
+  async radio(p) {      // the radio on a train in service: stop order, speed limit, the driver's answers, no free text
     return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
       const M = window.mtl, st = M.state, F = M.fleets.find(f => f.depotPaths);
@@ -79,10 +81,9 @@ const SCENARIOS = {
       out.stop = /sosta di/.test(log());
       const sp = document.getElementById('radioSendSpeed'); if (sp) { sp.click(); await sleep(2200); }
       out.speed = /limita la velocità/.test(log()) && /km\/h/.test(log());
-      document.getElementById('radioText').value = 'scendi e spingi'; document.getElementById('radioFree').requestSubmit(); await sleep(2200);
-      out.free = /Hulk|riparliamo/.test(log());
+      out.noFree = !document.getElementById('radioFree');
       st.playing = true; st.speed = 60; await sleep(3000); st.playing = false;
-      return { ok: out.stop && out.speed && out.free, out, log: log().split('\n').slice(-6) };
+      return { ok: out.stop && out.speed && out.noFree, out, log: log().split('\n').slice(-6) };
     });
   },
   async laps(p) {      // two laps: round without a stop at the junction, a few seconds at each test stop, faster than 15 km/h
@@ -165,6 +166,40 @@ const SCENARIOS = {
       st.playing = true; st.speed = 30; await sleep(8000); st.playing = false; await sleep(300);
       const a = F.ag.agents().find(x => x.mode === 'navetta'), log = document.getElementById('radioLog').innerText;
       return { ok: !!a && /Navetta/.test(log), option: one.textContent, nav, train: a && a.k, at: a && a.at };
+    });
+  },
+  async stazione(p) {   // radio alla stazione: Corvetto closed to the public, the trains go through without stopping; screens say so
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, fi = M.fleets.findIndex(f => f.line === 'M3' && f.boards), F = M.fleets[fi];
+      st.playing = false; st.t = 9 * 3600; await sleep(2500); st.playing = true; st.speed = 1; await sleep(1200); st.playing = false; await sleep(300);
+      const bi = F.boards.findIndex(x => /corvetto/i.test(x.n)); st.sel = 'b' + fi + ':' + bi; M.renderCard(); await sleep(300);
+      const btn = document.getElementById('stRadio'); if (!btn) return { ok: false, why: 'no station radio button' };
+      btn.click(); await sleep(300);
+      const sit = document.querySelector('[data-st="sit"]'); sit.click(); await sleep(2500);
+      document.querySelector('[data-acc="close"]').click(); await sleep(300);
+      const X = F.engine.G.names.findIndex(n => /CORVETTO/.test(n)), stopsBefore = F.ag.agents().filter(a => a.stopAt === X).length;
+      // 15 minutes of game: nobody stops at Corvetto (only those already standing there leave)
+      const stopped = new Set(); st.playing = true; st.speed = 60; const t0 = Date.now();
+      while (Date.now() - t0 < 15000) { await sleep(200); F.ag.agents().forEach(a => { if (a.stopAt === X && a.v === 0) stopped.add(a.k); }); }
+      st.playing = false; await sleep(200);
+      M.renderCard(); await sleep(200);
+      const scr = [...document.querySelectorAll('#card img.scr')].map(i => i.alt).join(' | '), log = document.getElementById('radioLog').innerText;
+      return { ok: /Staz\. Corvetto/.test(log) && stopped.size <= stopsBefore && /STAZIONE CHIUSA/.test(scr), stopsBefore, stoppedAfter: stopped.size, scr, log: log.split('\n').slice(-4) };
+    });
+  },
+  async segnale(p) {   // the PC on a signal: #A13 held at red, its card says so and the map shows it red
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      st.playing = false; st.t = 8 * 3600; await sleep(2500); st.playing = true; st.speed = 1; await sleep(1200); st.playing = false; await sleep(300);
+      st.sel = 'g13'; M.renderCard(); await sleep(300);
+      const red = document.querySelector('[data-pc="red"]'); if (!red) return { ok: false, why: 'no red button' };
+      red.click(); await sleep(300);
+      const sub = document.querySelector('#card .sub').textContent, its = [...document.querySelectorAll('[data-form]')].map(b => b.dataset.form);
+      st.playing = true; st.speed = 60; await sleep(4000); st.playing = false; await sleep(200);
+      const passed = Object.values(F.ag.rt().routes).flat().some(r => r.n === 13);
+      return { ok: /Rosso fisso/.test(sub) && its.length > 0 && !passed, sub, its, passed };
     });
   },
 };

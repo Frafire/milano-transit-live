@@ -30,7 +30,9 @@
     const { G, ops, reverse, half, prof, pathEdges, netEdges, stopsOf } = o;
     const planOf = k => o.planOf ? o.planOf(k) : o.plans0[k];
     const acc = ops.acceleration_ms2 || 1.1, brk = ops.braking_ms2 || 1.2;
-    const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null };
+    // stn[station]: what the PC set for a station (radio alla stazione): closed to the public (trains do not stop), the
+    // text on its platform screens
+    const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {} };
     const last = G ? G.names.length - 1 : 0;
     const stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
     const opp = d => d === 'N' ? 'S' : 'N';
@@ -41,7 +43,7 @@
     const TP = o.closureTurns || {};
     const turnAt = (X, dir) => { const tr = G.turns[X + ':' + dir]; if (!tr) return null; const k = ((S.turnOv && S.turnOv[X + ':' + dir]) || TP[X + ':' + dir] || ['A', 'C', 'B']).find(x => tr[x]); return k ? { kind: k, t: tr[k] } : null; };
     // one track only at an end of the closure (rules closure_one_track): another turn, or a navetta (NAV, from the build)
-    const OT = o.closureOneTrack || {}, NAV = o.navette || {};
+    const OT = o.closureOneTrack || {}, NAV = o.navette || {}, REVP = o.revPaths || {};
 
     // ---------- legs: what an agent still has to drive ----------
     // { pid, status, trip, stops: [{ d, st, dep, arr, j }], end, start, dir, plan, timed, si, t0 }
@@ -227,7 +229,10 @@
         if (z1 < a.d - half || z0 > a.d + half + 300) continue;
         v = Math.min(v, z0 <= a.d + half ? zv : Math.sqrt(zv * zv + 2 * brk * (z0 - a.d - half))); }
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
-      if (a.slowUntil && S.t < a.slowUntil) v = Math.min(v, 20 / 3.6);      // after reopening: 20 km/h for 2 minutes
+      // after reopening: 40 km/h on the stretch that was closed, for 20 minutes (Giovanni)
+      if (SLOW && S.t < SLOW.until) { const pe = pathEdges[a.pid], vz = SLOW.kmh / 3.6;
+        if (pe) for (const [ei, , x0, x1] of pe.e) { if (x1 < a.d - half) continue; if (x0 > a.d + half + 300) break;
+          if (SLOW.set.has(ei)) v = Math.min(v, x0 <= a.d + half ? vz : Math.sqrt(vz * vz + 2 * brk * (x0 - a.d - half))); } }
       if (a.vlim) v = Math.min(v, a.vlim);                                   // speed limit ordered by the PC
       return v;
     }
@@ -245,7 +250,7 @@
     // ---------- closures ----------
     // the track pieces of the closed stretch: the main tracks between the two stations, less what the turns at its ends
     // use (the crossovers, the stub beyond an A turn)
-    let CLOSED = null;
+    let CLOSED = null, SLOW = null;
     function closedPieces(cl) {
       const out = new Set(), keep = new Set();
       for (const [X, dir] of [[cl.a, 'N'], [cl.b, 'S']]) {
@@ -426,22 +431,44 @@
     // early; late, it catches up as it can). soft: during the closure (the times are a guide: it leaves at most a
     // minute later than its time if the timetable run is too far)
     const usedRuns = new Set();
-    function withTimetable(r, X, dir, soft) {
-      let best = null;
+    // the departures from station X that way not taken by any train: during the closure (soft) the nearest one, at
+    // most 2 minutes ago or in the next 15; after reopening (Giovanni: the hybrid system) the first one not yet
+    // covered that was due at most 2 minutes ago, or the next one (no train goes back to its own day)
+    function freeRuns(X, dir, from, to, exceptK) {
+      const out = [];
       Array.from({ length: nTrains() }, (_, m) => planOf(m)).forEach((p, m) => p.forEach((z, j) => {
         if (usedRuns.has(m + ':' + j)) return;
+        const ag = S.agents[m]; if (ag && ag.mode === 'plan' && j >= (ag.si || 0) && m !== exceptK) return;    // still to be run by its own train
         const zs = stopsOf(z); if (zs.length < 2 || runDir(zs) !== dir) return;
         const x = zs.findIndex(y => y.st === X); if (x < 0 || x === zs.length - 1) return;
         const tx = z[4][zs[x].j + 1] === zs[x].d ? z[3][zs[x].j + 1] : z[3][zs[x].j];
-        if (tx < S.t - (soft ? 120 : 3600) || tx > S.t + (soft ? 900 : 1800)) return;
-        const score = tx > S.t + 120 ? 2 * (tx - S.t) : S.t - tx;
-        if (!best || score < best.score) best = { m, j, zs, z, score };
+        if (tx < from || tx > to) return;
+        out.push({ m, j, zs, z, tx, key: m + ':' + j });
       }));
-      if (!best) return;
-      usedRuns.add(best.m + ':' + best.j);
+      return out.sort((p, q) => p.tx - q.tx);
+    }
+    function takeRun(r, best) {
+      if (r.runKey) usedRuns.delete(r.runKey);
+      usedRuns.add(best.key);
       const dep = {}; best.zs.forEach(y => { dep[y.st] = best.z[4][y.j + 1] === y.d ? best.z[3][y.j + 1] : best.z[3][y.j]; });
-      r.stops.forEach(z => { if (dep[z.st] != null) z.dep = dep[z.st]; });
-      r.timed = true; r.ref = best.z[2];
+      r.stops.forEach(z => { z.dep = dep[z.st] != null ? dep[z.st] : undefined; });
+      r.timed = true; r.ref = best.z[2]; r.runKey = best.key;
+    }
+    function withTimetable(r, X, dir, soft) {
+      let best = null;
+      if (soft) {
+        for (const c of freeRuns(X, dir, S.t - 120, S.t + 900)) { const score = c.tx > S.t + 120 ? 2 * (c.tx - S.t) : S.t - c.tx; if (!best || score < best.score) best = Object.assign(c, { score }); }
+      } else { best = freeRuns(X, dir, S.t - 120, S.t + 1800)[0] || null; if (best) r.hard = true; }
+      if (best) takeRun(r, best);
+    }
+    // the PC gives a train another departure: the free ones from where its next run starts
+    function nextRunOf(a) { return a.legs.find(l => !l.kind && l.stops && l.stops.length && l.status === 'service' && !l.nav); }
+    function departuresFor(k) {
+      const a = S.agents[k]; if (!a || a.mode === 'plan' || a.hidden) return null;
+      const r = nextRunOf(a); if (!r || !r.dir) return null;
+      const X = r.stops[0].st, cur = r.runKey && r.stops[0].dep != null ? { key: r.runKey, tx: r.stops[0].dep, ref: r.ref, current: true } : null;
+      const list = freeRuns(X, r.dir, S.t - 120, S.t + 2400, k).slice(0, 12).map(c => ({ key: c.key, tx: c.tx, ref: c.z[2] }));
+      return { st: X, dir: r.dir, list: cur ? [cur, ...list] : list };
     }
     // the turn back is not possible now: on along its track into the closed stretch, to the next station, and wait
     function goInside(a) {
@@ -455,7 +482,7 @@
     }
     // closing: every M3 train becomes an agent of the closure. pos: positions now (posNow)
     function close(cl) {
-      S.cl = cl; S.reopened = null; S.lastDep = {}; usedRuns.clear();
+      SLOW = null; S.cl = cl; S.reopened = null; S.lastDep = {}; usedRuns.clear();
       // one track only at an end: another way of turning there, or a navetta on the other track, the service turning
       // at the station on the other side of it
       const ends = cl.ends || {}; S.turnOv = {}; S.nav = []; S.navInfo = {}; S.navWant = {};
@@ -568,6 +595,21 @@
         if (!info || !info.P) { a.legs.unshift({ kind: 'depot' }); return true; }
         a.mode = 'shuttle'; a.part = info.P; a.at = info.open; a.arr = info.dir; a.legs.unshift(...nextShuttleLegs(a)); return true;
       }
+      if (m.kind === 'join') {
+        // back the wrong way to an open station, in the platform where the service arrives: it turns with them
+        const main = m.dir === 'N' ? G.N : G.S, d2 = mapTo(a.pid, a.d, main.pid);
+        if (d2 != null) { a.pid = main.pid; a.d = d2; }
+        a.inside = null; a.at = m.st; a.arr = m.dir;
+        if (!S.cl) { a.mode = 'shuttle'; assign(a); if (a.legs[0] && !a.legs[0].kind) a.legs[0].rev = true; return a.legs.length > 0; }
+        a.mode = 'shuttle'; a.part = partOf(m.st) || [0, last]; a.legs.unshift(...nextShuttleLegs(a)); return true;
+      }
+      if (m.kind === 'tailpark') {
+        // at Comasina: into a free tail and switched off there
+        const cands = (G.pairs && G.pairs.length ? G.pairs : [{ N: G.N, S: G.S }]).filter(p => mapTo(a.pid, a.d, p.N.pid) != null);
+        const Pp = cands.find(p => tailFree(a, p.N)) || cands[0]; if (!Pp) { a.status = 'stopped'; return false; }
+        a.legs.unshift({ pid: Pp.N.pid, status: 'turnback', stops: [], end: Pp.N.tail[1], start: mapTo(a.pid, a.d, Pp.N.pid), tailOf: Pp.N.pid }, { kind: 'park' });
+        return true;
+      }
       if (m.kind === 'navstart') { a.mode = 'navetta'; a.nav = m.nav; a.legs.unshift(...navLegs(a, false)); return a.legs.length > 0; }
       if (m.kind === 'navrev' && !S.cl && NAV[a.nav] && a.pid === NAV[a.nav].legal) { a.mode = 'shuttle'; a.nav = null; navDone(); assign(a); return a.legs.length > 0; }   // reopened: on its own track, on in service
       if (m.kind === 'navrev') { a.legs.unshift(...navLegs(a, true)); return a.legs.length > 0; }   // the other way, after the change of cab
@@ -576,12 +618,12 @@
     // ---------- reopening: back to the timetable ----------
     function reopen(t) {
       S.reopened = t; S.cl = null; S.parts = [[0, last]]; S.turnOv = {}; S.nav = []; S.navWant = {}; S.agents.forEach(a => { a.navOut = false; });
+      SLOW = CLOSED ? { set: new Set(CLOSED), until: t + 1200, kmh: 40 } : null;
       NAVHOLD = CLOSED && CLOSED0 && CLOSED !== CLOSED0 && S.agents.some(x => x.mode === 'navetta' || x.navBack) ? new Set([...CLOSED].filter(e => !CLOSED0.has(e))) : null;
       CLOSED = null; CLOSED0 = null; usedRuns.clear();
       for (const a of S.agents) {
         if (a.status === 'parked' && !a.hidden && a.mode === 'static') { resumeDay(a, t); continue; }
         if (a.hidden || a.status === 'parked') continue;
-        a.slowUntil = t + 120;                        // 20 km/h for 2 minutes
         a.part = [0, last];
         // the navetta, and a train going back on its track, on a track the wrong way: to the next station, change of cab,
         // back on that track the right way, then on in service (meanwhile no train goes into the stretch: NAVHOLD)
@@ -750,7 +792,7 @@
         // never early; departure signals: via libera 30 s before leaving
         if (leg.plan && st.dep && S.t < st.dep) { if (S.t >= st.dep - 30) authority(a, leg); a.why = 'orario'; return; }
         // closure and after reopening: the times of a timetable run, at most a minute's wait for them
-        if (leg.timed && !leg.plan && st.dep && S.t < st.dep && S.t - a.dwellUntil < 60) { a.why = 'orario'; return; }
+        if (leg.timed && !leg.plan && st.dep && S.t < st.dep && (leg.hard || S.t - a.dwellUntil < 60)) { if (S.t >= st.dep - 30) authority(a, leg); a.why = 'orario'; return; }
         // at least two minutes after the train before it left this station the same way (90 s when not in service)
         const key = st.st + ':' + (leg.dir || '');
         if (S.lastDep[key] != null && S.t - S.lastDep[key] < (leg.status === 'service' ? HEADWAY : NON_SERVICE_HEADWAY)) { a.why = 'intervallo'; return; }
@@ -761,6 +803,8 @@
         a.late = st.dep && leg.timed ? S.t - st.dep : null; a.depSi = leg.si;
         a.at = st.st; a.arr = leg.dir;
       }
+      // a station closed to the public: the trains in service go through without stopping
+      while (leg.status === 'service' && leg.stops.length > 1 && a.stopAt == null && S.stn[leg.stops[0].st] && S.stn[leg.stops[0].st].closed && leg.stops[0].d > a.d + 1) leg.stops.shift();
       const target = leg.stops.length ? leg.stops[0].d : leg.end;
       const au = authority(a, leg), goal = Math.min(target, au.lim);
       const vmax = Math.min(speedLimit(a, leg), Math.sqrt(2 * brk * Math.max(0, goal - a.d)));
@@ -816,14 +860,15 @@
     // ---------- time line: saved states and events ----------
     const SNAP = 600, TL = { snaps: [], events: [] };
     function snapshot() {
-      const snap = structuredClone({ t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null });
+      const snap = structuredClone({ stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
       TL.snaps = TL.snaps.filter(x => x.t < S.t); TL.snaps.push(snap);
       if (TL.snaps.length > 220) TL.snaps.splice(1, 1);
     }
     function restore(snap) {
       const c = structuredClone(snap);
       Object.assign(S, { t: c.t, il: c.il, rt: c.rt || RT.fresh(), agents: c.agents, log: c.log, lastDep: c.lastDep || {}, cl: c.cl || null, parts: c.parts || [], reopened: c.reopened != null ? c.reopened : null });
-      S.turnOv = c.turnOv || {}; S.nav = c.nav || []; S.navInfo = c.navInfo || {}; S.navWant = c.navWant || {}; NAVHOLD = c.navHold ? new Set(c.navHold) : null;
+      S.stn = c.stn || {};
+      S.turnOv = c.turnOv || {}; S.nav = c.nav || []; S.navInfo = c.navInfo || {}; S.navWant = c.navWant || {}; NAVHOLD = c.navHold ? new Set(c.navHold) : null; SLOW = c.slow ? { set: new Set(c.slow.set), until: c.slow.until, kmh: c.slow.kmh } : null;
       S.clEff = c.clEff || null;
       if (S.cl) { CLOSED0 = closedPieces(S.cl); CLOSED = S.clEff && (S.clEff.a !== S.cl.a || S.clEff.b !== S.cl.b) ? closedPieces(S.clEff) : CLOSED0; } else { CLOSED = CLOSED0 = null; }
       usedRuns.clear(); (c.usedRuns || []).forEach(x => usedRuns.add(x));
@@ -834,8 +879,15 @@
       if (e.kind === 'order') lastResult = order(e.k, e.what, e.arg);
       else if (e.kind === 'close') { close(e.cl); lastResult = true; }
       else if (e.kind === 'reopen') { reopen(S.t); lastResult = true; }
-      else if (e.kind === 'normal') { S.cl = null; S.parts = []; S.reopened = null; CLOSED = CLOSED0 = null; S.turnOv = {}; S.nav = []; S.navInfo = {}; S.navWant = {}; NAVHOLD = null; start(S.t, o.initAt(S.t)); }
+      else if (e.kind === 'normal') { S.cl = null; S.parts = []; S.reopened = null; CLOSED = CLOSED0 = null; S.turnOv = {}; S.nav = []; S.navInfo = {}; S.navWant = {}; NAVHOLD = null; SLOW = null; start(S.t, o.initAt(S.t)); }
       else if (e.kind === 'pc') lastResult = RT.authorize(S.rt, e.key);         // the PC authorises a signal or a movement
+      else if (e.kind === 'pccmd') lastResult = pcCmd(e);                      // the PC on signals and switches
+      else if (e.kind === 'station') {                                           // the PC and a station
+        const x = S.stn[e.st] = Object.assign({}, S.stn[e.st]);
+        if (e.what === 'close') x.closed = true; else if (e.what === 'open') delete x.closed; else if (e.what === 'msg') { if (e.text) x.msg = e.text; else delete x.msg; }
+        if (!Object.keys(x).length) delete S.stn[e.st];
+        lastResult = true;
+      }
       else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
     }
     // a new event now: what was planned after this moment is dropped (a new branch of the day)
@@ -859,12 +911,95 @@
       return step(Math.min(t, S.t + (maxDrive || Infinity)));
     }
 
+    // ---------- the PC on signals and switches (Pannello PC): null or the reason it cannot ----------
+    function pcCmd(e) {
+      const occ = ei => edgeMap.get(ei);
+      if (e.what === 'red') { RT.setRed(S.rt, e.n, !!e.on); return null; }
+      if (e.what === 'cancel') return RT.cancelAt(S.rt, e.n, k => S.agents[k] ? { pid: S.agents[k].pid, nose: S.agents[k].d + half } : null) ? null : { nothing: true };
+      if (e.what === 'form') return RT.formPc(S.rt, e.id, occ);
+      if (e.what === 'sw') return RT.setSwitch(S.rt, e.nd, e.pos, occ);
+      if (e.what === 'lock') { RT.lockSwitch(S.rt, e.nd, e.pos == null ? null : e.pos); return null; }
+      return { unknown: e.what };
+    }
+    // ---------- the PC's instructions to a train standing in a closed stretch (Pannello PC) ----------
+    // ahead on its track to a station (to the first open one at most: there it joins the service), back the wrong way
+    // to a station (likewise), on to San Donato and into the depot, on to Comasina and into a tail
+    function instrOptions(k) {
+      const a = S.agents[k]; if (!a || a.mode !== 'inside' || a.status !== 'stopped' || !a.inside) return [];
+      const I = a.inside, dir = I.dir, out = [], rev = REVP[dir];
+      for (let i = I.q + 1; i < I.stops.length; i++) { const Y = I.stops[i], P = partOf(Y.st);
+        out.push({ key: 'a' + i, st: Y.st, open: !!P, label: 'Avanti fino a ' + G.names[Y.st] + (P ? ', poi in servizio' : '') }); if (P) break; }
+      if (rev != null && mapTo(a.pid, a.d, rev) != null) for (let i = I.q - 1; i >= 0; i--) { const Y = I.stops[i], P = partOf(Y.st);
+        if (mapTo(I.pid, Y.d, rev) == null) break;
+        out.push({ key: 'b' + i, st: Y.st, open: !!P, back: true, label: 'Indietro contromano fino a ' + G.names[Y.st] + (P ? ', poi in servizio' : '') }); if (P) break; }
+      if (dir === 'S' && I.end != null) out.push({ key: 'dep', label: 'Avanti fino a San Donato e in deposito' });
+      if (dir === 'N' && I.stops[I.stops.length - 1].st === last && !out.some(x => !x.back && x.open)) out.push({ key: 'tail', label: 'Avanti fino a Comasina e in tronchetto' });
+      // the trains in the way now (the train would wait behind them, or face them)
+      for (const x of out) { const p = instrPlan(a, x.key), l = p && p.legs[0]; x.blocked = l ? trainsOn(l.pid, l.start, l.end, k) : []; }
+      return out;
+    }
+    // the moves of an instruction (not applied): legs, and what changes in the train when it is given
+    function instrPlan(a, key) {
+      const I = a.inside, dir = I.dir;
+      const onto = pid => { const d = pid === a.pid ? a.d : mapTo(a.pid, a.d, pid); return d; };
+      if (key[0] === 'a') {
+        const i = +key.slice(1), Y = I.stops[i], P = partOf(Y.st), d0 = onto(I.pid); if (d0 == null || !Y) return null;
+        const legs = [{ pid: I.pid, status: 'empty', stops: [], end: Y.d, start: d0, rev: a.pid !== I.pid, arrive: { at: Y.st, dir } }];
+        let after;
+        // (out of the closed stretch: the signals let it out, exitClosed, until its first station)
+        if (P && I.m != null) { legs.push(...legsFromPlan(I.m, I.j, P, Y.d)); after = () => { a.mode = 'shuttle'; a.part = P; a.inside = null; a.exitClosed = true; }; }
+        else if (P) { legs.push({ kind: 'boundary' }); after = () => { a.mode = 'shuttle'; a.part = P; a.at = Y.st; a.arr = dir; a.inside = null; a.exitClosed = true; }; }
+        else { legs.push({ kind: 'stopped' }); after = () => { I.q = i; }; }
+        return { legs, after };
+      }
+      if (key[0] === 'b') {
+        const i = +key.slice(1), Y = I.stops[i], rev = REVP[dir], d0 = onto(rev), d1 = Y && mapTo(I.pid, Y.d, rev); if (d0 == null || d1 == null) return null;
+        const P = partOf(Y.st), legs = [{ pid: rev, status: 'empty', stops: [], end: d1, start: d0, rev: a.pid !== rev, arrive: { at: Y.st, dir: opp(dir) } }];
+        legs.push(P ? { kind: 'join', st: Y.st, dir } : { kind: 'stopped' });
+        return { legs, after: () => { if (!P) I.q = i; } };
+      }
+      if (key === 'dep') { const d0 = onto(I.pid); if (d0 == null) return null;
+        return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: I.end, start: d0, rev: a.pid !== I.pid }, { kind: 'depot' }], after: () => {} }; }
+      if (key === 'tail') { const d0 = onto(I.pid), Y = I.stops[I.stops.length - 1]; if (d0 == null) return null;
+        return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: Y.d, start: d0, rev: a.pid !== I.pid }, { kind: 'tailpark' }], after: () => {} }; }
+      return null;
+    }
+    // the trains standing (or running) on a stretch of a path now: the PC sees them on the panel before sending a train
+    function trainsOn(pid, d0, d1, exceptK) {
+      const out = new Set(), { pieces } = RT.span(pid, Math.min(d0, d1) + half + 1, Math.max(d0, d1) + half + 3);
+      for (const [ei, l0, l1] of pieces) for (const [k2, m0, m1] of edgeMap.get(ei) || []) if (k2 !== exceptK && l0 < m1 && m0 < l1) out.add(k2);
+      return [...out];
+    }
+    // for the map: where the instructed move goes, [[pid, from, to]]
+    function instrPreview(k, key) {
+      const a = S.agents[k]; if (!a || !a.inside) return null;
+      const p = instrPlan(a, key); if (!p) return null;
+      const out = []; for (const l of p.legs) { if (l.kind) break; out.push([l.pid, l.start, l.end]); }
+      return out;
+    }
+    function instruct(a, key) {
+      if (!instrOptions(a.k).some(x => x.key === key)) return false;
+      const p = instrPlan(a, key); if (!p) return false;
+      // the PC gives the signals it works along the move (the train goes where the PC sent it)
+      const L0 = p.legs[0]; for (const c of RT.ahead(L0.pid, Math.min(L0.start, L0.end) - 5, Math.abs(L0.end - L0.start) + 200)) if (RT.isPcSignal(c.n)) RT.authorize(S.rt, 'n:' + c.n);
+      a.legs = p.legs; p.after(); a.status = 'empty'; a.stopAt = null; a.wait = 0; a.red = null;
+      S.log.push({ t: S.t, k: a.k, instr: key });
+      return true;
+    }
     // ---------- radio orders ----------
     function order(k, kind, arg) {
       const a = S.agents[k]; if (!a) return false;
       // PC speed limit: km/h, until a new order or until the train leaves station `to`
       if (kind === 'speed') { a.vlim = arg && arg.kmh ? arg.kmh / 3.6 : null; a.vlimTo = arg && arg.to != null ? arg.to : null; return true; }
       if (kind === 'speedoff') { a.vlim = null; a.vlimTo = null; return true; }
+      // the PC gives the train another departure (key m:j of a run not taken by another train)
+      if (kind === 'dep') {
+        const r = nextRunOf(a), dl = departuresFor(k); if (!r || !dl) return false;
+        const [m, j] = String(arg && arg.key || '').split(':').map(Number), c = freeRuns(dl.st, dl.dir, -Infinity, Infinity, k).find(x => x.m === m && x.j === j);
+        if (!c) return false;
+        takeRun(r, c); r.hard = true; return c.tx;
+      }
+      if (kind === 'instr') return instruct(a, arg && arg.key);
       if (a.mode === 'inside' && a.status === 'stopped') {
         const I = a.inside, q = I.q;
         if (kind === 'depot') {                     // empty to the end of its path (San Donato) and into the depot
@@ -877,8 +1012,8 @@
         I.q = q + 1;
         a.legs = [{ pid: I.pid, status: 'empty', stops: [], end: next.d, start: a.d }];
         if (P && I.m != null) {                     // it reaches the open line: from there it runs with the others
-          a.mode = 'shuttle'; a.part = P; a.legs.push(...legsFromPlan(I.m, I.j, P, next.d)); a.inside = null;
-        } else if (P) { a.mode = 'shuttle'; a.part = P; a.at = next.st; a.arr = I.dir; a.inside = null; a.legs.push({ kind: 'boundary' }); }
+          a.mode = 'shuttle'; a.part = P; a.legs.push(...legsFromPlan(I.m, I.j, P, next.d)); a.inside = null; a.exitClosed = true;
+        } else if (P) { a.mode = 'shuttle'; a.part = P; a.at = next.st; a.arr = I.dir; a.inside = null; a.exitClosed = true; a.legs.push({ kind: 'boundary' }); }
         else { a.mode = 'inside'; a.legs.push({ kind: 'stopped' }); }
         a.status = 'empty'; return true;
       }
@@ -925,7 +1060,7 @@
         if (a.stopAt != null && fresh.stops.length && Math.abs(fresh.stops[0].d - a.d) > 1) a.stopAt = null; a.legs = [fresh]; a.red = null; }
       return true;
     }
-    return { S, TL, IL, RT, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
+    return { S, TL, IL, RT, departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
   }
 
   const api = { create, DT, HEADWAY };

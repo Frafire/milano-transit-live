@@ -1517,6 +1517,10 @@ if CFG.get('degraded'):
                 _pc = make_path(('nav', _key, 'C'), [(_e, -_dr) for _e, _dr in reversed(_states)])
                 NAVETTE[_key] = {'a': _a, 'b': _b, 'track': _T, 'legal': _pl, 'contra': _pc, 'main': _mp, 'off': round(_off, 1), 'L': round(paths[_pl][1][-1], 1)}
         print('navette:', {k: (v['legal'], v['contra'], round(v['L'])) for k, v in NAVETTE.items()})
+        # each main track the wrong way, the whole line: a train in a closed stretch sent back by the PC (Pannello PC)
+        REV_PATHS = {'N': make_path(('rev', 'N'), [(_e, -_dr) for _e, _dr in reversed(PATH_STATES[pN])]),
+                   'S': make_path(('rev', 'S'), [(_e, -_dr) for _e, _dr in reversed(PATH_STATES[pS])])}
+        print('main tracks the wrong way:', REV_PATHS)
         DEGRADED = {'names': names, 'N': {'pid': pN, 'stops': [round(x, 1) for x in stopN], 'tail': tail_d(pN)},
                     'S': {'pid': pS, 'stops': [round(x, 1) for x in full['S'][pS][1]], 'tail': tail_d(pS)}, 'turns': TURNS, 'recovery': RECOVERY, 'platforms': ZONES, 'pairs': PAIRS}
         print('degraded service: turns at', sorted(TURNS))
@@ -1896,6 +1900,7 @@ NET['variants'] = {str(k): v for k, v in VARIANTS.items()}
 NET['closure_turns'] = {k: v for k, v in _rules_.get('closure_turns', {}).items() if not k.startswith('_')}
 NET['closure_one_track'] = {k: v for k, v in _rules_.get('closure_one_track', {}).items() if not k.startswith('_')}
 NET['navette'] = NAVETTE if DEGRADED else {}
+NET['rev_paths'] = REV_PATHS if DEGRADED else {}
 _cst = _rules_.get('closures_list', {}).get('stations', [])
 _often = {}
 for _c in _RG.get('chiusure', []):
