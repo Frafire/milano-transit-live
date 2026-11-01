@@ -22,6 +22,7 @@
 
   const ILmod = typeof module !== 'undefined' && module.exports ? require('./interlocking.js') : root.MTLInterlocking;
   const RTmod = typeof module !== 'undefined' && module.exports ? require('./routes.js') : root.MTLRoutes;
+  const FXmod = typeof module !== 'undefined' && module.exports ? require('./faults.js') : root.MTLFaults;
 
   function create(o) {
     // o: { G, ops, reverse, half, prof, pathEdges, netEdges, sigall, sigpos, interlocking, planOf(k) | plans0, count,
@@ -48,6 +49,7 @@
       if (!P) { a.accCap = acc; a.brk = brk; return; }
       const load = a.status === 'service' ? loadAt(S.t) : 0;
       a.accCap = P.acc_empty - (P.acc_empty - P.acc_full) * load; a.brk = P.brake_service || brk;
+      if (FX && FX.manual(a)) a.accCap *= 0.85;                 // ATO failed: the driver accelerates less (Giovanni)
     }
     let atoLast = -Infinity;
     function atoTick() {
@@ -73,10 +75,14 @@
           p.a.ato = pc; p.a.atoGap = ahead; p.a.atoWarn = pc <= ATO_MIN + 1e-6 && ahead != null && behind != null && ahead < 0.55 * behind;
         });
       }
+      // ATO failed: manual driving, no even cruise (the speed goes up and down between 75 and 95% of the limit)
+      if (FX) for (const a of S.agents) if (!a.hidden && FX.manual(a)) { a.ato = 0.75 + 0.2 * (0.5 + 0.5 * Math.sin(S.t / 37 + a.k)); a.atoWarn = false; }
     }
     // stn[station]: what the PC set for a station (radio alla stazione): closed to the public (trains do not stop), the
     // text on its platform screens
-    const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {} };
+    const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null };
+    // failures (web/faults.js, foglio Guasti): emergency brake of each kind of train
+    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5) }) : null;
     const last = G ? G.names.length - 1 : 0;
     const stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
     const opp = d => d === 'N' ? 'S' : 'N';
@@ -805,6 +811,7 @@
         return;
       }
       if (a.status === 'stopped') return;
+      if (FX && FX.hold(a)) return;                      // a failure: it brakes to a stop and stands (web/faults.js)
       // held where it stands before this move of its day (test loop: waiting at #A94 for the loop, or for a depot place)
       if (a.mode === 'plan' && o.holdAt && o.holdAt(a.k, a.si, a)) { a.v = 0; a.why = 'anello'; return; }
       let leg = a.legs[0];
@@ -845,9 +852,10 @@
         // standing at a stop: passengers, then the departure conditions
         const st = leg.stops[0];
         const ex = a.stopKey && o.extra ? (o.extra(a.k, a.stopKey) || 0) : 0;      // longer stop ordered by radio
-        a.dwellUntil = (a.arriveT != null ? a.arriveT : S.t) + (a.dwBase || 0) + ex;
+        const fx = FX ? FX.extraDwell(a) : 0;                                      // doors, passenger alarm, a passenger taken ill
+        a.dwellUntil = (a.arriveT != null ? a.arriveT : S.t) + (a.dwBase || 0) + ex + fx;
         // the departure signal is set while the doors are still open (the route is ready when the train leaves)
-        if (S.t < a.dwellUntil) { if (S.t >= a.dwellUntil - 10 && leg.stops.length > 1) authority(a, leg); a.why = ex ? 'sosta' : null; return; }
+        if (S.t < a.dwellUntil) { if (S.t >= a.dwellUntil - 10 && leg.stops.length > 1) authority(a, leg); a.why = fx ? 'guasto' : ex ? 'sosta' : null; return; }
         if (!st || leg.stops.length === 1 && st.d >= leg.end - 0.5) {      // last stop of the run: it ends here
           leg.stops.shift(); a.stopAt = null; a.legs.shift(); if (leg.arrive) { a.at = leg.arrive.at; a.arr = leg.arrive.dir; } return;
         }
@@ -894,7 +902,7 @@
       while (S.t + DT <= t && guard++ < 40000) {
         // events whose time has come (again, after going back in time)
         for (const e of TL.events) if (!e.done && e.t <= S.t + DT) { e.done = true; apply(e); }
-        S.t += DT; S.rt.t = S.t; refresh(); atoTick();
+        S.t += DT; S.rt.t = S.t; refresh(); atoTick(); if (FX) FX.tick();
         for (const a of S.agents) {
           const p0 = a.pid, n0 = a.d + half;
           stepAgent(a);
@@ -923,14 +931,14 @@
     // ---------- time line: saved states and events ----------
     const SNAP = 600, TL = { snaps: [], events: [] };
     function snapshot() {
-      const snap = structuredClone({ stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
+      const snap = structuredClone({ faults: S.faults, stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
       TL.snaps = TL.snaps.filter(x => x.t < S.t); TL.snaps.push(snap);
       if (TL.snaps.length > 220) TL.snaps.splice(1, 1);
     }
     function restore(snap) {
       const c = structuredClone(snap);
       Object.assign(S, { t: c.t, il: c.il, rt: c.rt || RT.fresh(), agents: c.agents, log: c.log, lastDep: c.lastDep || {}, cl: c.cl || null, parts: c.parts || [], reopened: c.reopened != null ? c.reopened : null });
-      S.stn = c.stn || {};
+      S.stn = c.stn || {}; S.faults = c.faults || null;
       S.turnOv = c.turnOv || {}; S.nav = c.nav || []; S.navInfo = c.navInfo || {}; S.navWant = c.navWant || {}; NAVHOLD = c.navHold ? new Set(c.navHold) : null; SLOW = c.slow ? { set: new Set(c.slow.set), until: c.slow.until, kmh: c.slow.kmh } : null;
       S.clEff = c.clEff || null;
       if (S.cl) { CLOSED0 = closedPieces(S.cl); CLOSED = S.clEff && (S.clEff.a !== S.cl.a || S.clEff.b !== S.cl.b) ? closedPieces(S.clEff) : CLOSED0; } else { CLOSED = CLOSED0 = null; }
@@ -945,6 +953,7 @@
       else if (e.kind === 'normal') { S.cl = null; S.parts = []; S.reopened = null; CLOSED = CLOSED0 = null; S.turnOv = {}; S.nav = []; S.navInfo = {}; S.navWant = {}; NAVHOLD = null; SLOW = null; start(S.t, o.initAt(S.t)); }
       else if (e.kind === 'pc') lastResult = RT.authorize(S.rt, e.key);         // the PC authorises a signal or a movement
       else if (e.kind === 'pccmd') lastResult = pcCmd(e);                      // the PC on signals and switches
+      else if (e.kind === 'fault') lastResult = FX ? FX.event(e) : null;       // failures: a new one, the PC's answer, random on/off
       else if (e.kind === 'station') {                                           // the PC and a station
         const x = S.stn[e.st] = Object.assign({}, S.stn[e.st]);
         if (e.what === 'close') x.closed = true; else if (e.what === 'open') delete x.closed; else if (e.what === 'msg') { if (e.text) x.msg = e.text; else delete x.msg; }
@@ -1109,7 +1118,7 @@
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
       return { inside: a.inside, to: leg && leg.arrive ? leg.arrive.at : null, pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, trip: a.trip,
                seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold, vlim: a.vlim ? Math.round(a.vlim * 3.6) : null, vlimTo: a.vlimTo,
-               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn };
+               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn, manual: !!(FX && FX.manual(a)), faults: FX ? FX.list().filter(f => f.k === k) : [] };
     }
     // a radio change to a train's day (platform, tail, test loop...): it takes it from where it is
     function replan(k) {
@@ -1123,7 +1132,7 @@
         if (a.stopAt != null && fresh.stops.length && Math.abs(fresh.stops[0].d - a.d) > 1) a.stopAt = null; a.legs = [fresh]; a.red = null; }
       return true;
     }
-    return { S, TL, IL, RT, departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
+    return { S, TL, IL, RT, FX, departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
   }
 
   const api = { create, DT, HEADWAY };

@@ -1904,6 +1904,18 @@ NET['closure_turns'] = {k: v for k, v in _rules_.get('closure_turns', {}).items(
 NET['closure_one_track'] = {k: v for k, v in _rules_.get('closure_one_track', {}).items() if not k.startswith('_')}
 NET['navette'] = NAVETTE if DEGRADED else {}
 NET['rev_paths'] = REV_PATHS if DEGRADED else {}
+# failures (foglio Guasti, fase D): which rows the program simulates, and how many times a day each happens (Volte al giorno)
+import re as _re
+_FK = [('trazione', r'non riparte'), ('porta', r'porta non si chiude'), ('freno', r'frenatura di emergenza'), ('ato', r'guasto ato'),
+       ('allarme', r'allarme passeggero'), ('porte_persone', r'bloccano la chiusura'), ('malore_treno', r'male sul treno'), ('riarmo', r'continuamente di essere riarmato')]
+NET['faults'] = []
+for _g in _RG.get('guasti', []):
+    _nm = (_g.get('Guasto') or '').lower()
+    _id = next((i for i, rx in _FK if _re.search(rx, _nm)), None)
+    if not _id: continue
+    _f = next((v for k, v in _g.items() if k.startswith('Volte al giorno')), None)
+    NET['faults'].append({'id': _id, 'n': _g.get('N.'), 'name': _g.get('Guasto'), 'perDay': _f if isinstance(_f, (int, float)) else 0})
+print('faults:', [(f['id'], f['perDay']) for f in NET['faults']])
 _cst = _rules_.get('closures_list', {}).get('stations', [])
 _often = {}
 for _c in _RG.get('chiusure', []):

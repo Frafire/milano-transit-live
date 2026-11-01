@@ -63,6 +63,8 @@ body:not(.player) .player-only { display: none !important; }
 .m3list li:hover { background: var(--panel-solid); }
 .m3list .tn { font: 700 13px var(--display); text-align: center; border-radius: 4px; padding: 1px 0; color: #111; }
 .pcal .m3list li { grid-template-columns: 1fr; } .pcal .m3list li.late .where { color: #ff8a7a; }
+.pcal .m3list li.fx .where { white-space: normal; } .pcal .fxb { display: flex; gap: 4px; flex-wrap: wrap; } .pcal .fxb button { font-size: 11px; padding: 2px 6px; }
+.faults select { width: 100%; margin-bottom: 4px; } .faults label { font-size: 12px; display: flex; gap: 6px; align-items: center; }
 .m3list .where { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .m3list .dl { font-variant-numeric: tabular-nums; font-weight: 600; }
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-top: 6px; }
@@ -348,6 +350,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="row"><button id="depotAuto" aria-pressed="true" title="Automatico: i segnali del deposito si aprono da soli. Manuale: clic sul segnale per dare via libera a un treno">Deposito: automatico</button></div>
     <p class="note" id="ilNote" hidden></p>
   </section>
+  <section class="m3panel faults admin-only" aria-label="Guasti (admin)">
+    <div class="label">Guasti M3 (admin)</div>
+    <label><input type="checkbox" id="fxRandom"> Guasti casuali, quante volte al giorno come nell'Excel (valgono anche per il player)</label>
+    <select id="fxKind" aria-label="Guasto"></select>
+    <select id="fxTrain" aria-label="Treno"></select>
+    <div class="row"><button id="fxGo">Fai partire il guasto</button></div>
+    <p class="note" id="fxNote">Il macchinista o l'agente chiama il PC: la chiamata compare negli Allarmi PC con le risposte. Se nessuno risponde per 3 minuti risponde il PC automatico.</p>
+  </section>
 
   <div class="admin-only">
     <div class="label" style="margin-bottom:6px">In service now</div>
@@ -502,6 +512,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 <script src="engine.js"></script>
 <script src="interlocking.js"></script>
 <script src="routes.js"></script>
+<script src="faults.js"></script>
 <script src="agents.js"></script>
 <script src="DepotM3.js"></script>
 <script src="radio.js"></script>
@@ -1448,7 +1459,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (sp && sp.textContent !== String(kmh)) sp.textContent = kmh;
     // the needle follows the speed smoothly (tachoAnim), the red mark shows the limit where the train is
     if (nd) { TACHO.target = -135 + Math.min(92, v) / 90 * 270; if (!TACHO.run) { TACHO.run = true; TACHO.last = 0; requestAnimationFrame(tachoAnim); } }
-    const at = document.getElementById('tachoAto'), atv = st.agent && st.agent.ato != null && st.agent.status === 'service' ? 'ATO ' + st.agent.ato + '%' : '';
+    const at = document.getElementById('tachoAto'), atv = st.agent && st.agent.manual ? 'MANUALE' : st.agent && st.agent.ato != null && st.agent.status === 'service' ? 'ATO ' + st.agent.ato + '%' : '';
     if (at && at.textContent !== atv) at.textContent = atv;
     const lm = document.getElementById('tachoLim'), lim = st.agent && st.agent.vmaxHere;
     if (lm) { const a = lim ? (-135 + Math.min(92, lim) / 90 * 270).toFixed(1) : null; if (lm.dataset.a !== String(a)) { lm.dataset.a = a; lm.style.display = a == null ? 'none' : ''; if (a != null) lm.setAttribute('transform', `rotate(${a} 60 60)`); } }
@@ -1489,7 +1500,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const tiles = (F.bus ? '' : `<div class="cab">${fr ? `<img class="tfront" id="trainFront" alt="Frontale del treno" src="${trainFront(fr.kind, fr.dest, fr.lights, fr.no)}" data-k="${fr.kind + fr.dest + fr.lights + fr.no}">` : ''}${tachoSVG()}</div>
       <div class="tiles"><div class="tile door" id="doorTile">PORTE CHIUSE</div><div class="tile delay" id="delayTile">IN ORARIO</div></div>`)
       + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
-    body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
+    body = tiles + faultBox(F, i) + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
       <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + cardSub(st)}</div></div></div>
       <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Close</button></div>${body}`;
@@ -1499,6 +1510,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const ttBtn = document.getElementById('ttBtn'); if (ttBtn) ttBtn.onclick = () => { state.fullTT = !state.fullTT; renderCard(); };
     const rOpen = document.getElementById('radioOpen'); if (rOpen) rOpen.onclick = () => openRadio(F, tr);
     updateTiles();
+    card.querySelectorAll('[data-fxid]').forEach(b => b.onclick = () => { fxAnswer(F, +b.dataset.fxid, b.dataset.fxa); renderCard(); });
     card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
     card.querySelectorAll('[data-arr2]').forEach(b => b.onclick = () => { orderP2(F, tr, +b.dataset.arr2); renderCard(); });
     card.querySelectorAll('[data-plat]').forEach(b => b.onclick = () => {
@@ -2439,7 +2451,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
@@ -2542,7 +2554,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   closeBtn.onclick = closeStretch; reopenBtn.onclick = reopenStretch; normalBtn.onclick = backToTimetable;
   setTimeout(fillClosures, 0);
   const AGLABEL = { service: 'In servizio', stopped: 'Fermo in stazione: tratta interrotta', held: 'Trattenuto: tratta chiusa', turnback: 'In manovra (cambio banco)', empty: 'Vuoto, senza passeggeri', depot: 'Rientrato in deposito', parked: 'In deposito' };
-  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC', pc: ' · trattenuto dal PC', anello: ' · attende al #A94 (anello di prova)' };
+  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal PC', pc: ' · trattenuto dal PC', anello: ' · attende al #A94 (anello di prova)', guasto: ' · guasto' };
   // the line under the train name: the agents' service (shuttles carry passengers: reduced service)
   function cardSub(st) {
     const a = st.agent;
@@ -2818,6 +2830,54 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   // the alarms of the PC (provisional panel, until Giovanni's drawing): trains standing at a red signal for 2 minutes or
   // more, trains held or waiting for instructions, what the PC set (signals at red, switches locked, itineraries
   // prepared, stations closed or with a message on the screens), the closure in force
+  // ---------- failures (web/faults.js, fase D) on the page: what the train has, the answers of the PC, the radio ----------
+  const FX_PH = { rearm: 'riarmo in corso', help: 'serve il soccorso', rescue: 'soccorso in arrivo', verify: "l'agente verifica", held: 'fermo in banchina', manual: 'guida manuale',
+                  dwell: 'in banchina', armed: 'alla prossima stazione', stopping: 'si ferma', call: 'chiama il PC', run: 'in servizio' };
+  const fxPhase = f => (f.tech === 'wait' ? 'tecnico in attesa a San Donato' : f.tech === 'board' ? 'tecnico a bordo' : FX_PH[f.ph] || f.ph);
+  function fxAnswer(F, id, what) {
+    if (!F || !F.ag) return;
+    const r = F.ag.event({ kind: 'fault', what: 'answer', id, answer: what });
+    if (r && r.no) MR.say('', 'PC: risposta non più valida.', 'sys');
+    fxFeed(F); renderAlarms();
+  }
+  // the train card: the failures of train k, the technician of the line maintenance (Radio manutenzione, San Donato)
+  function faultBox(F, k) {
+    if (!F.ag || !F.ag.FX) return '';
+    return F.ag.FX.list().filter(f => f.k === k).map(f => `<p class="warn">⚠ ${f.label} · ${fxPhase(f)}</p>`
+      + `<div class="row">${(f.call ? f.call.answers : []).map(([w, l]) => `<button data-fxid="${f.id}" data-fxa="${w}">${l}</button>`).join('')}`
+      + (f.kind === 'riarmo' && !f.tech && !(f.call && f.call.opts.includes('tech')) ? `<button data-fxid="${f.id}" data-fxa="tech">🔧 Radio manutenzione: tecnico a bordo</button>` : '')
+      + `<button class="admin-only" data-fxid="${f.id}" data-fxa="fix">Risolvi (admin)</button></div>`).join('');
+  }
+  // the radio of the failures, into the radio log (each message once: after going back in time it is not said again)
+  const fxSaid = new Set();
+  function fxFeed(F) {
+    if (!F || !F.ag || !F.ag.FX) return;
+    const G = F.engine.G, no = k => { const r = realTrain(F, F.trains[k], state.t); return r && r.n ? r.n : k + 1; };
+    for (const m of F.ag.FX.feed()) {
+      const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
+      const txt = m.text.replace(/\{T\}/g, no(m.k));
+      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'pc' ? 'PC' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione SD' : '';
+      MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
+    }
+  }
+  function fxPanel(F) {
+    const kSel = document.getElementById('fxKind'), tSel = document.getElementById('fxTrain'), rnd = document.getElementById('fxRandom');
+    if (!kSel || !F || !F.ag || !F.ag.FX) return;
+    const FX = F.ag.FX;
+    if (!kSel.options.length) kSel.innerHTML = FX.kinds().map(x => `<option value="${x.id}">${x.label}${x.perDay != null ? ' (' + String(x.perDay).replace('.', ',') + ' al giorno)' : ''}</option>`).join('');
+    if (document.activeElement !== rnd) rnd.checked = FX.random();
+    if (document.activeElement !== tSel) {
+      const G = F.engine.G, rows = F.ag.agents().filter(a => !a.hidden && a.mode !== 'static' && a.status !== 'parked').map(a => {
+        const r = realTrain(F, F.trains[a.k], state.t), no = r && r.n ? r.n : a.k + 1;
+        return `<option value="${a.k}">Treno ${no} · ${a.status === 'service' ? 'in servizio' : 'vuoto'}${a.at != null ? ' · ' + cap(G.names[a.at]) : ''}</option>`; });
+      const v = tSel.value, h = rows.join(''); if (tSel.dataset.h !== h) { tSel.dataset.h = h; tSel.innerHTML = h; if ([...tSel.options].some(o => o.value === v)) tSel.value = v; }
+    }
+  }
+  document.getElementById('fxRandom').onchange = e => { const F = m3eng(); if (!F || !F.ag) return; F.ag.event({ kind: 'fault', what: 'random', on: e.target.checked }); };
+  document.getElementById('fxGo').onclick = () => { const F = m3eng(); if (!F || !F.ag) return;
+    const r = F.ag.event({ kind: 'fault', what: 'new', fault: document.getElementById('fxKind').value, k: +document.getElementById('fxTrain').value });
+    document.getElementById('fxNote').textContent = r ? 'Guasto partito: guarda gli Allarmi PC e la radio.' : 'Non si può su quel treno (fermo, fuori servizio o con lo stesso guasto).';
+    fxFeed(F); renderAlarms(); };
   function renderAlarms() {
     const el = document.getElementById('pcAlarms'), F = m3eng(); if (!el) return;
     if (!F || !F.ag) { el.innerHTML = '<li class="note">Motore spento</li>'; return; }
@@ -2831,13 +2891,20 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (a.pcHold) out.push({ k: a.k, t: `Treno ${tno(a.k)} trattenuto a ${cap(G.names[a.stopAt != null ? a.stopAt : a.at])}` });
       if (a.atoWarn) out.push({ k: a.k, cls: 'late', t: `Treno ${tno(a.k)} troppo vicino al treno davanti, ATO al minimo: valuta un blocco in stazione` });
     });
+    // failures: the calls waiting for the PC first, with their answers
+    if (F.ag.FX) { fxFeed(F); fxPanel(F);
+      const fl = F.ag.FX.list();
+      fl.filter(f => !f.call).forEach(f => out.unshift({ k: f.k, cls: 'fx', t: `⚠ Treno ${tno(f.k)}: ${f.label} · ${fxPhase(f)}`, fx: f }));
+      fl.filter(f => f.call).forEach(f => out.unshift({ k: f.k, cls: 'late fx', t: '📻 ' + f.call.text.replace(/\{T\}/g, tno(f.k)), fx: f })); }
     for (const n of Object.keys(rt.redFix || {})) out.push({ g: n, t: `#A${String(n).padStart(2, '0')} rosso fisso` });
     for (const [n, r] of Object.entries(rt.pcRoutes || {})) out.push({ g: n, t: `Itinerario ${r.id} preparato da #A${String(n).padStart(2, '0')}` });
     for (const nd of Object.keys(rt.swLock || {})) out.push({ t: `Scambio ${nd} bloccato` });
     for (const [x, v] of Object.entries(S_.stn || {})) { if (v.closed) out.push({ b: +x, t: `${cap(G.names[x])} chiusa al pubblico` }); if (v.msg) out.push({ b: +x, t: `${cap(G.names[x])}: schermi "${v.msg}"` }); }
     const em = closureNow(F); if (em) out.unshift({ cls: 'late', t: em.reopened ? `Tratta ${em.label} riaperta` : `Tratta ${em.label} chiusa` });
-    const html = out.map((x, i) => `<li data-i="${i}" class="${x.cls || ''}"><span class="where">${x.t}</span></li>`).join('') || '<li class="note">Nessun allarme</li>';
+    const fxBtns = f => `<span class="fxb">${(f.call ? f.call.answers : []).map(([w, l]) => `<button data-fxid="${f.id}" data-fxa="${w}">${l}</button>`).join('')}${f.kind === 'riarmo' && !f.tech && !(f.call && f.call.opts.includes('tech')) ? `<button data-fxid="${f.id}" data-fxa="tech">🔧 Tecnico a bordo</button>` : ''}</span>`;
+    const html = out.map((x, i) => `<li data-i="${i}" class="${x.cls || ''}"><span class="where">${x.t}</span>${x.fx ? fxBtns(x.fx) : ''}</li>`).join('') || '<li class="note">Nessun allarme</li>';
     if (el.dataset.h === html) return; el.dataset.h = html; el.innerHTML = html;
+    el.querySelectorAll('[data-fxid]').forEach(b => b.onclick = ev => { ev.stopPropagation(); fxAnswer(F, +b.dataset.fxid, b.dataset.fxa); });
     el.querySelectorAll('li[data-i]').forEach(li => li.onclick = () => { const x = out[+li.dataset.i];
       if (x.k != null) state.sel = 'f' + fi + ':' + x.k; else if (x.g != null) state.sel = 'g' + x.g;
       else if (x.b != null) { const bi = F.boards.findIndex(b => b.n.toUpperCase().replace(/\s+M\d$/, '') === G.names[x.b].replace(/\s+M\d$/, '')); if (bi >= 0) state.sel = 'b' + fi + ':' + bi; else return; }
