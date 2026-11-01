@@ -51,4 +51,11 @@ const odd = M.net.itineraries.find(i => i.start != null && !['servizio normale',
   if (p) { const st = RT.fresh(); ok(!RT.request(st, 1, p.pid, p.d, n, none), `#A${n} (worked by the PC): red without the PC`); RT.authorize(st, 'n:' + n); RT.authorize(st, 'id:' + (M.net.itineraries.find(i => i.start === n) || {}).id);
     ok(RT.request(st, 1, p.pid, p.d, n, none), `#A${n}: set with the PC`); }
   else console.log(`(#A${n} is on no path)`); }
+// 5) precedence: a train waiting for SD-6 (priority alta) goes before one asking for SD-1 (media) over the same pieces
+{ const st = RT.fresh(); st.t = 500; const a = onPath('SD-6'), b = onPath('SD-1'), W = IT['SD-6'].ways[0];
+  const blockedOcc = ei => +ei === W[W.length - 1] ? [[9, 0, 5]] : [];          // something still in the way of SD-6
+  const r1 = RT.request(st, 2, a.pid, a.d, 8, blockedOcc);
+  const r2 = RT.request(st, 1, b.pid, b.d, 40, none);
+  ok(!r1 && !r2 && st.lastNo && st.lastNo.yield === 2, `SD-1 waits for the train waiting for SD-6 (${JSON.stringify(st.lastNo)})`);
+  st.t = 510; ok(RT.request(st, 1, b.pid, b.d, 40, none), 'and goes when that train is no longer waiting for it'); }
 process.exit(fail ? 1 : 0);

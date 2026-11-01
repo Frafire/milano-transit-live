@@ -46,7 +46,7 @@
     const IL = o.interlocking && ILmod ? ILmod.create(Object.assign({}, o.interlocking, { sigpos: o.sigpos, half: o.half })) : null;
     S.il = IL ? IL.fresh(null) : null;
     const RR = o.routeRules || {};
-    const RT = RTmod.create({ sigall: o.sigall || {}, pathEdges, netEdges, itineraries: o.itineraries, times: RR.times, capacity: RR.capacity, pcSignals: RR.pcSignals });
+    const RT = RTmod.create({ sigall: o.sigall || {}, pathEdges, netEdges, itineraries: o.itineraries, times: RR.times, capacity: RR.capacity, pcSignals: RR.pcSignals, tailSlots: RR.tailSlots, half });
     S.rt = RT.fresh();
     // the other ways of a movement (San Donato): VAR[pid] = [[itinerary id, way, twin pid]]; START[id]: its first signal
     const VAR = o.variants || {}, START = {}; for (const it of o.itineraries || []) START[it.id] = it.start;
@@ -59,7 +59,7 @@
         const d2 = m(a.d), end2 = m(leg.end), stops2 = leg.stops.map(z => m(z.d));
         if (d2 == null || end2 == null || stops2.some(x => x == null)) continue;
         const c2 = RT.ahead(pid2, d2 + half, LOOK).find(x => x.n === c.n); if (!c2) continue;
-        if (!RT.request(S.rt, a.k, pid2, c2.d, c.n, occ)) continue;
+        if (!RT.request(S.rt, a.k, pid2, c2.d, c.n, occ, null, end2 + half + 3)) continue;
         // on the twin path from here on: same place, same stops
         leg.stops.forEach((z, i) => { z.d = stops2[i]; });
         leg.start = leg.start != null ? m(leg.start) : leg.start; leg.end = end2; leg.pid = pid2;
@@ -142,7 +142,9 @@
           if (bk === a.k) continue;
           const p0 = dir > 0 ? x0 + l0 * k : x1 - l1 * k, p1 = dir > 0 ? x0 + l1 * k : x1 - l0 * k;
           if (p1 < nose - 1) continue;                          // behind the nose: a following train
-          const x = Math.max(p0, nose) - GAP - half;
+          // (shunting up to a standing train, as in the tail positions at Comasina 110 m apart: up to 3 m from it)
+          const gap = leg.status !== 'service' && S.agents[bk] && S.agents[bk].v < 0.05 ? 3 : GAP;
+          const x = Math.max(p0, nose) - gap - half;
           if (x < lim) { lim = x; why = { train: bk }; }
         }
       }
@@ -155,8 +157,8 @@
         if (next != null && next < c.d - half) break;           // it stops before the signal first: it asks when it leaves
         // it asks when it is near (it could still stop before the signal): a route set too early only holds up the others
         if (c.d - nose > Math.max(120, a.v * a.v / (2 * brk) + 80)) { lim = Math.min(lim, stop); break; }
-        const occ = ei => edgeMap.get(ei);
-        if (RT.request(S.rt, a.k, a.pid, c.d, c.n, occ)) {
+        const occ = ei => edgeMap.get(ei), upTo = leg.end != null ? leg.end + half + 3 : null;
+        if (RT.request(S.rt, a.k, a.pid, c.d, c.n, occ, null, upTo)) {
           if (RT.ready(S.rt, a.k, a.pid, c.d)) continue;
           lim = stop; why = { sig: c.n, route: { wait: 'scambio' } }; break;          // switches moving, signal opening
         }
@@ -171,7 +173,7 @@
         const c0 = RT.ahead(a.pid, nose, LOOK)[0];
         if (!c0 || sw[0] < c0.d - 1) {
           const stop = Math.max(a.d, sw[0] - half - 3);
-          if ((a.v > 0 && sw[0] - nose > Math.max(120, a.v * a.v / (2 * brk) + 80)) || !RT.request(S.rt, a.k, a.pid, nose, null, ei => edgeMap.get(ei))) { if (stop < lim) { lim = stop; why = { route: S.rt.lastNo, start: true }; } }
+          if ((a.v > 0 && sw[0] - nose > Math.max(120, a.v * a.v / (2 * brk) + 80)) || !RT.request(S.rt, a.k, a.pid, nose, null, ei => edgeMap.get(ei), null, leg.end != null ? leg.end + half + 3 : null)) { if (stop < lim) { lim = stop; why = { route: S.rt.lastNo, start: true }; } }
         }
       } else if (sw && sw[0] - half - 3 < lim && !RT.readyNode(S.rt, a.k, sw[1])) {
         const stop = Math.max(a.d, sw[0] - half - 3);

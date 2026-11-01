@@ -30,7 +30,8 @@
     const BLADE = (o.times && o.times.blade) || 0, SIGNAL = (o.times && o.times.signal) || 0;
     const CAP = o.capacity || {}, PC_SIG = new Set(o.pcSignals || []);
     const NORMAL = new Set(o.normal || ['servizio normale', 'sempre', 'mattina', 'sera', 'ritardo', 'manovra deposito']);
-    const WHEN = {}; for (const it of o.itineraries || []) WHEN[it.id] = it.when;
+    const WHEN = {}, PRIO = {}, P = { alta: 3, media: 2, bassa: 1 };
+    for (const it of o.itineraries || []) { WHEN[it.id] = it.when; PRIO[it.id] = P[it.prio] || 0; }
 
     // routes[k] = [{ pid, d0, d1, n, pieces: [[edge, l0, l1, pEnd]], nodes: [[node, p]], id, way, ready }]
     // sw[node]: the position of a switch (the two pieces it joins); pc[key]: authorisations given by the PC
@@ -52,7 +53,7 @@
       for (const [ei, dir, x0, x1] of pe.e) {
         if (x1 <= d0 || x0 >= d1) continue;
         const k = (NE[ei].len || 1) / ((x1 - x0) || 1), p = Math.max(d0, x0), q = Math.min(d1, x1);
-        pieces.push([ei, dir > 0 ? (p - x0) * k : (x1 - q) * k, dir > 0 ? (q - x0) * k : (x1 - p) * k, q]);
+        pieces.push([ei, dir > 0 ? (p - x0) * k : (x1 - q) * k, dir > 0 ? (q - x0) * k : (x1 - p) * k, q, dir]);
         if (x1 <= d1) nodes.push([dir > 0 ? NE[ei].b : NE[ei].a, x1]);      // the node at the end of this piece
       }
       return { pieces, nodes };
@@ -89,15 +90,28 @@
     const isSwitch = nd => nodeEdges(nd).length >= 3;
     // a switch of the depot (all its track pieces in the depot): the depot moves are not in the table (depot rules)
     const depotSwitch = nd => nodeEdges(nd).every(ei => NE[ei].cat === 'yard');
+    // the tail positions (Comasina: 3 of 110 m, 1 the outermost, next to the switch): the movements of the table into
+    // and out of a tail differ only by the position, so it is read from the metres on the dead-end piece
+    const SLOT = (o.tailSlots && o.tailSlots.slot_m) || 110, NPOS = (o.tailSlots && o.tailSlots.positions) || 3, HALF = o.half || 52.5;
+    const fromWall = (ei, x) => { const e = NE[ei]; return nodeEdges(e.a).length === 1 ? x : nodeEdges(e.b).length === 1 ? (e.len || 0) - x : null; };
+    const slotOf = c => c == null || c > SLOT * NPOS + 20 ? null : Math.max(1, Math.min(NPOS, NPOS - Math.floor(c / SLOT)));
+    const posOf = txt => { const m = /posizione (\d)/.exec(txt || ''); return m ? +m[1] : null; };
     function identify(n, pieces) {
       const R = []; for (const [ei] of pieces) if (R[R.length - 1] !== ei) R.push(ei);
       let best = null;
-      // (a movement that starts with no signal behind it, out of a tail position: any movement of the table that goes
-      // over the same pieces from there)
+      // out of a tail position (a route from where the train stands: its nose, the centre half a train towards the
+      // wall) and into one (the route ends just past the nose: the centre half a train back)
+      const f = pieces[0], l = pieces[pieces.length - 1];
+      const w0 = f && n == null ? fromWall(f[0], f[4] > 0 ? f[1] : f[2]) : null, w1 = l ? fromWall(l[0], l[4] > 0 ? l[2] : l[1]) : null;
+      const startPos = w0 != null ? slotOf(w0 - HALF) : null, endPos = w1 != null ? slotOf(w1 + HALF + 3) : null;
       for (const it of n != null ? BY_START.get(n) || [] : o.itineraries || []) it.ways.forEach((W, wi) => {
         // (a signal at the very end of a track piece: the table starts on that piece, the route on the next one)
         const o0 = n == null ? W.indexOf(R[0]) : W[0] === R[0] ? 0 : W[1] === R[0] ? 1 : -1; if (o0 < 0) return;
         const m = Math.min(W.length - o0, R.length); for (let i = 0; i < m; i++) if (W[i + o0] !== R[i]) return;
+        // in a tail: the movement of the right position
+        const pf = posOf(it.frm), pt = posOf(it.to);
+        if (pf != null && startPos != null && pf !== startPos) return;
+        if (pt != null && endPos != null && pt !== endPos) return;
         // the longest match; the same length: the usual way first
         const score = m * 10 - wi;
         if (!best || score > best.score) best = { score, id: it.id, way: wi };
@@ -127,15 +141,32 @@
     // the PC authorises a signal ('n:13') or a movement of the table ('id:SD-10') for the next train
     function authorize(st, key) { st.pc[key] = (st.pc[key] || 0) + 1; return true; }
     // train k asks for the route that starts at the signal at d on its path: true if it is set (now or before)
-    function request(st, k, pid, d, n, occ, blocked) {
+    // (upTo: the train stops before the next signal, at the end of its move: the route ends there, a tail position)
+    function request(st, k, pid, d, n, occ, blocked, upTo) {
       if (held(st, k, pid, d)) return true;
-      const d1 = nextSignal(pid, d), { pieces, nodes } = span(pid, d, d1);
+      const d1 = Math.min(nextSignal(pid, d), upTo != null && upTo > d + 1 ? upTo : Infinity), { pieces, nodes } = span(pid, d, d1);
       const it = BY_START.size ? identify(n, pieces) : null;
       // the PC's signals and the movements that are not for the normal service: only with the PC's authorisation
       const needPc = (n != null && PC_SIG.has(n) ? 'n:' + n : null) || (it && WHEN[it.id] && !NORMAL.has(WHEN[it.id]) ? 'id:' + it.id : null);
       if (needPc && !(st.pc[needPc] > 0)) { st.lastNo = { pc: needPc }; return false; }
-      const why = free(st, k, pieces, nodes, occ) || full(st, k, pieces, occ) || (blocked ? blocked(pieces) : null);
-      if (why) { st.lastNo = why; return false; }
+      // precedence (Giovanni's priorities, Itinerari: alta / media / bassa): a train waiting for a movement of higher
+      // priority that needs the same pieces or switches goes first; this one waits for it
+      const prio = it ? PRIO[it.id] || 0 : 0;
+      st.wants = st.wants || {};
+      const nodeSet = new Set(nodes.map(x => x[0]));
+      let why = null;
+      for (const [k2, w] of Object.entries(st.wants)) {
+        if (+k2 === k || w.prio <= prio || (st.t || 0) - w.t > 2) continue;
+        if (w.nodes.some(nd => nodeSet.has(nd)) || w.pieces.some(([e, m0, m1]) => pieces.some(([e2, l0, l1]) => e2 === e && overlap(l0, l1, m0, m1)))) { why = { yield: +k2, id: w.id }; break; }
+      }
+      why = why || free(st, k, pieces, nodes, occ) || full(st, k, pieces, occ) || (blocked ? blocked(pieces) : null);
+      if (why) {
+        st.lastNo = why;
+        if (it && why.yield == null) st.wants[k] = { pieces: pieces.map(x => x.slice(0, 3)), nodes: nodes.map(x => x[0]), prio, t: st.t || 0, id: it.id };
+        else if (why.yield != null) st.yields = (st.yields || 0) + 1;
+        return false;
+      }
+      delete st.wants[k];
       if (needPc) st.pc[needPc]--;
       // the switches: the ones that must change position take the time of the blade, then the signal opens
       let moved = false;
