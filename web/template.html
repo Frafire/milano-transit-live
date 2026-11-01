@@ -176,8 +176,19 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .board { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; background: #050607; border-radius: 6px; padding: 10px 12px; font-family: var(--display); }
 .screens { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
 .scrbox .scrlab { color: var(--muted, #9aa); font: 600 12px var(--display); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
-.scr { display: block; width: 100%; max-width: 396px; border-radius: 4px; box-shadow: 0 0 0 3px #262626, 0 0 0 4px #3c3c3c; }
-.stclock { display: block; height: 40px; margin: 10px auto 4px; border-radius: 3px; box-shadow: 0 0 0 2px #2b2b2b; }
+.scr { display: block; width: 100%; max-width: 420px; border-radius: 5px; box-shadow: 0 2px 6px rgba(0,0,0,.45); }
+.stclock { display: block; height: 40px; margin: 12px auto 4px; border-radius: 3px; box-shadow: 0 0 0 2px #2b2b2b; }
+/* the station name as on the M3 walls: a yellow band with a lighter trim, white lit letters, light panels each side */
+.stsign { display: flex; align-items: stretch; gap: 5px; padding: 5px; margin: -2px 0 6px; background: linear-gradient(#c9a336, #b38f27);
+  border-top: 3px solid #e0c25a; border-bottom: 3px solid #8a6c1a; border-radius: 2px; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+.stsign .lb { flex: 0 0 22px; border-radius: 1px; background-color: #f7f5ec;
+  background-image: linear-gradient(rgba(120,110,80,.13) 1px, transparent 1px), linear-gradient(90deg, rgba(120,110,80,.13) 1px, transparent 1px);
+  background-size: 4px 4px; box-shadow: 0 0 7px 1px rgba(255,252,235,.75), inset 0 0 0 1px rgba(0,0,0,.08); }
+.stsign .lb + .lb { margin-left: -2px; }
+.stsign.long .lb { flex-basis: 13px; } .stsign.long b { letter-spacing: 0; }
+.stsign b { flex: 1; min-width: 0; text-align: center; color: #fff; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 600;
+  line-height: 1.2; letter-spacing: .02em; padding: 6px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 0 1px #fff, 0 0 6px rgba(255,255,255,.8), 0 0 14px rgba(255,250,225,.45); }
 .board .dname { color: var(--signal); font: 600 17px var(--display); letter-spacing: .02em; }
 .board ul { list-style: none; margin: 4px 0 0; padding: 0; }
 .board li { display: flex; justify-content: space-between; font: 500 16px var(--display); color: #f2f2f2; padding: 2px 0; font-variant-numeric: tabular-nums; }
@@ -225,7 +236,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .tile.spd b { font: 700 28px/1 var(--display); color: #f2f2f2; font-variant-numeric: tabular-nums; min-width: 2.2ch; text-align: right; }
 .tile.spd span { color: var(--muted); font-size: 13px; }
 .tile.door { align-items: center; font: 700 15px/1.2 var(--display); letter-spacing: .06em; color: #9aa3ab; }
+.cab + .tiles .tile { font-size: 13px; align-items: center; text-align: center; }
 .tile.delay { grid-column: 1 / -1; font: 700 15px/1.2 var(--display); letter-spacing: .04em; color: #cfd6dc; }
+.cab + .tiles .tile.delay { grid-column: auto; }
+.cab + .tiles { grid-template-columns: 1fr 1fr; }
+.cab { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 10px; }
+.cab .tfront { width: 140px; height: auto; image-rendering: pixelated; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.cab .tacho { width: 120px; height: 120px; flex: 0 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.cab .tacho #tachoNeedle { transition: transform .25s linear; }
 .tile.delay.late { background: #e5383b; border-color: #e5383b; color: #fff; }
 .tile.delay.early { background: #1f7a3a; border-color: #1f7a3a; color: #fff; }
 .tile.door.open { background: #ffb020; border-color: #ffb020; color: #1a1200; }
@@ -1219,11 +1237,105 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     return false;
   }
+  // ---- the train card: the front of the train (pixel drawing, by type) and the speedometer (tachigrafo) ----
+  // 3x5 letters for the destination sign
+  const F35 = { A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', F: '111100110100100',
+    G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101', L: '100100100100111',
+    M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', Q: '010101101111011', R: '110101110101101',
+    S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101',
+    Y: '101101010010010', Z: '111001010100111', ' ': '000000000000000', '.': '000000000000010', '-': '000000111000000',
+    0: '111101101101111', 1: '010110010010111', 2: '110001010100111', 3: '110001010001110', 4: '101101111001001', 5: '111100110001110',
+    6: '011100111101111', 7: '111001010010010', 8: '111101111101111', 9: '111101111001110' };
+  // the letters that need more room (and a narrower space)
+  const F35W = { '.': ['0', '0', '0', '0', '1'], M: ['10001', '11011', '10101', '10001', '10001'], N: ['1001', '1101', '1011', '1001', '1001'], W: ['10001', '10001', '10101', '11011', '10001'], ' ': ['00', '00', '00', '00', '00'] };
+  // the three kinds of M3 train: Tradizionale 1° lotto (blue sign, lights in the yellow band), 2° lotto (orange sign,
+  // lights in a black band under a thin yellow one), Meneghino (silver with yellow edges, red sign, light boxes)
+  const FRONT = { W: 56, H: 62, cache: new Map() };
+  function trainFront(kind, dest, lights) {
+    const key = kind + '|' + dest + '|' + lights; if (FRONT.cache.has(key)) return FRONT.cache.get(key);
+    const S = 5, W = FRONT.W, H = FRONT.H, c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
+    const x = c.getContext('2d'), R = (cx, cy, w, h, col) => { x.fillStyle = col; x.fillRect(cx * S, cy * S, w * S, h * S); };
+    const men = kind === 'meneghino', lot2 = kind === 'lotto2';
+    const body = men ? '#c9cdd1' : '#eeede8', shade = men ? '#9ea3a9' : '#c6c5bf', yel = '#f2c21b', dark = '#14171b', pane = '#2a2f35';
+    // body, rounded at the top corners
+    R(2, 0, W - 4, 1, body); R(1, 1, W - 2, 2, body); R(0, 3, W, H - 3, body);
+    R(0, 3, 1, H - 3, shade); R(W - 1, 3, 1, H - 3, shade);
+    if (men) { R(0, 2, 2, H - 14, yel); R(W - 2, 2, 2, H - 14, yel); }                       // the yellow edges of the Meneghino
+    // destination sign: black box, the letters lit (blue / orange / red)
+    const sg = men ? { x: 4, y: 3, w: W - 8, h: 9 } : { x: 7, y: 3, w: W - 14, h: 9 }, lit = men ? '#ff4a32' : lot2 ? '#ffa31f' : '#58b4ff';
+    R(sg.x - 1, sg.y - 1, sg.w + 2, sg.h + 2, '#2a2d31'); R(sg.x, sg.y, sg.w, sg.h, '#050607');
+    const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .-]/g, ''), gl = ch => F35W[ch] || (F35[ch] || F35[' ']).match(/.{3}/g);
+    const wOf = t => [...t].reduce((n, ch) => n + gl(ch)[0].length + 1, -1);
+    // too long for the sign: the short forms used on the trains (P.TA ROMANA)
+    let txt2 = txt; if (wOf(txt2) > sg.w - 2) txt2 = txt2.replace(/\bPORTA\b/, 'P.TA').replace(/\bCENTRALE\b/, 'C.LE').replace(/\bCENTRO\b/, 'C.RO');
+    const tw = wOf(txt2);
+    let tx = sg.x + Math.max(1, Math.floor((sg.w - tw) / 2));
+    x.shadowColor = lit; x.shadowBlur = S * 1.5;
+    for (const ch of txt2) { const g = gl(ch); for (let r = 0; r < 5; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1' && tx + i < sg.x + sg.w) R(tx + i, sg.y + 2 + r, 1, 1, lit); tx += g[0].length + 1; }
+    x.shadowBlur = 0;
+    // windscreen: two panes (the Meneghino: the door in the middle between two panes)
+    const wy = 14, wh = men ? 22 : 20;
+    R(2, wy, W - 4, wh, pane);
+    if (men) { R(3, wy + 1, 17, wh - 2, dark); R(22, wy + 1, 12, wh - 1, dark); R(W - 20, wy + 1, 17, wh - 2, dark); }
+    else { R(3, wy + 1, 24, wh - 2, dark); R(29, wy + 1, 24, wh - 2, dark); }
+    R(5, wy + 2, 7, 1, 'rgba(255,255,255,.16)'); R(W - 16, wy + 2, 7, 1, 'rgba(255,255,255,.16)'); R(6, wy + 3, 3, 1, 'rgba(255,255,255,.1)');
+    // the lights: white moving, red standing still in the depot
+    const lamp = lights === 'red' ? '#ff2b2b' : '#fffbe6', glow = lights === 'red' ? '#ff2b2b' : '#fff3b0';
+    const lampAt = (lx, ly, w, h) => { x.shadowColor = glow; x.shadowBlur = S * 2.5; R(lx, ly, w, h, lamp); x.shadowBlur = 0; };
+    const by = wy + wh + 1;
+    if (men) {
+      R(3, by + 2, 11, 7, '#eceef0'); R(W - 14, by + 2, 11, 7, '#eceef0'); R(4, by + 3, 9, 5, '#33383e'); R(W - 13, by + 3, 9, 5, '#33383e');
+      lampAt(5, by + 4, 3, 3); lampAt(W - 8, by + 4, 3, 3); R(9, by + 4, 3, 3, '#5a6067'); R(W - 12, by + 4, 3, 3, '#5a6067');
+      R(W / 2 - 2, by + 2, 4, 5, '#f4f4f4'); R(W / 2 - 1, by + 2, 2, 5, '#d0141f'); R(W / 2 - 2, by + 4, 4, 1, '#d0141f');   // the city arms
+      R(1, H - 13, W - 2, 11, '#1b1e22'); for (let r = H - 11; r < H - 3; r += 2) R(4, r, W - 8, 1, '#2c3036');           // the black bumper
+      R(W / 2 - 5, H - 9, 10, 6, '#3b4046'); R(W / 2 - 2, H - 7, 4, 2, '#15181b');
+    } else if (lot2) {
+      R(1, by, W - 2, 3, yel); R(1, by + 3, W - 2, 9, '#141414');
+      lampAt(5, by + 6, 6, 3); lampAt(W - 11, by + 6, 6, 3);
+      for (let r = by + 13; r < H - 2; r += 2) R(2, r, W - 4, 1, '#d2d1cb');
+      R(W / 2 - 5, H - 8, 10, 6, '#3b4046'); R(W / 2 - 2, H - 6, 4, 2, '#15181b');
+    } else {
+      R(1, by, W - 2, 9, yel);
+      lampAt(4, by + 3, 7, 3); lampAt(W - 11, by + 3, 7, 3);
+      R(1, by + 9, W - 2, 3, '#26292d');
+      for (let r = by + 13; r < H - 2; r += 2) R(2, r, W - 4, 1, '#cfcdc6');
+      R(W / 2 - 5, H - 8, 10, 6, '#3b4046'); R(W / 2 - 2, H - 6, 4, 2, '#15181b');
+    }
+    const url = c.toDataURL(); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url;
+  }
+  const frontKind = rt => !rt || !rt.type ? null : /meneghino/i.test(rt.type) ? 'meneghino' : /2°/.test(rt.type) ? 'lotto2' : 'lotto1';
+  // what the sign shows and which lights: the run's destination; red lights standing in the depot or a tail
+  function frontOf(F, tr, st) {
+    const rt = realTrain(F, tr, state.t), kind = frontKind(rt); if (!kind) return null;
+    let dest = '';
+    if (st.trip >= 0) dest = trips[st.trip].h;
+    else if (st.agent && st.agent.status === 'service' && st.agent.to != null) dest = F.engine.G.names[st.agent.to];
+    dest = String(dest).toUpperCase().replace(/\s+M\d$/, '').trim();
+    const parked = st.status === 'parked' || (st.agent && (st.agent.hidden || st.agent.mode === 'static'));
+    return { kind, dest, lights: parked ? 'red' : 'white' };
+  }
+  // the speedometer of the M3 cab: black, yellow figures 0-90 km/h over three quarters of a turn, yellow needle
+  function tachoSVG() {
+    const cx = 60, cy = 60, r0 = 50, ang = v => (-225 + v / 90 * 270) * Math.PI / 180, pt = (v, r) => [cx + r * Math.cos(ang(v)), cy + r * Math.sin(ang(v))];
+    let ticks = '', nums = '';
+    for (let v = 0; v <= 90; v += 5) { const big = v % 10 === 0, [x1, y1] = pt(v, r0), [x2, y2] = pt(v, r0 - (big ? 6 : 3.5));
+      ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#f2cf1d" stroke-width="${big ? 1.8 : 1.1}"/>`;
+      if (big) { const [nx, ny] = pt(v, r0 - 14); nums += `<text x="${nx.toFixed(1)}" y="${(ny + 3.3).toFixed(1)}">${v}</text>`; } }
+    return `<svg class="tacho" viewBox="0 0 120 120" role="img" aria-label="Tachigrafo"><rect x="1" y="1" width="118" height="118" rx="9" fill="#1b1b1b" stroke="#3a3a3a" stroke-width="1.5"/>
+      <rect x="5" y="5" width="110" height="110" rx="6" fill="#0c0c0c"/><circle cx="60" cy="60" r="55" fill="#050505" stroke="#202020" stroke-width="1.5"/>
+      ${ticks}<g font-family="Helvetica Neue, Arial, sans-serif" font-size="9.5" font-weight="600" fill="#f2cf1d" text-anchor="middle">${nums}</g>
+      <text x="60" y="96" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="700" fill="#f2cf1d">km/h</text>
+      <path d="M55 69 h10 l-5 5 l5 5 h-10 l5 -5 z" fill="none" stroke="#9a9a9a" stroke-width="1"/>
+      <g id="tachoNeedle" transform="rotate(-135 60 60)"><path d="M58.6 64 L60 16 L61.4 64 Z" fill="#d7ec2c"/></g><circle cx="60" cy="60" r="5.5" fill="#111" stroke="#2c2c2c"/></svg>`;
+  }
   function updateTiles() {
-    const sp = document.getElementById('spdTile'); if (!sp || typeof state.sel !== 'string' || state.sel[0] !== 'f') return;
+    const sp = document.getElementById('spdTile'), nd = document.getElementById('tachoNeedle'); if ((!sp && !nd) || typeof state.sel !== 'string' || state.sel[0] !== 'f') return;
     const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F && F.trains[i]; if (!tr) return;
-    const st = trainState(F, tr, state.t), kmh = Math.round(Math.abs(st.v || 0) * 3.6), open = doorsOpen(F, tr, state.t);
-    if (sp.textContent !== String(kmh)) sp.textContent = kmh;
+    const st = trainState(F, tr, state.t), v = Math.abs(st.v || 0) * 3.6, kmh = Math.round(v), open = doorsOpen(F, tr, state.t);
+    if (sp && sp.textContent !== String(kmh)) sp.textContent = kmh;
+    if (nd) { const a = (-135 + Math.min(92, v) / 90 * 270).toFixed(1); if (nd.dataset.a !== a) { nd.dataset.a = a; nd.setAttribute('transform', `rotate(${a} 60 60)`); } }
+    const fr = document.getElementById('trainFront');
+    if (fr) { const f = frontOf(F, tr, st); if (f) { const k = f.kind + f.dest + f.lights; if (fr.dataset.k !== k) { fr.dataset.k = k; fr.src = trainFront(f.kind, f.dest, f.lights); fr.alt = 'Frontale del treno' + (f.dest ? ', veletta ' + f.dest : ''); } } }
     const dt = document.getElementById('doorTile'), txt = open ? 'PORTE APERTE' : 'PORTE CHIUSE';
     if (dt.textContent !== txt) { dt.textContent = txt; dt.classList.toggle('open', open); }
     const dl = document.getElementById('delayTile'); if (!dl) return;
@@ -1231,6 +1343,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const dtx = d == null ? 'FUORI SERVIZIO' : d >= 60 ? 'RITARDO +' + mm(d) : d <= -60 ? 'ANTICIPO −' + mm(d) : 'IN ORARIO';
     if (dl.textContent !== dtx) { dl.textContent = dtx; dl.classList.toggle('late', d != null && d >= 120); dl.classList.toggle('early', d != null && d <= -180); }
   }
+
   // lateness of a train for its card: the trains of the one engine know it from their last departure
   function trainDelay(F, tr, t) {
     if (F.ag && state.engine && tr.agentK != null) { const s = F.ag.state(tr.agentK); if (!s || s.hidden || s.status === 'parked') return null;
@@ -1253,7 +1366,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>'
       : `<p class="sub" style="margin-top:8px">${[rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note].filter(Boolean).join(' · ')}</p>`) : '';
     const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
-    const tiles = (F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div><div class="tile delay" id="delayTile">IN ORARIO</div></div>`)
+    // rail: the front of the train (M3, by type) and the cab speedometer; then doors and lateness
+    const fr = F.bus ? null : frontOf(F, tr, st);
+    const tiles = (F.bus ? '' : `<div class="cab">${fr ? `<img class="tfront" id="trainFront" alt="Frontale del treno" src="${trainFront(fr.kind, fr.dest, fr.lights)}" data-k="${fr.kind + fr.dest + fr.lights}">` : ''}${tachoSVG()}</div>
+      <div class="tiles"><div class="tile door" id="doorTile">PORTE CHIUSE</div><div class="tile delay" id="delayTile">IN ORARIO</div></div>`)
       + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
     body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
@@ -1316,7 +1432,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const s = Math.floor(((t % 86400) + 86400) % 86400), p2 = n => String(n).padStart(2, '0');
     const hm = p2(Math.floor(s / 3600)) + ':' + p2(Math.floor(s / 60) % 60), ss = p2(s % 60), txt = hm + ' ' + ss;
     if (clkCache.k !== txt) {
-      // hours and minutes big, the seconds smaller and on the same bottom line (like the real clock)
+      // hours and minutes big, the seconds smaller, level with the top of the big digits (like the real clock)
       const P = 4, Q = 2.8, gw = g => g[0].length;
       const big = [...hm].map(ch => CLK_FONT[ch]), small = [...ss].map(ch => CLK_FONT[ch]);
       const wBig = big.reduce((n, g) => n + (gw(g) + 1) * P, -P), wSmall = small.reduce((n, g) => n + (gw(g) + 1) * Q, -Q);
@@ -1326,7 +1442,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       let X = 2 * P; const bottom = 9 * P;
       big.forEach(g => { for (let r = 0; r < 7; r++) for (let i = 0; i < gw(g); i++) dot(X + (i + 0.5) * P, bottom - (7 - r - 0.5) * P, P * 0.44, g[r][i] === '1'); X += (gw(g) + 1) * P; });
       X += 1.2 * P;
-      small.forEach(g => { for (let r = 0; r < 7; r++) for (let i = 0; i < gw(g); i++) dot(X + (i + 0.5) * Q, bottom - (7 - r - 0.5) * Q, Q * 0.44, g[r][i] === '1'); X += (gw(g) + 1) * Q; });
+      const top = bottom - 7 * P;
+      small.forEach(g => { for (let r = 0; r < 7; r++) for (let i = 0; i < gw(g); i++) dot(X + (i + 0.5) * Q, top + (r + 0.5) * Q, Q * 0.44, g[r][i] === '1'); X += (gw(g) + 1) * Q; });
       clkCache = { k: txt, url: c.toDataURL() };
     }
     return `<img class="stclock" alt="Ora ${txt}" title="Orologio di stazione" src="${clkCache.url}">`;
@@ -1353,7 +1470,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 'a':['00000','00000','01110','00001','01111','10001','01111'],'e':['00000','00000','01110','10001','11111','10000','01110'],
 'i':['00100','00000','01100','00100','00100','00100','01110'],'m':['00000','00000','11010','10101','10101','10001','10001'],
 'n':['00000','00000','10110','11001','10001','10001','10001'],'o':['00000','00000','01110','10001','10001','10001','01110'],
-'p':['00000','00000','11110','10001','11110','10000','10000'],'r':['00000','00000','10110','11001','10000','10000','10000'],
+'p':['00000','11110','10001','10001','11110','10000','10000'],'r':['00000','00000','10110','11001','10000','10000','10000'],
 's':['00000','00000','01110','10000','01110','00001','11110'],'t':['01000','01000','11100','01000','01000','01001','00110'],
 '0':['01110','10001','10011','10101','11001','10001','01110'],'1':['00100','01100','00100','00100','00100','00100','01110'],
 '2':['01110','10001','00001','00010','00100','01000','11111'],'3':['11111','00010','00100','00010','00001','10001','01110'],
@@ -1362,42 +1479,68 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 '8':['01110','10001','10001','01110','10001','10001','01110'],'9':['01110','10001','10001','01111','00001','00010','01100'],
 ':':['0','0','1','0','1','0','0'],'.':['0','0','0','0','0','1','1'],' ':['000','000','000','000','000','000','000'],
 '°':['111','101','111','000','000','000','000'],'½':['10000','10000','10010','00101','00001','00010','00111'],"'":['1','1','0','0','0','0','0']};
-  // the half minute on the big line: a small 1, the bar in the middle, a small 2 (as on the real screens)
-  const HALF14 = ['00100', '01100', '00100', '00100', '01110', '00000', '11111', '00000', '01110', '10001', '00010', '00100', '01000', '11111'];
-  const SCR = { W: 160, H: 24, P: 2.5, cache: new Map() };
-  const txtW = (t, sx) => [...t].reduce((n, ch) => n + ((F57[ch] || F57[' '])[0].length + 1) * sx, -sx);
-  function scrImage(key, lines) {          // lines: [{ text, x, y, color, big, right }]: 5x7 dots, big = twice as tall
+  // the half minute on the big line, as on the real screens: a small 1 up on the left, a small 2 down on the right
+  const HALF_BIG = ['0100000', '1100000', '0100000', '0100000', '0100000', '0100000', '1110000',
+    '0000110', '0001001', '0000001', '0000010', '0000100', '0001000', '0001111'];
+  // three sizes of the same 5x7 letters: small (the top line, the notices), big (the destination and the minutes:
+  // twice as tall and one dot wider) and mid (the "2°" at the start: half as tall again)
+  const MID_ROWS = [0, 1, 1, 2, 3, 3, 4, 5, 5, 6];
+  const GLYPHS = new Map();
+  function glyph(ch, size) {
+    const key = size + ch; if (GLYPHS.has(key)) return GLYPHS.get(key);
+    const g = F57[ch] || F57[' '];
+    let out = g;
+    if (size === 'big') out = ch === '½' ? HALF_BIG : g.flatMap(r => { const w = r.length === 5 ? r.slice(0, 3) + r[2] + r.slice(3) : r; return [w, w]; });
+    else if (size === 'mid') out = MID_ROWS.map(k => g[k]);
+    GLYPHS.set(key, out); return out;
+  }
+  // the screen: 136 x 28 dots; on its left, outside it, the clock on black (no dots there)
+  const SCR = { W: 136, H: 28, TW: 31, FR: 4, P: 3, cache: new Map() };
+  const txtW = (t, size) => [...t].reduce((n, ch) => n + glyph(ch, size || 'small')[0].length + 1, -1);
+  function scrImage(key, lines, clock) {          // lines: [{ text, x, y, color, size, right }]
     if (SCR.cache.has(key)) return SCR.cache.get(key);
     const dots = new Array(SCR.W * SCR.H).fill(null);
-    lines.forEach(L => {
-      const sy = L.big ? 2 : 1; let x0 = L.right ? L.x - txtW(L.text, 1) + 1 : L.x;
-      for (const ch of L.text) { const g = L.big && ch === '½' ? HALF14 : F57[ch] || F57[' '], ry = g.length === 14 ? 1 : sy;
-        for (let r = 0; r < g.length; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1')
-          for (let k = 0; k < ry; k++) { const X = x0 + i, Y = L.y + r * ry + k; if (X >= 0 && X < SCR.W && Y >= 0 && Y < SCR.H) dots[Y * SCR.W + X] = L.color; }
+    const put = (L, grid, W, H) => {
+      let x0 = L.right ? L.x - txtW(L.text, L.size) + 1 : L.x;
+      for (const ch of L.text) { const g = glyph(ch, L.size || 'small');
+        for (let r = 0; r < g.length; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') {
+          const X = x0 + i, Y = L.y + r; if (X >= 0 && X < W && Y >= 0 && Y < H) grid[Y * W + X] = L.color; }
         x0 += g[0].length + 1; }
-    });
-    const P = SCR.P, c = document.createElement('canvas'); c.width = SCR.W * P; c.height = SCR.H * P; const x = c.getContext('2d');
-    x.fillStyle = '#0b0b0b'; x.fillRect(0, 0, c.width, c.height);
-    for (let j = 0; j < SCR.H; j++) for (let i = 0; i < SCR.W; i++) {
-      const col = dots[j * SCR.W + i]; x.shadowBlur = col ? P : 0; x.shadowColor = col || '#000';
-      x.fillStyle = col || '#1d1d1d'; x.beginPath(); x.arc((i + 0.5) * P, (j + 0.5) * P, P * 0.43, 0, 7); x.fill();
+    };
+    lines.forEach(L => put(L, dots, SCR.W, SCR.H));
+    const P = SCR.P, FR = SCR.FR, TW = SCR.TW, c = document.createElement('canvas');
+    c.width = (2 * FR + TW + SCR.W) * P; c.height = (2 * FR + SCR.H) * P; const x = c.getContext('2d');
+    // the case: a thick black frame with a lighter edge
+    x.fillStyle = '#2e2e2e'; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = '#0a0a0a'; x.fillRect(P * 0.7, P * 0.7, c.width - P * 1.4, c.height - P * 1.4);
+    // the clock on black, the screen with its dots
+    const sx = (FR + TW) * P, sy = FR * P;
+    x.fillStyle = '#171716'; x.fillRect(sx, sy, SCR.W * P, SCR.H * P);
+    const dot = (cx, cy, col) => { x.shadowBlur = col ? P * 1.2 : 0; x.shadowColor = col || '#000'; x.fillStyle = col || '#262624'; x.beginPath(); x.arc(cx, cy, P * 0.42, 0, 7); x.fill(); };
+    for (let j = 0; j < SCR.H; j++) for (let i = 0; i < SCR.W; i++) dot(sx + (i + 0.5) * P, sy + (j + 0.5) * P, dots[j * SCR.W + i]);
+    if (clock) {
+      const cw = txtW(clock, 'small'), cg = new Array(TW * SCR.H).fill(null);
+      put({ text: clock, x: Math.floor((TW - cw) / 2), y: 14, color: SCR_A, size: 'small' }, cg, TW, SCR.H);
+      for (let j = 0; j < SCR.H; j++) for (let i = 0; i < TW; i++) if (cg[j * TW + i]) dot((FR + i + 0.5) * P, sy + (j + 0.5) * P, cg[j * TW + i]);
     }
     const url = c.toDataURL(); if (SCR.cache.size > 200) SCR.cache.clear(); SCR.cache.set(key, url); return url;
   }
   const SCR_G = '#a6f05e', SCR_A = '#ffb633';
   function scrPage(kind, t, data) {
     const s = Math.floor(((t % 86400) + 86400) % 86400), hm = String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0');
-    const X0 = 33, L = [{ text: hm, x: 1, y: 9, color: SCR_A }];
+    const W = SCR.W, X0 = 12, L = [];
+    // the destination in big letters, in the narrow ones if it does not fit before the minutes
+    const dest = (y, room) => ({ text: data.dest, x: X0, y, color: SCR_A, size: X0 + txtW(data.dest, 'big') <= room ? 'big' : 'small', ...(X0 + txtW(data.dest, 'big') <= room ? {} : { y: y + 4 }) });
     if (kind === 'train') {
-      const m = data.min, num = String(Math.floor(m)) + (m % 1 ? '½' : '');
-      L.push({ text: data.n + '° Treno per', x: X0, y: 1, color: SCR_G }, { text: 'attesa', x: SCR.W - 2, y: 1, color: SCR_G, right: true },
-        { text: data.dest, x: X0, y: 9, color: SCR_A, big: true }, { text: num, x: SCR.W - 2, y: 9, color: SCR_A, big: true, right: true },
-        { text: 'min.', x: SCR.W - 4 - txtW(num, 1), y: 16, color: SCR_G, right: true });
-    } else if (kind === 'here') L.push({ text: 'Treno per', x: X0, y: 1, color: SCR_G }, { text: data.dest, x: X0, y: 9, color: SCR_A, big: true });
-    else if (kind === 'end') L.push({ text: 'TRENI PER', x: X0, y: 1, color: SCR_G }, { text: data.dest, x: X0, y: 9, color: SCR_A, big: true });
-    else L.push(...data.lines.map((tx, i) => ({ text: tx, x: X0, y: 1 + i * 8, color: SCR_G })));
+      const m = data.min, num = String(Math.floor(m)) + (m % 1 ? '½' : ''), xn = W - 2 - txtW(num, 'big') + 1, xm = xn - 2;
+      L.push({ text: data.n + '°', x: 1, y: 2, color: SCR_G, size: 'mid' }, { text: 'Treno per', x: X0, y: 2, color: SCR_G }, { text: 'attesa', x: W - 2, y: 2, color: SCR_G, right: true },
+        dest(12, xm - txtW('min.') - 2), { text: num, x: W - 2, y: 12, color: SCR_A, size: 'big', right: true },
+        { text: 'min.', x: xm, y: 19, color: SCR_G, right: true });
+    } else if (kind === 'here') L.push({ text: 'Treno per', x: X0, y: 2, color: SCR_G }, dest(12, W - 2));
+    else if (kind === 'end') L.push({ text: 'TRENI PER', x: X0, y: 2, color: SCR_G }, dest(12, W - 2));
+    else L.push(...data.lines.map((tx, i) => ({ text: tx, x: 1, y: 1 + i * 9, color: SCR_G })));
     const key = kind + '|' + hm + '|' + JSON.stringify(data);
-    return `<img class="scr" alt="${(data.dest || (data.lines || []).join(' ')).replace(/"/g, '')}" src="${scrImage(key, L)}">`;
+    return `<img class="scr" alt="${(data.dest || (data.lines || []).join(' ')).replace(/"/g, '')}" src="${scrImage(key, L, hm)}">`;
   }
   // one screen: items = [{ t, here }] for the trains of this platform, sorted; info = notices only (Comasina arrivals)
   function platformScreen(t, items, dest, info) {
@@ -1459,9 +1602,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       return `<div class="dir"><div class="dname">${binOf(d)}${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</div><ul>${lines}</ul></div>`;
     }).join('');
-    card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
+    // M3: the name as on the station walls (white lit letters on the yellow band, light panels each side), the
+    // platform screens, and the station clock at the bottom
+    const nm = b.n.toUpperCase().replace(/\s+M\d$/, '').trim();
+    card.innerHTML = F.line === 'M3'
+      ? `<div class="stsign${nm.length > 11 ? ' long' : ''}" role="heading" aria-level="2"><span class="lb"></span><span class="lb"></span><b style="font-size:${nm.length > 13 ? 18 : nm.length > 11 ? 20 : nm.length > 9 ? 23 : 27}px">${nm}</b><span class="lb"></span><span class="lb"></span></div>
+      <div class="screens">${m3Screens(F, b, t)}</div>${platformDiagram(F, b, t)}${stationClock(t)}
+      <div class="row"><button id="closeBtn">Close</button></div>`
+      : `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
       <div><h2>${b.n}</h2><div class="sub">Prossimi treni</div></div></div>
-      ${F.line === 'M3' ? stationClock(t) + '<div class="screens">' + m3Screens(F, b, t) + '</div>' : `<div class="board">${rows}</div>`}${platformDiagram(F, b, t)}
+      <div class="board">${rows}</div>${platformDiagram(F, b, t)}
       <div class="row"><button id="closeBtn">Close</button></div>`;
     card.hidden = false;
     document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
@@ -2520,7 +2670,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
   }
-  window.mtl = { map, state, fleets, renderCard, trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
+  window.mtl = { map, state, fleets, renderCard, scrPage, trainFront, tachoSVG, trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
 </script>
