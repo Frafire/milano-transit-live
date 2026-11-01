@@ -196,6 +196,17 @@
       // movement (taken by the train: it is not a conflict)
       const mine = n != null && st.pcRoutes && st.pcRoutes[n] && it && st.pcRoutes[n].id === it.id ? n : null;
       if (!why && n != null && st.redFix && st.redFix[n]) why = { redFix: n };
+      // failures (web/faults.js, fase D2): a signal that stays red, a section that shows occupied with no train on it,
+      // a switch that does not go into position (or worked by hand: only with the PC's authorisation). The PC lets one
+      // train by in marcia a vista (st.avista[k] = n): it passes this signal, at walking pace up to the next one
+      const perm = n != null && st.avista && st.avista[k] === n;
+      if (!why && n != null && st.sigFail && st.sigFail[n] && !perm) why = { sigFail: n };
+      if (!why && st.ghost && !perm) for (const [ei] of pieces) if (st.ghost[ei]) { why = { ghost: ei, n }; break; }
+      if (!why && st.swFail) for (let i = 0; i < nodes.length; i++) { const nd = nodes[i][0], f = st.swFail[nd]; if (f == null) continue;
+        if (f === true || i + 1 >= pieces.length) { why = { swFail: nd }; break; }
+        const pos = Math.min(pieces[i][0], pieces[i + 1][0]) + '-' + Math.max(pieces[i][0], pieces[i + 1][0]);
+        if (pos !== f) { why = { swFail: nd, pos: f }; break; }
+        if (!perm) { why = { swHand: nd }; break; } }
       if (!why && st.swLock) for (let i = 0; i + 1 < pieces.length && i < nodes.length; i++) { const nd = nodes[i][0], lk = st.swLock[nd];
         if (lk != null && isSwitch(nd) && lk !== Math.min(pieces[i][0], pieces[i + 1][0]) + '-' + Math.max(pieces[i][0], pieces[i + 1][0])) { why = { swLock: nd }; break; } }
       why = why || free(st, k, pieces, nodes, occ, mine) || full(st, k, pieces, occ) || (blocked ? blocked(pieces) : null);
@@ -212,12 +223,13 @@
       // the switches: the ones that must change position take the time of the blade, then the signal opens
       let moved = false;
       for (let i = 0; i + 1 < pieces.length && i < nodes.length; i++) {
-        const nd = nodes[i][0]; if (!isSwitch(nd)) continue;
+        const nd = nodes[i][0]; if (!isSwitch(nd) || (st.swFail && st.swFail[nd] != null)) continue;      // (worked by hand: it stays)
         const pos = Math.min(pieces[i][0], pieces[i + 1][0]) + '-' + Math.max(pieces[i][0], pieces[i + 1][0]);
         if (st.sw[nd] != null && st.sw[nd] !== pos) moved = true;
         st.sw[nd] = pos;
       }
       const r = { pid, d0: d, d1, n, pieces, nodes, ready: (st.t || 0) + (moved ? BLADE : 0) + SIGNAL };
+      if (perm) { r.vista = true; delete st.avista[k]; }
       if (it) { r.id = it.id; r.way = it.way; st.uses = st.uses || {}; st.uses[it.id] = (st.uses[it.id] || 0) + 1; }
       else if (BY_START.size && nodes.some(([nd]) => isSwitch(nd) && !depotSwitch(nd))) { st.noId = (st.noId || 0) + 1; st.noIdAt = st.noIdAt || {}; const key = n + '@' + pid; st.noIdAt[key] = (st.noIdAt[key] || 0) + 1; }
       (st.routes[k] = st.routes[k] || []).push(r);
@@ -245,7 +257,7 @@
     // the signals showing via libera now: numbers of the routes set (not yet passed by the front of the train)
     function green(st, fronts) {
       const out = new Set();
-      for (const [k, rs] of Object.entries(st.routes)) for (const r of rs) { const f = fronts[k]; if (r.n != null && !(st.redFix && st.redFix[r.n]) && (r.ready == null || r.ready <= (st.t || 0)) && (!f || f.pid !== r.pid || f.nose < r.d0 + 1)) out.add(r.n); }
+      for (const [k, rs] of Object.entries(st.routes)) for (const r of rs) { const f = fronts[k]; if (r.n != null && !(st.redFix && st.redFix[r.n]) && !(st.sigFail && st.sigFail[r.n]) && !r.vista && (r.ready == null || r.ready <= (st.t || 0)) && (!f || f.pid !== r.pid || f.nose < r.d0 + 1)) out.add(r.n); }
       return out;
     }
     // is the stretch behind a signal free (for the signals that are normally green: a, b, c, d on the legal side)?
@@ -296,13 +308,15 @@
       const why = free(st, -1, pieces, nodes, occ, it.start);
       if (why) return why;
       for (let i = 0; i + 1 < W.length; i++) { const nd = nodeOf(W[i], W[i + 1]); if (nd == null || !isSwitch(nd)) continue;
-        const pos = Math.min(W[i], W[i + 1]) + '-' + Math.max(W[i], W[i + 1]); if (st.swLock && st.swLock[nd] != null && st.swLock[nd] !== pos) return { swLock: nd }; }
+        const pos = Math.min(W[i], W[i + 1]) + '-' + Math.max(W[i], W[i + 1]); if (st.swLock && st.swLock[nd] != null && st.swLock[nd] !== pos) return { swLock: nd };
+        if (st.swFail && st.swFail[nd] != null && st.swFail[nd] !== pos) return { swFail: nd }; }
       for (let i = 0; i + 1 < W.length; i++) { const nd = nodeOf(W[i], W[i + 1]); if (nd != null && isSwitch(nd)) st.sw[nd] = Math.min(W[i], W[i + 1]) + '-' + Math.max(W[i], W[i + 1]); }
       st.pcRoutes = st.pcRoutes || {}; st.pcRoutes[it.start] = { id, pieces: pieces.map(x => x.slice(0, 3)), nodes: nodes.map(x => x[0]), t: st.t || 0 };
       return null;
     }
     // a switch moved by hand (only free: no route over it, no train on it) and locked or unlocked in a position
     function setSwitch(st, nd, pos, occ) {
+      if (st.swFail && st.swFail[nd] != null) return { swFail: nd };          // failed, or worked by hand by the squad
       if (st.swLock && st.swLock[nd] != null && st.swLock[nd] !== pos) return { swLock: nd };
       const why = free(st, -1, [], [[nd, 0]], occ); if (why) return why;
       st.sw[nd] = pos; return null;

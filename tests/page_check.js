@@ -10,9 +10,10 @@
 // - navetta: closure San Donato – Rogoredo with Rogoredo solo binario 1: the menu offers it, a navetta runs
 // - stazione: radio alla stazione, Corvetto closed to the public: trains go through, the screens say so
 // - segnale: the PC holds #A13 at red from its card: no route from it
+// - linea: admin menu Guasti, a signal in front of a running train stays red: the driver asks, the PC gives the marcia a vista
 // - guasto: admin menu Guasti, a train in service does not start again: the call among the PC alarms, the PC answers Riarma
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
-// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto ...]   (no argument: all of them). Exit code 1 if one fails.
+// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html');
@@ -223,6 +224,29 @@ const SCENARIOS = {
       st.sel = 'f' + M.fleets.indexOf(F) + ':' + a.k; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(300);
       const log = document.getElementById('radioLog').innerText, over = !FX.list().some(f => f.k === a.k && f.kind === 'trazione');
       return { ok: /non riparte/.test(call) && /riarma il treno/.test(log) && over, call: call.slice(0, 120), over, log: log.split('\n').filter(l => /riarm|non riparte|soccorso/i.test(l)).slice(-5) };
+    });
+  },
+  async linea(p) {     // failures of the line (fase D2): a signal stays red; the call; Marcia a vista from the alarms
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      st.playing = false; st.t = 8 * 3600; await sleep(2500); st.playing = true; st.speed = 30; await sleep(3000); st.playing = false; await sleep(200);
+      const FX = F.ag.FX, ok = new Set(FX.targets('segnale').map(x => x.v)), half = F.engine.half;
+      const a = F.ag.agents().find(x => !x.hidden && x.status === 'service' && x.v > 8 && x.at > 3 && x.at < 15); if (!a) return { ok: false, why: 'no train running' };
+      const sig = F.ag.RT.ahead(a.pid, a.d + half + 30, 3000).find(c => ok.has(c.n)); if (!sig) return { ok: false, why: 'no signal ahead' };
+      const kSel = document.getElementById('fxKind'); kSel.value = 'segnale'; kSel.onchange(); await sleep(200);
+      const tSel = document.getElementById('fxTrain'); tSel.value = String(sig.n); document.getElementById('fxGo').click(); await sleep(300);
+      st.playing = true; st.speed = 10; let btn = null; const t0 = Date.now();
+      while (Date.now() - t0 < 30000 && !(btn = document.querySelector('#pcAlarms [data-fxa="vista"]'))) await sleep(200);
+      st.playing = false; await sleep(200);
+      if (!btn) return { ok: false, why: 'no call for the marcia a vista', alarms: document.getElementById('pcAlarms').innerText.slice(0, 300) };
+      const call = btn.closest('li').innerText; btn.click(); await sleep(300);
+      st.playing = true; st.speed = 5; let vmax = 0, went = false; const t1 = Date.now();
+      while (Date.now() - t1 < 15000) { await sleep(100); F.ag.agents().forEach(x => { if (x.avista) { went = true; vmax = Math.max(vmax, x.v * 3.6); } }); }
+      st.playing = false; await sleep(200);
+      st.sel = 'f' + M.fleets.indexOf(F) + ':' + a.k; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(300);
+      const log = document.getElementById('radioLog').innerText;
+      return { ok: /non si apre/.test(call) && went && vmax <= 5.5 && /marcia a vista/.test(log), sig: sig.n, call: call.slice(0, 120), went, vmax: +vmax.toFixed(1), log: log.split('\n').filter(l => /vista|guasto/i.test(l)).slice(-4) };
     });
   },
 };

@@ -13,6 +13,13 @@
 // passenger alarm, the agent checks at the next station; sometimes a passenger taken ill, 21), porte_persone (19),
 // malore_treno (21), riarmo (23: the train keeps asking to be re-armed; the line maintenance of San Donato sends a
 // technician who gets on at San Donato). The rescue itself (D4) is still simple: the train waits, then goes on.
+//
+// D2: the failures of the line (no train: a signal, a switch, a stretch). segnale (8: it stays red), sezione (9: the
+// section after a signal shows occupied with no train on it), scambio (7: it does not go into position; the PC sends
+// the team, who work it by hand and clamp it in the position the PC says; then every train over it needs the PC's
+// authorisation), tensione (10: no power between two stations; the trains there stand; when it is repaired the PC
+// gives the power back). A train stopped by one of them calls the PC, who lets it by in marcia a vista (vista: 5 km/h
+// up to the next signal; web/routes.js). The PC can also let a train standing at a signal by from its card.
 (function (root) {
   // the kinds, with the words of the Excel (the row of foglio Guasti is matched by these at build time)
   const KINDS = {
@@ -24,9 +31,16 @@
     porte_persone: { label: 'Persone bloccano le porte' },
     malore_treno: { label: 'Persona si sente male sul treno' },
     riarmo: { label: 'Il treno chiede continuamente il riarmo' },
+    segnale: { label: 'Segnale guasto (resta rosso)', on: 'signal' },
+    sezione: { label: 'Sezione occupata falsa', on: 'signal' },
+    scambio: { label: 'Scambio guasto (non va in posizione)', on: 'switch' },
+    tensione: { label: 'Mancanza di tensione su una tratta', on: 'stretch' },
+    vista: { label: 'Richiesta di marcia a vista', on: 'none' },
   };
+  const tag = n => '#A' + String(n).padStart(2, '0');
   const AUTO = 180, DAYS = 19 * 3600;                 // the PC answers by itself after 3 minutes; ~19 hours of service a day
-  const ANSWERS = { rearm: 'Riarma', agent: "Manda l'agente", tech: 'Tecnico a bordo', rescue: 'Manda il soccorso', ack: 'Ricevuto' };
+  const ANSWERS = { rearm: 'Riarma', agent: "Manda l'agente", tech: 'Tecnico a bordo', rescue: 'Manda il soccorso', ack: 'Ricevuto', vista: 'Marcia a vista',
+                    team: 'Manda la squadra', power: 'Ridai tensione' };
 
   function create(c) {
     // c: { S, G, DT, emBrake(a) m/s2, loadAt(t), catalog: [{ id, perDay }] }
@@ -46,6 +60,7 @@
     // a new failure on train k (or the first train in service when k is null: tests)
     function add(kind, k, extra) {
       if (!KINDS[kind]) return null;
+      if (KINDS[kind].on && KINDS[kind].on !== 'none') return addLine(kind, extra && extra.target, extra);
       const a = S.agents[k]; if (!a || a.hidden || a.mode === 'static') return null;
       if (of(a).some(f => f.kind === kind)) return null;
       const f = Object.assign({ id: ++F().seq, kind, k, t0: S.t, ph: 'armed', tries: 0, st: null }, extra || {});
@@ -58,6 +73,69 @@
       else if (f.kind === 'trazione') f.ph = 'stopping';              // it stops where it is (at a station: when leaving)
       else if (f.kind === 'malore_treno' && a.stopAt != null) atStation(f, a);
     }
+    // ---------- the line ----------
+    const L = c.line || {}, RT = () => S.rt;
+    const lineOf = () => live().filter(f => f.k == null);
+    function targets(kind) {
+      const on = KINDS[kind] && KINDS[kind].on;
+      if (on === 'signal') return (L.sigs ? L.sigs() : []).map(n => ({ v: n, label: 'Semaforo ' + tag(n) }));
+      if (on === 'switch') return (L.switches ? L.switches() : []).map(nd => ({ v: nd, label: 'Scambio ' + nd }));
+      if (on === 'stretch') { const out = []; for (let i = 0; i < (L.last ? L.last() : 0); i++) out.push({ v: i, label: name(i) + ' – ' + name(i + 1) }); return out; }
+      return [];
+    }
+    function addLine(kind, target, extra) {
+      const T = targets(kind); if (!T.length) return null;
+      if (target == null) target = T[Math.floor(rnd() * T.length)].v;
+      if (!T.some(x => x.v === target) || lineOf().some(f => f.kind === kind && f.target === target)) return null;
+      if (kind === 'tensione' && lineOf().some(f => f.kind === 'tensione')) return null;          // one stretch at a time
+      const f = Object.assign({ id: ++F().seq, kind, k: null, target, t0: S.t, ph: 'on' }, extra || {}); f.target = target;
+      const st = RT();
+      if (kind === 'segnale') { st.sigFail = st.sigFail || {}; st.sigFail[target] = true; f.what = 'Semaforo ' + tag(target); f.until = S.t + between(1800, 5400);
+        say(f, 'sys', `Semaforo ${tag(target)} guasto: resta rosso.`); }
+      else if (kind === 'sezione') { st.ghost = st.ghost || {}; f.edges = L.sigEdges(target); f.edges.forEach(ei => { st.ghost[ei] = f.id; }); f.what = 'Sezione dopo il ' + tag(target); f.until = S.t + between(1200, 3600);
+        say(f, 'sys', `La sezione dopo il ${tag(target)} risulta occupata, ma non c'è nessun treno.`); }
+      else if (kind === 'scambio') { st.swFail = st.swFail || {}; st.swFail[target] = true; f.what = 'Scambio ' + target; f.ph = 'failed';
+        f.callWho = 'sys'; call(f, `Scambio ${target} guasto: non va in posizione, gli itinerari che lo usano non si formano.`, ['team']); }
+      else if (kind === 'tensione') { L.power(target, target + 1); f.what = name(target) + ' – ' + name(target + 1); f.until = S.t + between(300, 3600); f.ph = 'off';
+        f.callWho = 'en'; call(f, `PC, qui Energia: mancanza di tensione tra ${f.what}. I treni nella tratta sono fermi.`, ['ack']); }
+      F().list.push(f); return f.id;
+    }
+    // the position of switch nd a waiting train needs (the squad puts it there), else the first one
+    function posFor(nd) {
+      for (const w of Object.values(RT().wants || {})) { const i = w.nodes.indexOf(nd); if (i >= 0 && i + 1 < w.pieces.length) return Math.min(w.pieces[i][0], w.pieces[i + 1][0]) + '-' + Math.max(w.pieces[i][0], w.pieces[i + 1][0]); }
+      return null;
+    }
+    function tickLine(f) {
+      const st = RT();
+      if (f.kind === 'segnale' && S.t >= f.until) { delete st.sigFail[f.target]; end(f, `Semaforo ${tag(f.target)} riparato.`, 'man'); }
+      else if (f.kind === 'sezione' && S.t >= f.until) { for (const ei of f.edges) if (st.ghost[ei] === f.id) delete st.ghost[ei]; end(f, `Sezione dopo il ${tag(f.target)} riparata: torna libera.`, 'man'); }
+      else if (f.kind === 'scambio') {
+        if (f.ph === 'team' && S.t >= f.until) {
+          const P = L.positions(f.target), want = posFor(f.target), order = P.slice().sort((x, y) => (y.pos === want) - (x.pos === want));
+          f.ph = 'pos'; f.pos = order.map(p => p.pos); f.callWho = 'man';
+          f.labels = Object.fromEntries(order.map((p, i) => ['p' + i, 'Posizione ' + p.ids.slice(0, 2).join(', ')]));
+          call(f, `PC, qui la squadra: siamo allo scambio ${f.target}. In che posizione lo mettiamo?`, order.map((p, i) => 'p' + i));
+        }
+        if (f.ph === 'hand' && S.t >= f.until) { delete st.swFail[f.target]; end(f, `Scambio ${f.target} riparato: torna comandato dall'apparato.`, 'man'); }
+      }
+      else if (f.kind === 'tensione' && f.ph === 'off' && S.t >= f.until) { f.ph = 'ready'; call(f, `PC, qui Energia: guasto riparato tra ${f.what}, puoi ridare tensione.`, ['power']); }
+    }
+    // trains stopped at a red by a failure of the line: they call the PC and ask to go by in marcia a vista
+    function lineCalls() {
+      if (!lineOf().some(f => f.kind !== 'tensione')) return;
+      for (const a of S.agents) {
+        if (a.hidden || a.v > 0 || !a.red || S.t - a.red.since < 20) continue;
+        const w = a.red.now || a.red.why, r = w && w.route;
+        if (!w || w.sig == null || !r || !(r.sigFail != null || r.ghost != null || r.swHand != null)) continue;
+        if (live().some(f => f.kind === 'vista' && f.k === a.k)) continue;
+        const f = { id: ++F().seq, kind: 'vista', k: a.k, t0: S.t, ph: 'call', n: w.sig, st: null };
+        F().list.push(f);
+        call(f, r.sigFail != null ? `PC, treno {T}: sono fermo al ${tag(w.sig)}, il semaforo non si apre. Chiedo di superarlo in marcia a vista.`
+          : r.ghost != null ? `PC, treno {T}: sono fermo al ${tag(w.sig)}, la sezione dopo risulta occupata ma davanti non vedo treni. Chiedo la marcia a vista.`
+          : `PC, treno {T}: sono fermo al ${tag(w.sig)}, lo scambio ${r.swHand} è manovrato a mano. Chiedo l'autorizzazione a passare.`, ['vista']);
+      }
+    }
+    function giveVista(k, n) { const st = RT(); st.avista = st.avista || {}; st.avista[k] = n; }
     // the train has stopped at a station (or was there already)
     function atStation(f, a) {
       f.st = a.stopAt;
@@ -71,7 +149,7 @@
     // the PC answers (or the admin): null when done, else why not
     function answer(id, what) {
       const f = live().find(x => x.id === id); if (!f) return { gone: true };
-      if (what === 'fix') { end(f, 'Guasto risolto (admin).', 'sys'); return null; }
+      if (what === 'fix') { unLine(f); end(f, 'Guasto risolto (admin).', 'sys'); return null; }
       if (what === 'tech') {
         if (f.kind !== 'riarmo' || f.tech) return { no: true };
         f.tech = 'wait'; say(f, 'pc', 'Manutenzione di linea San Donato, mandate un tecnico sul treno {T}: chiede continuamente il riarmo.');
@@ -81,21 +159,40 @@
       }
       if (!f.call || !f.call.opts.includes(what)) return { no: true };
       f.call = null;
+      if (what === 'vista') { giveVista(f.k, f.n); say(f, 'pc', `Treno {T}, autorizzato a superare il ${tag(f.n)} in marcia a vista fino al semaforo successivo.`); say(f, 'dr', `Ricevuto PC, supero il ${tag(f.n)} in marcia a vista.`); f.ph = 'go'; return null; }
+      if (what === 'team') { say(f, 'pc', `Squadra di manutenzione, andate allo scambio ${f.target}: non va in posizione.`); say(f, 'man', 'Ricevuto PC, arriviamo.'); f.ph = 'team'; f.until = S.t + between(600, 1800); return null; }
+      if (/^p\d$/.test(what) && f.kind === 'scambio') {
+        const pos = f.pos[+what.slice(1)], st = RT(); st.swFail[f.target] = pos; st.sw[f.target] = pos;
+        say(f, 'pc', `Mettetelo in ${f.labels[what].toLowerCase()} e bloccatelo.`); say(f, 'man', `Scambio ${f.target} manovrato a mano e bloccato. I treni passano solo con la tua autorizzazione.`);
+        f.ph = 'hand'; f.until = S.t + between(1800, 5400); return null;
+      }
+      if (what === 'power') { L.power(null); end(f, `PC: ridata tensione tra ${f.what}. I treni ripartono.`, 'pc'); return null; }
       if (what === 'rearm') { say(f, 'pc', 'Treno {T}, riarma il treno.'); say(f, 'dr', 'Ricevuto PC, riarmo.'); f.ph = 'rearm'; f.until = S.t + between(90, 150); }
       else if (what === 'agent') {
         if (f.kind === 'allarme') { say(f, 'pc', `${name(f.st)}, mandate l'agente sul treno {T}: allarme passeggero.`); say(f, 'ag', `Ricevuto PC, salgo sul treno {T}.`); f.ph = 'verify'; f.until = S.t + between(60, 300); }
         else if (f.kind === 'porte_persone') { say(f, 'pc', `${name(f.st)}, mandate l'agente in banchina al treno {T}: non chiude le porte.`); say(f, 'ag', 'Ricevuto PC, libero le porte.'); f.agent = S.t; }
       } else if (what === 'rescue') { say(f, 'pc', 'Treno {T}, ti mando il soccorso.'); say(f, 'dr', 'Ricevuto PC, attendo il soccorso.'); f.ph = 'rescue'; f.until = S.t + between(1500, 2700); }
       else if (what === 'ack') {
-        say(f, 'pc', f.kind === 'ato' ? 'Ricevuto treno {T}, prosegui in manuale.' : f.kind === 'malore_treno' ? `Ricevuto ${name(f.st)}, il treno {T} resta fermo: tenetemi informato.` : 'Ricevuto.');
+        say(f, 'pc', f.kind === 'ato' ? 'Ricevuto treno {T}, prosegui in manuale.' : f.kind === 'malore_treno' ? `Ricevuto ${name(f.st)}, il treno {T} resta fermo: tenetemi informato.`
+          : f.kind === 'tensione' ? `Ricevuto Energia. Fermo i treni prima della tratta ${f.what}.` : 'Ricevuto.');
       }
       return null;
     }
 
+    function unLine(f) {
+      const st = RT();
+      if (f.kind === 'segnale' && st.sigFail) delete st.sigFail[f.target];
+      if (f.kind === 'sezione' && st.ghost) for (const ei of f.edges || []) if (st.ghost[ei] === f.id) delete st.ghost[ei];
+      if (f.kind === 'scambio' && st.swFail) delete st.swFail[f.target];
+      if (f.kind === 'tensione') L.power(null);
+    }
     // every step: the phases that end by time, the trains that reach a station, the calls nobody answered
     function tick() {
       const fs = F();
+      lineCalls();
       for (const f of live()) {
+        if (f.call && S.t - f.call.t >= AUTO && f.k == null) { say(f, 'sys', '(nessuna risposta: risponde il PC automatico)'); answer(f.id, f.call.opts[0]); }
+        if (f.k == null) { tickLine(f); continue; }
         const a = S.agents[f.k];
         if (!a || a.hidden || a.status === 'parked') { end(f); continue; }          // out of service: the failure goes with it
         if (f.call && S.t - f.call.t >= AUTO) {
@@ -103,6 +200,11 @@
           say(f, 'sys', '(nessuna risposta: risponde il PC automatico)');
           if (f.call.opts.includes('tech')) answer(f.id, 'tech');
           if (f.call) answer(f.id, f.call.opts[0]);
+        }
+        if (f.kind === 'vista') {             // gone by (or the failure is over and the signal opened): done
+          const w = a.red && (a.red.now || a.red.why);
+          if (f.ph === 'go' ? a.v > 0.5 : !(a.v === 0 && w && w.sig === f.n)) end(f);
+          continue;
         }
         if ((f.kind === 'porta' || f.kind === 'porte_persone' || f.kind === 'allarme' || f.kind === 'malore_treno') && f.ph === 'armed' && a.stopAt != null && a.v === 0) atStation(f, a);
         if (f.ph === 'dwell' && a.stopAt == null) {           // the train left the station: the doors are done
@@ -154,7 +256,9 @@
         if (!KINDS[id] || !(perDay > 0)) continue;
         const w = id === 'porte_persone' ? (c.loadAt ? c.loadAt(S.t) / 0.6 : 1) : 1;      // more in the peak hours
         const r = rnd();
-        if (!cand.length || r >= perDay * 60 / DAYS * w) continue;
+        if (r >= perDay * 60 / DAYS * w) continue;
+        if (KINDS[id].on) { add(id, null, { random: true }); continue; }
+        if (!cand.length) continue;
         const a = cand.splice(Math.floor(rnd() * cand.length), 1)[0];
         add(id, a.k, { random: true });
       }
@@ -185,13 +289,21 @@
     const manual = a => of(a).some(f => f.kind === 'ato');
     function event(e) {
       if (e.what === 'random') { F().on = !!e.on; return true; }
+      if (e.what === 'new' && KINDS[e.fault] && KINDS[e.fault].on) return add(e.fault, null, { target: e.target });
+      if (e.what === 'avista') {            // the PC, from the card of signal n: the train standing at it goes by in marcia a vista
+        const a = S.agents.find(x => !x.hidden && x.v === 0 && x.red && ((x.red.now || x.red.why) || {}).sig === e.n); if (!a) return { noTrain: true };
+        giveVista(a.k, e.n); for (const f of live()) if (f.kind === 'vista' && f.k === a.k) end(f);
+        const f = { id: ++F().seq, kind: 'vista', k: a.k, t0: S.t, ph: 'go', n: e.n }; F().list.push(f);
+        say(f, 'pc', `Treno {T}, autorizzato a superare il ${tag(e.n)} in marcia a vista fino al semaforo successivo.`); say(f, 'dr', `Ricevuto PC, supero il ${tag(e.n)} in marcia a vista.`);
+        return a.k;
+      }
       if (e.what === 'new') { if (e.k == null) { const a = S.agents.find(x => !x.hidden && x.status === 'service' && x.mode !== 'static'); if (!a) return null; e.k = a.k; } return add(e.fault, e.k); }
       if (e.what === 'answer') return answer(e.id, e.answer);
       return null;
     }
     // for the page: the failures in force, the calls waiting for the PC, the radio of the failures
-    function list() { return live().map(f => Object.assign({ label: KINDS[f.kind].label }, f, { call: f.call && Object.assign({}, f.call, { answers: f.call.opts.map(x => [x, ANSWERS[x]]) }) })); }
-    return { hold, extraDwell, manual, tick, event, list, feed: () => F().feed, random: () => F().on, kinds: () => Object.entries(KINDS).map(([id, k]) => ({ id, label: k.label, perDay: ((c.catalog || []).find(x => x.id === id) || {}).perDay })) };
+    function list() { return live().map(f => Object.assign({ label: KINDS[f.kind].label }, f, { call: f.call && Object.assign({}, f.call, { answers: f.call.opts.map(x => [x, (f.labels && f.labels[x]) || ANSWERS[x]]) }) })); }
+    return { targets, hold, extraDwell, manual, tick, event, list, feed: () => F().feed, random: () => F().on, kinds: () => Object.entries(KINDS).filter(([, k]) => k.on !== 'none').map(([id, k]) => ({ id, label: k.label, on: k.on || 'train', perDay: ((c.catalog || []).find(x => x.id === id) || {}).perDay })) };
   }
 
   const api = { create, KINDS };

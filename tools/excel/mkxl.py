@@ -211,8 +211,8 @@ PC=[
  ('Radio alla stazione','Assistenza a un treno','L\'agente va sul treno fermo in stazione (malore, guasto, porte bloccate, evacuazione)','Guasti, emergenze','Agente sul treno, treno trattenuto','no'),
  ('Radio alla stazione','Chiudere o riaprire gli accessi della stazione','Ingressi chiusi: i treni passano senza fermare o fermano solo per scendere','Sovraffollamento, emergenza, chiusura tratta','Stazione chiusa al pubblico','no'),
  ('Radio alla stazione','Chiamate dalla stazione al PC','L\'agente avvisa il PC: persona sui binari, investimento, incendio, sovraffollamento, guasto in stazione','Sempre','Allarme sul pannello con la stazione e il motivo','no'),
- ('Radio manutenzione','Radio Manutenzione di linea (San Donato)','Il PC chiama la centrale di manutenzione di San Donato','Guasti a treni, scambi, segnali','Registro della radio di manutenzione','no'),
- ('Radio manutenzione','Tecnico a bordo di un treno','Il PC indica il treno: il tecnico sale sempre a San Donato, va con il treno sul tronchetto e verifica tutto durante il cambio banco; poi scende a San Donato o a Rogoredo (e torna con il treno dopo)','Treno che funziona ma chiede di essere riarmato','Tecnico in attesa a San Donato, a bordo, esito','no'),
+ ('Radio manutenzione','Radio Manutenzione di linea (San Donato)','Il PC chiama la centrale di manutenzione di San Donato','Guasti a treni, scambi, segnali','Registro della radio di manutenzione','sì'),
+ ('Radio manutenzione','Tecnico a bordo di un treno','Il PC indica il treno: il tecnico sale sempre a San Donato, va con il treno sul tronchetto e verifica tutto durante il cambio banco; poi scende a San Donato o a Rogoredo (e torna con il treno dopo)','Treno che funziona ma chiede di essere riarmato','Tecnico in attesa a San Donato, a bordo, esito','sì'),
 ]
 r=2
 for i,(g,cmd,what,when,sees,now) in enumerate(PC,1):

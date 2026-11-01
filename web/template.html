@@ -1779,16 +1779,19 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const posTxt = p => 'come ' + p.ids.join(', ');
     const tno = k => { const tr = F.trains[k]; const rt = tr && realTrain(F, tr, state.t); return rt && rt.n ? rt.n : k + 1; };
     let h = `<div class="hd"><span class="badge" style="background:${red ? '#d60012' : green ? '#1f9d55' : '#333'};color:#fff">${tag}</span>
-      <div><h2>Semaforo ${tag}</h2><div class="sub">${red ? 'Rosso fisso (PC)' : green ? 'Via libera' : 'Rosso'}${RT_.isPcSignal(n) ? ' · comandato dal PC' : ''}${setBy.length ? ' · itinerario ' + setBy.map(x => (x.id || '') + ' treno ' + tno(x.k)).join(', ') : ''}</div></div></div>
+      <div><h2>Semaforo ${tag}</h2><div class="sub">${st.sigFail && st.sigFail[n] ? 'Guasto: resta rosso' : red ? 'Rosso fisso (PC)' : green ? 'Via libera' : 'Rosso'}${RT_.isPcSignal(n) ? ' · comandato dal PC' : ''}${setBy.length ? ' · itinerario ' + setBy.map(x => (x.id || '') + ' treno ' + tno(x.k)).join(', ') : ''}</div></div></div>
       <div class="pcbtns">`;
     if (RT_.isPcSignal(n)) h += `<button data-pc="clear">Via libera al prossimo treno</button>`;
+    const atSig = F.ag.agents().find(a => !a.hidden && a.v === 0 && a.red && ((a.red.now || a.red.why) || {}).sig === n);
+    if (atSig) h += `<button data-pc="vista" title="Il treno supera il semaforo rosso a 5 km/h fino al semaforo successivo">Marcia a vista al treno ${tno(atSig.k)}</button>`;
     h += red ? `<button data-pc="unred">Togli il rosso fisso</button>` : `<button data-pc="red">Rosso fisso</button>`;
     if (setBy.length || pcR) h += `<button data-pc="cancel">Annulla l'itinerario${pcR ? ' preparato (' + pcR.id + ')' : ''}</button>`;
     h += `</div>`;
     if (its.length) h += `<div class="lbl pclbl">Itinerari da questo semaforo</div><ul class="pclist">` + its.map(x => `<li><span><b>${x.id}</b> ${cap(x.to || '')}<small>${x.when || ''}</small></span>${pcR && pcR.id === x.id ? '<em>preparato</em>' : `<button data-form="${x.id}">Forma</button>`}</li>`).join('') + `</ul>`;
     if (sws.length) h += `<div class="lbl pclbl">Scambi</div><ul class="pclist">` + sws.map(nd => {
       const ps = RT_.switchPositions(nd), cur = st.sw[nd], lk = st.swLock && st.swLock[nd];
-      return `<li><span><b>Scambio ${nd}</b><small>${cur ? posTxt(ps.find(p => p.pos === cur) || { ids: [cur] }) : 'nessun comando ancora'}${lk ? ' · bloccato' : ''}</small></span><span class="pcsw">` +
+      const fl = st.swFail && st.swFail[nd];
+      return `<li><span><b>Scambio ${nd}</b><small>${fl === true ? 'GUASTO: non va in posizione' : fl ? 'manovrato a mano: ' + posTxt(ps.find(p => p.pos === fl) || { ids: [fl] }) : cur ? posTxt(ps.find(p => p.pos === cur) || { ids: [cur] }) : 'nessun comando ancora'}${lk ? ' · bloccato' : ''}</small></span><span class="pcsw">` +
         ps.map(p => `<button data-sw="${nd}" data-pos="${p.pos}" ${p.pos === cur ? 'aria-pressed="true"' : ''} title="${posTxt(p)}">${p.ids[0]}</button>`).join('') +
         (lk ? `<button data-unlock="${nd}">Sblocca</button>` : cur ? `<button data-lock="${nd}" data-pos="${cur}">Blocca</button>` : '') + `</span></li>`; }).join('') + `</ul>`;
     const nm = pcNoteMsg && pcNoteMsg.sel === state.sel && Date.now() < pcNoteMsg.until ? pcNoteMsg.text : '';
@@ -1796,11 +1799,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     card.innerHTML = h; card.hidden = false;
     document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
     const note = t => { pcNoteMsg = { sel: state.sel, text: t, until: Date.now() + 8000 }; const e = document.getElementById('pcNote'); if (e) e.textContent = t; };
-    const WHY = w => !w ? '' : w.train != null ? 'c\'è il treno ' + tno(w.train) + ' sopra' : w.route != null ? 'impegnato dall\'itinerario del treno ' + tno(w.route) : w.pcRoute != null ? 'impegnato dall\'itinerario preparato ' + (w.id || '') : w.swLock != null ? 'scambio ' + w.swLock + ' bloccato nell\'altra posizione' : w.nothing ? 'nessun itinerario da annullare' : 'non possibile';
+    const WHY = w => !w ? '' : w.train != null ? 'c\'è il treno ' + tno(w.train) + ' sopra' : w.route != null ? 'impegnato dall\'itinerario del treno ' + tno(w.route) : w.pcRoute != null ? 'impegnato dall\'itinerario preparato ' + (w.id || '') : w.swLock != null ? 'scambio ' + w.swLock + ' bloccato nell\'altra posizione' : w.swFail != null ? 'scambio ' + w.swFail + ' guasto' : w.nothing ? 'nessun itinerario da annullare' : 'non possibile';
     const run = (e, ok) => { const r = F.ag.event(Object.assign({ kind: 'pccmd' }, e)); if (r) { note('Non si può: ' + WHY(r) + '.'); return; } say('', 'PC: ' + ok, 'pc'); if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals(); renderCard(); };
     card.querySelectorAll('[data-pc]').forEach(b => b.onclick = () => {
       const w = b.dataset.pc;
       if (w === 'clear') { F.ag.event({ kind: 'pc', key: 'n:' + n }); say('', `PC: ${tag} via libera al prossimo treno.`, 'pc'); renderCard(); return; }
+      if (w === 'vista') { const r = F.ag.event({ kind: 'fault', what: 'avista', n }); if (r && r.noTrain) note('Nessun treno fermo a questo semaforo.'); fxFeed(F); renderCard(); return; }
       if (w === 'red') run({ what: 'red', n, on: true }, `${tag} rosso fisso.`);
       if (w === 'unred') run({ what: 'red', n, on: false }, `${tag} restituito all'apparato.`);
       if (w === 'cancel') run({ what: 'cancel', n }, `itinerario da ${tag} annullato.`);
@@ -2832,7 +2836,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   // prepared, stations closed or with a message on the screens), the closure in force
   // ---------- failures (web/faults.js, fase D) on the page: what the train has, the answers of the PC, the radio ----------
   const FX_PH = { rearm: 'riarmo in corso', help: 'serve il soccorso', rescue: 'soccorso in arrivo', verify: "l'agente verifica", held: 'fermo in banchina', manual: 'guida manuale',
-                  dwell: 'in banchina', armed: 'alla prossima stazione', stopping: 'si ferma', call: 'chiama il PC', run: 'in servizio' };
+                  dwell: 'in banchina', armed: 'alla prossima stazione', stopping: 'si ferma', call: 'chiama il PC', run: 'in servizio',
+                  on: 'in attesa della riparazione', failed: 'da manovrare a mano', team: 'squadra in arrivo', pos: 'squadra allo scambio', hand: 'manovrato a mano, treni con autorizzazione',
+                  off: 'senza tensione', ready: 'riparato: ridare tensione', go: 'marcia a vista' };
   const fxPhase = f => (f.tech === 'wait' ? 'tecnico in attesa a San Donato' : f.tech === 'board' ? 'tecnico a bordo' : FX_PH[f.ph] || f.ph);
   function fxAnswer(F, id, what) {
     if (!F || !F.ag) return;
@@ -2852,11 +2858,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const fxSaid = new Set();
   function fxFeed(F) {
     if (!F || !F.ag || !F.ag.FX) return;
-    const G = F.engine.G, no = k => { const r = realTrain(F, F.trains[k], state.t); return r && r.n ? r.n : k + 1; };
+    const G = F.engine.G, no = k => { if (k == null || !F.trains[k]) return ''; const r = realTrain(F, F.trains[k], state.t); return r && r.n ? r.n : k + 1; };
     for (const m of F.ag.FX.feed()) {
       const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
       const txt = m.text.replace(/\{T\}/g, no(m.k));
-      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'pc' ? 'PC' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione SD' : '';
+      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'pc' ? 'PC' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : '';
       MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
     }
   }
@@ -2866,22 +2872,27 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const FX = F.ag.FX;
     if (!kSel.options.length) kSel.innerHTML = FX.kinds().map(x => `<option value="${x.id}">${x.label}${x.perDay != null ? ' (' + String(x.perDay).replace('.', ',') + ' al giorno)' : ''}</option>`).join('');
     if (document.activeElement !== rnd) rnd.checked = FX.random();
-    if (document.activeElement !== tSel) {
+    const kd = FX.kinds().find(x => x.id === kSel.value), on = kd ? kd.on : 'train';
+    if (on !== 'train') { const h = '<option value="">a caso</option>' + FX.targets(kSel.value).map(x => `<option value="${x.v}">${x.label}</option>`).join('');
+      if (tSel.dataset.h !== h && document.activeElement !== tSel) { tSel.dataset.h = h; tSel.innerHTML = h; } }
+    else if (document.activeElement !== tSel) {
       const G = F.engine.G, rows = F.ag.agents().filter(a => !a.hidden && a.mode !== 'static' && a.status !== 'parked').map(a => {
         const r = realTrain(F, F.trains[a.k], state.t), no = r && r.n ? r.n : a.k + 1;
         return `<option value="${a.k}">Treno ${no} · ${a.status === 'service' ? 'in servizio' : 'vuoto'}${a.at != null ? ' · ' + cap(G.names[a.at]) : ''}</option>`; });
       const v = tSel.value, h = rows.join(''); if (tSel.dataset.h !== h) { tSel.dataset.h = h; tSel.innerHTML = h; if ([...tSel.options].some(o => o.value === v)) tSel.value = v; }
     }
   }
+  document.getElementById('fxKind').onchange = () => { const t = document.getElementById('fxTrain'); t.dataset.h = ''; fxPanel(m3eng()); };
   document.getElementById('fxRandom').onchange = e => { const F = m3eng(); if (!F || !F.ag) return; F.ag.event({ kind: 'fault', what: 'random', on: e.target.checked }); };
   document.getElementById('fxGo').onclick = () => { const F = m3eng(); if (!F || !F.ag) return;
-    const r = F.ag.event({ kind: 'fault', what: 'new', fault: document.getElementById('fxKind').value, k: +document.getElementById('fxTrain').value });
+    const kind = document.getElementById('fxKind').value, tv = document.getElementById('fxTrain').value, kd = F.ag.FX.kinds().find(x => x.id === kind);
+    const r = F.ag.event(kd && kd.on !== 'train' ? { kind: 'fault', what: 'new', fault: kind, target: tv === '' ? null : +tv } : { kind: 'fault', what: 'new', fault: kind, k: +tv });
     document.getElementById('fxNote').textContent = r ? 'Guasto partito: guarda gli Allarmi PC e la radio.' : 'Non si può su quel treno (fermo, fuori servizio o con lo stesso guasto).';
     fxFeed(F); renderAlarms(); };
   function renderAlarms() {
     const el = document.getElementById('pcAlarms'), F = m3eng(); if (!el) return;
     if (!F || !F.ag) { el.innerHTML = '<li class="note">Motore spento</li>'; return; }
-    const fi = fleets.indexOf(F), G = F.engine.G, rt = F.ag.rt(), S_ = F.ag.S, out = [], tno = k => { const r = realTrain(F, F.trains[k], state.t); return r && r.n ? r.n : k + 1; };
+    const fi = fleets.indexOf(F), G = F.engine.G, rt = F.ag.rt(), S_ = F.ag.S, out = [], tno = k => { if (k == null || !F.trains[k]) return ''; const r = realTrain(F, F.trains[k], state.t); return r && r.n ? r.n : k + 1; };
     const mm = s => Math.floor(s / 60) + ' min';
     F.ag.agents().forEach(a => {
       if (a.hidden) return;
@@ -2894,8 +2905,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // failures: the calls waiting for the PC first, with their answers
     if (F.ag.FX) { fxFeed(F); fxPanel(F);
       const fl = F.ag.FX.list();
-      fl.filter(f => !f.call).forEach(f => out.unshift({ k: f.k, cls: 'fx', t: `⚠ Treno ${tno(f.k)}: ${f.label} · ${fxPhase(f)}`, fx: f }));
-      fl.filter(f => f.call).forEach(f => out.unshift({ k: f.k, cls: 'late fx', t: '📻 ' + f.call.text.replace(/\{T\}/g, tno(f.k)), fx: f })); }
+      fl.filter(f => !f.call && f.kind !== 'vista').forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, g: f.kind === 'segnale' || f.kind === 'sezione' ? f.target : undefined, cls: 'fx', t: f.k != null ? `⚠ Treno ${tno(f.k)}: ${f.label} · ${fxPhase(f)}` : `⚠ ${f.label}: ${f.what} · ${fxPhase(f)}`, fx: f }));
+      fl.filter(f => f.call).forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, cls: 'late fx', t: '📻 ' + f.call.text.replace(/\{T\}/g, tno(f.k)), fx: f })); }
     for (const n of Object.keys(rt.redFix || {})) out.push({ g: n, t: `#A${String(n).padStart(2, '0')} rosso fisso` });
     for (const [n, r] of Object.entries(rt.pcRoutes || {})) out.push({ g: n, t: `Itinerario ${r.id} preparato da #A${String(n).padStart(2, '0')}` });
     for (const nd of Object.keys(rt.swLock || {})) out.push({ t: `Scambio ${nd} bloccato` });

@@ -3931,7 +3931,7 @@
    "Quando si può usare": "Guasti a treni, scambi, segnali",
    "Cosa vede il PC (prima e dopo)": "Registro della radio di manutenzione",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì",
    "Note": null
   },
   {
@@ -3942,7 +3942,7 @@
    "Quando si può usare": "Treno che funziona ma chiede di essere riarmato",
    "Cosa vede il PC (prima e dopo)": "Tecnico in attesa a San Donato, a bordo, esito",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì",
    "Note": null
   }
  ],
@@ -3959,7 +3959,7 @@
    "Tempi (min - max)": "1 - 10 min",
    "Quanto spesso / come si attiva": "casuale / dal menu admin",
    "Volte al giorno (stima)": 0.3,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D1)",
    "Note": "Riarmo: un paio di minuti dopo aver dato comunicazione al PC"
   },
   {
@@ -3974,7 +3974,7 @@
    "Tempi (min - max)": "1 - 3 min",
    "Quanto spesso / come si attiva": "casuale",
    "Volte al giorno (stima)": 3,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D1)",
    "Note": "Di solito non è una cosa che blocca le porte: sono persone che vogliono entrare all'ultimo e non fanno ripartire il treno (vedi riga 19)"
   },
   {
@@ -3989,7 +3989,7 @@
    "Tempi (min - max)": "1 - 5 min",
    "Quanto spesso / come si attiva": "casuale",
    "Volte al giorno (stima)": 0.5,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D1)",
    "Note": "Riarmo: un paio di minuti dopo aver dato comunicazione al PC"
   },
   {
@@ -4019,7 +4019,7 @@
    "Tempi (min - max)": "-",
    "Quanto spesso / come si attiva": "casuale",
    "Volte al giorno (stima)": 0.2,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D1)",
    "Note": null
   },
   {
@@ -4034,7 +4034,7 @@
    "Tempi (min - max)": "1 - 5 min",
    "Quanto spesso / come si attiva": "casuale",
    "Volte al giorno (stima)": 1,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D1)",
    "Note": null
   },
   {
@@ -4049,7 +4049,7 @@
    "Tempi (min - max)": "10 - 30 min",
    "Quanto spesso / come si attiva": "dal menu admin",
    "Volte al giorno (stima)": 0.1,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D2)",
    "Note": null
   },
   {
@@ -4064,7 +4064,7 @@
    "Tempi (min - max)": "-",
    "Quanto spesso / come si attiva": "dal menu admin",
    "Volte al giorno (stima)": 0.2,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D2)",
    "Note": null
   },
   {
@@ -4079,7 +4079,7 @@
    "Tempi (min - max)": "-",
    "Quanto spesso / come si attiva": "casuale",
    "Volte al giorno (stima)": 0.3,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D2)",
    "Note": null
   },
   {
@@ -4094,7 +4094,7 @@
    "Tempi (min - max)": "5 - 60 min",
    "Quanto spesso / come si attiva": "dal menu admin",
    "Volte al giorno (stima)": 0.03,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D2)",
    "Note": null
   },
   {
@@ -4229,7 +4229,7 @@
    "Tempi (min - max)": "30 secondi - 2 minuti",
    "Quanto spesso / come si attiva": "casuale, soprattutto nelle ore di punta",
    "Volte al giorno (stima)": 20,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D1)",
    "Note": null
   },
   {
@@ -4259,7 +4259,7 @@
    "Tempi (min - max)": "20 minuti a 1 ora",
    "Quanto spesso / come si attiva": "casuale (radio di stazione)",
    "Volte al giorno (stima)": 0.5,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D1)",
    "Note": null
   },
   {
@@ -4289,7 +4289,7 @@
    "Tempi (min - max)": "finché il treno arriva a San Donato (con i riarmi); verifica durante il cambio banco, 5 - 15 min",
    "Quanto spesso / come si attiva": "casuale",
    "Volte al giorno (stima)": 0.3,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D1)",
    "Note": "Pulsante Tecnico a bordo (Radio manutenzione) sul pannello del PC"
   },
   {

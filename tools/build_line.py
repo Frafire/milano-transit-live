@@ -1907,7 +1907,8 @@ NET['rev_paths'] = REV_PATHS if DEGRADED else {}
 # failures (foglio Guasti, fase D): which rows the program simulates, and how many times a day each happens (Volte al giorno)
 import re as _re
 _FK = [('trazione', r'non riparte'), ('porta', r'porta non si chiude'), ('freno', r'frenatura di emergenza'), ('ato', r'guasto ato'),
-       ('allarme', r'allarme passeggero'), ('porte_persone', r'bloccano la chiusura'), ('malore_treno', r'male sul treno'), ('riarmo', r'continuamente di essere riarmato')]
+       ('allarme', r'allarme passeggero'), ('porte_persone', r'bloccano la chiusura'), ('malore_treno', r'male sul treno'), ('riarmo', r'continuamente di essere riarmato'),
+       ('scambio', r'scambio guasto'), ('segnale', r'segnale guasto'), ('sezione', r'sezione occupata'), ('tensione', r'mancanza di tensione')]
 NET['faults'] = []
 for _g in _RG.get('guasti', []):
     _nm = (_g.get('Guasto') or '').lower()

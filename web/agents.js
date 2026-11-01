@@ -82,7 +82,15 @@
     // text on its platform screens
     const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null };
     // failures (web/faults.js, foglio Guasti): emergency brake of each kind of train
-    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5) }) : null;
+    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
+      line: {
+        // the signals and switches of the main tracks (where the line failures happen), the route behind a signal
+        sigs: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => (o.sigall && o.sigall[pid] || []).map(x => x[1])))].filter(n => !RT.isPcSignal(n)).sort((x, y) => x - y),
+        switches: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => RT.switchesOn(pid, -Infinity, Infinity).map(x => x[1])))].sort((x, y) => x - y),
+        sigEdges: n => { for (const [pid, l] of Object.entries(o.sigall || {})) { const x = l.find(y => y[1] === n); if (x) return RT.span(+pid, x[0], RT.nextSignal(+pid, x[0])).pieces.map(p => p[0]); } return []; },
+        positions: nd => RT.switchPositions(nd), power: (a, b) => setPower(a, b), last: () => last,
+      } }) : null;
+    const VISTA = (ops.marcia_a_vista_kmh || 5) / 3.6;          // marcia a vista: 5 km/h (Giovanni)
     const last = G ? G.names.length - 1 : 0;
     const stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
     const opp = d => d === 'N' ? 'S' : 'N';
@@ -126,7 +134,7 @@
         const d2 = m(a.d), end2 = m(leg.end), stops2 = leg.stops.map(z => m(z.d));
         if (d2 == null || end2 == null || stops2.some(x => x == null)) continue;
         const c2 = RT.ahead(pid2, d2 + half, LOOK).find(x => x.n === c.n); if (!c2) continue;
-        if (!RT.request(S.rt, a.k, pid2, c2.d, c.n, occ, closedBlock(a), end2 + half + 3)) continue;
+        if (!RT.request(S.rt, a.k, pid2, c2.d, c.n, occ, blockOf(a), end2 + half + 3)) continue;
         // on the twin path from here on: same place, same stops
         leg.stops.forEach((z, i) => { z.d = stops2[i]; });
         leg.start = leg.start != null ? m(leg.start) : leg.start; leg.end = end2; leg.pid = pid2;
@@ -230,18 +238,19 @@
         // facing another train)
         const had = RT.held(S.rt, a.k, a.pid, c.d);
         const c2 = !had && (S.cl || S.reopened != null) ? RT.ahead(a.pid, c.d + 1, 700).find(x => x.d > c.d + 5) : null;
-        if (c2 && next != null && c2.d < next + half && !RT.held(S.rt, a.k, a.pid, c2.d) && !RT.request(S.rt, a.k, a.pid, c2.d, c2.n, occ, closedBlock(a), upTo, true)) {
+        if (c2 && next != null && c2.d < next + half && !RT.held(S.rt, a.k, a.pid, c2.d) && !RT.request(S.rt, a.k, a.pid, c2.d, c2.n, occ, blockOf(a), upTo, true)) {
           lim = stop; why = { sig: c2.n, route: Object.assign({ next: true }, S.rt.dryNo || {}) };
           // (asked for real too: it is not set, but the train is now waiting for it, and the precedence counts it)
-          if (RT.request(S.rt, a.k, a.pid, c2.d, c2.n, occ, closedBlock(a), upTo)) RT.cancel(S.rt, a.k, a.pid, c2.d);
+          if (RT.request(S.rt, a.k, a.pid, c2.d, c2.n, occ, blockOf(a), upTo)) RT.cancel(S.rt, a.k, a.pid, c2.d);
           break;
         }
-        if (RT.request(S.rt, a.k, a.pid, c.d, c.n, occ, closedBlock(a), upTo)) {
+        if (RT.request(S.rt, a.k, a.pid, c.d, c.n, occ, blockOf(a), upTo)) {
           // the pair (a closure, the signal close behind): the second route is set together with the first, or neither
           // (else another train could take the second meanwhile, and the two would face each other half way)
-          if (c2 && next != null && c2.d < next + half && !RT.held(S.rt, a.k, a.pid, c2.d) && !RT.request(S.rt, a.k, a.pid, c2.d, c2.n, occ, closedBlock(a), upTo)) {
+          if (c2 && next != null && c2.d < next + half && !RT.held(S.rt, a.k, a.pid, c2.d) && !RT.request(S.rt, a.k, a.pid, c2.d, c2.n, occ, blockOf(a), upTo)) {
             RT.cancel(S.rt, a.k, a.pid, c.d); lim = stop; why = { sig: c2.n, route: Object.assign({ next: true }, S.rt.lastNo || {}) }; break;
           }
+          { const rr = (S.rt.routes[a.k] || []).find(r => r.pid === a.pid && Math.abs(r.d0 - c.d) < 1); if (rr && rr.vista) a.avista = { pid: a.pid, d1: rr.d1 }; }
           if (RT.ready(S.rt, a.k, a.pid, c.d)) continue;
           lim = stop; why = { sig: c.n, route: { wait: 'scambio' } }; break;          // switches moving, signal opening
         }
@@ -256,7 +265,7 @@
         const c0 = RT.ahead(a.pid, nose, LOOK)[0];
         if (!c0 || sw[0] < c0.d - 1) {
           const stop = Math.max(a.d, sw[0] - half - 3);
-          if ((a.v > 0 && sw[0] - nose > Math.max(120, a.v * a.v / (2 * (a.brk || brk)) + 80)) || !RT.request(S.rt, a.k, a.pid, nose, null, ei => edgeMap.get(ei), closedBlock(a), leg.end != null ? leg.end + half + 3 : null)) { if (stop < lim) { lim = stop; why = { route: S.rt.lastNo, start: true }; } }
+          if ((a.v > 0 && sw[0] - nose > Math.max(120, a.v * a.v / (2 * (a.brk || brk)) + 80)) || !RT.request(S.rt, a.k, a.pid, nose, null, ei => edgeMap.get(ei), blockOf(a), leg.end != null ? leg.end + half + 3 : null)) { if (stop < lim) { lim = stop; why = { route: S.rt.lastNo, start: true }; } }
         }
       } else if (sw && sw[0] - half - 3 < lim && !RT.readyNode(S.rt, a.k, sw[1])) {
         const stop = Math.max(a.d, sw[0] - half - 3);
@@ -291,6 +300,7 @@
         if (pe) for (const [ei, , x0, x1] of pe.e) { if (x1 < a.d - half) continue; if (x0 > a.d + half + 300) break;
           if (SLOW.set.has(ei)) v = Math.min(v, x0 <= a.d + half ? vz : Math.sqrt(vz * vz + 2 * B * (x0 - a.d - half))); } }
       if (a.vlim) v = Math.min(v, a.vlim);                                   // speed limit ordered by the PC
+      if (a.avista) { if (a.avista.pid !== a.pid || a.d + half > a.avista.d1 + 1) a.avista = null; else v = Math.min(v, VISTA); }   // marcia a vista
       return v;
     }
 
@@ -304,6 +314,7 @@
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
       if (SLOW && S.t < SLOW.until) { const pe = pathEdges[a.pid]; if (pe) for (const [ei, , x0, x1] of pe.e) if (x1 >= a.d - half && x0 <= a.d + half && SLOW.set.has(ei)) v = Math.min(v, SLOW.kmh / 3.6); }
       if (a.vlim) v = Math.min(v, a.vlim);
+      if (a.avista && a.avista.pid === a.pid) v = Math.min(v, VISTA);
       return v;
     }
     // the same point of track on another path (null if that path does not go over it)
@@ -352,6 +363,20 @@
       const C = a.mode === 'navetta' || a.navOut ? CLOSED0 : CLOSED;
       return S.cl && C && a.mode !== 'inside' && a.mode !== 'held' && !a.exitClosed ? pieces => { for (const [ei, l0, l1] of pieces) if (C.has(ei) && l1 - l0 > 8) return { closed: ei }; return null; } : null; };
     let CLOSED0 = null;
+    // ---------- no power on a stretch (guasto: mancanza di tensione, fase D2) ----------
+    // the main tracks between two stations: the trains on them brake to a stop and stand; no route into it
+    let POWER = null;
+    function setPower(a, b) {
+      S.power = a == null ? null : { a: Math.min(a, b), b: Math.max(a, b) }; POWER = null; if (!S.power) return;
+      // (the stretch on each track piece, in metres along the piece: the platforms stay out of it)
+      const { a: x, b: y } = S.power; POWER = new Map();
+      const span = (pid, lo, hi) => { for (const [ei, l0, l1] of RT.span(pid, lo, hi).pieces) POWER.set(ei, [l0, l1]); };
+      span(G.N.pid, stopOf('N', x) + half + 5, stopOf('N', y) - half - 5); span(G.S.pid, stopOf('S', y) + half + 5, stopOf('S', x) - half - 5);
+    }
+    const inPower = (ei, l0, l1) => { const p = POWER.get(ei); return p && l0 < p[1] - 2 && p[0] + 2 < l1; };
+    const noPower = a => POWER && footprint(a).some(f => inPower(f[0], f[1], f[2]));
+    const blockOf = a => { const cb = closedBlock(a); if (!POWER) return cb;
+      return pieces => (cb && cb(pieces)) || (pieces.some(([ei, l0, l1]) => inPower(ei, l0, l1)) ? { power: true } : null); };
     // ---------- the navetta: one train back and forth on one track between two stations ----------
     function navRun(a, nv, pid, d) {
       const Tdir = nv.track === 1 ? 'S' : 'N', legal = pid === nv.legal;
@@ -812,6 +837,7 @@
       }
       if (a.status === 'stopped') return;
       if (FX && FX.hold(a)) return;                      // a failure: it brakes to a stop and stands (web/faults.js)
+      if (POWER && noPower(a)) { if (a.v > 0) { a.v = Math.max(0, a.v - (a.brk || brk) * DT); a.d += a.v * DT; } a.why = 'tensione'; return; }
       // held where it stands before this move of its day (test loop: waiting at #A94 for the loop, or for a depot place)
       if (a.mode === 'plan' && o.holdAt && o.holdAt(a.k, a.si, a)) { a.v = 0; a.why = 'anello'; return; }
       let leg = a.legs[0];
@@ -894,7 +920,7 @@
             else { a.arriveT = S.t; a.stopKey = null; a.dwBase = leg.status !== 'service' ? 1 : Math.abs(st.d - leg.start) < 1 ? 30 : 20; a.dwellUntil = S.t + a.dwBase; }
           } else { a.legs.shift(); if (leg.arrive) { a.at = leg.arrive.at; a.arr = leg.arrive.dir; } }
           a.red = null;
-        } else if (au.why && !a.red) a.red = { since: S.t, why: au.why };
+        } else if (au.why) { if (!a.red) a.red = { since: S.t, why: au.why }; a.red.now = au.why; }
       } else if (a.v > 0.5) { a.red = null; a.why = null; }
     }
     function step(t) {
@@ -931,14 +957,14 @@
     // ---------- time line: saved states and events ----------
     const SNAP = 600, TL = { snaps: [], events: [] };
     function snapshot() {
-      const snap = structuredClone({ faults: S.faults, stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
+      const snap = structuredClone({ power: S.power, faults: S.faults, stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
       TL.snaps = TL.snaps.filter(x => x.t < S.t); TL.snaps.push(snap);
       if (TL.snaps.length > 220) TL.snaps.splice(1, 1);
     }
     function restore(snap) {
       const c = structuredClone(snap);
       Object.assign(S, { t: c.t, il: c.il, rt: c.rt || RT.fresh(), agents: c.agents, log: c.log, lastDep: c.lastDep || {}, cl: c.cl || null, parts: c.parts || [], reopened: c.reopened != null ? c.reopened : null });
-      S.stn = c.stn || {}; S.faults = c.faults || null;
+      S.stn = c.stn || {}; S.faults = c.faults || null; setPower(c.power ? c.power.a : null, c.power ? c.power.b : null);
       S.turnOv = c.turnOv || {}; S.nav = c.nav || []; S.navInfo = c.navInfo || {}; S.navWant = c.navWant || {}; NAVHOLD = c.navHold ? new Set(c.navHold) : null; SLOW = c.slow ? { set: new Set(c.slow.set), until: c.slow.until, kmh: c.slow.kmh } : null;
       S.clEff = c.clEff || null;
       if (S.cl) { CLOSED0 = closedPieces(S.cl); CLOSED = S.clEff && (S.clEff.a !== S.cl.a || S.clEff.b !== S.cl.b) ? closedPieces(S.clEff) : CLOSED0; } else { CLOSED = CLOSED0 = null; }
