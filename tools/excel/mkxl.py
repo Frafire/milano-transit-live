@@ -35,7 +35,7 @@ lines=[('Regole dell\'interlocking M3',title),('',f),
  ('Precedenze: le scelte del cervello, frasi "se... allora..." numerate. Le prime due righe sono ESEMPI da cancellare o correggere.',f),
  ('Chiusure: una riga per ogni tratta che il PC può chiudere dal menù "chiudi tratta". Per ognuna: se succede davvero, cosa succede sul lato San Donato e sul lato Comasina (servizio e dove girano i treni), semafori e scambi bloccati, treni rimasti dentro, e le regole scritte a mano (binari utilizzabili, eccezioni).',f),
  ('Pannello PC: cosa può fare il Posto Centrale e cosa vede (fase B). Le righe in corsivo blu sono una proposta: correggi, completa, cancella quello che non serve, aggiungi in fondo. "Serve? Priorità": alta / media / bassa / non serve. "Nel programma oggi" dice cosa c\'è già.',f),
- ('Guasti: i guasti da simulare (fase D). Per ognuno: come si presenta, cosa fanno il macchinista e il PC, quando diventa soccorso e come si fa, i tempi, quanto spesso succede. Le righe in corsivo blu sono una proposta: correggi, cancella, aggiungi.',f),
+ ('Guasti: i guasti da simulare (fase D). Per ognuno: come si presenta, cosa fanno il macchinista e il PC, quando diventa soccorso e come si fa, i tempi, quanto spesso succede (Volte al giorno: stima per la simulazione). In corsivo quello completato dal programma: correggi, cancella, aggiungi.',f),
  ('Situazioni: l\'elenco delle situazioni usate nelle tendine. Aggiungine quante vuoi in fondo, compariranno nelle tendine.',f),('',f),
  ('Cosa sa già il programma (non serve scriverlo)',fb),
  ('Dove passa ogni treno, quali scambi usa e in che posizione, quando due movimenti sono frontali o incompatibili, quando uno scambio si libera dietro la coda del treno, 15 km/h sul ramo deviato.',f),
@@ -50,7 +50,7 @@ header(wl,['Situazione','Che cosa vuol dire'],[26,90],[])
 sit=[('sempre','in ogni momento del servizio'),('servizio normale','giornata regolare, orario rispettato'),('ritardo','il treno è in ritardo sull\'orario (dire quanto nelle condizioni)'),
      ('guasto treno','un treno guasto da togliere dalla linea'),('guasto binario','un binario o uno scambio non utilizzabile'),('chiusura tratta','una parte della linea chiusa, navetta sul resto'),
      ('chiusura con navetta','lato di una tratta chiusa servito da una navetta'),('binario unico','un solo binario utilizzabile: i treni si alternano nei due sensi'),('chiusura servizio limitato','lato di una tratta chiusa dove la linea continua normale fino alla stazione limite'),
-     ('emergenza','pulsante di emergenza premuto'),('sera','fine servizio: ricovero nei tronchetti e in deposito'),('mattina','inizio servizio: uscita dai tronchetti e dal deposito'),
+     ('emergenza','emergenza in linea o in stazione (persona sui binari, investimento, incendio): il PC mette a rosso i semafori'),('sera','fine servizio: ricovero nei tronchetti e in deposito'),('mattina','inizio servizio: uscita dai tronchetti e dal deposito'),
      ('notte','linea chiusa al pubblico'),('sciopero','sciopero: servizio ridotto o fasce garantite'),('soccorso','treno guasto che non può muoversi: lo va a prendere il trattorino'),('manovra deposito','movimenti tra deposito e stazione'),('mai','movimento possibile sul tracciato ma non usato')]
 for i,(a,b) in enumerate(sit,2):
     wl.cell(row=i,column=1,value=a); wl.cell(row=i,column=2,value=b); style_row(wl,i,2,{1,2})
@@ -197,7 +197,7 @@ PC=[
  ('Servizio e orario','Inserire o togliere un treno','Far uscire un treno in più dal deposito o ritirarne uno (orario flessibile, fase E)','Ritardi, guasti, sciopero','Treni in linea, corse scoperte','no'),
  ('Guasti ed emergenze','Treno guasto: soccorso','Soccorso con un altro treno o con il trattorino (fase D)','Guasto treno','Treno guasto, mezzo di soccorso, tratta impegnata','no'),
  ('Guasti ed emergenze','Guasto a scambio o segnale','Segnare il guasto: gli itinerari che lo usano non si formano (fase D)','Guasto binario','Elemento guasto sul quadro','no'),
- ('Guasti ed emergenze','Pulsante di emergenza in stazione','Arresto dei treni in arrivo nella stazione','Emergenza','Allarme sul pannello, stazione','no'),
+ ('Guasti ed emergenze','Pulsante rosso: tutti i semafori a rosso','Il PC mette a rosso tutti i semafori (della linea o di una tratta); chi è vicino frena d\'emergenza','Persona sui binari, investimento, emergenze','Semafori rossi, treni fermi','no'),
  ('Guasti ed emergenze','Sciopero / fasce garantite','Servizio ridotto negli orari dello sciopero','Sciopero','Treni in linea','no'),
  ('Cosa vede il PC','Quadro della linea: treni e sezioni occupate','Schema della linea con i binari, le sezioni occupate e il numero del treno',None,None,'in parte (mappa)'),
  ('Cosa vede il PC','Stato di semafori, scambi e itinerari','Colore dei semafori, posizione degli scambi, itinerari formati e in attesa',None,None,'in parte'),
@@ -210,7 +210,7 @@ PC=[
  ('Radio alla stazione','Verifica in banchina','L\'agente controlla e riferisce: porte, passeggero sui binari, oggetto caduto, treno fermo in banchina','Su segnalazione del macchinista o del PC','Risposta dell\'agente, tempo','no'),
  ('Radio alla stazione','Assistenza a un treno','L\'agente va sul treno fermo in stazione (malore, guasto, porte bloccate, evacuazione)','Guasti, emergenze','Agente sul treno, treno trattenuto','no'),
  ('Radio alla stazione','Chiudere o riaprire gli accessi della stazione','Ingressi chiusi: i treni passano senza fermare o fermano solo per scendere','Sovraffollamento, emergenza, chiusura tratta','Stazione chiusa al pubblico','no'),
- ('Radio alla stazione','Chiamate dalla stazione al PC','L\'agente avvisa il PC: persona sui binari, pulsante di emergenza, sovraffollamento, guasto in stazione','Sempre','Allarme sul pannello con la stazione e il motivo','no'),
+ ('Radio alla stazione','Chiamate dalla stazione al PC','L\'agente avvisa il PC: persona sui binari, investimento, incendio, sovraffollamento, guasto in stazione','Sempre','Allarme sul pannello con la stazione e il motivo','no'),
 ]
 r=2
 for i,(g,cmd,what,when,sees,now) in enumerate(PC,1):
@@ -224,40 +224,29 @@ for i in range(r,r+25):
     wpc.cell(row=i,column=1,value=i-1); style_row(wpc,i,9,{2,3,4,5,6,7,9})
 dvG.add('G2:G%d'%(r+24)); wpc.auto_filter.ref='A1:I%d'%(r-1)
 
-# ---- Guasti (Fase D): the failures to simulate, what the driver and the PC do, when it becomes a rescue (soccorso)
+# ---- Guasti (Fase D): the failures to simulate, what the driver and the PC do, when it becomes a rescue (soccorso).
+# The rows: Giovanni's (1 Nov 2026), completed where empty (tools/excel/guasti_base.json: the cells completed by the
+# program are in italics); how many times a day each one happens in a realistic day (an estimate, for the simulation)
+import os
 wg=wb.create_sheet('Guasti',7)
-cols=['N.','Tipo','Guasto','Come si presenta (cosa vedono macchinista e PC)','Cosa fa il macchinista (e quanto ci mette)','Cosa fa il PC','Quando diventa soccorso','Come si risolve / soccorso','Tempi (min - max)','Quanto spesso / come si attiva','Nel programma oggi','Note']
-header(wg,cols,[6,12,30,40,40,40,30,40,16,24,14,36],[])
-dvT=DataValidation(type='list',formula1='"treno,linea,stazione,energia,soccorso"',allow_blank=True,showErrorMessage=False); wg.add_data_validation(dvT)
-GU=[
- ('treno','Il treno non riparte (guasto di trazione)','Il treno resta fermo in stazione o in linea; il macchinista chiama il PC','Prova a riarmare il treno (riarmo); se non riparte lo dice al PC','Ferma i treni dietro, decide se aspettare o mandare il soccorso','Dopo 2-3 riarmi falliti','Riarmo; altrimenti soccorso con il treno dietro o con il trattorino','2 - 10 min','casuale / dal menu admin'),
- ('treno','Una porta non si chiude','Il treno non parte dalla stazione (porte non chiuse)','Esclude la porta e riparte','Nessuna azione, oppure fa scendere i passeggeri al capolinea','Mai','Porta esclusa fino al deposito','1 - 3 min','casuale'),
- ('treno','Frenatura di emergenza intempestiva / freno che non si allenta','Il treno si ferma in linea','Riarma il freno','Ferma i treni dietro se dura','Se non si riarma','Riarmo; altrimenti soccorso','1 - 5 min','casuale'),
- ('treno','Guasto ATP (ZUB)','Il treno non ha la protezione: limite di velocità','Prosegue in marcia limitata','Lo manda in deposito a fine corsa','Mai','Rientro in deposito','-','casuale'),
- ('treno','Guasto ATO','Il treno va in guida manuale','Guida manuale, più lento','Valuta il rientro','Mai','Prosegue manuale','-','casuale'),
- ('treno','Allarme passeggero (maniglia)','Il treno si ferma alla stazione successiva','Verifica, riarma','Manda l\'agente di stazione','Mai','Verifica dell\'agente','1 - 5 min','casuale'),
- ('linea','Scambio guasto (non va in posizione)','Gli itinerari su quello scambio non si formano','-','Manda la squadra a manovrare lo scambio a mano; lo blocca','-','Manovra a mano dello scambio, poi itinerari con autorizzazione','10 - 30 min','dal menu admin'),
- ('linea','Segnale guasto (resta rosso)','Il treno è fermo al rosso','Chiama il PC','Autorizza il passaggio a rosso: marcia a vista fino al segnale successivo','-','Marcia a vista 5 km/h','-','dal menu admin'),
- ('linea','Sezione occupata falsa (circuito di binario)','Il segnale resta rosso, la sezione risulta occupata','Chiama il PC','Autorizza la marcia a vista','-','Marcia a vista fino al segnale successivo','-','casuale'),
- ('energia','Mancanza di tensione su una tratta (catenaria)','I treni della tratta si fermano','Attende','Toglie / ridà tensione, ferma gli altri treni','Se un treno resta in galleria a lungo','Ritorno della tensione; evacuazione se lunga','5 - 60 min','dal menu admin'),
- ('stazione','Persona sui binari','L\'agente o il macchinista avvisa','Si ferma','Toglie tensione alla tratta, ferma i treni','-','Recupero della persona, poi ridà tensione','5 - 30 min','casuale (radio di stazione)'),
- ('stazione','Pulsante di emergenza in banchina','I treni in arrivo si fermano','Si ferma prima della stazione','Verifica con l\'agente, poi fa ripartire','-','Verifica','1 - 10 min','casuale'),
- ('soccorso','Soccorso con il treno che segue (spinta)','-','Il treno dietro fa scendere i passeggeri, si avvicina in marcia a vista, aggancia e spinge','Autorizza i movimenti, svuota la tratta davanti','-','Spinta fino alla stazione / al tronchetto / al deposito','aggancio ? min','-'),
- ('soccorso','Soccorso con il treno davanti (traino)','-','Il treno davanti torna indietro (contromano) e traina','Autorizza il movimento contromano','-','Traino fino al deposito o a un tronchetto','? min','-'),
- ('soccorso','Soccorso con il trattorino','-','Il trattorino parte da ? , 25 km/h, marcia a vista 5 km/h, accostamento 2 km/h; aggancia e traina (preferibilmente)','Libera la strada al trattorino','-','Traino fino al deposito','? min','-'),
- ('soccorso','Evacuazione dei passeggeri in galleria','-','Fa scendere i passeggeri e li accompagna alla stazione più vicina','Toglie tensione, avvisa le stazioni','Se il soccorso è lungo','Evacuazione a piedi','? min','-'),
-]
+cols=['N.','Tipo','Guasto','Come si presenta (cosa vedono macchinista e PC)','Cosa fa il macchinista (e quanto ci mette)','Cosa fa il PC','Quando diventa soccorso','Come si risolve / soccorso','Tempi (min - max)','Quanto spesso / come si attiva','Volte al giorno (stima)','Nel programma oggi','Note']
+header(wg,cols,[6,12,30,40,40,40,30,40,16,24,12,14,36],[])
+dvT=DataValidation(type='list',formula1='"treno,linea,stazione,energia,soccorso,sciopero"',allow_blank=True,showErrorMessage=False); wg.add_data_validation(dvT)
+GB=json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'guasti_base.json')))
+FILL={c for c in range(2,14) if c!=12}
 r=2
-for i,row in enumerate(GU,1):
-    vals=[i]+list(row)+['no',None]
-    for c,v in enumerate(vals,1): wg.cell(row=r,column=c,value=v)
-    style_row(wg,r,12,{2,3,4,5,6,7,8,9,10,12})
-    for c in range(3,11):
-        if vals[c-1]: wg.cell(row=r,column=c).font=Font(name=F,size=10,italic=True,color='0000FF')
+for d in GB:
+    for c,h in enumerate(cols,1):
+        wg.cell(row=r,column=c,value=d.get(h))
+    style_row(wg,r,13,FILL)
+    for c,h in enumerate(cols,1):
+        if c in FILL and d.get(h) not in (None,''): wg.cell(row=r,column=c).font=Font(name=F,size=10,color='0000FF',italic=h in d.get('_mine',[]))
+    wg.cell(row=r,column=11).number_format='0.###'
     r+=1
 for i in range(r,r+25):
-    wg.cell(row=i,column=1,value=i-1); style_row(wg,i,12,{2,3,4,5,6,7,8,9,10,12})
-dvT.add('B2:B%d'%(r+24)); wg.auto_filter.ref='A1:L%d'%(r-1)
+    wg.cell(row=i,column=1,value=i-1); style_row(wg,i,13,FILL)
+dvT.add('B2:B%d'%(r+24)); wg.auto_filter.ref='A1:M%d'%(r-1)
+wg.cell(row=r+26,column=3,value='Volte al giorno: quante volte succede in media in una giornata intera su tutta la linea (circa 300 corse). 0,1 = una volta ogni 10 giorni. "conseguenza": succede solo come seguito di un altro guasto.').font=Font(name=F,size=9,italic=True)
 
 # carry over what Giovanni already filled in (python3 mkxl.py his_file.xlsx): rows matched by key, columns by header
 import sys, warnings
@@ -265,8 +254,10 @@ if len(sys.argv)>1:
     warnings.filterwarnings('ignore')
     import openpyxl
     old=openpyxl.load_workbook(sys.argv[1]); KEYN={'Stazioni limite':3}; n_cp=0
+    # cells changed here after his remarks (1 Nov 2026: no emergency button on the M3 platforms): his old text must not come back
+    KEEP_NEW={('Pannello PC',29,h) for h in ('Comando o informazione','Cosa fa','Quando si può usare','Cosa vede il PC (prima e dopo)')}|{('Pannello PC',42,'Cosa fa')}
     for ws in wb:
-        if ws.title not in old.sheetnames or ws.title=='Situazioni': continue
+        if ws.title not in old.sheetnames or ws.title=='Situazioni' or ws.title in os.environ.get('BASE_ONLY','').split(','): continue
         if ws.title=='Istruzioni':      # what he added himself: only cells that are empty here
             for row in old['Istruzioni'].iter_rows():
                 for c in row:
@@ -289,7 +280,7 @@ if len(sys.argv)>1:
                 continue
             for co,h in ho.items():
                 v=wo.cell(row=ro,column=co).value
-                if v is None or h not in hn or hn[h]<=kn: continue
+                if v is None or h not in hn or hn[h]<=kn or (ws.title,key[0],h) in KEEP_NEW: continue
                 cell=ws.cell(row=rows[key],column=hn[h])
                 if cell.value!=v: cell.value=v; n_cp+=1
     print('copiati',n_cp,'valori')

@@ -24,7 +24,7 @@
       "acc_full": 0.81,
       "acc_empty": 1.1,
       "brake_service": 1.2,
-      "brake_emergency": null
+      "brake_emergency": 1.5
     },
     "serie8000": {
       "acc_full": 0.75,
