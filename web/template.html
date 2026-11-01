@@ -253,8 +253,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .pclist .pcsw { flex-direction: row; gap: 4px; flex-wrap: wrap; justify-content: flex-end; } .pclist em { color: #ffcf3f; font-style: normal; font-size: 12px; }
 .cab { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 10px; }
 .cab .tfront { width: 140px; height: auto; image-rendering: pixelated; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.cab .tfront[data-k^="meneghino"] { image-rendering: auto; width: 150px; }
 .cab .tacho { width: 120px; height: 120px; flex: 0 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
-.cab .tacho #tachoNeedle { transition: transform .25s linear; }
 .tile.delay.late { background: #e5383b; border-color: #e5383b; color: #fff; }
 .tile.delay.early { background: #1f7a3a; border-color: #1f7a3a; color: #fff; }
 .tile.door.open { background: #ffb020; border-color: #ffb020; color: #1a1200; }
@@ -1268,6 +1268,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const FRONT = { W: 56, H: 62, cache: new Map() };
   function trainFront(kind, dest, lights) {
     const key = kind + '|' + dest + '|' + lights; if (FRONT.cache.has(key)) return FRONT.cache.get(key);
+    if (kind === 'meneghino') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(meneghinoSVG(dest, lights)); FRONT.cache.set(key, url); return url; }
     const S = 5, W = FRONT.W, H = FRONT.H, c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
     const x = c.getContext('2d'), R = (cx, cy, w, h, col) => { x.fillStyle = col; x.fillRect(cx * S, cy * S, w * S, h * S); };
     const men = kind === 'meneghino', lot2 = kind === 'lotto2';
@@ -1318,6 +1319,76 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     const url = c.toDataURL(); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url;
   }
+  // the Meneghino (Alstom), drawn from the photos of 958 and 941: black cap with the destination sign (red LEDs), wide
+  // windscreen in three (the door in the middle), yellow side edges, two light units, the city arms on the door,
+  // black bumper with the coupler. lights: white running, red standing in the depot or a tail
+  function meneghinoSVG(dest, lights) {
+    // (coordinates measured on the photo of 958 at San Donato, scaled: the front is 255 wide)
+    const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), V = { x: 50, y: 10, w: 161, h: 19 };
+    let dots = '';
+    if (txt) {
+      const cols = [...txt].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1), p = Math.min(2, (V.w - 40) / cols, (V.h - 5) / 7);
+      let x = V.x + 30 + (V.w - 36 - cols * p) / 2; const y = V.y + (V.h - 7 * p) / 2;
+      for (const ch of txt) { const g = F57[ch] || F57[' '];
+        for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') dots += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .42).toFixed(2)}"/>`;
+        x += (g[0].length + 1) * p; }
+    }
+    const red = lights === 'red', lamp = red ? '#ff3826' : '#fffaf0', glow = red ? '#ff2a14' : '#fff4c8';
+    const housing = (x, lx, sx) => `<rect x="${x}" y="137" width="47.5" height="41.5" rx="7" fill="url(#hsg)" stroke="#a9afb5" stroke-width="1.3"/>
+      <rect x="${x + 2.5}" y="139.5" width="42.5" height="36.5" rx="5" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width=".9"/>
+      <circle cx="${lx}" cy="153" r="9" fill="url(#lmp)" filter="url(#bl)"/>
+      <circle cx="${lx}" cy="153" r="5" fill="${lamp}" stroke="#80868c" stroke-width=".9"/>
+      <circle cx="${lx}" cy="167" r="3.2" fill="#dde0e3" stroke="#7d8389" stroke-width=".9"/><circle cx="${lx - .8}" cy="166.2" r="1" fill="#fff"/>
+      <rect x="${sx}" y="150.5" width="18" height="4.5" rx="2.2" fill="#c3c8cc" stroke="#959ba1" stroke-width=".7"/>
+      <rect x="${sx}" y="158" width="18" height="2.5" rx="1.2" fill="#d5d9dc"/>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-14 -2 290 278">
+      <defs>
+        <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbfbfb"/><stop offset=".6" stop-color="#eef0f1"/><stop offset="1" stop-color="#d3d7da"/></linearGradient>
+        <linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".2"/><stop offset=".1" stop-color="#000" stop-opacity="0"/><stop offset=".9" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+        <linearGradient id="gl" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#46505a"/><stop offset=".35" stop-color="#20272e"/><stop offset="1" stop-color="#0c1014"/></linearGradient>
+        <linearGradient id="yl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#cf9c06"/><stop offset=".55" stop-color="#f9cf27"/><stop offset="1" stop-color="#d9a70d"/></linearGradient>
+        <linearGradient id="hsg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8f9fa"/><stop offset="1" stop-color="#dde1e4"/></linearGradient>
+        <linearGradient id="bp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2d3034"/><stop offset=".25" stop-color="#1c1e21"/><stop offset="1" stop-color="#0f1012"/></linearGradient>
+        <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2c2f"/><stop offset="1" stop-color="#121315"/></linearGradient>
+        <radialGradient id="lmp"><stop offset="0" stop-color="${glow}" stop-opacity=".95"/><stop offset="1" stop-color="${glow}" stop-opacity="0"/></radialGradient>
+        <filter id="bl" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2"/></filter>
+        <filter id="led" x="-.1" y="-.6" width="1.2" height="2.2"><feGaussianBlur stdDeviation=".8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <!-- mirrors -->
+      <path d="M3 26 h-11 a3 3 0 0 0 -3 3 v26 a3 3 0 0 0 3 3 h11 z" fill="#18191b"/><path d="M258 26 h11 a3 3 0 0 1 3 3 v26 a3 3 0 0 1 -3 3 h-11 z" fill="#18191b"/>
+      <!-- body, yellow edges, black cap with the sign -->
+      <path d="M3 18 Q3 4 18 3 Q130 -1 243 3 Q258 4 258 18 V203 H3 Z" fill="url(#bd)"/>
+      <path d="M3 18 Q3 4 18 3 Q130 -1 243 3 Q258 4 258 18 V203 H3 Z" fill="url(#sd)"/>
+      <path d="M13 34.5 V18 Q14 8 24 6.5 Q130 2 237 6.5 Q247 8 248 18 V34.5 Z" fill="url(#cap)"/>
+      <rect x="${V.x - 1.5}" y="${V.y - 1.5}" width="${V.w + 3}" height="${V.h + 3}" rx="1.5" fill="#303235"/><rect x="${V.x}" y="${V.y}" width="${V.w}" height="${V.h}" fill="#040405"/>
+      <g fill="#ff4b2f" filter="url(#led)">${dots}</g>
+      <path d="M3 18 Q3 4 18 3 L16 8 Q13.5 10 13.5 18 V203 H3 Z" fill="url(#yl)"/><path d="M258 18 Q258 4 243 3 L245 8 Q247.5 10 247.5 18 V203 H258 Z" fill="url(#yl)"/>
+      <!-- windscreen: two panes and the door between them -->
+      <rect x="12.75" y="34.5" width="234.75" height="100.5" fill="#0f1012"/>
+      <rect x="15" y="39.75" width="69" height="92.25" rx="2" fill="url(#gl)"/><rect x="162.75" y="39.75" width="75" height="92.25" rx="2" fill="url(#gl)"/>
+      <rect x="87.75" y="34.5" width="71.25" height="151.5" fill="#0f1012"/>
+      <rect x="97.5" y="42" width="54" height="85.5" rx="2" fill="url(#gl)"/>
+      <path d="M22 125 L48 44 L57 44 L31 125 Z M170 125 L196 44 L204 44 L178 125 Z M102 122 L122 46 L128 46 L108 122 Z" fill="#fff" opacity=".06"/>
+      <path d="M20 47 h24 M168 47 h26 M101 49 h18" stroke="#c7d1da" stroke-opacity=".35" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M120 60 h10 v14 h-10 z" fill="#2b3036" opacity=".7"/>
+      <!-- the door's lower panel: the arms of Milan and the red line -->
+      <rect x="95" y="133" width="58" height="49" fill="url(#bd)"/>
+      <rect x="99" y="137" width="14" height="10" rx="1" fill="#c9ced2" stroke="#9ea4aa" stroke-width=".6"/>
+      <g transform="translate(136 154) scale(.9)"><path d="M-8 -9 h16 v9 q0 8 -8 11 q-8 -3 -8 -11 z" fill="#fff" stroke="#9aa0a5" stroke-width=".8"/><path d="M-1.5 -8 h3 v6 h6 v3 h-6 v8.5 h-3 v-8.5 h-6 v-3 h6 z" fill="#d0141f"/>
+        <path d="M-11 -6 q-3.5 9 3 16 M11 -6 q3.5 9 -3 16" fill="none" stroke="#2f7d38" stroke-width="2.2"/><path d="M-5.5 -13.5 h11 l-1.5 3.5 h-8 z" fill="#c8a12a"/></g>
+      <path d="M114 176 L151 172" stroke="#d81e2b" stroke-width="2.1" stroke-linecap="round"/><path d="M124 179.5 L151 176.5" stroke="#d81e2b" stroke-width="1" stroke-linecap="round" opacity=".7"/>
+      <!-- light units (the lamp on the outer side) -->
+      ${housing(12.75, 28.5, 37.5)}${housing(189, 220.5, 192)}
+      <path d="M3 200 H258" stroke="#000" stroke-opacity=".25" stroke-width="1"/>
+      <!-- bumper: anti-climber, steps, the coupler with its cables -->
+      <path d="M1 203 H260 V232 H232 V262 Q232 268 226 268 H35 Q29 268 29 262 V232 H1 Z" fill="url(#bp)"/>
+      <path d="M8 209 H88 M8 215 H88 M8 221 H88 M8 227 H88 M173 209 H253 M173 215 H253 M173 221 H253 M173 227 H253" stroke="#33373b" stroke-width="2"/>
+      <rect x="99" y="205" width="45" height="30" rx="2" fill="#24272a" stroke="#3b3f43"/>
+      <rect x="106" y="226" width="31" height="30" rx="2" fill="#383b3f" stroke="#4a4e53"/><rect x="113" y="233" width="17" height="14" rx="2" fill="#101113"/>
+      <path d="M112 256 q-2 12 8 16 M131 256 q4 10 -4 16" fill="none" stroke="#2a1514" stroke-width="2.2"/><path d="M118 256 q2 10 12 13" fill="none" stroke="#5a2222" stroke-width="1.6"/>
+      <path d="M44 268 v6 M216 268 v6" stroke="#18191b" stroke-width="6"/>
+    </svg>`;
+  }
   const frontKind = rt => !rt || !rt.type ? null : /meneghino/i.test(rt.type) ? 'meneghino' : /2°/.test(rt.type) ? 'lotto2' : 'lotto1';
   // what the sign shows and which lights: the run's destination; red lights standing in the depot or a tail
   function frontOf(F, tr, st) {
@@ -1329,26 +1400,43 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const parked = st.status === 'parked' || (st.agent && (st.agent.hidden || st.agent.mode === 'static'));
     return { kind, dest, lights: parked ? 'red' : 'white' };
   }
+  const TACHO = { target: -135, cur: null, run: false, last: 0 };
+  function tachoAnim(ts) {
+    const nd = document.getElementById('tachoNeedle'); if (!nd) { TACHO.run = false; TACHO.cur = null; return; }
+    const dt = TACHO.last ? Math.min(0.2, (ts - TACHO.last) / 1000) : 0; TACHO.last = ts;
+    if (TACHO.cur == null) TACHO.cur = TACHO.target; else TACHO.cur += (TACHO.target - TACHO.cur) * (1 - Math.exp(-dt / 0.45));
+    nd.setAttribute('transform', `rotate(${TACHO.cur.toFixed(2)} 60 60)`);
+    requestAnimationFrame(tachoAnim);
+  }
   // the speedometer of the M3 cab: black, yellow figures 0-90 km/h over three quarters of a turn, yellow needle
   function tachoSVG() {
     const cx = 60, cy = 60, r0 = 50, ang = v => (-225 + v / 90 * 270) * Math.PI / 180, pt = (v, r) => [cx + r * Math.cos(ang(v)), cy + r * Math.sin(ang(v))];
     let ticks = '', nums = '';
-    for (let v = 0; v <= 90; v += 5) { const big = v % 10 === 0, [x1, y1] = pt(v, r0), [x2, y2] = pt(v, r0 - (big ? 6 : 3.5));
-      ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#f2cf1d" stroke-width="${big ? 1.8 : 1.1}"/>`;
-      if (big) { const [nx, ny] = pt(v, r0 - 14); nums += `<text x="${nx.toFixed(1)}" y="${(ny + 3.3).toFixed(1)}">${v}</text>`; } }
-    return `<svg class="tacho" viewBox="0 0 120 120" role="img" aria-label="Tachigrafo"><rect x="1" y="1" width="118" height="118" rx="9" fill="#1b1b1b" stroke="#3a3a3a" stroke-width="1.5"/>
-      <rect x="5" y="5" width="110" height="110" rx="6" fill="#0c0c0c"/><circle cx="60" cy="60" r="55" fill="#050505" stroke="#202020" stroke-width="1.5"/>
-      ${ticks}<g font-family="Helvetica Neue, Arial, sans-serif" font-size="9.5" font-weight="600" fill="#f2cf1d" text-anchor="middle">${nums}</g>
-      <text x="60" y="96" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="10" font-weight="700" fill="#f2cf1d">km/h</text>
-      <path d="M55 69 h10 l-5 5 l5 5 h-10 l5 -5 z" fill="none" stroke="#9a9a9a" stroke-width="1"/>
-      <g id="tachoNeedle" transform="rotate(-135 60 60)"><path d="M58.6 64 L60 16 L61.4 64 Z" fill="#d7ec2c"/></g><circle cx="60" cy="60" r="5.5" fill="#111" stroke="#2c2c2c"/></svg>`;
+    // as in the cab (Giovanni's photo): lit yellow-green, long thick marks every 10, short ones every 5, the figures
+    // inside them, a thick needle from a big black hub; the red mark outside the rim: the limit where the train is
+    for (let v = 0; v <= 90; v += 5) { const big = v % 10 === 0, [x1, y1] = pt(v, r0 - (big ? 0 : 1.5)), [x2, y2] = pt(v, r0 - (big ? 9 : 5));
+      ticks += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#e4ee6a" stroke-width="${big ? 2.6 : 1.1}" stroke-linecap="round"/>`;
+      if (big) { const [nx, ny] = pt(v, r0 - 17.5); nums += `<text x="${nx.toFixed(1)}" y="${(ny + 3.6).toFixed(1)}">${v}</text>`; } }
+    return `<svg class="tacho" viewBox="0 0 120 120" role="img" aria-label="Tachigrafo">
+      <defs><radialGradient id="tf" cx=".5" cy=".45" r=".6"><stop offset="0" stop-color="#2a2d22"/><stop offset=".75" stop-color="#16170f"/><stop offset="1" stop-color="#0a0a07"/></radialGradient>
+        <filter id="tg" x="-.2" y="-.2" width="1.4" height="1.4"><feGaussianBlur stdDeviation=".9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+      <rect x="1" y="1" width="118" height="118" rx="10" fill="#141414" stroke="#2e2e2e" stroke-width="1.5"/>
+      <circle cx="60" cy="60" r="56.5" fill="url(#tf)" stroke="#c9d35a" stroke-opacity=".55" stroke-width="1.6" filter="url(#tg)"/>
+      <g filter="url(#tg)">${ticks}<g font-family="'Arial Narrow', 'Roboto Condensed', 'Helvetica Neue', Arial, sans-serif" font-size="10.5" font-weight="700" fill="#e4ee6a" text-anchor="middle" letter-spacing="-.3">${nums}</g>
+      <text x="60" y="98" text-anchor="middle" font-family="'Arial Narrow', 'Helvetica Neue', Arial, sans-serif" font-size="10.5" font-weight="700" fill="#e4ee6a">km/h</text></g>
+      <g id="tachoLim" transform="rotate(135 60 60)" style="display:none"><path d="M60 7.5 L56 0.8 L64 0.8 Z" fill="#ff4a1c" stroke="#6a1505" stroke-width=".6"/></g>
+      <g id="tachoNeedle" transform="rotate(${TACHO.cur != null ? TACHO.cur.toFixed(2) : -135} 60 60)" filter="url(#tg)"><path d="M57.4 60 L58.8 15 L61.2 15 L62.6 60 Z" fill="#e2ec4e"/></g>
+      <circle cx="60" cy="60" r="10.5" fill="#050505" stroke="#1e1e1e" stroke-width="1"/></svg>`;
   }
   function updateTiles() {
     const sp = document.getElementById('spdTile'), nd = document.getElementById('tachoNeedle'); if ((!sp && !nd) || typeof state.sel !== 'string' || state.sel[0] !== 'f') return;
     const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F && F.trains[i]; if (!tr) return;
     const st = trainState(F, tr, state.t), v = Math.abs(st.v || 0) * 3.6, kmh = Math.round(v), open = doorsOpen(F, tr, state.t);
     if (sp && sp.textContent !== String(kmh)) sp.textContent = kmh;
-    if (nd) { const a = (-135 + Math.min(92, v) / 90 * 270).toFixed(1); if (nd.dataset.a !== a) { nd.dataset.a = a; nd.setAttribute('transform', `rotate(${a} 60 60)`); } }
+    // the needle follows the speed smoothly (tachoAnim), the red mark shows the limit where the train is
+    if (nd) { TACHO.target = -135 + Math.min(92, v) / 90 * 270; if (!TACHO.run) { TACHO.run = true; TACHO.last = 0; requestAnimationFrame(tachoAnim); } }
+    const lm = document.getElementById('tachoLim'), lim = st.agent && st.agent.vmaxHere;
+    if (lm) { const a = lim ? (-135 + Math.min(92, lim) / 90 * 270).toFixed(1) : null; if (lm.dataset.a !== String(a)) { lm.dataset.a = a; lm.style.display = a == null ? 'none' : ''; if (a != null) lm.setAttribute('transform', `rotate(${a} 60 60)`); } }
     const fr = document.getElementById('trainFront');
     if (fr) { const f = frontOf(F, tr, st); if (f) { const k = f.kind + f.dest + f.lights; if (fr.dataset.k !== k) { fr.dataset.k = k; fr.src = trainFront(f.kind, f.dest, f.lights); fr.alt = 'Frontale del treno' + (f.dest ? ', veletta ' + f.dest : ''); } } }
     const dt = document.getElementById('doorTile'), txt = open ? 'PORTE APERTE' : 'PORTE CHIUSE';
@@ -1485,7 +1573,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 'a':['00000','00000','01110','00001','01111','10001','01111'],'e':['00000','00000','01110','10001','11111','10000','01110'],
 'i':['00100','00000','01100','00100','00100','00100','01110'],'m':['00000','00000','11010','10101','10101','10001','10001'],
 'n':['00000','00000','10110','11001','10001','10001','10001'],'o':['00000','00000','01110','10001','10001','10001','01110'],
-'p':['00000','11110','10001','10001','11110','10000','10000'],'r':['00000','00000','10110','11001','10000','10000','10000'],
+'p':['00000','00000','11110','10001','10001','11110','10000','10000'],'r':['00000','00000','10110','11001','10000','10000','10000'],
 's':['00000','00000','01110','10000','01110','00001','11110'],'t':['01000','01000','11100','01000','01000','01001','00110'],
 '0':['01110','10001','10011','10101','11001','10001','01110'],'1':['00100','01100','00100','00100','00100','00100','01110'],
 '2':['01110','10001','00001','00010','00100','01000','11111'],'3':['11111','00010','00100','00010','00001','10001','01110'],
@@ -1495,8 +1583,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 ':':['0','0','1','0','1','0','0'],'.':['0','0','0','0','0','1','1'],' ':['000','000','000','000','000','000','000'],
 '°':['111','101','111','000','000','000','000'],'½':['10000','10000','10010','00101','00001','00010','00111'],"'":['1','1','0','0','0','0','0']};
   // the half minute on the big line, as on the real screens: a small 1 up on the left, a small 2 down on the right
-  const HALF_BIG = ['0100000', '1100000', '0100000', '0100000', '0100000', '0100000', '1110000',
-    '0000110', '0001001', '0000001', '0000010', '0000100', '0001000', '0001111'];
+  // (with the slant bar between them: two rows taller than the digits, it reaches up into the space above them)
+  const HALF_BIG = ['010000001', '110000001', '010000010', '010000010', '010000100', '010000100', '111001000', '000001000',
+    '000010110', '000011001', '000100001', '000100010', '001000100', '001001000', '010001000', '010001111'];
   // three sizes of the same 5x7 letters: small (the top line, the notices), big (the destination and the minutes:
   // twice as tall and one dot wider) and mid (the "2°" at the start: half as tall again)
   const MID_ROWS = [0, 1, 1, 2, 3, 3, 4, 5, 5, 6];
@@ -1510,16 +1599,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     GLYPHS.set(key, out); return out;
   }
   // the screen: 136 x 28 dots; on its left, outside it, the clock on black (no dots there)
-  const SCR = { W: 136, H: 28, TW: 31, FR: 4, P: 3, cache: new Map() };
+  const SCR = { W: 136, H: 30, TW: 31, FR: 4, P: 3, cache: new Map() };
   const txtW = (t, size) => [...t].reduce((n, ch) => n + glyph(ch, size || 'small')[0].length + 1, -1);
   function scrImage(key, lines, clock) {          // lines: [{ text, x, y, color, size, right }]
     if (SCR.cache.has(key)) return SCR.cache.get(key);
     const dots = new Array(SCR.W * SCR.H).fill(null);
     const put = (L, grid, W, H) => {
       let x0 = L.right ? L.x - txtW(L.text, L.size) + 1 : L.x;
-      for (const ch of L.text) { const g = glyph(ch, L.size || 'small');
+      for (const ch of L.text) { const g = glyph(ch, L.size || 'small'), up = L.size === 'big' && g.length > 14 ? g.length - 14 : 0;
         for (let r = 0; r < g.length; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') {
-          const X = x0 + i, Y = L.y + r; if (X >= 0 && X < W && Y >= 0 && Y < H) grid[Y * W + X] = L.color; }
+          const X = x0 + i, Y = L.y + r - up; if (X >= 0 && X < W && Y >= 0 && Y < H) grid[Y * W + X] = L.color; }
         x0 += g[0].length + 1; }
     };
     lines.forEach(L => put(L, dots, SCR.W, SCR.H));
@@ -1535,7 +1624,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     for (let j = 0; j < SCR.H; j++) for (let i = 0; i < SCR.W; i++) dot(sx + (i + 0.5) * P, sy + (j + 0.5) * P, dots[j * SCR.W + i]);
     if (clock) {
       const cw = txtW(clock, 'small'), cg = new Array(TW * SCR.H).fill(null);
-      put({ text: clock, x: Math.floor((TW - cw) / 2), y: 14, color: SCR_A, size: 'small' }, cg, TW, SCR.H);
+      put({ text: clock, x: Math.floor((TW - cw) / 2), y: 15, color: SCR_A, size: 'small' }, cg, TW, SCR.H);
       for (let j = 0; j < SCR.H; j++) for (let i = 0; i < TW; i++) if (cg[j * TW + i]) dot((FR + i + 0.5) * P, sy + (j + 0.5) * P, cg[j * TW + i]);
     }
     const url = c.toDataURL(); if (SCR.cache.size > 200) SCR.cache.clear(); SCR.cache.set(key, url); return url;
@@ -1545,15 +1634,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const s = Math.floor(((t % 86400) + 86400) % 86400), hm = String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0');
     const W = SCR.W, X0 = 12, L = [];
     // the destination in big letters, in the narrow ones if it does not fit before the minutes
-    const dest = (y, room) => ({ text: data.dest, x: X0, y, color: SCR_A, size: X0 + txtW(data.dest, 'big') <= room ? 'big' : 'small', ...(X0 + txtW(data.dest, 'big') <= room ? {} : { y: y + 4 }) });
+    const dest = (y, room) => ({ text: data.dest, x: X0, y, color: SCR_A, size: X0 + txtW(data.dest, 'big') <= room ? 'big' : 'small', ...(X0 + txtW(data.dest, 'big') <= room ? {} : { y: y + 5 }) });
     if (kind === 'train') {
       const m = data.min, num = String(Math.floor(m)) + (m % 1 ? '½' : ''), xn = W - 2 - txtW(num, 'big') + 1, xm = xn - 2;
       L.push({ text: data.n + '°', x: 1, y: 2, color: SCR_G, size: 'mid' }, { text: 'Treno per', x: X0, y: 2, color: SCR_G }, { text: 'attesa', x: W - 2, y: 2, color: SCR_G, right: true },
-        dest(12, xm - txtW('min.') - 2), { text: num, x: W - 2, y: 12, color: SCR_A, size: 'big', right: true },
-        { text: 'min.', x: xm, y: 19, color: SCR_G, right: true });
-    } else if (kind === 'here') L.push({ text: 'Treno per', x: X0, y: 2, color: SCR_G }, dest(12, W - 2));
-    else if (kind === 'end') L.push({ text: 'TRENI PER', x: X0, y: 2, color: SCR_G }, dest(12, W - 2));
-    else L.push(...data.lines.map((tx, i) => ({ text: tx, x: 1, y: 1 + i * 9, color: SCR_G })));
+        dest(13, xm - txtW('min.') - 2), { text: num, x: W - 2, y: 13, color: SCR_A, size: 'big', right: true },
+        { text: 'min.', x: xm, y: 20, color: SCR_G, right: true });
+    } else if (kind === 'here') L.push({ text: 'Treno per', x: X0, y: 2, color: SCR_G }, dest(13, W - 2));
+    // (in capitals the top line starts further left, as on the real screens: "TR" before the destination)
+    else if (kind === 'end') L.push({ text: 'TRENI PER', x: 1, y: 2, color: SCR_G }, dest(13, W - 2));
+    else L.push(...data.lines.map((tx, i) => ({ text: tx, x: 1, y: 2 + i * 9, color: SCR_G })));
     const key = kind + '|' + hm + '|' + JSON.stringify(data);
     return `<img class="scr" alt="${(data.dest || (data.lines || []).join(' ')).replace(/"/g, '')}" src="${scrImage(key, L, hm)}">`;
   }

@@ -237,6 +237,18 @@
       return v;
     }
 
+    // the highest speed allowed where the train is now (no braking curves ahead): the red mark on the speedometer
+    function limitHere(a) {
+      const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : { status: a.status };
+      let v = (ops.train_max_kmh || 90) / 3.6;
+      for (const sg of prof[a.pid] || []) { if (sg[0] > a.d + half) break; if (sg[1] < a.d - half) continue; v = Math.min(v, sg[2]); }
+      const z = o.zones && o.zones[a.pid];
+      if (z && (leg.status !== 'service' || leg.skip)) for (const [z0, z1, zv] of z) if (!(z1 < a.d - half || z0 > a.d + half)) v = Math.min(v, zv);
+      if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
+      if (SLOW && S.t < SLOW.until) { const pe = pathEdges[a.pid]; if (pe) for (const [ei, , x0, x1] of pe.e) if (x1 >= a.d - half && x0 <= a.d + half && SLOW.set.has(ei)) v = Math.min(v, SLOW.kmh / 3.6); }
+      if (a.vlim) v = Math.min(v, a.vlim);
+      return v;
+    }
     // the same point of track on another path (null if that path does not go over it)
     function mapTo(pid, d, pid2) {
       const pe = pathEdges[pid], pe2 = pathEdges[pid2]; if (!pe || !pe2) return null;
@@ -1046,7 +1058,7 @@
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
       return { inside: a.inside, to: leg && leg.arrive ? leg.arrive.at : null, pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, trip: a.trip,
                seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold, vlim: a.vlim ? Math.round(a.vlim * 3.6) : null, vlimTo: a.vlimTo,
-               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at };
+               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6) };
     }
     // a radio change to a train's day (platform, tail, test loop...): it takes it from where it is
     function replan(k) {
