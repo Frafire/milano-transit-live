@@ -1368,11 +1368,20 @@ if CFG.get('degraded'):
                         # B: cross over before the station and arrive on the other track (running against its direction)
                         goal = max((n for n, d in nO if d < dXo - TRAIN_HALF - 10), key=lambda n: posO[n], default=None)
                         r = free_route(list(successors(*PATH_STATES[Dp][kD - 1])), goal) if kD > 0 and goal is not None else None
-                        if r and has_xov(r) and rlen(r) < 8000:
-                            pid = make_path(('turnB', nm, dr_), PATH_STATES[Dp][:kD] + r)
-                            q = path_d_of(pid, *at_d(Op, dXo), dX)
+                        pid = make_path(('turnB', nm, dr_), PATH_STATES[Dp][:kD] + r) if r and has_xov(r) and rlen(r) < 8000 else None
+                        q = path_d_of(pid, *at_d(Op, dXo), dX) if pid is not None else None
+                        if q is None and kD > 0 and goal is not None:
+                            # the shortest way missed the other platform (Maciachini: over the crossover on the far side
+                            # of the station): over this crossover, then along the other track through its platform
+                            r1 = free_route(list(successors(*PATH_STATES[Dp][kD - 1])), v)
+                            kg_, kv_ = [n for n, _ in nO].index(goal), kO
+                            if r1 and has_xov(r1) and rlen(r1) < 150 and kg_ < kv_:
+                                r = r1 + [(e_, -d_) for e_, d_ in reversed(PATH_STATES[Op][kg_:kv_])]
+                                pid = make_path(('turnB2', nm, dr_), PATH_STATES[Dp][:kD] + r)
+                                q = path_d_of(pid, *at_d(Op, dXo), dX)
+                        if q is not None:
                             xo = [e_ for e_, _ in r if _edge_cat(edges[e_]) == 'crossover']
-                            if q is not None: cands.append((0, rlen(r), {'kind': 'B', 'pid': pid, 'd_arr': round(q, 1), 'd_dep': round(dXo, 1), 'du': round(du, 1),
+                            cands.append((0, rlen(r), {'kind': 'B', 'pid': pid, 'd_arr': round(q, 1), 'd_dep': round(dXo, 1), 'du': round(du, 1),
                                                                          '_lock': [(Op, dXo - TRAIN_HALF - 5, dv + 5), (Dp, du - 30, du + 5), xo]}))
                         # C: arrive on its own track, board there, reverse and leave backwards over the crossover behind it
                         k0 = max(k for k, (n, d) in enumerate(nD[:-1]) if d <= dX)
