@@ -50,8 +50,9 @@ for r in rows('Itinerari'):
 precedenze = [r for r in rows('Precedenze') if any(r.get(k) for k in ('Situazione', 'Dove (gruppo o semafori)', 'Se... (chi chiede cosa)', 'Allora... (decisione)'))]
 chiusure = [r for r in rows('Chiusure') if r.get('CHIUSURA')]
 situazioni = [r['Situazione'] for r in rows('Situazioni') if r.get('Situazione') and r.get('Che cosa vuol dire')]
+pannello = [r for r in rows('Pannello PC') if r.get('Comando o informazione')] if 'Pannello PC' in wb.sheetnames else []
 
 out = {'_about': 'Regole dell\'interlocking M3 scritte da Giovanni in data/Regole_interlocking_M3.xlsx, lette da tools/rules_from_excel.py. Non modificare a mano: si cambia il file Excel e si rilancia lo script.',
-       'tempi': tempi, 'semafori': semafori, 'itinerari': itinerari, 'precedenze': precedenze, 'chiusure': chiusure, 'situazioni': situazioni}
+       'tempi': tempi, 'semafori': semafori, 'itinerari': itinerari, 'precedenze': precedenze, 'chiusure': chiusure, 'situazioni': situazioni, 'pannello_pc': pannello}
 json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1, default=str)
-print('regole: %d tempi, %d semafori, %d itinerari, %d precedenze, %d chiusure -> %s' % (len(tempi), len(semafori), len(itinerari), len(precedenze), len(chiusure), os.path.relpath(OUT, ROOT)))
+print('regole: %d tempi, %d semafori, %d itinerari, %d precedenze, %d chiusure, %d righe del pannello PC -> %s' % (len(tempi), len(semafori), len(itinerari), len(precedenze), len(chiusure), len(pannello), os.path.relpath(OUT, ROOT)))

@@ -34,6 +34,7 @@ lines=[('Regole dell\'interlocking M3',title),('',f),
  ('Itinerari: i 138 movimenti. Per ognuno: quando si usa (sempre, ritardo, guasto, chiusura, mai...), la priorità e le condizioni in più.',f),
  ('Precedenze: le scelte del cervello, frasi "se... allora..." numerate. Le prime due righe sono ESEMPI da cancellare o correggere.',f),
  ('Chiusure: una riga per ogni tratta che il PC può chiudere dal menù "chiudi tratta". Per ognuna: se succede davvero, cosa succede sul lato San Donato e sul lato Comasina (servizio e dove girano i treni), semafori e scambi bloccati, treni rimasti dentro, e le regole scritte a mano (binari utilizzabili, eccezioni).',f),
+ ('Pannello PC: cosa può fare il Posto Centrale e cosa vede (fase B). Le righe in corsivo blu sono una proposta: correggi, completa, cancella quello che non serve, aggiungi in fondo. "Serve? Priorità": alta / media / bassa / non serve. "Nel programma oggi" dice cosa c\'è già.',f),
  ('Situazioni: l\'elenco delle situazioni usate nelle tendine. Aggiungine quante vuoi in fondo, compariranno nelle tendine.',f),('',f),
  ('Cosa sa già il programma (non serve scriverlo)',fb),
  ('Dove passa ogni treno, quali scambi usa e in che posizione, quando due movimenti sono frontali o incompatibili, quando uno scambio si libera dietro la coda del treno, 15 km/h sul ramo deviato.',f),
@@ -159,6 +160,61 @@ for c,v in enumerate(vals,1): wc.cell(row=r,column=c,value=v)
 style_row(wc,r,8,{2,3,4,5,6,7}); wc.cell(row=r,column=1).font=Font(name=F,size=12,bold=True); r+=1
 dvR.add('B2:B%d' % (r-1))
 wc.freeze_panes='B2'
+
+# ---- Pannello PC (Fase B): what the Posto Centrale can do and what it sees. Rows: what the simulator already has
+# (from the radio, the closure menu, the depot) and what is missing; Giovanni corrects, completes, adds
+wpc=wb.create_sheet('Pannello PC',6)
+cols=['N.','Gruppo','Comando o informazione','Cosa fa','Quando si può usare','Cosa vede il PC (prima e dopo)','Serve? Priorità','Nel programma oggi','Note']
+header(wpc,cols,[6,20,38,52,32,46,16,16,40],[])
+dvG=DataValidation(type='list',formula1='"alta,media,bassa,non serve"',allow_blank=True,showErrorMessage=False); wpc.add_data_validation(dvG)
+PC=[
+ ('Segnali e itinerari','Via libera a un semaforo comandato dal PC','Il semaforo dà via libera una volta, per il prossimo treno (es. uscite dal deposito, segnali di soccorso)','Su richiesta del macchinista o di sua iniziativa','Semaforo rosso → via libera, poi torna rosso dietro il treno','sì'),
+ ('Segnali e itinerari','Autorizzare un movimento fuori dal servizio normale','Autorizza un itinerario della tabella (es. SD-10) che non si usa in servizio normale; vale per un treno','Ritardo, guasto, manovre','Itinerario in attesa di autorizzazione → formato','sì'),
+ ('Segnali e itinerari','Formare un itinerario a mano','Da un semaforo a un altro, scegliendo la strada (gli scambi si mettono da soli)',None,'Itinerario illuminato sul quadro, scambi in posizione','no'),
+ ('Segnali e itinerari','Annullare un itinerario già formato','Toglie l\'itinerario non ancora impegnato dal treno; il semaforo torna rosso',None,'Itinerario spento, semaforo rosso','no'),
+ ('Segnali e itinerari','Semaforo a rosso fisso','Blocca un semaforo al rosso finché il PC non lo libera',None,'Semaforo marcato bloccato','in parte (chiusure)'),
+ ('Segnali e itinerari','Comandare uno scambio a mano','Normale / rovescio, solo se libero e senza itinerari sopra',None,'Posizione dello scambio, tempo dell\'ago','no'),
+ ('Segnali e itinerari','Bloccare uno scambio (fuori servizio)','Lo scambio resta in una posizione; gli itinerari che lo usano dall\'altra parte non si formano','Guasto scambio','Scambio marcato bloccato','no'),
+ ('Deposito','Deposito automatico / manuale','Automatico: i segnali del deposito si aprono da soli. Manuale: li apre il PC','Sempre','Interruttore sul pannello','sì'),
+ ('Deposito','Aprire un segnale del deposito (manuale)','Via libera al treno fermo al segnale del deposito','Deposito in manuale','Treno fermo al segnale, chiamata del macchinista dopo 2 e 7 minuti','sì'),
+ ('Deposito','Cambiare il posto in deposito di un treno','Il treno che rientra va in un altro binario/posto','Treno in rientro','Posto assegnato prima e dopo','sì'),
+ ('Deposito','Mandare un treno all\'anello di prova','Il treno esce dal deposito, fa i giri e rientra; un solo treno sull\'anello alla volta','Treno in deposito','Anello libero / occupato, treno in attesa al #A94','sì'),
+ ('Radio al treno','Sosta prolungata in una stazione','Il treno tiene le porte aperte per i minuti indicati, con il motivo','Treno in servizio','Ritardo che si forma, soste ordinate in attesa','sì'),
+ ('Radio al treno','Limitazione di velocità','Velocità massima per il treno (km/h) fino a nuovo ordine o fino a una stazione','Sempre','Velocità del treno, limite attivo','sì'),
+ ('Radio al treno','Resta fermo / Riparti','Il treno resta in stazione con le porte aperte finché il PC non lo fa ripartire','Treno fermo in stazione','Treno trattenuto','sì'),
+ ('Radio al treno','Salta le prossime fermate','Il treno non ferma nelle prossime stazioni (annuncio ai passeggeri)','Ritardo, chiusure','Fermate saltate','sì'),
+ ('Radio al treno','Limitazione corsa','Il treno termina a una stazione prima del capolinea e inverte lì','Ritardo, chiusure','Nuovo capolinea della corsa','sì'),
+ ('Radio al treno','Prosegui vuoto fino a una stazione','I passeggeri scendono, il treno prosegue vuoto','Chiusure','Treno vuoto, stazione di arrivo','sì'),
+ ('Radio al treno','Rientro in deposito','Il treno lascia il servizio e rientra (vuoto)','Sempre','Treno fuori servizio, corse scoperte','sì'),
+ ('Radio al treno','Cambio binario o tronchetto all\'arrivo','San Donato: binario 2 o 3; Comasina: tronchetto, o entra al binario 2 e inverte lì','Arrivo al capolinea','Binario/tronchetto assegnato','sì'),
+ ('Radio al treno','Messaggio libero e risposte','Il PC scrive al treno; il macchinista risponde. Chiamate del macchinista fermo al rosso','Sempre','Registro della radio','sì'),
+ ('Tratte e chiusure','Chiudi tratta','Chiude una tratta scegliendo i binari utilizzabili ai capi (servizio limitato, navetta)','Guasto, intervento, emergenza','Tratta chiusa sul quadro, treni dentro, navetta','sì'),
+ ('Tratte e chiusure','Riapri tratta / Torna all\'orario','Riapre la tratta (20 km/h per 2 minuti) e i treni riprendono l\'orario','Tratta chiusa','Treni che tornano in orario','sì'),
+ ('Tratte e chiusure','Istruzioni ai treni fermi nella tratta chiusa','Restano fermi, proseguono, tornano indietro o rientrano in deposito','Tratta chiusa','Treni fermi e da quanto','in parte'),
+ ('Tratte e chiusure','Scegliere il treno della navetta','Il PC indica quale treno fa la navetta (oggi la sceglie il programma)','Chiusura con un solo binario','Treno navetta','no'),
+ ('Servizio e orario','Regolare il distanziamento','Allungare o accorciare le soste per tenere i treni equidistanti (ATO, fase C)','Ritardi','Intervalli tra i treni','no'),
+ ('Servizio e orario','Inserire o togliere un treno','Far uscire un treno in più dal deposito o ritirarne uno (orario flessibile, fase E)','Ritardi, guasti, sciopero','Treni in linea, corse scoperte','no'),
+ ('Guasti ed emergenze','Treno guasto: soccorso','Soccorso con un altro treno o con il trattorino (fase D)','Guasto treno','Treno guasto, mezzo di soccorso, tratta impegnata','no'),
+ ('Guasti ed emergenze','Guasto a scambio o segnale','Segnare il guasto: gli itinerari che lo usano non si formano (fase D)','Guasto binario','Elemento guasto sul quadro','no'),
+ ('Guasti ed emergenze','Pulsante di emergenza in stazione','Arresto dei treni in arrivo nella stazione','Emergenza','Allarme sul pannello, stazione','no'),
+ ('Guasti ed emergenze','Sciopero / fasce garantite','Servizio ridotto negli orari dello sciopero','Sciopero','Treni in linea','no'),
+ ('Cosa vede il PC','Quadro della linea: treni e sezioni occupate','Schema della linea con i binari, le sezioni occupate e il numero del treno',None,None,'in parte (mappa)'),
+ ('Cosa vede il PC','Stato di semafori, scambi e itinerari','Colore dei semafori, posizione degli scambi, itinerari formati e in attesa',None,None,'in parte'),
+ ('Cosa vede il PC','Ritardo e anticipo dei treni','Per ogni treno: ritardo/anticipo, prossima stazione, corsa',None,None,'sì (pannello M3)'),
+ ('Cosa vede il PC','Allarmi','Treno fermo al rosso da troppo, porte, emergenze, guasti: con l\'ora',None,None,'in parte'),
+ ('Cosa vede il PC','Registro degli eventi','Ordini dati, risposte, chiusure e riaperture, con l\'ora',None,None,'in parte (radio)'),
+]
+r=2
+for i,(g,cmd,what,when,sees,now) in enumerate(PC,1):
+    vals=[i,g,cmd,what,when,sees,None,now,None]
+    for c,v in enumerate(vals,1): wpc.cell(row=r,column=c,value=v)
+    style_row(wpc,r,9,{3,4,5,6,7,9})
+    for c in (4,5,6):
+        if vals[c-1]: wpc.cell(row=r,column=c).font=Font(name=F,size=10,italic=True,color='0000FF')
+    r+=1
+for i in range(r,r+25):
+    wpc.cell(row=i,column=1,value=i-1); style_row(wpc,i,9,{2,3,4,5,6,7,9})
+dvG.add('G2:G%d'%(r+24)); wpc.auto_filter.ref='A1:I%d'%(r-1)
 
 # carry over what Giovanni already filled in (python3 mkxl.py his_file.xlsx): rows matched by key, columns by header
 import sys, warnings
