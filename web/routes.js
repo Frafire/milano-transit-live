@@ -161,7 +161,7 @@
       }
       // the PC's signals and the movements that are not for the normal service: only with the PC's authorisation
       const needPc = (n != null && PC_SIG.has(n) ? 'n:' + n : null) || (it && WHEN[it.id] && !NORMAL.has(WHEN[it.id]) && !(st.allow || []).includes(WHEN[it.id]) ? 'id:' + it.id : null);
-      if (needPc && !(st.pc[needPc] > 0)) { if (!dry) st.lastNo = { pc: needPc }; return false; }
+      if (needPc && !(st.pc[needPc] > 0)) { if (!dry) st.lastNo = { pc: needPc }; else st.dryNo = { pc: needPc }; return false; }
       // precedence (Giovanni's priorities, Itinerari: alta / media / bassa): a train waiting for a movement of higher
       // priority that needs the same pieces or switches goes first; this one waits for it
       const prio = it ? PRIO[it.id] || 0 : 0;
@@ -172,14 +172,22 @@
         // (only when that movement could be set now, but for this one: else it would wait for nothing, or two
         // trains would wait for each other)
         // (a train that waits a long time for the same thing goes first too, at the same priority: no train waits for ever)
-        const mine = st.wants[k], older = w.prio === prio && w.since + 90 < (mine ? mine.since : (st.t || 0));
-        if (+k2 === k || (w.prio <= prio && !older) || (st.t || 0) - w.t > 150 || w.by === k) continue;
+        // (during a closure, after 3 minutes also at a lower priority: the navetta, the turns of the limited service)
+        const mine = st.wants[k], ref = mine ? mine.since : (st.t || 0), cl = st.allow && st.allow.length;
+        const older = (w.prio === prio && w.since + 90 < ref) || (cl && w.prio < prio && w.since + 180 < ref);
+        if (+k2 === k || (st.t || 0) - w.t > 150 || w.by === k) continue;
+        // a train that has waited 3 minutes during a closure: no other train goes on its way any more, but the ones
+        // already on it (they clear it); after 15 minutes, as before (nothing waits for ever for it)
+        const waited = (st.t || 0) - w.since, starving = cl && waited > 180 && waited < 900;
+        if ((w.prio <= prio && !older) && !starving) continue;
         if (!(w.nodes.some(nd => nodeSet.has(nd)) || w.pieces.some(([e, m0, m1]) => pieces.some(([e2, l0, l1]) => e2 === e && overlap(l0, l1, m0, m1))))) continue;
+        if (starving && !w.pieces.some(([e]) => (occ(e) || []).some(z => z[0] === k))) { why = { yield: +k2, id: w.id, starving: true }; break; }
+        if (w.prio <= prio && !older) continue;
         if (free(st, +k2, w.pieces, w.nodes.map(nd => [nd, 0]), occ)) continue;
         why = { yield: +k2, id: w.id }; break;
       }
       why = why || free(st, k, pieces, nodes, occ) || full(st, k, pieces, occ) || (blocked ? blocked(pieces) : null);
-      if (dry) return !why;
+      if (dry) { st.dryNo = why; return !why; }
       if (why) {
         st.lastNo = why;
         if (it && why.yield == null) { const w0 = st.wants[k]; st.wants[k] = { pieces: pieces.map(x => x.slice(0, 3)), nodes: nodes.map(x => x[0]), prio, t: st.t || 0, since: w0 && w0.id === it.id ? w0.since : st.t || 0, id: it.id, by: why.train != null ? why.train : why.route }; }

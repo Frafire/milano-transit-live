@@ -39,7 +39,9 @@
     const nTrains = () => o.planOf ? o.count : o.plans0.length;
     // how a train turns at the end of a closed stretch (Giovanni's order of preference), among the turns the track has
     const TP = o.closureTurns || {};
-    const turnAt = (X, dir) => { const tr = G.turns[X + ':' + dir]; if (!tr) return null; const k = (TP[X + ':' + dir] || ['A', 'C', 'B']).find(x => tr[x]); return k ? { kind: k, t: tr[k] } : null; };
+    const turnAt = (X, dir) => { const tr = G.turns[X + ':' + dir]; if (!tr) return null; const k = ((S.turnOv && S.turnOv[X + ':' + dir]) || TP[X + ':' + dir] || ['A', 'C', 'B']).find(x => tr[x]); return k ? { kind: k, t: tr[k] } : null; };
+    // one track only at an end of the closure (rules closure_one_track): another turn, or a navetta (NAV, from the build)
+    const OT = o.closureOneTrack || {}, NAV = o.navette || {};
 
     // ---------- legs: what an agent still has to drive ----------
     // { pid, status, trip, stops: [{ d, st, dep, arr, j }], end, start, dir, plan, timed, si, t0 }
@@ -177,7 +179,10 @@
         const had = RT.held(S.rt, a.k, a.pid, c.d);
         const c2 = !had && (S.cl || S.reopened != null) ? RT.ahead(a.pid, c.d + 1, 700).find(x => x.d > c.d + 5) : null;
         if (c2 && next != null && c2.d < next + half && !RT.held(S.rt, a.k, a.pid, c2.d) && !RT.request(S.rt, a.k, a.pid, c2.d, c2.n, occ, closedBlock(a), upTo, true)) {
-          lim = stop; why = { sig: c2.n, route: { train: null, next: true } }; break;
+          lim = stop; why = { sig: c2.n, route: Object.assign({ next: true }, S.rt.dryNo || {}) };
+          // (asked for real too: it is not set, but the train is now waiting for it, and the precedence counts it)
+          if (RT.request(S.rt, a.k, a.pid, c2.d, c2.n, occ, closedBlock(a), upTo)) RT.cancel(S.rt, a.k, a.pid, c2.d);
+          break;
         }
         if (RT.request(S.rt, a.k, a.pid, c.d, c.n, occ, closedBlock(a), upTo)) {
           if (RT.ready(S.rt, a.k, a.pid, c.d)) continue;
@@ -262,13 +267,44 @@
       return out;
     }
     // for the route interlocking: a route over the closed stretch is refused (a train inside it, ordered by the PC, may)
-    const closedBlock = a => S.cl && CLOSED && a.mode !== 'inside' && a.mode !== 'held' && !a.exitClosed ? pieces => { for (const [ei, l0, l1] of pieces) if (CLOSED.has(ei) && l1 - l0 > 8) return { closed: ei }; return null; } : null;
+    // (the navetta: only the closed stretch itself; the other trains: also the stretch of the navetta)
+    // after reopening, while the navetta (or a train going back on its track) is still on a track the wrong way: no
+    // train goes into its stretch (the ones already in it go on)
+    let NAVHOLD = null;
+    const inHold = a => { for (const ei of NAVHOLD) { const l = edgeMap.get(ei); if (l && l.some(z => z[0] === a.k)) return true; } return false; };
+    const navDone = () => { if (NAVHOLD && !S.agents.some(x => x.mode === 'navetta' || x.navBack)) NAVHOLD = null; };
+    const closedBlock = a => {
+      if (!S.cl && NAVHOLD) return a.mode === 'navetta' || a.navBack || inHold(a) ? null : pieces => { for (const [ei, l0, l1] of pieces) if (NAVHOLD.has(ei) && l1 - l0 > 8) return { closed: ei, navetta: true }; return null; };
+      const C = a.mode === 'navetta' || a.navOut ? CLOSED0 : CLOSED;
+      return S.cl && C && a.mode !== 'inside' && a.mode !== 'held' && !a.exitClosed ? pieces => { for (const [ei, l0, l1] of pieces) if (C.has(ei) && l1 - l0 > 8) return { closed: ei }; return null; } : null; };
+    let CLOSED0 = null;
+    // ---------- the navetta: one train back and forth on one track between two stations ----------
+    function navRun(a, nv, pid, d) {
+      const Tdir = nv.track === 1 ? 'S' : 'N', legal = pid === nv.legal;
+      const dd = i => legal ? stopOf(Tdir, i) - nv.off : nv.L - (stopOf(Tdir, i) - nv.off);
+      const sts = []; for (let i = Math.min(nv.a, nv.b); i <= Math.max(nv.a, nv.b); i++) sts.push({ st: i, d: dd(i) });
+      sts.sort((x, y) => x.d - y.d);
+      const up = sts.filter(z => z.d >= d - 1);
+      if (!up.length) return null;
+      return { pid, status: 'service', trip: -1, stops: up, end: up[up.length - 1].d, start: d, dir: legal ? Tdir : opp(Tdir), shuttle: true, nav: true, arrive: { at: up[up.length - 1].st, dir: legal ? Tdir : opp(Tdir) } };
+    }
+    function navLegs(a, turn) {
+      const nv = NAV[a.nav]; if (!nv) return [];
+      let pid = turn ? (a.pid === nv.legal ? nv.contra : nv.legal) : nv.legal, d = mapTo(a.pid, a.d, pid);
+      if (!turn && d == null) { pid = nv.contra; d = mapTo(a.pid, a.d, pid); }
+      if (d == null) return [];
+      let r = navRun(a, nv, pid, d);
+      if (!r && !turn) { pid = pid === nv.legal ? nv.contra : nv.legal; d = mapTo(a.pid, a.d, pid); r = d != null ? navRun(a, nv, pid, d) : null; turn = true; }
+      if (!r) return [];
+      if (turn || r.pid !== a.pid) r.rev = turn;          // change of cab at the end of the navetta
+      return [r, { kind: 'navrev' }];
+    }
 
     // the day of train m from run j: legs until a run leaves part P (cut at the station where it must turn)
-    function legsFromPlan(m, j, P, fromD) {
-      const plan = planOf(m), legs = [];
+    function legsFromPlan(m, j, P0, fromD, P1) {
+      const plan = planOf(m), legs = [], j0 = j;
       for (; j < plan.length; j++) {
-        const s = plan[j], sts = stopsOf(s), leg = legOfSeg(s, fromD); fromD = null;
+        const s = plan[j], sts = stopsOf(s), leg = legOfSeg(s, fromD), P = j === j0 && P1 ? P1 : P0; fromD = null;
         leg.plan = true; leg.timed = true; leg.si = j;              // its own timetable run, as far as the closure
         if (!sts.length) { legs.push(leg); if (s[1] === 'to_depot') { legs.push({ kind: 'park' }); return legs; } continue; }
         if (!P) { legs.push(leg); continue; }
@@ -313,6 +349,21 @@
     const pushRun = (out, r) => { const t = r.then; delete r.then; out.push(r); if (t) out.push(t); return out; };
     // after arriving at the end of the part: a.at (station), a.arr (direction it came)
     function nextShuttleLegs(a) {
+      const want = S.navWant && Object.keys(S.navWant).find(key => S.navInfo[key].open === a.at && S.navInfo[key].dir === a.arr);
+      if (want && a.mode === 'shuttle') {
+        delete S.navWant[want]; S.log.push({ t: S.t, k: a.k, nav: want, late: true });
+        const nv = NAV[want];
+        if (mapTo(a.pid, a.d, nv.legal) != null || mapTo(a.pid, a.d, nv.contra) != null) { a.mode = 'navetta'; a.nav = want; return navLegs(a, false); }
+        // on the other track: on beyond the station, change of cab, over the crossover into the other platform (an A
+        // turn), and from there into the stretch of the navetta; without an A turn there, the next train
+        const tA = (G.turns[a.at + ':' + a.arr] || {}).A;
+        if (!tA) { S.navWant[want] = true; S.log.pop(); return nextShuttleLegs_(a); }
+        const X = a.at, dir = a.arr, stub = a.d + (tA.stub_d - stopOf(dir, X)), dP = stopOf(opp(dir), X) + tA.off;
+        return [{ pid: a.pid, status: 'turnback', stops: [], end: stub, start: a.d }, { pid: tA.pid, status: 'turnback', stops: [], end: dP, start: tA.d0, rev: true }, { kind: 'navstart', nav: want }];
+      }
+      return nextShuttleLegs_(a);
+    }
+    function nextShuttleLegs_(a) {
       const P = a.part, X = a.at, dir = a.arr, o2 = opp(dir), T = o2 === 'N' ? P[1] : P[0], out = [];
       if (X === 0 || X === last) {
         // terminus: into a free tail, change cab, out on the main path of the same tail the other way
@@ -404,7 +455,17 @@
     }
     // closing: every M3 train becomes an agent of the closure. pos: positions now (posNow)
     function close(cl) {
-      S.cl = cl; S.reopened = null; S.lastDep = {}; usedRuns.clear(); CLOSED = closedPieces(cl);
+      S.cl = cl; S.reopened = null; S.lastDep = {}; usedRuns.clear();
+      // one track only at an end: another way of turning there, or a navetta on the other track, the service turning
+      // at the station on the other side of it
+      const ends = cl.ends || {}; S.turnOv = {}; S.nav = []; S.navInfo = {}; S.navWant = {};
+      let ea = cl.a, eb = cl.b;
+      for (const [X, dir] of [[cl.a, 'N'], [cl.b, 'S']]) {
+        const op = (ends[X] === '1' || ends[X] === '2') && (OT[X + ':' + dir] || {})[ends[X]]; if (!op) continue;
+        if (op.turn) S.turnOv[X + ':' + dir] = op.turn;
+        if (op.navetta) { const key = op.navetta.join('-') + '-' + op.track; if (NAV[key]) { S.nav.push(key); if (dir === 'N') ea = op.navetta[0]; else eb = op.navetta[1]; S.navInfo[key] = { dir, open: dir === 'N' ? op.navetta[0] : op.navetta[1] }; } }
+      }
+      S.clEff = { a: ea, b: eb }; CLOSED0 = closedPieces(cl); CLOSED = ea !== cl.a || eb !== cl.b ? closedPieces(S.clEff) : CLOSED0;
       // the closure's own movements (and the moves against the usual direction its turns make, as at Maciachini)
       S.rt.allow = ['chiusura servizio limitato', 'chiusura tratta', 'chiusura con navetta', 'binario unico'];
       // the signals into the closed stretch go back to red: a route over it that no train has entered yet is cancelled
@@ -413,7 +474,8 @@
         S.rt.routes[k] = rs.filter(r => !(r.pieces.some(x => CLOSED.has(x[0])) && (!a || a.pid !== r.pid || nose < r.d0 + 1)));
         if (!S.rt.routes[k].length) delete S.rt.routes[k];
       }
-      S.parts = []; if (cl.a > 0) S.parts.push([0, cl.a]); if (cl.b < last) S.parts.push([cl.b, last]);
+      S.parts = []; if (ea > 0) S.parts.push([0, ea]); if (eb < last) S.parts.push([eb, last]);
+      const cl0 = cl; cl = { a: ea, b: eb };
       for (const a of S.agents) {
         if (a.hidden || a.mode === 'static') { a.seg0 = a.si; if (a.mode !== 'static') a.mode = 'static'; continue; }
         const plan = planOf(a.k), p_si = a.si, s = plan[p_si]; a.seg0 = p_si;
@@ -440,6 +502,41 @@
         // its next run starts on the closed side: what is moving finishes, then it waits there
         a.legs = [legOfSeg(s, waiting ? null : a.d), { kind: s[1] === 'to_depot' || s[1] === 'from_depot' ? 'park' : 'held' }]; a.mode = 'held';
       }
+      // the navetta: of the trains caught on its track in its stretch, the one nearest the closed stretch (so that the
+      // others on that track are between it and the open side, and can get out of its way). The other trains in the
+      // stretch: going towards the open side, on and out of it (into the service there, or at San Donato into the
+      // depot); going towards the closed stretch on the track of the navetta, behind it: at the next station the PC has
+      // them change cab and go back to the open side; on the other track: at the next station, waiting for the PC
+      for (const key of S.nav) {
+        const nv = NAV[key], info = S.navInfo[key], lo = Math.min(nv.a, nv.b), hi = Math.max(nv.a, nv.b);
+        const inLegal = (nv.track === 1 ? 'S' : 'N') === info.dir;
+        info.P = partOf(info.open);
+        const xOf = a => { const d = mapTo(a.pid, a.d, nv.legal); if (d != null) return d; const d2 = mapTo(a.pid, a.d, nv.contra); return d2 != null ? nv.L - d2 : null; };
+        const inStretch = a => { if (!a.inside || a.inside.m == null) return false; const q = a.inside.q, nx = a.inside.stops[q], pv = a.inside.stops[q - 1];
+          const inR = z => z && z.st >= lo && z.st <= hi;
+          return inR(nx) && (!pv || inR(pv) || Math.abs(nx.d - a.d) < 2); };      // between two of its stations, or standing at one
+        let best = null;
+        for (const a of S.agents) {
+          if (a.hidden || (a.mode !== 'inside' && a.mode !== 'held')) continue;
+          if (a.mode === 'inside' && !inStretch(a)) continue;
+          const x = xOf(a); if (x == null || x < -50 || x > nv.L + 50) continue;
+          const sc = inLegal ? x : -x; if (!best || sc > best.sc) best = { a, sc };
+        }
+        for (const a of S.agents) {
+          if (a.hidden || a.mode !== 'inside' || (best && a === best.a) || !inStretch(a)) continue;
+          const plan = planOf(a.k), s = plan[a.inside.j];
+          if (a.inside.dir !== info.dir) {
+            // towards the open side: on, out of the stretch
+            if (info.P) { a.mode = 'shuttle'; a.part = info.P; a.navOut = true; a.legs = legsFromPlan(a.k, a.inside.j, info.P, a.d, [Math.min(info.P[0], lo), Math.max(info.P[1], hi)]); a.inside = null; }
+            else { const leg = legOfSeg(s, a.d); a.legs = [leg, { kind: 'depot' }]; a.status = 'service'; }
+            S.log.push({ t: S.t, k: a.k, navOut: key });
+          } else if (xOf(a) != null) { a.legs = [a.legs[0], { kind: 'navback', nav: key }]; S.log.push({ t: S.t, k: a.k, navBack: key }); }
+        }
+        if (!best) { S.log.push({ t: S.t, nav: key, none: true }); if (info.P) S.navWant[key] = true; continue; }
+        const a = best.a; a.mode = 'navetta'; a.nav = key; a.inside = null; a.stopAt = null; a.wait = 0; a.status = 'service';
+        a.legs = navLegs(a, false); S.log.push({ t: S.t, k: a.k, nav: key });
+      }
+      void cl0;
     }
     // ---------- one step of one agent: markers of the closure ----------
     function marker(a, m) {
@@ -452,17 +549,52 @@
       if (m.kind === 'depot') { a.hidden = true; a.mode = 'static'; a.status = 'depot'; return false; }
       if (m.kind === 'assign') { assign(a); return a.legs.length > 0; }
       if (m.kind === 'retry') { a.legs.unshift(...nextShuttleLegs(a)); return a.legs[0] && a.legs[0].kind !== 'retry'; }
+      if (m.kind === 'navback') {
+        // behind the navetta on its track: the PC has it change cab and go back on that track to the open side
+        const nv = NAV[m.nav], info = S.navInfo && S.navInfo[m.nav]; if (!nv || !info) { a.status = 'stopped'; a.stoppedSince = S.t; return false; }
+        const inLegal = (nv.track === 1 ? 'S' : 'N') === info.dir, pid = inLegal ? nv.contra : nv.legal, d = mapTo(a.pid, a.d, pid);
+        const r = d != null ? navRun(a, nv, pid, d) : null;
+        if (!r) { a.status = 'stopped'; a.stoppedSince = S.t; delete S.rt.routes[a.k]; return false; }
+        delete S.rt.routes[a.k]; a.inside = null; r.rev = true; a.wait = S.t + 60; a.navBack = true; a.nav = m.nav;
+        a.legs.unshift(r, { kind: 'navjoin', nav: m.nav }); return false;
+      }
+      if (m.kind === 'navjoin') {
+        // back at the open side, in the platform where the trains of the service arrive: it turns with them
+        const info = S.navInfo && S.navInfo[m.nav]; a.navBack = false;
+        const main = info && (info.dir === 'N' ? G.N : G.S), d2 = main ? mapTo(a.pid, a.d, main.pid) : null;
+        if (d2 != null) { a.pid = main.pid; a.d = d2; }
+        // reopened meanwhile: back the way it came, in service
+        if (!S.cl && info) { navDone(); a.mode = 'shuttle'; a.at = info.open; a.arr = info.dir; a.inside = null; assign(a); if (a.legs[0] && !a.legs[0].kind) a.legs[0].rev = true; return a.legs.length > 0; }
+        if (!info || !info.P) { a.legs.unshift({ kind: 'depot' }); return true; }
+        a.mode = 'shuttle'; a.part = info.P; a.at = info.open; a.arr = info.dir; a.legs.unshift(...nextShuttleLegs(a)); return true;
+      }
+      if (m.kind === 'navstart') { a.mode = 'navetta'; a.nav = m.nav; a.legs.unshift(...navLegs(a, false)); return a.legs.length > 0; }
+      if (m.kind === 'navrev' && !S.cl && NAV[a.nav] && a.pid === NAV[a.nav].legal) { a.mode = 'shuttle'; a.nav = null; navDone(); assign(a); return a.legs.length > 0; }   // reopened: on its own track, on in service
+      if (m.kind === 'navrev') { a.legs.unshift(...navLegs(a, true)); return a.legs.length > 0; }   // the other way, after the change of cab
       return true;
     }
     // ---------- reopening: back to the timetable ----------
     function reopen(t) {
-      S.reopened = t; S.cl = null; S.parts = [[0, last]];
-      CLOSED = null; usedRuns.clear();
+      S.reopened = t; S.cl = null; S.parts = [[0, last]]; S.turnOv = {}; S.nav = []; S.navWant = {}; S.agents.forEach(a => { a.navOut = false; });
+      NAVHOLD = CLOSED && CLOSED0 && CLOSED !== CLOSED0 && S.agents.some(x => x.mode === 'navetta' || x.navBack) ? new Set([...CLOSED].filter(e => !CLOSED0.has(e))) : null;
+      CLOSED = null; CLOSED0 = null; usedRuns.clear();
       for (const a of S.agents) {
         if (a.status === 'parked' && !a.hidden && a.mode === 'static') { resumeDay(a, t); continue; }
         if (a.hidden || a.status === 'parked') continue;
         a.slowUntil = t + 120;                        // 20 km/h for 2 minutes
         a.part = [0, last];
+        // the navetta, and a train going back on its track, on a track the wrong way: to the next station, change of cab,
+        // back on that track the right way, then on in service (meanwhile no train goes into the stretch: NAVHOLD)
+        if (a.mode === 'navetta' || a.navBack) {
+          const nv = NAV[a.nav], i = a.legs.findIndex(l => !l.kind), leg = a.legs[i];
+          a.mode = 'navetta'; a.navBack = false;
+          if (!nv || !leg) continue;
+          if (leg.pid !== nv.contra) continue;                                                                     // the right way already
+          if (a.pid !== nv.contra) { a.legs = a.legs.slice(0, i).concat([{ kind: 'navrev' }]); continue; }       // not started yet
+          if (leg.stops && leg.stops.length) { leg.stops = leg.stops.slice(0, 1); leg.end = leg.stops[0].d; leg.arrive = null; }
+          a.legs = a.legs.slice(0, i + 1).concat([{ kind: 'navrev' }]);
+          continue;
+        }
         if (a.mode === 'shuttle' || a.mode === 'moving') {
           // the moves of a turn it has started go on; the next passenger run goes the whole way to the terminus
           const i = a.legs.findIndex(l => !l.kind && l.status === 'service');
@@ -483,7 +615,7 @@
             }
           }
           a.mode = 'shuttle';
-        } else if (a.status === 'stopped' || a.mode === 'inside' || a.status === 'held' || a.mode === 'held') {
+        } else if (a.status === 'stopped' || a.mode === 'inside' || a.status === 'held' || a.mode === 'held' || a.mode === 'navetta') {
           a.status = a.status === 'stopped' ? 'service' : a.status; a.legs = [{ kind: 'assign' }]; a.mode = 'shuttle';
         }
       }
@@ -586,7 +718,7 @@
         const au = authority(test, { status: 'turnback', stops: [], end: leg.start + 300 });
         if (au.lim < leg.start + 5 && au.why && au.why.train != null) {
           a.cWait = a.cWait || S.t;
-          if (S.t - a.cWait < 60) return;
+          if (S.t - a.cWait < 60 || (S.cl && S.navInfo && Object.values(S.navInfo).some(x => x.open === a.at))) return;
           a.cWait = null; goInside(a); return;
         }
         a.cWait = null;
@@ -623,7 +755,7 @@
         const key = st.st + ':' + (leg.dir || '');
         if (S.lastDep[key] != null && S.t - S.lastDep[key] < (leg.status === 'service' ? HEADWAY : NON_SERVICE_HEADWAY)) { a.why = 'intervallo'; return; }
         const au = authority(a, leg);
-        if (au.lim < a.d + 5) { a.why = 'segnale'; if (!a.red) a.red = { since: S.t, why: au.why }; return; }
+        if (au.lim < a.d + 5) { a.why = 'segnale'; if (!a.red) a.red = { since: S.t, why: au.why }; a.red.now = au.why; return; }
         S.lastDep[key] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift();
         if (a.vlim && a.vlimTo === st.st) { a.vlim = null; a.vlimTo = null; }    // speed limit "as far as this station": over
         a.late = st.dep && leg.timed ? S.t - st.dep : null; a.depSi = leg.si;
@@ -642,7 +774,7 @@
           if (leg.stops && leg.stops.length) {
             const st = leg.stops[0];
             if (leg.skipSet && leg.skipSet.has(st.st) && leg.stops.length > 1) { leg.stops.shift(); return; }
-            a.stopAt = st.st; a.at = st.st; a.arrLate = st.arr != null ? S.t - st.arr : null; a.exitClosed = false;
+            a.stopAt = st.st; a.at = st.st; a.arrLate = st.arr != null ? S.t - st.arr : null; a.exitClosed = false; if (a.navOut && a.part && st.st >= a.part[0] && st.st <= a.part[1] && !(S.cl && S.navInfo && Object.values(S.navInfo).some(x => x.open === st.st))) a.navOut = false;
             if (leg.plan) { planDwell(a, leg, st); a.dwellUntil = S.t + a.dwBase; }
             else { a.arriveT = S.t; a.stopKey = null; a.dwBase = leg.status !== 'service' ? 1 : Math.abs(st.d - leg.start) < 1 ? 30 : 20; a.dwellUntil = S.t + a.dwBase; }
           } else { a.legs.shift(); if (leg.arrive) { a.at = leg.arrive.at; a.arr = leg.arrive.dir; } }
@@ -684,14 +816,17 @@
     // ---------- time line: saved states and events ----------
     const SNAP = 600, TL = { snaps: [], events: [] };
     function snapshot() {
-      const snap = structuredClone({ t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns] });
+      const snap = structuredClone({ t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null });
       TL.snaps = TL.snaps.filter(x => x.t < S.t); TL.snaps.push(snap);
       if (TL.snaps.length > 220) TL.snaps.splice(1, 1);
     }
     function restore(snap) {
       const c = structuredClone(snap);
       Object.assign(S, { t: c.t, il: c.il, rt: c.rt || RT.fresh(), agents: c.agents, log: c.log, lastDep: c.lastDep || {}, cl: c.cl || null, parts: c.parts || [], reopened: c.reopened != null ? c.reopened : null });
-      CLOSED = S.cl ? closedPieces(S.cl) : null; usedRuns.clear(); (c.usedRuns || []).forEach(x => usedRuns.add(x));
+      S.turnOv = c.turnOv || {}; S.nav = c.nav || []; S.navInfo = c.navInfo || {}; S.navWant = c.navWant || {}; NAVHOLD = c.navHold ? new Set(c.navHold) : null;
+      S.clEff = c.clEff || null;
+      if (S.cl) { CLOSED0 = closedPieces(S.cl); CLOSED = S.clEff && (S.clEff.a !== S.cl.a || S.clEff.b !== S.cl.b) ? closedPieces(S.clEff) : CLOSED0; } else { CLOSED = CLOSED0 = null; }
+      usedRuns.clear(); (c.usedRuns || []).forEach(x => usedRuns.add(x));
       TL.events.forEach(e => { e.done = e.t <= S.t; });
     }
     let lastResult = null;
@@ -699,7 +834,7 @@
       if (e.kind === 'order') lastResult = order(e.k, e.what, e.arg);
       else if (e.kind === 'close') { close(e.cl); lastResult = true; }
       else if (e.kind === 'reopen') { reopen(S.t); lastResult = true; }
-      else if (e.kind === 'normal') { S.cl = null; S.parts = []; S.reopened = null; CLOSED = null; start(S.t, o.initAt(S.t)); }
+      else if (e.kind === 'normal') { S.cl = null; S.parts = []; S.reopened = null; CLOSED = CLOSED0 = null; S.turnOv = {}; S.nav = []; S.navInfo = {}; S.navWant = {}; NAVHOLD = null; start(S.t, o.initAt(S.t)); }
       else if (e.kind === 'pc') lastResult = RT.authorize(S.rt, e.key);         // the PC authorises a signal or a movement
       else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
     }
@@ -790,7 +925,7 @@
         if (a.stopAt != null && fresh.stops.length && Math.abs(fresh.stops[0].d - a.d) > 1) a.stopAt = null; a.legs = [fresh]; a.red = null; }
       return true;
     }
-    return { S, TL, IL, RT, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
+    return { S, TL, IL, RT, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
   }
 
   const api = { create, DT, HEADWAY };

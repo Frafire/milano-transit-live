@@ -5002,5 +5002,160 @@
    16,
    20
   ]
+ },
+ "closure_one_track": {
+  "_about": "Chiusure con un solo binario utilizzabile alla stazione di fine tratta (foglio Chiusure). Chiave 'stazione:senso di arrivo' come closure_turns; dentro: il binario NON utilizzabile ('1' verso San Donato, '2' verso Comasina) e cosa si fa. same: come con tutti i binari (quel binario non serve); turn: un altro modo di girare; navetta: [da, a] stazioni, track: il binario su cui va un solo treno avanti e indietro, il servizio normale gira alla stazione dall'altra parte della navetta. Senza la chiave del binario: non possibile (va chiusa anche quella stazione).",
+  "1:N": {
+   "2": {
+    "navetta": [
+     0,
+     1
+    ],
+    "track": 1
+   },
+   "1": {
+    "navetta": [
+     0,
+     1
+    ],
+    "track": 2
+   }
+  },
+  "5:N": {
+   "2": {
+    "navetta": [
+     0,
+     5
+    ],
+    "track": 1
+   },
+   "1": {
+    "navetta": [
+     0,
+     5
+    ],
+    "track": 2
+   }
+  },
+  "6:N": {
+   "2": {
+    "navetta": [
+     5,
+     6
+    ],
+    "track": 1
+   },
+   "1": {
+    "navetta": [
+     5,
+     6
+    ],
+    "track": 2
+   }
+  },
+  "14:N": {
+   "2": {
+    "same": true
+   },
+   "1": {
+    "navetta": [
+     13,
+     14
+    ],
+    "track": 2
+   }
+  },
+  "16:N": {
+   "2": {
+    "same": true
+   },
+   "1": {
+    "navetta": [
+     14,
+     16
+    ],
+    "track": 2
+   }
+  },
+  "6:S": {
+   "2": {
+    "turn": [
+     "C"
+    ]
+   },
+   "1": {
+    "turn": [
+     "B"
+    ]
+   }
+  },
+  "5:S": {
+   "1": {
+    "navetta": [
+     5,
+     6
+    ],
+    "track": 2
+   },
+   "2": {
+    "navetta": [
+     5,
+     6
+    ],
+    "track": 1
+   }
+  },
+  "1:S": {
+   "1": {
+    "navetta": [
+     1,
+     6
+    ],
+    "track": 2
+   },
+   "2": {
+    "navetta": [
+     1,
+     6
+    ],
+    "track": 1
+   }
+  },
+  "13:S": {
+   "2": {
+    "turn": [
+     "C"
+    ]
+   },
+   "1": {
+    "turn": [
+     "B"
+    ]
+   }
+  },
+  "14:S": {
+   "2": {
+    "turn": [
+     "C"
+    ]
+   },
+   "1": {
+    "turn": [
+     "B"
+    ]
+   }
+  },
+  "16:S": {
+   "2": {
+    "turn": [
+     "C"
+    ]
+   },
+   "1": {
+    "turn": [
+     "B"
+    ]
+   }
+  }
  }
 }

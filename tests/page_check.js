@@ -7,8 +7,9 @@
 // - laps: two laps; it stops a few seconds at each test stop and nowhere else on the loop, faster than 15 km/h
 // - a94: a train given a west shed leaves the loop back through #A94; meanwhile no other train is sent to the loop
 // - place: a train on its way into the depot gets a place; the player changes it by radio
+// - navetta: closure San Donato – Rogoredo with Rogoredo solo binario 1: the menu offers it, a navetta runs
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
-// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94 ...]   (no argument: all of them). Exit code 1 if one fails.
+// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html');
@@ -147,6 +148,23 @@ const SCENARIOS = {
       const sel = document.getElementById('placeSel'); if (!sel) return { ok: false, why: 'no place section in the radio' };
       const before = F.depot.target[k]; sel.value = [...sel.options].map(o => o.value).find(v => v !== before); document.getElementById('placeGo').click(); await sleep(1500);
       return { ok: F.depot.target[k] !== before, train: k, before, after: F.depot.target[k] };
+    });
+  },
+  async navetta(p) {   // a closure with one track only at an end (Rogoredo, solo binario 1): a navetta Rogoredo – Porta Romana
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.ag && f.line === 'M3') || M.fleets.find(f => f.depotPaths);
+      st.playing = false; st.t = 8 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      const sel = document.querySelector('.closures #clSel'), o = [...sel.options].find(x => /San Donato – Rogoredo/.test(x.textContent));
+      if (!o) return { ok: false, why: 'no closure San Donato – Rogoredo in the menu' };
+      sel.value = o.value; sel.onchange(); await sleep(200);
+      const end = document.querySelector('.closures select[data-end]'), one = end && [...end.options].find(x => x.value === '2');
+      if (!one || one.disabled) return { ok: false, why: 'option solo binario 1 not enabled', options: end ? [...end.options].map(x => x.textContent) : null };
+      end.value = '2'; document.querySelector('.closures #closeBtn').click(); await sleep(300);
+      const nav = F.ag.S.log.filter(x => x.nav);
+      st.playing = true; st.speed = 30; await sleep(8000); st.playing = false; await sleep(300);
+      const a = F.ag.agents().find(x => x.mode === 'navetta'), log = document.getElementById('radioLog').innerText;
+      return { ok: !!a && /Navetta/.test(log), option: one.textContent, nav, train: a && a.k, at: a && a.at };
     });
   },
 };

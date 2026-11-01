@@ -1493,6 +1493,30 @@ if CFG.get('degraded'):
                                   'S': {'pid': ps_, 'stops': [round(x, 1) for x in stS_], 'tail': tail_d(ps_)},
                                   'tails': [leg_ends[pn_][0], leg_ends[pn_][1]]})
         print('main path pairs (San Donato tail, Comasina tail):', [p_['tails'] for p_ in PAIRS])
+        # navette (closures with one track at an end, rules closure_one_track): one train back and forth on one track
+        # between two stations: the stretch of that main track (legal way) and the same reversed (against it)
+        NAVETTE = {}
+        _cot = {k: v for k, v in _rules_.get('closure_one_track', {}).items() if not k.startswith('_')}
+        for _opt in _cot.values():
+            for _tc in _opt.values():
+                if 'navetta' not in _tc: continue
+                _a, _b = _tc['navetta']; _T = _tc['track']; _mp = pS if _T == 1 else pN
+                _key = '%d-%d-%d' % (_a, _b, _T)
+                if _key in NAVETTE: continue
+                _st = (lambda i: stopS_f[len(names) - 1 - i]) if _T == 1 else (lambda i: stopN[i])
+                _lo, _hi = min(_st(_a), _st(_b)) - 130, max(_st(_a), _st(_b)) + 130
+                _states, _d, _off = [], 0.0, None
+                for _e, _dr in PATH_STATES[_mp]:
+                    _L = plen(poly(_e, _dr))
+                    if _d + _L > _lo and _d < _hi:
+                        if _off is None: _off = _d
+                        _states.append((_e, _dr))
+                    _d += _L
+                if not _states: continue
+                _pl = make_path(('nav', _key, 'L'), _states)
+                _pc = make_path(('nav', _key, 'C'), [(_e, -_dr) for _e, _dr in reversed(_states)])
+                NAVETTE[_key] = {'a': _a, 'b': _b, 'track': _T, 'legal': _pl, 'contra': _pc, 'main': _mp, 'off': round(_off, 1), 'L': round(paths[_pl][1][-1], 1)}
+        print('navette:', {k: (v['legal'], v['contra'], round(v['L'])) for k, v in NAVETTE.items()})
         DEGRADED = {'names': names, 'N': {'pid': pN, 'stops': [round(x, 1) for x in stopN], 'tail': tail_d(pN)},
                     'S': {'pid': pS, 'stops': [round(x, 1) for x in full['S'][pS][1]], 'tail': tail_d(pS)}, 'turns': TURNS, 'recovery': RECOVERY, 'platforms': ZONES, 'pairs': PAIRS}
         print('degraded service: turns at', sorted(TURNS))
@@ -1870,6 +1894,8 @@ print('route rules:', NET['route_rules'])
 NET['variants'] = {str(k): v for k, v in VARIANTS.items()}
 # closures (foglio Chiusure): how trains turn at the station where the closed stretch ends, and which closures there are
 NET['closure_turns'] = {k: v for k, v in _rules_.get('closure_turns', {}).items() if not k.startswith('_')}
+NET['closure_one_track'] = {k: v for k, v in _rules_.get('closure_one_track', {}).items() if not k.startswith('_')}
+NET['navette'] = NAVETTE if DEGRADED else {}
 _cst = _rules_.get('closures_list', {}).get('stations', [])
 _often = {}
 for _c in _RG.get('chiusure', []):
