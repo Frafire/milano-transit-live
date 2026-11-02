@@ -46,8 +46,9 @@ Fatto: Motore dal vivo nel browser: i treni sono agenti (accelerazione, frenata,
 
 ## 4 Pagina iniziale
 
-- **Pianificato** — Gioca! → scelta del mezzo → linee metro (M1, M2, M3, M4+M5, insieme) (Claude): Linee non pronte: "in arrivo"
-- **Pianificato** — Dati divisi per linea e giorno, caricati a richiesta (Claude): Serve anche alla fase E
+Fatto: Gioca! → scelta del mezzo → linee metro (M1, M2, M3, M4+M5, insieme); Dati divisi per linea e giorno, caricati a richiesta.
+
+- **Aspetta Giovanni** — Sfondo del menu (foto) e schema della rete (Giovanni): Fonte da confermare (CREDITS.md)
 
 ## 5 Altre linee metro
 

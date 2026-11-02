@@ -1970,6 +1970,37 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLRoutes = api;
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
+<script>// The radio phrases (Giovanni, 2 Nov 2026: all the radio calls in a file of their own). They are written in the Radio
+// sheet of the rules Excel (data/Regole_interlocking_M3.xlsx) -> tools/rules_from_excel.py -> data/radio_m3.json; the
+// build puts them in the network (net.radio). The code only says which phrase: t('guasto.trazione.riarmato', { dove }).
+//
+// A phrase: { chi, quando, testi: [one or more variants] }. Placeholders in braces: {stazione}, {segnale}... filled from
+// the values given; {T} and {R} (the train, the rescuing train) are left as they are and filled later with the train
+// numbers (faults feed). More variants: one at random (with the given random function, so seeded days stay the same).
+// Strict (the Node tests): a missing phrase or a placeholder left without a value is an error.
+(function (root) {
+  const LATER = new Set(['T', 'R']);
+  function create(table, rng) {
+    const T = table || {};
+    function t(code, vars, r) {
+      const e = T[code];
+      if (!e || !e.testi || !e.testi.length) {
+        if (api.strict) throw new Error('frase radio mancante: ' + code);
+        return '[' + code + ']';
+      }
+      const L = e.testi, s = L.length > 1 ? L[Math.floor((r || rng || Math.random)() * L.length)] : L[0];
+      return s.replace(/\{(\w+)\}/g, (m, k) => {
+        if (vars && vars[k] != null) return String(vars[k]);
+        if (!LATER.has(k) && api.strict) throw new Error('frase radio ' + code + ': manca il valore di {' + k + '}');
+        return m;
+      });
+    }
+    return { t, has: c => !!T[c], codes: () => Object.keys(T), who: c => T[c] && T[c].chi };
+  }
+  const api = { create, strict: typeof module !== 'undefined' && !!module.exports && !(typeof process !== 'undefined' && process.env.FRASI_LAX) };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLFrasi = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
 <script>// Milano Transit Live — failures (guasti, fase D) of the M3 trains, from Giovanni's foglio Guasti.
 //
 // A failure lives in the state of the day (S.faults: saved with the rest, so going back in time and the same events
@@ -2054,6 +2085,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // seeded random numbers (mulberry32), the seed in the state
     function rnd() { const f = F(); let t = (f.rng = (f.rng + 0x6D2B79F5) | 0); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
     const between = (a, b) => Math.round(a + (b - a) * rnd());
+    // the radio phrases (data/radio_m3.json): tx('code', { values }); a variant chosen with the seeded random numbers
+    const FR = (typeof module !== 'undefined' && module.exports ? require('./frasi.js') : root.MTLFrasi).create(c.radio || {}, rnd);
+    const tx = (code, v) => FR.t(code, v);
     const name = st => st != null && G ? G.names[st].replace(/\s+M\d$/, '').toLowerCase().replace(/\b\w/g, x => x.toUpperCase()).replace(/\b(Fs|Fn)\b/g, x => x.toUpperCase()) : '';
     // what is said on the radio: who (dr: the driver of train k, pc, ag: the agent of station st, man: line maintenance)
     function say(f, who, text) { const Q = F().feed; Q.push({ t: S.t, id: f.id, k: f.k, r: f.rk, who, st: f.st, text }); if (Q.length > 200) Q.splice(0, Q.length - 200); }
@@ -2074,11 +2108,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       begin(f, a); return f.id;
     }
     function begin(f, a) {
-      if (f.kind === 'ato') { f.ph = 'manual'; call(f, `DCT, treno {T}: guasto all'ATO, proseguo in guida manuale.`, ['ack']); }
-      else if (f.kind === 'atp') { f.ph = 'limited'; call(f, `DCT, treno {T}: guasto all'ATP, proseguo in marcia limitata a 30 km/h.`, ['homeEnd']); }
+      if (f.kind === 'ato') { f.ph = 'manual'; call(f, tx('guasto.ato.manuale'), ['ack']); }
+      else if (f.kind === 'atp') { f.ph = 'limited'; call(f, tx('guasto.atp.marcia_limitata'), ['homeEnd']); }
       else if (f.kind === 'riarmo') { f.ph = 'run'; f.next = S.t + between(120, 420); }
-      else if (f.kind === 'secondario') { f.ph = 'run'; const what = ['la climatizzazione di una cassa non funziona', 'un display interno per i passeggeri è spento', 'una luce di cabina non si accende', 'il pannello diagnostico segnala un\'anomalia su un carrello', 'un annuncio automatico non parte'];
-        call(f, `DCT, treno {T}: ${what[Math.floor(rnd() * what.length)]}. Il treno marcia, chiedo un tecnico a bordo.`, ['tech']); }
+      else if (f.kind === 'secondario') { f.ph = 'run';          // the problem: one of the variants, at random
+        call(f, tx('guasto.secondario.chiede_tecnico', { cosa: tx('guasto.secondario.problema') }), ['tech']); }
       else if (f.kind === 'trazione') f.ph = 'stopping';              // it stops where it is (at a station: when leaving)
       else if (f.kind === 'malore_treno' && a.stopAt != null) atStation(f, a);
     }
@@ -2107,13 +2141,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const f = Object.assign({ id: ++F().seq, kind, k: null, target, t0: S.t, ph: 'on' }, extra || {}); f.target = target;
       const st = RT();
       if (kind === 'segnale') { st.sigFail = st.sigFail || {}; st.sigFail[target] = true; f.what = 'Semaforo ' + tag(target); f.until = S.t + between(1800, 5400);
-        say(f, 'sys', `Semaforo ${tag(target)} guasto: resta rosso.`); }
+        say(f, 'sys', tx('guasto.segnale.rosso', { segnale: tag(target) })); }
       else if (kind === 'sezione') { st.ghost = st.ghost || {}; f.edges = L.sigEdges(target); f.edges.forEach(ei => { st.ghost[ei] = f.id; }); f.what = 'Sezione dopo il ' + tag(target); f.until = S.t + between(1200, 3600);
-        say(f, 'sys', `La sezione dopo il ${tag(target)} risulta occupata, ma non c'è nessun treno.`); }
+        say(f, 'sys', tx('guasto.sezione.occupata', { segnale: tag(target) })); }
       else if (kind === 'scambio') { st.swFail = st.swFail || {}; st.swFail[target] = true; f.what = 'Scambio ' + target; f.ph = 'failed';
-        f.callWho = 'sys'; call(f, `Scambio ${target} guasto: non va in posizione, gli itinerari che lo usano non si formano.`, ['team']); }
+        f.callWho = 'sys'; call(f, tx('guasto.scambio.non_va', { scambio: target }), ['team']); }
       else if (kind === 'tensione') { f.zones = [L.zone('power', target, target + 1)]; f.what = name(target) + ' – ' + name(target + 1); f.until = S.t + between(300, 3600); f.ph = 'off';
-        f.callWho = 'en'; call(f, `DCT, qui Energia: mancanza di tensione tra ${f.what}. I treni nella tratta sono fermi.`, ['ack']); }
+        f.callWho = 'en'; call(f, tx('energia.mancanza', { tratta: f.what }), ['ack']); }
       // public order (Giovanni): the Prefettura orders a station closed, nearly always Duomo or Centrale, so that the people
       // leave through two stations instead of one. Announced at the start of the shift; once a day; 2 to 6 hours; the
       // trains go through without stopping
@@ -2121,7 +2155,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         F().prefDone = true; f.st = X; f.what = name(X); f.ph = 'announced'; f.callWho = 'pref';
         f.from = f.random ? Math.round((10 + 9 * rnd()) * 3600 / 300) * 300 : Math.ceil((S.t + 900) / 300) * 300; f.until = f.from + Math.round((2 + 4 * rnd()) * 3600 / 900) * 900;
         const hm = x => Math.floor(x / 3600) % 24 + ':' + String(Math.floor(x / 60) % 60).padStart(2, '0');
-        call(f, `DCT, qui la Prefettura: per motivi di ordine pubblico oggi la stazione di ${name(X)} resta chiusa dalle ${hm(f.from)} alle ${hm(f.until)}. I treni non fermano.`, ['ack']);
+        call(f, tx('prefettura.chiusura', { stazione: name(X), dalle: hm(f.from), alle: hm(f.until) }), ['ack']);
       }
       // the strike (D5): a percentage of the drivers; guaranteed service from the start to 8:45 and 15:00-18:00
       else if (kind === 'sciopero') {
@@ -2129,23 +2163,23 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         const all = S.agents.filter(a => !(a.mode === 'static' && a.hidden)), n = Math.round(all.length * f.pct / 100), pool = all.slice();
         f.strikers = []; while (f.strikers.length < n && pool.length) { const a = pool.splice(Math.floor(rnd() * pool.length), 1)[0]; a.strike = true; f.strikers.push(a.k); }
         f.marks = { out1: S.t >= G1 + 60, back: S.t >= G2a + 60, out2: S.t >= G2b + 60 };
-        call(f, `DCT, qui Ufficio Movimento: oggi sciopero, adesione del ${f.pct}% (${n} treni su ${all.length}). Fasce di garanzia: dall'inizio del servizio alle 8:45 e dalle 15:00 alle 18:00. Fuori dalle fasce come fai il servizio?`, ['freq', 'gaps', 'limit']);
+        call(f, tx('sciopero.adesione', { adesione: f.pct, treni: n, totale: all.length }), ['freq', 'gaps', 'limit']);
       }
       // people and emergencies (D3)
       else if (kind === 'persona') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.zones = [L.zone('stop', X, X)];
-        call(f, `DCT, qui ${name(X)}: c'è una persona sui binari! Ho chiuso i segnali di partenza e di protezione della stazione.`, ['red'], 30); }
+        call(f, tx('emergenza.persona.binari', { stazione: name(X) }), ['red'], 30); }
       else if (kind === 'oggetto') { f.st = X; f.what = name(X); f.ph = 'told'; f.callWho = 'ag';
-        call(f, `DCT, qui ${name(X)}: un passeggero dice che è caduto qualcosa sul binario.`, ['agent']); }
+        call(f, tx('emergenza.oggetto.segnalato', { stazione: name(X) }), ['agent']); }
       else if (kind === 'malore_stazione') { f.st = X; f.what = name(X); f.ph = 'help'; f.callWho = 'ag'; f.until = S.t + between(600, 1800); f.holdAt = S.t + between(120, 400);
-        call(f, `DCT, qui ${name(X)}: una persona si sente male in banchina, ho chiamato i soccorsi.`, ['ack']); }
+        call(f, tx('emergenza.malore_stazione.soccorsi', { stazione: name(X) }), ['ack']); }
       else if (kind === 'tunnel') { f.what = name(X) + ' – ' + name(X + 1); f.a = X; f.ph = 'alarm'; f.callWho = 'drx';
-        call(f, `DCT, qui un macchinista: c'è una persona nel tunnel tra ${f.what}!`, ['red'], 30); }
+        call(f, tx('emergenza.tunnel.persona', { tratta: f.what }), ['red'], 30); }
       else if (kind === 'investimento') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.zones = [L.zone('stop', X, X)];
         { const t0 = S.agents.find(a => !a.hidden && a.stopAt === X) || S.agents.filter(a => !a.hidden && a.status === 'service' && a.legs[0] && a.legs[0].stops && a.legs[0].stops[0] && a.legs[0].stops[0].st === X)[0]; f.tk = t0 ? t0.k : null; if (t0) t0.broken = true; }
-        call(f, `DCT, qui ${name(X)}: investimento! Un treno ha investito una persona in banchina. Ho chiuso i segnali della stazione.`, ['red'], 30); }
+        call(f, tx('emergenza.investimento.allarme', { stazione: name(X) }), ['red'], 30); }
       else if (kind === 'incendio') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.smoke = rnd() < 0.4 ? S.t + between(60, 300) : null;
         f.until = S.t + (rnd() < 0.15 ? between(5400, 18000) : between(1800, 5400));
-        call(f, `DCT, qui ${name(X)}: incendio in stazione, fumo e allarme antincendio!`, ['fire'], 30); }
+        call(f, tx('emergenza.incendio.allarme', { stazione: name(X) }), ['fire'], 30); }
       F().list.push(f); return f.id;
     }
     // the position of switch nd a waiting train needs (the squad puts it there), else the first one
@@ -2155,65 +2189,66 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     function tickLine(f) {
       const st = RT();
-      if (f.kind === 'segnale' && S.t >= f.until) { delete st.sigFail[f.target]; end(f, `Semaforo ${tag(f.target)} riparato.`, 'man'); }
-      else if (f.kind === 'sezione' && S.t >= f.until) { for (const ei of f.edges) if (st.ghost[ei] === f.id) delete st.ghost[ei]; end(f, `Sezione dopo il ${tag(f.target)} riparata: torna libera.`, 'man'); }
+      if (f.kind === 'segnale' && S.t >= f.until) { delete st.sigFail[f.target]; end(f, tx('guasto.segnale.riparato', { segnale: tag(f.target) }), 'man'); }
+      else if (f.kind === 'sezione' && S.t >= f.until) { for (const ei of f.edges) if (st.ghost[ei] === f.id) delete st.ghost[ei]; end(f, tx('guasto.sezione.riparata', { segnale: tag(f.target) }), 'man'); }
       else if (f.kind === 'scambio') {
         if (f.ph === 'team' && S.t >= f.until) {
           const P = L.positions(f.target), want = posFor(f.target), order = P.slice().sort((x, y) => (y.pos === want) - (x.pos === want));
           f.ph = 'pos'; f.pos = order.map(p => p.pos); f.callWho = 'man';
           f.labels = Object.fromEntries(order.map((p, i) => ['p' + i, 'Posizione ' + p.ids.slice(0, 2).join(', ')]));
-          call(f, `DCT, qui la squadra: siamo allo scambio ${f.target}. In che posizione lo mettiamo?`, order.map((p, i) => 'p' + i));
+          call(f, tx('guasto.scambio.squadra_chiede_posizione', { scambio: f.target }), order.map((p, i) => 'p' + i));
         }
-        if (f.ph === 'hand' && S.t >= f.until) { delete st.swFail[f.target]; end(f, `Scambio ${f.target} riparato: torna comandato dall'apparato.`, 'man'); }
+        if (f.ph === 'hand' && S.t >= f.until) { delete st.swFail[f.target]; end(f, tx('guasto.scambio.riparato', { scambio: f.target }), 'man'); }
       }
-      else if (f.kind === 'persona' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; call(f, f.gone ? `DCT, qui ${name(f.st)}: quando sono arrivato la persona non c'era più, è risalita. Puoi ridare tensione e via libera.` : `DCT, qui ${name(f.st)}: la persona è stata recuperata, i binari sono liberi. Puoi ridare tensione e via libera.`, ['clear']); }
+      else if (f.kind === 'persona' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; call(f, tx(f.gone ? 'emergenza.persona.risalita' : 'emergenza.persona.recuperata', { stazione: name(f.st) }), ['clear']); }
       else if (f.kind === 'oggetto' && f.ph === 'verify' && S.t >= f.until) {
-        if (!f.found) end(f, `Qui ${name(f.st)}: ho controllato, sul binario non c'è niente.`, 'ag');
-        else { f.ph = 'found'; call(f, `DCT, qui ${name(f.st)}: c'è davvero un oggetto sul binario. Serve togliere tensione in stazione per recuperarlo.`, ['cut']); }
+        if (!f.found) end(f, tx('emergenza.oggetto.niente', { stazione: name(f.st) }), 'ag');
+        else { f.ph = 'found'; call(f, tx('emergenza.oggetto.trovato', { stazione: name(f.st) }), ['cut']); }
       }
-      else if (f.kind === 'oggetto' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; call(f, `DCT, qui ${name(f.st)}: oggetto recuperato, puoi ridare tensione.`, ['clear']); }
+      else if (f.kind === 'oggetto' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; call(f, tx('emergenza.oggetto.recuperato', { stazione: name(f.st) }), ['clear']); }
       else if (f.kind === 'malore_stazione') {
-        if (f.holdAt && S.t >= f.holdAt && f.ph === 'help' && !f.call) { f.holdAt = null; f.ph = 'ask'; call(f, `DCT, qui ${name(f.st)}: fermate un momento i treni in stazione, i soccorritori lavorano in banchina.`, ['hold']); }
-        if (f.ph === 'holding' && S.t >= f.holdUntil) { unzone(f, 'stop'); f.ph = 'help'; say(f, 'ag', `Qui ${name(f.st)}: i treni possono ripartire, grazie.`); }
-        if (f.ph === 'help' && !f.holdAt && S.t >= f.until) { unLine(f); end(f, `Qui ${name(f.st)}: la persona è stata soccorsa, emergenza rientrata.`, 'ag'); }
+        if (f.holdAt && S.t >= f.holdAt && f.ph === 'help' && !f.call) { f.holdAt = null; f.ph = 'ask'; call(f, tx('emergenza.malore_stazione.ferma_treni', { stazione: name(f.st) }), ['hold']); }
+        if (f.ph === 'holding' && S.t >= f.holdUntil) { unzone(f, 'stop'); f.ph = 'help'; say(f, 'ag', tx('emergenza.malore_stazione.ripartire', { stazione: name(f.st) })); }
+        if (f.ph === 'help' && !f.holdAt && S.t >= f.until) { unLine(f); end(f, tx('emergenza.malore_stazione.rientrata', { stazione: name(f.st) }), 'ag'); }
       }
-      else if (f.kind === 'tunnel' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; f.callWho = 'pol'; call(f, `DCT, qui la polizia: la persona nel tunnel tra ${f.what} è stata allontanata.`, ['clear']); }
+      else if (f.kind === 'tunnel' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; f.callWho = 'pol'; call(f, tx('emergenza.tunnel.allontanata', { tratta: f.what }), ['clear']); }
       else if (f.kind === 'prefettura') {
-        if (f.ph === 'announced' && S.t >= f.from - 300 && !f.warned) { f.warned = true; say(f, 'ag', `Qui ${name(f.st)}: tra 5 minuti chiudo gli accessi come da disposizione della Prefettura, faccio gli annunci.`); }
-        if (f.ph === 'announced' && S.t >= f.from) { f.ph = 'closed'; L.station(f.st, true); say(f, 'ag', `Qui ${name(f.st)}: accessi chiusi, la stazione è vuota. I treni possono transitare.`);
-          const near = [f.st - 1, f.st + 1].filter(i => i >= 0 && i <= L.last()).map(name).join(' e ');
-          say(f, 'pc', `Annuncio a ${near}: la stazione di ${name(f.st)} è chiusa per disposizione della Prefettura, i treni non fermano.`); }
-        if (f.ph === 'closed' && S.t >= f.until && !f.call) { f.ph = 'end'; call(f, `DCT, qui la Prefettura: la disposizione è revocata, potete riaprire ${name(f.st)}.`, ['reopenSt']); }
+        if (f.ph === 'announced' && S.t >= f.from - 300 && !f.warned) { f.warned = true; say(f, 'ag', tx('prefettura.preavviso', { stazione: name(f.st) })); }
+        if (f.ph === 'announced' && S.t >= f.from) { f.ph = 'closed'; L.station(f.st, true); say(f, 'ag', tx('prefettura.accessi_chiusi', { stazione: name(f.st) }));
+          const near = [f.st - 1, f.st + 1].filter(i => i >= 0 && i <= L.last()).map(name);
+          say(f, 'pc', near.length > 1 ? tx('prefettura.annuncio_vicine', { vicina: near[0], vicina2: near[1], stazione: name(f.st) })
+            : tx('prefettura.annuncio_vicina', { vicina: near[0] || '', stazione: name(f.st) })); }
+        if (f.ph === 'closed' && S.t >= f.until && !f.call) { f.ph = 'end'; call(f, tx('prefettura.revoca', { stazione: name(f.st) }), ['reopenSt']); }
       }
       else if (f.kind === 'sciopero') {
         // end of a guaranteed band: the drivers on strike ask to go back to the depot; at 15:00 they are back
         const out = when => { for (const k of f.strikers) { const a = S.agents[k]; if (!a || a.hidden || a.mode === 'static' || live().some(x => x.k === k && x.kind === 'rientro')) continue;
           if (L.keepIn && L.keepIn(k)) continue;                                   // still in the depot: it stays there
           const g = { id: ++F().seq, kind: 'rientro', k, t0: S.t, ph: 'call', st: null }; F().list.push(g);
-          call(g, `DCT, treno {T}: è finita la fascia di garanzia, sciopero. Chiedo di rientrare in deposito a fine corsa.`, ['homeEnd']); }
-          if (f.choice === 'freq' && L.hybrid) L.hybrid(); say(f, 'sys', `Fine della fascia di garanzia (${when}): i treni in sciopero rientrano.`); };
+          call(g, tx('sciopero.rientro_chiesto'), ['homeEnd']); }
+          if (f.choice === 'freq' && L.hybrid) L.hybrid(); say(f, 'sys', tx('sciopero.fine_fascia', { quando: when })); };
         if (!f.marks.out1 && S.t >= G1) { f.marks.out1 = true; out('8:45'); }
         // 15:00: back in service, one at a time out of the depot (every 4 minutes, when the way out is free)
-        if (!f.marks.back && S.t >= G2a) { f.marks.back = true; f.wakeQ = f.strikers.slice(); f.nextWake = S.t; say(f, 'sys', 'Inizio della fascia di garanzia (15:00): i treni in sciopero tornano in servizio.'); }
+        if (!f.marks.back && S.t >= G2a) { f.marks.back = true; f.wakeQ = f.strikers.slice(); f.nextWake = S.t; say(f, 'sys', tx('sciopero.inizio_fascia')); }
         if (f.wakeQ && f.wakeQ.length && S.t >= f.nextWake && S.t < G2b) { const k = f.wakeQ[0], a = S.agents[k];
           if (!a || !(a.hidden || a.mode === 'static')) f.wakeQ.shift(); else if (L.wake(k)) { f.wakeQ.shift(); f.nextWake = S.t + 240; } else f.nextWake = S.t + 30; }
         if (!f.marks.out2 && S.t >= G2b) { f.marks.out2 = true; out('18:00'); }
-        if (S.t >= 26 * 3600) end(f, 'Fine della giornata di sciopero.', 'sys');
+        if (S.t >= 26 * 3600) end(f, tx('sciopero.fine_giornata'), 'sys');
       }
       else if (f.kind === 'investimento' && f.ph === 'recover' && f.closeAsk === undefined && L.closures) {
         // the DCT must close a stretch around the station (he chooses which one)
         const cl = L.closures(f.st); f.closeAsk = cl.map(c => c.i);
-        if (cl.length) { f.labels = Object.assign({}, f.labels || {}, Object.fromEntries(cl.map((c, i) => ['cl' + i, 'Chiudi ' + c.label]))); call(f, `${name(f.st)} resterà chiusa per ore: chiudi la tratta.`, cl.map((c, i) => 'cl' + i)); }
+        if (cl.length) { f.labels = Object.assign({}, f.labels || {}, Object.fromEntries(cl.map((c, i) => ['cl' + i, 'Chiudi ' + c.label]))); call(f, tx('emergenza.investimento.chiudi_tratta', { stazione: name(f.st) }), cl.map((c, i) => 'cl' + i)); }
       }
-      else if (f.kind === 'investimento' && f.ph === 'recover' && S.t >= f.until && !f.call) { f.ph = 'done'; call(f, `DCT, qui ${name(f.st)}: la polizia ha finito i rilievi. Si può ridare tensione; il treno va portato in deposito.`, ['clear']); }
+      else if (f.kind === 'investimento' && f.ph === 'recover' && S.t >= f.until && !f.call) { f.ph = 'done'; call(f, tx('emergenza.investimento.rilievi_finiti', { stazione: name(f.st) }), ['clear']); }
       else if (f.kind === 'incendio') {
-        if (f.smoke && S.t >= f.smoke && f.ph === 'fire') { f.smoke = null; call(f, `DCT, qui ${name(f.st)}: c'è fumo in galleria!`, ['red'], 30); }
-        if (f.ph === 'fire' && !f.smoke && !f.call && S.t >= f.until) { f.ph = 'done'; f.callWho = 'vvf'; call(f, `DCT, qui i vigili del fuoco: incendio a ${name(f.st)} spento e verificato. La stazione può riaprire.`, ['clear']); }
+        if (f.smoke && S.t >= f.smoke && f.ph === 'fire') { f.smoke = null; call(f, tx('emergenza.incendio.fumo', { stazione: name(f.st) }), ['red'], 30); }
+        if (f.ph === 'fire' && !f.smoke && !f.call && S.t >= f.until) { f.ph = 'done'; f.callWho = 'vvf'; call(f, tx('emergenza.incendio.spento', { stazione: name(f.st) }), ['clear']); }
       }
       else if (f.kind === 'tensione' && f.ph === 'off' && !f.evacAsk && S.t - f.t0 >= 1200 && L.stuckIn && L.stuckIn().length) {
-        f.evacAsk = true; call(f, `DCT, qui i macchinisti tra ${f.what}: siamo fermi in galleria da 20 minuti con i passeggeri. Evacuiamo?`, ['evac', 'ack']);
+        f.evacAsk = true; call(f, tx('energia.evacuare_chiesto', { tratta: f.what }), ['evac', 'ack']);
       }
-      else if (f.kind === 'tensione' && f.ph === 'off' && S.t >= f.until && !f.call && !(f.evacUntil && S.t < f.evacUntil)) { f.ph = 'ready'; call(f, `DCT, qui Energia: guasto riparato tra ${f.what}, puoi ridare tensione.`, ['power']); }
+      else if (f.kind === 'tensione' && f.ph === 'off' && S.t >= f.until && !f.call && !(f.evacUntil && S.t < f.evacUntil)) { f.ph = 'ready'; call(f, tx('energia.riparato', { tratta: f.what }), ['power']); }
     }
     // trains stopped at a red by a failure of the line: they call the DCT and ask to go by in marcia a vista
     function lineCalls() {
@@ -2225,108 +2260,108 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         if (live().some(f => f.kind === 'vista' && f.k === a.k)) continue;
         const f = { id: ++F().seq, kind: 'vista', k: a.k, t0: S.t, ph: 'call', n: w.sig, st: null };
         F().list.push(f);
-        call(f, r.sigFail != null ? `DCT, treno {T}: sono fermo al ${tag(w.sig)}, il semaforo non si apre. Chiedo di superarlo in marcia a vista.`
-          : r.ghost != null ? `DCT, treno {T}: sono fermo al ${tag(w.sig)}, la sezione dopo risulta occupata ma davanti non vedo treni. Chiedo la marcia a vista.`
-          : `DCT, treno {T}: sono fermo al ${tag(w.sig)}, lo scambio ${r.swHand} è manovrato a mano. Chiedo l'autorizzazione a passare.`, ['vista']);
+        call(f, r.sigFail != null ? tx('guasto.vista.semaforo', { segnale: tag(w.sig) })
+          : r.ghost != null ? tx('guasto.vista.sezione', { segnale: tag(w.sig) })
+          : tx('guasto.vista.scambio', { segnale: tag(w.sig), scambio: r.swHand }), ['vista']);
       }
     }
     function giveVista(k, n) { const st = RT(); st.avista = st.avista || {}; st.avista[k] = n; }
     // the train has stopped at a station (or was there already)
     function atStation(f, a) {
       f.st = a.stopAt;
-      if (f.kind === 'porta') { f.ph = 'dwell'; f.extra = between(60, 180); say(f, 'dr', `DCT, treno {T}: a ${name(f.st)} una porta non si chiude, la escludo e la chiudo a mano.`); }
+      if (f.kind === 'porta') { f.ph = 'dwell'; f.extra = between(60, 180); say(f, 'dr', tx('guasto.porta.esclusa', { stazione: name(f.st) })); }
       else if (f.kind === 'porte_persone') { f.ph = 'dwell'; f.extra = between(30, 120); }
-      else if (f.kind === 'allarme') { f.ph = 'held'; call(f, `DCT, treno {T}: allarme passeggero, mi sono fermato a ${name(f.st)}. Chiedo l'agente di stazione.`, ['agent']); }
+      else if (f.kind === 'allarme') { f.ph = 'held'; call(f, tx('guasto.allarme.fermo', { stazione: name(f.st) }), ['agent']); }
       else if (f.kind === 'malore_treno') { f.ph = 'held'; f.until = S.t + between(1200, 3600); f.callWho = 'ag';
-        call(f, `DCT, qui ${name(f.st)}: un passeggero si sente male sul treno {T}, ho chiamato i soccorsi. Il treno resta fermo in banchina.`, ['ack']); }
+        call(f, tx('emergenza.malore_treno.soccorsi', { stazione: name(f.st) }), ['ack']); }
     }
 
     // the DCT answers (or the admin): null when done, else why not
     function answer(id, what) {
       const f = live().find(x => x.id === id); if (!f) return { gone: true };
       if (what === 'fix') { unLine(f); if (f.st != null && (f.kind === 'investimento' || f.kind === 'incendio')) L.station(f.st, false);
-        end(f, f.kind === 'pc' ? `DCT: tolto ${f.zone === 'red' ? 'il pulsante rosso' : f.zone === 'power' ? 'il taglio di tensione' : 'il fermo dei treni'} tra ${f.what}.` : 'Guasto risolto (admin).', f.kind === 'pc' ? 'pc' : 'sys'); return null; }
+        end(f, f.kind === 'pc' ? tx(f.zone === 'red' ? 'emergenza.dct.tolto_rosso' : f.zone === 'power' ? 'emergenza.dct.tolto_tensione' : 'emergenza.dct.tolto_fermo', { tratta: f.what }) : tx('guasto.admin.risolto'), f.kind === 'pc' ? 'pc' : 'sys'); return null; }
       if (what === 'tech') {
         if ((f.kind !== 'riarmo' && f.kind !== 'secondario') || f.tech) return { no: true };
-        f.tech = 'wait'; say(f, 'pc', f.kind === 'riarmo' ? 'Manutenzione di linea del deposito di Rogoredo, mandate un tecnico sul treno {T}: chiede continuamente il riarmo.' : 'Manutenzione di linea del deposito di Rogoredo, mandate un tecnico sul treno {T}: ha un problema secondario.');
-        say(f, 'man', 'Ricevuto DCT, il tecnico sale sul treno {T} a San Donato.');
+        f.tech = 'wait'; say(f, 'pc', f.kind === 'riarmo' ? tx('guasto.chiede_riarmo.manda_tecnico') : tx('guasto.secondario.manda_tecnico'));
+        say(f, 'man', tx('guasto.tecnico.sale'));
         if (f.call && f.call.opts.includes('tech')) { f.call.opts = f.call.opts.filter(x => x !== 'tech'); if (!f.call.opts.length) f.call = null; }
         return null;
       }
       if (!f.call || !f.call.opts.includes(what)) return { no: true };
       f.call = null;
-      if (what === 'vista') { giveVista(f.k, f.n); say(f, 'pc', `Treno {T}, autorizzato a superare il ${tag(f.n)} in marcia a vista fino al semaforo successivo.`); say(f, 'dr', `Ricevuto DCT, supero il ${tag(f.n)} in marcia a vista.`); f.ph = 'go'; return null; }
-      if (what === 'team') { say(f, 'pc', `Squadra di manutenzione, andate allo scambio ${f.target}: non va in posizione.`); say(f, 'man', 'Ricevuto DCT, arriviamo.'); f.ph = 'team'; f.until = S.t + between(600, 1800); return null; }
+      if (what === 'vista') { giveVista(f.k, f.n); say(f, 'pc', tx('guasto.vista.autorizzato', { segnale: tag(f.n) })); say(f, 'dr', tx('guasto.vista.ricevuto', { segnale: tag(f.n) })); f.ph = 'go'; return null; }
+      if (what === 'team') { say(f, 'pc', tx('guasto.scambio.manda_squadra', { scambio: f.target })); say(f, 'man', tx('guasto.scambio.squadra_arriva')); f.ph = 'team'; f.until = S.t + between(600, 1800); return null; }
       if (/^p\d$/.test(what) && f.kind === 'scambio') {
         const pos = f.pos[+what.slice(1)], st = RT(); st.swFail[f.target] = pos; st.sw[f.target] = pos;
-        say(f, 'pc', `Mettetelo in ${f.labels[what].toLowerCase()} e bloccatelo.`); say(f, 'man', `Scambio ${f.target} manovrato a mano e bloccato. I treni passano solo con la tua autorizzazione.`);
+        say(f, 'pc', tx('guasto.scambio.metti_in', { posizione: f.labels[what].toLowerCase() })); say(f, 'man', tx('guasto.scambio.manovrato_a_mano', { scambio: f.target }));
         f.ph = 'hand'; f.until = S.t + between(1800, 5400); return null;
       }
-      if (what === 'power') { unLine(f); end(f, `DCT: ridata tensione tra ${f.what}. I treni ripartono.`, 'pc'); return null; }
+      if (what === 'power') { unLine(f); end(f, tx('energia.ridata', { tratta: f.what }), 'pc'); return null; }
       if (what === 'red') {                    // pulsante rosso and no power: around the station, or the stretch of the tunnel
         const [a, b] = f.kind === 'tunnel' ? [f.a, f.a + 1] : f.around; f.zones = (f.zones || []).concat([L.zone('red', a, b), L.zone('power', a, b)]);
-        say(f, 'pc', `Pulsante rosso tra ${name(a)} e ${name(b)}: tutti i semafori a rosso, tolgo tensione. Tutti i treni della tratta fermi!`);
-        if (f.kind === 'persona') { f.ph = 'recover'; f.gone = rnd() < 0.1; f.until = S.t + (f.gone ? between(180, 300) : between(600, 1800)); say(f, 'ag', `Ricevuto DCT, scendo a recuperare la persona.`); }
-        if (f.kind === 'tunnel') { f.ph = 'recover'; f.until = S.t + between(900, 3600); say(f, 'pc', `Chiamo la polizia. Stazioni di ${name(a)} e ${name(b)}: c'è una persona nel tunnel, la tratta è chiusa.`); }
+        say(f, 'pc', tx('emergenza.pulsante_rosso', { da: name(a), a: name(b) }));
+        if (f.kind === 'persona') { f.ph = 'recover'; f.gone = rnd() < 0.1; f.until = S.t + (f.gone ? between(180, 300) : between(600, 1800)); say(f, 'ag', tx('emergenza.persona.scendo')); }
+        if (f.kind === 'tunnel') { f.ph = 'recover'; f.until = S.t + between(900, 3600); say(f, 'pc', tx('emergenza.tunnel.chiamo_polizia', { da: name(a), a: name(b) })); }
         if (f.kind === 'investimento') { f.ph = 'recover'; f.until = S.t + between(10800, 18000); L.station(f.st, true);
-          say(f, 'pc', `Chiamo polizia e soccorsi. ${name(f.st)} chiusa: i treni non fermano. Valuta la chiusura della tratta.`); }
-        if (f.kind === 'incendio') say(f, 'pc', `Fumo in galleria a ${name(f.st)}: treni fermi, tensione tolta.`);
+          say(f, 'pc', tx('emergenza.investimento.chiamo_soccorsi', { stazione: name(f.st) })); }
+        if (f.kind === 'incendio') say(f, 'pc', tx('emergenza.incendio.fumo_tensione_tolta', { stazione: name(f.st) }));
         return null;
       }
-      if (what === 'fire') { L.station(f.st, true); f.ph = 'fire'; say(f, 'pc', `Chiudo ${name(f.st)}: i treni non fermano. Chiamo i vigili del fuoco; agente, fai uscire i passeggeri.`); say(f, 'ag', 'Ricevuto DCT, faccio uscire tutti.'); return null; }
-      if (what === 'cut') { f.zones = (f.zones || []).concat([L.zone('power', f.st, f.st)]); f.ph = 'recover'; f.until = S.t + between(300, 900); say(f, 'pc', `Tolgo tensione in stazione a ${name(f.st)}: recuperate l'oggetto.`); return null; }
-      if (what === 'hold') { f.zones = (f.zones || []).concat([L.zone('stop', f.st, f.st)]); f.ph = 'holding'; f.holdUntil = S.t + between(120, 300); say(f, 'pc', `Ricevuto ${name(f.st)}, fermo i treni in stazione.`); return null; }
-      if (/^cl\d$/.test(what)) { const i = f.closeAsk[+what.slice(2)]; if (L.close(i)) { f.closed = true; say(f, 'pc', `${f.labels[what]}: i treni girano alle stazioni di fine tratta.`); } return null; }
-      if (what === 'reopenSt') { L.station(f.st, false); end(f, `DCT: ${name(f.st)} riaperta.`, 'pc'); return null; }
-      if (what === 'reopen') { L.reopen(); end(f, 'DCT: tratta riaperta.', 'pc'); return null; }
-      if (what === 'evac') { f.evacUntil = S.t + between(1200, 2700); say(f, 'pc', `Evacuate: i macchinisti accompagnano i passeggeri a piedi alla stazione più vicina. La tensione resta tolta finché non sono tutti in stazione.`); return null; }
+      if (what === 'fire') { L.station(f.st, true); f.ph = 'fire'; say(f, 'pc', tx('emergenza.incendio.chiudo', { stazione: name(f.st) })); say(f, 'ag', tx('emergenza.incendio.faccio_uscire')); return null; }
+      if (what === 'cut') { f.zones = (f.zones || []).concat([L.zone('power', f.st, f.st)]); f.ph = 'recover'; f.until = S.t + between(300, 900); say(f, 'pc', tx('emergenza.oggetto.tolgo_tensione', { stazione: name(f.st) })); return null; }
+      if (what === 'hold') { f.zones = (f.zones || []).concat([L.zone('stop', f.st, f.st)]); f.ph = 'holding'; f.holdUntil = S.t + between(120, 300); say(f, 'pc', tx('emergenza.malore_stazione.fermo_treni', { stazione: name(f.st) })); return null; }
+      if (/^cl\d$/.test(what)) { const i = f.closeAsk[+what.slice(2)]; if (L.close(i)) { f.closed = true; say(f, 'pc', tx('emergenza.investimento.tratta_chiusa', { chiusura: f.labels[what] })); } return null; }
+      if (what === 'reopenSt') { L.station(f.st, false); end(f, tx('prefettura.riaperta', { stazione: name(f.st) }), 'pc'); return null; }
+      if (what === 'reopen') { L.reopen(); end(f, tx('emergenza.investimento.tratta_riaperta'), 'pc'); return null; }
+      if (what === 'evac') { f.evacUntil = S.t + between(1200, 2700); say(f, 'pc', tx('energia.evacuate')); return null; }
       if (f.kind === 'sciopero' && ['freq', 'gaps', 'limit'].includes(what)) { f.choice = what;
-        say(f, 'pc', what === 'freq' ? 'Fuori dalle fasce i treni rimasti fanno le corse scoperte una dopo l\'altra: frequenza più bassa.' : what === 'gaps' ? 'Fuori dalle fasce resta l\'orario: le corse dei treni in sciopero restano scoperte.' : 'Fuori dalle fasce servizio limitato: chiudo io una tratta dal pannello.'); return null; }
+        say(f, 'pc', what === 'freq' ? tx('sciopero.scelta.frequenza') : what === 'gaps' ? tx('sciopero.scelta.orario') : tx('sciopero.scelta.limitato')); return null; }
       if (what === 'clear') {
         if (f.kind === 'investimento' && f.tk != null && L.home) L.home(f.tk, false);         // the train goes to the depot
         unLine(f);
-        if (f.kind === 'investimento' && f.closed) { L.station(f.st, false); f.ph = 'reopen'; call(f, `${name(f.st)} riaperta, tensione ridata. Riapri la tratta chiusa.`, ['reopen']); return null; }
+        if (f.kind === 'investimento' && f.closed) { L.station(f.st, false); f.ph = 'reopen'; call(f, tx('emergenza.investimento.riapri_tratta', { stazione: name(f.st) }), ['reopen']); return null; }
         if (f.kind === 'tunnel') f.zones = [L.zone('vista', f.a, f.a + 1)];          // the first train on each track: marcia a vista
         if (f.kind === 'investimento' || f.kind === 'incendio') L.station(f.st, false);
-        end(f, f.kind === 'tunnel' ? `DCT: ridata tensione tra ${f.what}. I primi treni passano in marcia a vista.` : f.kind === 'incendio' ? `DCT: ${name(f.st)} riaperta.` : `DCT: ridata tensione e via libera${f.kind === 'investimento' ? `, ${name(f.st)} riaperta` : ''}.`, 'pc');
+        end(f, f.kind === 'tunnel' ? tx('emergenza.tunnel.ridata_tensione', { tratta: f.what }) : f.kind === 'incendio' ? tx('emergenza.incendio.riaperta', { stazione: name(f.st) })
+          : f.kind === 'investimento' ? tx('emergenza.investimento.via_libera_riaperta', { stazione: name(f.st) }) : tx('emergenza.via_libera'), 'pc');
         if (f.kind === 'tunnel') f.zones = [];                                          // (it goes by itself)
         return null;
       }
-      if (what === 'rearm') { say(f, 'pc', 'Treno {T}, riarma il treno.'); say(f, 'dr', 'Ricevuto DCT, riarmo.'); f.ph = 'rearm'; f.until = S.t + between(90, 150); }
+      if (what === 'rearm') { say(f, 'pc', tx('guasto.riarmo.ordine')); say(f, 'dr', tx('guasto.riarmo.ricevuto')); f.ph = 'rearm'; f.until = S.t + between(90, 150); }
       else if (what === 'agent') {
-        if (f.kind === 'allarme') { say(f, 'pc', `${name(f.st)}, mandate l'agente sul treno {T}: allarme passeggero.`); say(f, 'ag', `Ricevuto DCT, salgo sul treno {T}.`); f.ph = 'verify'; f.until = S.t + between(60, 300); }
-        else if (f.kind === 'porte_persone') { say(f, 'pc', `${name(f.st)}, mandate l'agente in banchina al treno {T}: non chiude le porte.`); say(f, 'ag', 'Ricevuto DCT, libero le porte.'); f.agent = S.t; }
-        else if (f.kind === 'oggetto') { say(f, 'pc', `${name(f.st)}, controllate il binario.`); say(f, 'ag', 'Ricevuto DCT, vado a vedere.'); f.ph = 'verify'; f.until = S.t + between(120, 300); f.found = rnd() < 1 / 3; }
+        if (f.kind === 'allarme') { say(f, 'pc', tx('guasto.allarme.manda_agente', { stazione: name(f.st) })); say(f, 'ag', tx('guasto.allarme.agente_sale')); f.ph = 'verify'; f.until = S.t + between(60, 300); }
+        else if (f.kind === 'porte_persone') { say(f, 'pc', tx('guasto.porte_persone.manda_agente', { stazione: name(f.st) })); say(f, 'ag', tx('guasto.porte_persone.libero_porte')); f.agent = S.t; }
+        else if (f.kind === 'oggetto') { say(f, 'pc', tx('emergenza.oggetto.controllate', { stazione: name(f.st) })); say(f, 'ag', tx('emergenza.oggetto.vado_a_vedere')); f.ph = 'verify'; f.until = S.t + between(120, 300); f.found = rnd() < 1 / 3; }
       } else if (what === 'rback' || what === 'rfront') {
         const rk = what === 'rback' ? L.rescue(f.k) : L.tow(f.k); if (rk == null) return { no: true };
         f.rk = rk; f.ph = 'coming';
-        say(f, 'pc', what === 'rback' ? 'Treno {R}, fai scendere i passeggeri alla prossima stazione e vai a soccorrere il treno {T} davanti a te, in marcia a vista: lo spingi a 15 km/h.'
-          : 'Treno {R}, fai scendere i passeggeri alla prossima stazione, cambia banco e torna indietro in marcia a vista fino al treno {T}: lo traini con l\'accoppiamento pneumatico, 30 km/h.');
-        say(f, 'dr', 'Ricevuto DCT, attendo il soccorso.');
+        say(f, 'pc', what === 'rback' ? tx('soccorso.spinta') : tx('soccorso.traino'));
+        say(f, 'dr', tx('soccorso.attendo'));
       } else if (what === 'badoni') {
         const a = S.agents[f.k], leg = a && a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, dir = (leg && leg.dir) || (a && a.arr) || 'S';
         const far = a && a.at != null ? (dir === 'N' ? Math.min(L.last(), a.at + 1) : Math.max(1, a.at)) : 1, km = far * 0.9;
         // out of ROD 10 min, there at 25 km/h, coupling 5 min, back at 15 km/h
         f.zones = (f.zones || []).concat([L.zone('power', 0, far)]); f.ph = 'badoni'; f.until = S.t + 600 + Math.round(km / 25 * 3600) + 300 + Math.round(km / 15 * 3600);
         f.evacUntil = S.t + between(1200, 2700);
-        say(f, 'pc', `Interruzione della linea tra San Donato e ${name(far)}: tensione tolta. Esce il Badoni da Rogoredo. Treno {T}, evacuate i passeggeri alla stazione più vicina.`);
-        say(f, 'dr', 'Ricevuto DCT, accompagno i passeggeri a piedi.');
+        say(f, 'pc', tx('soccorso.badoni.interruzione', { stazione: name(far) }));
+        say(f, 'dr', tx('soccorso.badoni.evacuo'));
       } else if (what === 'rescue') {
         const rk = L.rescue ? L.rescue(f.k) : null;
-        if (rk != null) { f.rk = rk; f.ph = 'coming'; say(f, 'pc', 'Treno {R}, fai scendere i passeggeri alla prossima stazione e vai a soccorrere il treno {T} davanti a te, in marcia a vista.'); say(f, 'dr', 'Ricevuto DCT, attendo il soccorso.'); }
-        else { f.ph = 'rescue'; f.until = S.t + between(1800, 3600); say(f, 'pc', 'Treno {T}: nessun treno può arrivare da dietro. Serve il Badoni da ROD, con l\'interruzione della linea (non ancora simulato: il treno riparte dopo l\'attesa).'); }
+        if (rk != null) { f.rk = rk; f.ph = 'coming'; say(f, 'pc', tx('soccorso.da_dietro')); say(f, 'dr', tx('soccorso.attendo')); }
+        else { f.ph = 'rescue'; f.until = S.t + between(1800, 3600); say(f, 'pc', tx('soccorso.badoni.nessun_treno')); }
       }
       else if (what === 'home' || what === 'homeEnd') {
         if (!L.home) return { no: true };
-        if (!L.home(f.k, what === 'homeEnd', f.turnX)) { if (what === 'homeEnd') { f.ph = 'homeWait'; say(f, 'pc', 'Treno {T}, a fine della prossima corsa rientri in deposito.'); say(f, 'dr', 'Ricevuto DCT. Passo.'); return null; } return { no: true }; }
-        f.ph = 'homing'; say(f, 'pc', what === 'homeEnd' ? 'Treno {T}, finisci la corsa, fai scendere i passeggeri al capolinea e rientra vuoto al deposito di Rogoredo.' : 'Treno {T}, fai scendere i passeggeri alla prossima stazione e rientra vuoto al deposito di Rogoredo.');
-        say(f, 'dr', 'Ricevuto DCT. Passo.');
+        if (!L.home(f.k, what === 'homeEnd', f.turnX)) { if (what === 'homeEnd') { f.ph = 'homeWait'; say(f, 'pc', tx('guasto.rientro.fine_prossima_corsa')); say(f, 'dr', tx('guasto.ricevuto_passo')); return null; } return { no: true }; }
+        f.ph = 'homing'; say(f, 'pc', what === 'homeEnd' ? tx('guasto.rientro.fine_corsa') : tx('guasto.rientro.prossima_stazione'));
+        say(f, 'dr', tx('guasto.ricevuto_passo'));
       }
       else if (what === 'ack') {
-        say(f, 'pc', f.kind === 'ato' ? 'Ricevuto treno {T}, prosegui in manuale.' : f.kind === 'malore_treno' ? `Ricevuto ${name(f.st)}, il treno {T} resta fermo: tenetemi informato.`
-          : f.kind === 'tensione' ? `Ricevuto Energia. Fermo i treni prima della tratta ${f.what}.`
-          : f.kind === 'malore_stazione' ? `Ricevuto ${name(f.st)}. Rallento i treni in entrata.`
-          : f.kind === 'prefettura' ? `Ricevuto. Avviso la stazione di ${name(f.st)} e le stazioni vicine.` : 'Ricevuto.');
+        say(f, 'pc', f.kind === 'ato' ? tx('guasto.ato.ricevuto') : f.kind === 'malore_treno' ? tx('emergenza.malore_treno.ricevuto', { stazione: name(f.st) })
+          : f.kind === 'tensione' ? tx('energia.ricevuto', { tratta: f.what })
+          : f.kind === 'malore_stazione' ? tx('emergenza.malore_stazione.ricevuto', { stazione: name(f.st) })
+          : f.kind === 'prefettura' ? tx('prefettura.ricevuto', { stazione: name(f.st) }) : tx('guasto.ricevuto'));
         if (f.kind === 'malore_stazione') f.zones = (f.zones || []).concat([L.zone('slow', f.st, f.st, { kmh: 15 })]);
       }
       return null;
@@ -2346,15 +2381,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const fs = F();
       lineCalls();
       for (const f of live()) {
-        if (f.call && S.t - f.call.t >= (f.call.auto || AUTO) && f.k == null) { say(f, 'sys', '(nessuna risposta: risponde il DCT automatico)'); answer(f.id, f.call.opts[0]); }
+        if (f.call && S.t - f.call.t >= (f.call.auto || AUTO) && f.k == null) { say(f, 'sys', tx('guasto.risposta_automatica')); answer(f.id, f.call.opts[0]); }
         if (f.kind === 'pc') continue;                       // the DCT's own zones: until it takes them away (answer 'fix')
         if (f.k == null) { tickLine(f); continue; }
         const a = S.agents[f.k];
         if (!a || a.hidden || a.status === 'parked') {                           // out of service: the failure goes with it
-          end(f, ['homing', 'towed'].includes(f.ph) ? (a && a.hidden ? 'Treno {T} rientrato al deposito di Rogoredo.' : 'Treno {T} ricoverato in un tronchetto di Comasina.') : null, 'sys'); continue; }
+          end(f, ['homing', 'towed'].includes(f.ph) ? (a && a.hidden ? tx('guasto.rientrato_deposito') : tx('guasto.ricoverato_comasina')) : null, 'sys'); continue; }
         if (f.call && S.t - f.call.t >= (f.call.auto || AUTO)) {
           // (the automatic DCT also calls the line maintenance for a train that keeps asking to be re-armed)
-          say(f, 'sys', '(nessuna risposta: risponde il DCT automatico)');
+          say(f, 'sys', tx('guasto.risposta_automatica'));
           if (f.call.opts.includes('tech')) answer(f.id, 'tech');
           if (f.call) answer(f.id, f.call.opts[0]);
         }
@@ -2365,11 +2400,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         }
         if ((f.kind === 'porta' || f.kind === 'porte_persone' || f.kind === 'allarme' || f.kind === 'malore_treno') && f.ph === 'armed' && a.stopAt != null && a.v === 0) atStation(f, a);
         if (f.ph === 'dwell' && a.stopAt == null) {           // the train left the station: the doors are done
-          end(f, f.kind === 'porta' ? 'Porta esclusa fino al deposito, riparto.' : null);
+          end(f, f.kind === 'porta' ? tx('guasto.porta.riparto') : null);
           continue;
         }
         if (f.kind === 'porte_persone' && f.ph === 'dwell' && !f.called && f.extra > 40 && S.t - (a.arriveT || f.t0) > (a.dwBase || 20) + 30) {
-          f.called = true; call(f, `DCT, treno {T}: a ${name(f.st)} la gente entra all'ultimo e non riesco a chiudere le porte. Chiedo l'agente.`, ['agent']);
+          f.called = true; call(f, tx('guasto.porte_persone.chiede_agente', { stazione: name(f.st) }), ['agent']);
         }
         if (f.kind === 'freno' && f.ph === 'armed' && a.v > 5) f.ph = 'stopping';     // in the line, running
         // the driver re-arms by himself first (it is his job, Giovanni's colleague 2 Nov 2026): it works, he goes and then
@@ -2380,56 +2415,56 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         if (f.ph === 'rearm' && S.t >= f.until) {
           if (f.kind === 'riarmo') {
             f.ph = 'run'; f.next = S.t + between(300, 900);
-            if (f.self) { f.self = false; call(f, `DCT, treno {T}: il treno mi ha chiesto di nuovo il riarmo${f.where || ''}. Ho riarmato e sono ripartito. Passo.`, f.tech ? ['ack'] : ['ack', 'tech']); }
-            else say(f, 'dr', 'Riarmato, riparto.');
+            if (f.self) { f.self = false; call(f, tx('guasto.chiede_riarmo.di_nuovo', { dove: f.where || '' }), f.tech ? ['ack'] : ['ack', 'tech']); }
+            else say(f, 'dr', tx('guasto.chiede_riarmo.riarmato'));
             continue;
           }
           const ok = !f.force && rnd() < (f.kind === 'freno' ? [0.8, 0.6, 0.4] : [0.7, 0.5, 0.3])[Math.min(f.tries, 2)];
-          if (ok) { end(f, f.self ? (f.kind === 'trazione' ? `DCT, treno {T}: il treno non ripartiva${f.where || ''}. Ho riarmato e sono ripartito. Passo.`
-            : `DCT, treno {T}: frenatura di emergenza intempestiva${f.where || ''}. Ho riarmato, il freno si è allentato e sono ripartito. Passo.`) : 'Riarmo riuscito, riparto.'); continue; }
+          if (ok) { end(f, f.self ? (f.kind === 'trazione' ? tx('guasto.trazione.riarmato', { dove: f.where || '' })
+            : tx('guasto.freno.riarmato', { dove: f.where || '' })) : tx('guasto.riarmo.riuscito')); continue; }
           if (f.self && f.tries === 0) { f.self = false; f.tries = 1; f.ph = 'call';
-            call(f, f.kind === 'trazione' ? `DCT, treno {T}: il treno non riparte${f.where || ''}. Ho provato a riarmare ma non riparte. Chiedo istruzioni.`
-              : `DCT, treno {T}: frenatura di emergenza intempestiva${f.where || ''}, ho riarmato ma il freno non si allenta. Chiedo istruzioni.`, ['rearm']); continue; }
+            call(f, f.kind === 'trazione' ? tx('guasto.trazione.non_riparte', { dove: f.where || '' })
+              : tx('guasto.freno.non_si_allenta', { dove: f.where || '' }), ['rearm']); continue; }
           f.self = false;
           f.tries++;
           // the third time: the broken unit is cut out and the train goes with the other one; both dead: the rescue
-          if (f.tries >= 3 && f.force !== 'soccorso' && (f.force === 'udt' || rnd() < 0.97)) { f.ph = 'udt'; call(f, 'DCT, treno {T}: terzo riarmo non riuscito. Escludo l\'unità guasta, posso proseguire con l\'altra.', ['home']); }
+          if (f.tries >= 3 && f.force !== 'soccorso' && (f.force === 'udt' || rnd() < 0.97)) { f.ph = 'udt'; call(f, tx('guasto.udt.esclusa'), ['home']); }
           else if (f.tries >= 3) { f.ph = 'help'; const w = L.rescuers ? L.rescuers(f.k) : {};
-            call(f, 'DCT, treno {T}: tutte e due le unità sono ferme, il treno non si muove. Serve il soccorso.', [w.back != null ? 'rback' : null, w.front != null ? 'rfront' : null, 'badoni'].filter(Boolean)); }
-          else { f.ph = 'call'; call(f, `DCT, treno {T}: riarmo non riuscito (${f.tries}°). Chiedo istruzioni.`, ['rearm']); }
+            call(f, tx('soccorso.serve'), [w.back != null ? 'rback' : null, w.front != null ? 'rfront' : null, 'badoni'].filter(Boolean)); }
+          else { f.ph = 'call'; call(f, tx('guasto.riarmo.non_riuscito', { tentativo: f.tries }), ['rearm']); }
         }
-        if (f.ph === 'rescue' && S.t >= f.until) end(f, 'Il treno {T} riparte.', 'sys');
+        if (f.ph === 'rescue' && S.t >= f.until) end(f, tx('soccorso.riparte'), 'sys');
         if (f.ph === 'homeWait' && L.home(f.k, true)) f.ph = 'homing';
-        if (f.ph === 'badoni' && S.t >= f.until) { unLine(f); L.takeAway(f.k); end(f, 'Il Badoni ha portato il treno {T} al deposito di Rogoredo. Tensione ridata.', 'sys'); continue; }
+        if (f.ph === 'badoni' && S.t >= f.until) { unLine(f); L.takeAway(f.k); end(f, tx('soccorso.badoni.portato_via'), 'sys'); continue; }
         // the rescue by the train behind: it arrives, couples, pushes
-        if (a.rescue && a.rescue.stage === 'coupling' && f.ph === 'coming') { f.ph = 'coupling'; say(f, 'drr', 'Qui treno {R}: sono al treno {T}, aggancio.'); }
-        if (a.rescue && a.rescue.stage === 'towed' && f.ph === 'coupling') { f.ph = 'towed'; say(f, 'drr', 'Qui treno {R}: agganciato, spingo il treno {T} a 15 km/h. I passeggeri scendono alla prossima stazione.'); }
+        if (a.rescue && a.rescue.stage === 'coupling' && f.ph === 'coming') { f.ph = 'coupling'; say(f, 'drr', tx('soccorso.aggancio')); }
+        if (a.rescue && a.rescue.stage === 'towed' && f.ph === 'coupling') { f.ph = 'towed'; say(f, 'drr', tx('soccorso.agganciato')); }
         if (f.kind === 'allarme' && f.ph === 'verify' && S.t >= f.until) {
           if (rnd() < 0.15) {                               // a passenger taken ill (row 21)
-            end(f, `Qui ${name(f.st)}: un passeggero si sente male, chiamo i soccorsi.`, 'ag');
+            end(f, tx('guasto.allarme.malore', { stazione: name(f.st) }), 'ag');
             const id = add('malore_treno', f.k); const g = live().find(x => x.id === id); if (g && a.stopAt != null) atStation(g, a);
-          } else end(f, `Qui ${name(f.st)}: verificato, niente di grave. Il treno {T} può ripartire.`, 'ag');
+          } else end(f, tx('guasto.allarme.niente_di_grave', { stazione: name(f.st) }), 'ag');
         }
-        if (f.kind === 'malore_treno' && f.ph === 'held' && S.t >= f.until) end(f, `Qui ${name(f.st)}: il passeggero è stato soccorso, emergenza rientrata. Il treno {T} può ripartire.`, 'ag');
+        if (f.kind === 'malore_treno' && f.ph === 'held' && S.t >= f.until) end(f, tx('emergenza.malore_treno.rientrata', { stazione: name(f.st) }), 'ag');
         if (f.kind === 'riarmo' || f.kind === 'secondario') {
           if (f.kind === 'riarmo' && f.ph === 'run' && !f.tech0 && S.t >= f.next && a.v > 3 && a.stopAt == null) { f.ph = 'stopping'; }
           if (f.ph === 'stopping' && a.v === 0) { f.ph = 'rearm'; f.self = true; f.where = where(a); f.until = S.t + between(40, 90); }
           // the technician: on at San Donato, he checks during the change of cab and on to Rogoredo. There: fixed, he gets off
           // (back with the next train); not fixed: passengers off, the train turns over the crossover of Rogoredo and goes
           // back empty to ROD with him (Giovanni)
-          if (f.tech === 'wait' && a.at === SD && a.v === 0) { f.tech = 'board'; f.tech0 = S.t; say(f, 'man', 'Tecnico a bordo del treno {T} a San Donato: verifico durante il cambio banco e fino a Rogoredo.'); }
+          if (f.tech === 'wait' && a.at === SD && a.v === 0) { f.tech = 'board'; f.tech0 = S.t; say(f, 'man', tx('guasto.tecnico.a_bordo')); }
           if (f.tech === 'board' && a.stopAt === 1 && a.v === 0 && !f.call) {
-            if (rnd() < (f.fixP != null ? f.fixP : f.kind === 'secondario' ? 0.9 : 0.8)) { end(f, 'Tecnico: treno {T} sistemato. Scendo a Rogoredo e torno a San Donato con il treno dopo.', 'man'); continue; }
-            if (f.kind === 'secondario') { end(f, 'Tecnico: non riesco a sistemarlo qui, ma il treno {T} può restare in servizio: lo vediamo in deposito a fine giornata. Scendo a Rogoredo.', 'man'); continue; }
+            if (rnd() < (f.fixP != null ? f.fixP : f.kind === 'secondario' ? 0.9 : 0.8)) { end(f, tx('guasto.tecnico.sistemato'), 'man'); continue; }
+            if (f.kind === 'secondario') { end(f, tx('guasto.tecnico.in_servizio'), 'man'); continue; }
             f.tech = null; f.tech0 = null; f.ph = 'udt'; f.turnX = 1;
-            f.callWho = 'man'; call(f, 'DCT, qui il tecnico: non riesco a sistemare il treno {T}. Facciamo scendere i passeggeri qui a Rogoredo e torniamo vuoti al deposito.', ['home']);
+            f.callWho = 'man'; call(f, tx('guasto.tecnico.non_riesce'), ['home']);
           }
         }
       }
       // random failures, once a minute
       if (fs.on && Math.floor(S.t / 60) !== Math.floor((S.t - DT) / 60)) roll();
     }
-    function where(a) { return a.stopAt != null ? ' a ' + name(a.stopAt) : a.at != null ? ' dopo ' + name(a.at) : ''; }
+    function where(a) { return a.stopAt != null ? ' ' + tx('pezzo.dove.a', { stazione: name(a.stopAt) }) : a.at != null ? ' ' + tx('pezzo.dove.dopo', { stazione: name(a.at) }) : ''; }
     function roll() {
       // a strike is decided for the day (mostly Monday or Friday: Giovanni), at 4:30
       if (Math.floor(S.t / 60) === 270) { const sc = (c.catalog || []).find(x => x.id === 'sciopero'), wd = c.weekday ? c.weekday() : 1;
@@ -2479,14 +2514,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (e.what === 'pczone') {            // the DCT by hand (Emergenze): red button, power off, hold the trains, on a stretch
         const a = Math.min(e.a, e.b), b = Math.max(e.a, e.b), id = L.zone(e.zone, a, b);
         const f = { id: ++F().seq, kind: 'pc', k: null, t0: S.t, ph: 'on', what: a === b ? name(a) : name(a) + ' – ' + name(b), zones: [id], zone: e.zone }; F().list.push(f);
-        say(f, 'pc', e.zone === 'red' ? `Pulsante rosso tra ${f.what}: tutti i semafori a rosso, tutti i treni fermi!` : e.zone === 'power' ? `Tolgo tensione tra ${f.what}.` : `Fermo i treni tra ${f.what}.`);
+        say(f, 'pc', e.zone === 'red' ? tx('emergenza.dct.pulsante_rosso', { tratta: f.what }) : e.zone === 'power' ? tx('emergenza.dct.tolgo_tensione', { tratta: f.what }) : tx('emergenza.dct.fermo_treni', { tratta: f.what }));
         return f.id;
       }
       if (e.what === 'avista') {            // the DCT, from the card of signal n: the train standing at it goes by in marcia a vista
         const a = S.agents.find(x => !x.hidden && x.v === 0 && x.red && ((x.red.now || x.red.why) || {}).sig === e.n); if (!a) return { noTrain: true };
         giveVista(a.k, e.n); for (const f of live()) if (f.kind === 'vista' && f.k === a.k) end(f);
         const f = { id: ++F().seq, kind: 'vista', k: a.k, t0: S.t, ph: 'go', n: e.n }; F().list.push(f);
-        say(f, 'pc', `Treno {T}, autorizzato a superare il ${tag(e.n)} in marcia a vista fino al semaforo successivo.`); say(f, 'dr', `Ricevuto DCT, supero il ${tag(e.n)} in marcia a vista.`);
+        say(f, 'pc', tx('guasto.vista.autorizzato', { segnale: tag(e.n) })); say(f, 'dr', tx('guasto.vista.ricevuto', { segnale: tag(e.n) }));
         return a.k;
       }
       if (e.what === 'new') { if (e.k == null) { const a = S.agents.find(x => !x.hidden && x.status === 'service' && x.mode !== 'static'); if (!a) return null; e.k = a.k; } return add(e.fault, e.k, e.opts ? { fixP: e.opts.fixP } : undefined); }
@@ -2587,7 +2622,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // text on its platform screens
     const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null, zones: [] };
     // failures (web/faults.js, foglio Guasti): emergency brake of each kind of train
-    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
+    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
       line: {
         // the signals and switches of the main tracks (where the line failures happen), the route behind a signal
         sigs: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => (o.sigall && o.sigall[pid] || []).map(x => x[1])))].filter(n => !RT.isPcSignal(n)).sort((x, y) => x - y),
@@ -3924,7 +3959,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const LOW = ['A76', 'A77', 'A78'];          // places given only when nothing else is free
 
   function create(F, env) {
-    // env: { say(who, text, cls), call(tr, text), trainNo(tr), fmt(t), dayStart }
+    // env: { say(who, text, cls), call(tr, text), tx(code, values) (the radio phrases, web/frasi.js), trainNo(tr), fmt(t), dayStart }
     const D = { F, loopMsg: '' };
     const placeOf = s => s && s.length > 5 && s[5] != null ? String(s[5]) : null;
     const loopRole = s => s && typeof s[6] === 'string' && s[6].startsWith('loop:') ? s[6].slice(5) : null;
@@ -4120,9 +4155,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const { segs, end } = loopSegs(p, t0, laps);
       tr.segs.splice(idx, 0, ...segs); shiftRefs(tr, idx - 1, segs.length); restamp(tr);
       a.mode = 'plan'; a.si = idx - 1; a.legs = []; a.wait = 0; a.status = 'parked';
-      const g = laps === 1 ? 'un giro' : laps + ' giri';
-      env.say('DCT', `Treno ${no(k)}, dal ${name(p)} vai al segnale #A94 e chiedi l'anello di prova: ${g}. Passo.`, 'pc');
-      env.say('T' + no(k), `Ricevuto DCT, ${g} sull'anello di prova, vado al #A94. Passo.`, 'dr');
+      const g = laps === 1 ? env.tx('pezzo.un_giro') : env.tx('pezzo.giri', { numero: laps });
+      env.say('DCT', env.tx('anello.chiedi', { treno: no(k), posto: name(p), giri: g }), 'pc');
+      env.say('T' + no(k), env.tx('anello.chiedi_ricevuto', { giri: g }), 'dr');
       D.loopMsg = (laps === 1 ? '1 giro' : laps + ' giri') + ', di ritorno verso le ' + env.fmt(end) + ' (se l\'anello è libero).';
       if (next && next[3][0] < RESERVE_T && end > next[3][0] - 300) D.loopMsg += ' Attenzione: il prossimo turno parte alle ' + env.fmt(next[3][0]) + ', sarà in ritardo.';
       return true;
@@ -4143,9 +4178,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     function grant(k, si, again) {
       const man = F.ag.il() && !F.ag.il().auto;
-      env.say('DCT', again ? `Treno ${no(k)}, l'anello di prova è libero: ${man ? 'attendi l\'apertura del #A94 ed' : 'via libera al #A94,'} entra. Passo.`
-        : man ? `Treno ${no(k)}, autorizzato: l'anello di prova è tuo, attendi l'apertura del #A94. Passo.` : `Treno ${no(k)}, autorizzato: via libera al #A94, entra nell'anello di prova. Passo.`, 'pc');
-      env.say('T' + no(k), 'Ricevuto, entro nell\'anello. Passo.', 'dr'); release(k, si, 'in2');
+      const v = { treno: no(k) };
+      env.say('DCT', again ? (man ? env.tx('anello.libero_attendi', v) : env.tx('anello.libero_entra', v))
+        : man ? env.tx('anello.autorizzato_attendi', v) : env.tx('anello.autorizzato_entra', v), 'pc');
+      env.say('T' + no(k), env.tx('anello.entro'), 'dr'); release(k, si, 'in2');
     }
     // the place for the way out of the loop, and the moves to it (replacing the stand-in at index si, and the move out
     // of the loop before it at si - 1 when it goes straight on)
@@ -4198,7 +4234,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       // the loop is free when the train's tail is past the flag beyond #A95: a notice, then the next one goes in
       const freed = k => {
         const by94 = S.exit[k] && S.exit[k].a94; delete S.exit[k];
-        env.say('T' + no(k), `DCT, qui treno ${no(k)}: sono fuori dall'anello, dopo il ${by94 ? '#A94' : '#A95'}. Anello di prova libero. Passo.`, 'ok');
+        env.say('T' + no(k), env.tx('anello.fuori', { treno: no(k), segnale: by94 ? '#A94' : '#A95' }), 'ok');
         const nx = IL().zoneFree(il, zi, k); if (nx != null && S.asked[nx] && S.asked[nx].r === 'gate') grant(nx, S.asked[nx].si, true);
       };
       // before leaving the loop: it says it has finished and gets its place
@@ -4208,16 +4244,17 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         if (r === 'lap' && loopRole(tr.segs[a.si + 1]) === 'ret' && a.d > T.lap - 450 && !S.exit[k]) {
           const si = a.si + 2, q = placeForExit(k, si);
           S.exit[k] = { q };
-          env.say('T' + no(k), `DCT, qui treno ${no(k)}: giri finiti, esco dall'anello dal #A96. Passo.`, 'ok');
-          if (q == null) { env.say('DCT', `Ricevuto treno ${no(k)}: nessun posto libero, fermati dopo il #A95 e attendi. Passo.`, 'pc'); return; }
+          env.say('T' + no(k), env.tx('anello.giri_finiti', { treno: no(k) }), 'ok');
+          if (q == null) { env.say('DCT', env.tx('anello.nessun_posto', { treno: no(k) }), 'pc'); return; }
           if (viaA94(q)) {                 // west sheds: back through #A94 (nobody is going there now: kept so until it is in)
             routeOut94(k, si, q); S.exit[k].a94 = true; S.a94 = k;
-            env.say('DCT', `Ricevuto treno ${no(k)}, vai in ${name(q)}: esci dall'anello passando dal #A94. Passo.`, 'pc');
-            env.say('T' + no(k), `Vado in ${name(q)} dal #A94. Passo.`, 'dr'); return;
+            env.say('DCT', env.tx('anello.esci_a94', { treno: no(k), posto: name(q) }), 'pc');
+            env.say('T' + no(k), env.tx('anello.vado_a94', { posto: name(q) }), 'dr'); return;
           }
           const straight = routeOut(k, si, q);
-          env.say('DCT', `Ricevuto treno ${no(k)}, vai in ${name(q)}${straight ? '' : ': fermati dopo il #A95 e cambia banco'}. Passo.`, 'pc');
-          env.say('T' + no(k), `Vado in ${name(q)}. Passo.`, 'dr');
+          const v = { treno: no(k), posto: name(q) };
+          env.say('DCT', straight ? env.tx('anello.vai_posto', v) : env.tx('anello.vai_posto_cambia_banco', v), 'pc');
+          env.say('T' + no(k), env.tx('anello.vado_posto', { posto: name(q) }), 'dr');
         }
         const ex = S.exit[k];
         if (ex && ex.q != null && !ex.free) {
@@ -4231,15 +4268,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         const k = +ks, tr = F.trains[k], a = ag.agents()[k];
         if (!a || a.si !== w.si || loopRole(tr.segs[w.si]) !== w.r) { delete S.asked[k]; continue; }
         if (w.r === 'gate' && !w.said) {
-          w.said = true; const h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? 'Buongiorno' : 'Buonasera';
-          env.call(tr, `${hi} DCT, qui treno ${no(k)}, fermo al segnale #A94: chiedo l'autorizzazione per entrare nell'anello di prova. Passo.`);
+          w.said = true; const h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? env.tx('pezzo.saluto.giorno') : env.tx('pezzo.saluto.sera');
+          env.call(tr, env.tx('anello.chiamata', { saluto: hi, treno: no(k) }));
           if (IL().zoneAsk(il, zi, k)) grant(k, w.si, false);
-          else { env.say('DCT', `Negativo treno ${no(k)}: l'anello di prova è occupato dal treno ${no(holder())}. Resta fermo al #A94, ti richiamo io. Passo.`, 'pc'); env.say('T' + no(k), 'Ricevuto, resto fermo al #A94. Passo.', 'dr'); }
+          else { env.say('DCT', env.tx('anello.negativo', { treno: no(k), treno2: no(holder()) }), 'pc'); env.say('T' + no(k), env.tx('anello.resto_fermo'), 'dr'); }
         } else if (w.r === 'homewait') {
           // standing past #A95 without a place (none was free before it left the loop): try again
           const q = placeForExit(k, w.si, true); if (q == null) continue;
           if (S.exit[k] && !S.exit[k].free) { S.exit[k].free = true; freed(k); }
-          env.say('DCT', `Treno ${no(k)}, vai in ${name(q)}. Passo.`, 'pc');
+          env.say('DCT', env.tx('anello.vai_posto_attesa', { treno: no(k), posto: name(q) }), 'pc');
           const tr2 = F.trains[k], s = tr2.segs[w.si], H = T.home[q], tt = Math.round(t + (H.straight ? 5 : T.reverse)); let x = tt;
           const segs = H.legs.map((l, i) => { const dur = Math.max(2, Math.abs(l[2] - l[1]) / T.v_yard), last = i === H.legs.length - 1;
             const sg = [l[0], 'to_depot', -1, [Math.round(x), Math.round(x + dur)], [i === 0 && H.straight ? s[4][0] : l[1], l[2]], last ? +q : null, 'loop:home']; x += dur + (l[3] ? T.reverse : 0); return sg; });
@@ -4264,14 +4301,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 //   const R = MTLRadio.create(env); R.say(...), R.openRadio(F, tr), R.radioTick(), R.dcoTick(), R.closingTick() ...
 (function (root) {
   function create(env) {
-    const { D, trips, state, fmt, showRoute, P2WAY, trackAt, realTrain, trainState, trainOnPlatform, relive, reliveFleet, setPlat, orderP2, closureNow, depotAssign, depotName, depotTaken, pastEntrance, loopRole, m3eng, sigNo } = env;
+    const { tx, D, trips, state, fmt, showRoute, P2WAY, trackAt, realTrain, trainState, trainOnPlatform, relive, reliveFleet, setPlat, orderP2, closureNow, depotAssign, depotName, depotTaken, pastEntrance, loopRole, m3eng, sigNo } = env;
     // ================= RADIO TERRA-TRENO (M3) =================
     // The player is the Dirigente Centrale del Traffico (DCT). Orders: a longer stop at the next station, the departure platform at
     // San Donato, platform 2 and reversal there coming from Rogoredo. The driver answers in Italian.
     const radioEl = document.getElementById('radio'), radioLog = document.getElementById('radioLog'), radioCmds = document.getElementById('radioCmds');
     const radioTx = document.getElementById('radioTx'), radioWho = document.getElementById('radioWho');
     let radioTrain = null; const radioMsgs = [], radioWatch = [];
-    const pick = a => a[Math.floor(Math.random() * a.length)];
     const durTxt = s => { const m = Math.floor(s / 60), r = s % 60; return (m ? (m === 1 ? '1 minuto' : m + ' minuti') : '') + (r ? (m ? ' e ' : '') + r + ' secondi' : ''); };
     const cap = x => x.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, y => y.toUpperCase());
     function trainNo(F, tr) { const rt = realTrain(F, tr, state.t); return rt && !rt.missing && !rt.none ? rt.n : tr.n; }
@@ -4310,14 +4346,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       radioTrain = { F, tr, no: trainNo(F, tr) };
       radioWho.textContent = 'Treno ' + radioTrain.no; radioCmdHtml = '';
       radioEl.hidden = false;
-      if (!radioMsgs.length) say('', 'Canale aperto. Tu sei il Dirigente Centrale del Traffico (DCT).', 'sys');
+      if (!radioMsgs.length) say('', tx('canale.aperto'), 'sys');
       drawRadioLog(); drawRadioCmds();
     }
     document.getElementById('radioClose').onclick = () => { radioEl.hidden = true; showRoute(null, null); };
     // (no free text to the driver: Giovanni, 1 Nov 2026; the drivers' own calls stay)
     const RADIO_WHY = ['treno davanti in ritardo', 'regolarizzare l’intervallo', 'guasto più avanti', 'nessun motivo'];
-    const WHY_TXT = { 'treno davanti in ritardo': 'il treno davanti a te è in ritardo', 'regolarizzare l’intervallo': 'devo regolarizzare l’intervallo',
-                      'guasto più avanti': 'c’è un guasto più avanti', 'nessun motivo': 'per servizio' };
+    const WHY_TXT = { 'treno davanti in ritardo': 'pezzo.motivo.treno_davanti_ritardo', 'regolarizzare l’intervallo': 'pezzo.motivo.regolarizzare_intervallo',
+                      'guasto più avanti': 'pezzo.motivo.guasto_avanti', 'nessun motivo': 'pezzo.motivo.servizio' };
     let radioStopSel = 60, radioWhy = RADIO_WHY[0], radioCmdHtml = '';
     // emergency orders (closure, reopening)
     function emergencyCmds(F, tr) {
@@ -4351,27 +4387,26 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const igo = document.getElementById('instrGo');
       if (igo) igo.onclick = () => {
         const ops = F.ag.instrOptions(tr.agentK), x = ops.find(y => y.key === instrSel); if (!x) return;
-        const lb = labTxt(x.label); say('DCT', `Treno ${no}, ${lb.charAt(0).toLowerCase() + lb.slice(1)}. Senza passeggeri, marcia a vista sui segnali che ti do io. Passo.`, 'pc');
+        const lb = labTxt(x.label); say('DCT', tx('treno.istruzione.ordine', { treno: no, dove: lb.charAt(0).toLowerCase() + lb.slice(1) }), 'pc');
         const r = F.ag.event({ kind: 'order', k: tr.agentK, what: 'instr', arg: { key: x.key } });
-        driverSays(r ? 'Ricevuto DCT, eseguo. Passo.' : 'Negativo DCT, da qui non posso. Passo.');
+        driverSays(r ? tx('treno.istruzione.risposta') : tx('treno.ordine.negativo'));
         showRoute(F, null); radioCmdHtml = ''; drawRadioCmds();
       };
       const why = document.getElementById('emWhy');
-      if (why) why.onclick = () => { say('DCT', `Treno ${no}, c'è un guasto alla linea: la tratta ${em.label} è interrotta. Resta in attesa di istruzioni. Passo.`, 'pc'); driverSays('Ricevuto DCT, avviso i passeggeri e attendo. Passo.'); };
+      if (why) why.onclick = () => { say('DCT', tx('treno.interruzione.spiega', { treno: no, tratta: em.label }), 'pc'); driverSays(tx('treno.interruzione.risposta')); };
       radioCmds.querySelectorAll('[data-em]').forEach(b => b.onclick = () => {
         const kind = b.dataset.em, nx = F.ag.nextOf(tr.agentK);
-        const TXT = { next: `Treno ${no}, prosegui senza passeggeri fino a ${nx != null ? cap(G.names[nx]) : 'la prossima stazione'}. Passo.`, depot: `Treno ${no}, rientra in deposito senza passeggeri. Passo.`,
-          hold: `Treno ${no}, resta fermo in stazione a porte aperte fino a nuovo ordine. Passo.`, release: `Treno ${no}, puoi ripartire, segui il segnale. Passo.`,
-          skip: `Treno ${no}, autorizzato il salto delle prossime fermate. Passo.`, limit: `Treno ${no}, limita la corsa alla prima stazione utile e inverti. Passo.` };
-        say('DCT', TXT[kind], 'pc');
+        const TXT = { next: 'treno.prosegui.ordine', depot: 'treno.deposito.ordine', hold: 'treno.trattieni.ordine', release: 'treno.riparti.ordine',
+          skip: 'treno.salta_fermate.ordine', limit: 'treno.limita_corsa.ordine' };
+        say('DCT', tx(TXT[kind], { treno: no, stazione: nx != null ? cap(G.names[nx]) : tx('pezzo.prossima_stazione') }), 'pc');
         const r = F.ag.event({ kind: 'order', k: tr.agentK, what: kind });
-        if (!r) { driverSays('Negativo DCT, da qui non posso. Passo.'); return; }
-        if (kind === 'hold') driverSays(`Ricevuto DCT, resto fermo a ${cap(String(r))} e avviso i passeggeri. Passo.`);
-        else if (kind === 'release') driverSays('Ricevuto, chiudo le porte e riparto. Passo.');
-        else if (kind === 'next') { driverSays(pick(['Ricevuto, faccio scendere i passeggeri e proseguo vuoto. Passo.', 'Copiato DCT, proseguo a vuoto. Passo.'])); }
-        else if (kind === 'depot') driverSays('Ricevuto, rientro in deposito a vuoto. Passo.');
-        else if (kind === 'skip') driverSays('Ricevuto, salto le fermate e annuncio ai passeggeri. Passo.');
-        else driverSays(`Ricevuto, fine corsa a ${cap(String(r))}, poi inverto. Passo.`);
+        if (!r) { driverSays(tx('treno.ordine.negativo')); return; }
+        if (kind === 'hold') driverSays(tx('treno.trattieni.risposta', { stazione: cap(String(r)) }));
+        else if (kind === 'release') driverSays(tx('treno.riparti.risposta'));
+        else if (kind === 'next') { driverSays(tx('treno.prosegui.risposta')); }
+        else if (kind === 'depot') driverSays(tx('treno.deposito.risposta'));
+        else if (kind === 'skip') driverSays(tx('treno.salta_fermate.risposta'));
+        else driverSays(tx('treno.limita_corsa.risposta', { stazione: cap(String(r)) }));
         radioCmdHtml = ''; drawRadioCmds();
       });
     }
@@ -4392,9 +4427,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       sel.onchange = () => { depSel = sel.value; radioCmdHtml = ''; drawRadioCmds(); };
       go.onclick = () => {
         const G = F.engine.G, dl = F.ag.departuresFor(tr.agentK), x = dl && dl.list.find(y => y.key === depSel), no = radioTrain.no; if (!x) return;
-        say('DCT', `Treno ${no}, ti assegno la partenza delle ${fmt(x.tx)} da ${cap(G.names[dl.st])}. Passo.`, 'pc');
+        say('DCT', tx('treno.partenza.ordine', { treno: no, ora: fmt(x.tx), stazione: cap(G.names[dl.st]) }), 'pc');
         const r = F.ag.event({ kind: 'order', k: tr.agentK, what: 'dep', arg: { key: x.key } });
-        driverSays(r ? `Ricevuto, parto alle ${fmt(x.tx)}. Passo.` : 'Negativo DCT, quella partenza non è più libera. Passo.');
+        driverSays(r ? tx('treno.partenza.risposta', { ora: fmt(x.tx) }) : tx('treno.partenza.negativo'));
         radioCmdHtml = ''; drawRadioCmds();
       };
     }
@@ -4404,7 +4439,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     function openStationRadio(F, X) {
       const G = F.engine.G; radioTrain = null; radioStation = { F, X, name: cap(G.names[X]) };
       radioWho.textContent = 'Stazione ' + radioStation.name; radioCmdHtml = ''; radioEl.hidden = false;
-      if (!radioMsgs.length) say('', 'Canale aperto. Tu sei il Dirigente Centrale del Traffico (DCT).', 'sys');
+      if (!radioMsgs.length) say('', tx('canale.aperto'), 'sys');
       drawRadioLog(); drawRadioCmds();
     }
     function stationSays(text, delayMs = 1800) {
@@ -4418,16 +4453,18 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const late = F.ag.agents().filter(a => !a.hidden && a.late != null && a.late > 180).length * 0.08;
       return Math.max(0, Math.min(3, Math.round(peak + big + cl + late + (Math.random() - 0.5))));
     }
-    const CROWD = ['banchina quasi vuota', 'poca gente in banchina', 'banchina affollata', 'banchina molto affollata, faccio defluire i passeggeri'];
-    const ANN = { 'Ritardi sulla linea': 'il servizio è in ritardo, ci scusiamo per il disagio', 'Servizio limitato': 'il servizio è limitato, i treni non proseguono oltre la stazione indicata',
-      'Tratta interrotta': 'la circolazione è interrotta su una parte della linea', 'Navetta': 'su una parte della linea il servizio è svolto da una navetta',
-      'Treni che non fermano': 'i treni non fermano in questa stazione', 'Servizio regolare': 'la circolazione è tornata regolare' };
+    const CROWD = ['pezzo.banchina.quasi_vuota', 'pezzo.banchina.poca_gente', 'pezzo.banchina.affollata', 'pezzo.banchina.molto_affollata'];
+    const crowdTxt = c => { const s = tx(CROWD[c]); return s.charAt(0).toUpperCase() + s.slice(1); };
+    // the button labels (keys) are the page's; the announcement said on the radio is a phrase
+    const ANN = { 'Ritardi sulla linea': 'pezzo.annuncio.ritardi', 'Servizio limitato': 'pezzo.annuncio.servizio_limitato',
+      'Tratta interrotta': 'pezzo.annuncio.tratta_interrotta', 'Navetta': 'pezzo.annuncio.navetta',
+      'Treni che non fermano': 'pezzo.annuncio.treni_non_fermano', 'Servizio regolare': 'pezzo.annuncio.servizio_regolare' };
     const SCR_TXT = ['SERVIZIO LIMITATO', 'TRATTA INTERROTTA', 'CIRCOLAZIONE RALLENTATA', 'SERVIZIO SOSPESO', 'STAZIONE CHIUSA'];
-    const CHECK = { 'Porte di un treno': ['Porte controllate, tutto regolare.', 'Una porta era bloccata da uno zaino, liberata.'],
-      'Persona sui binari': ['Nessuno sui binari, banchina regolare.', 'C\'era una persona oltre la linea gialla, l\'ho fatta allontanare.'],
-      'Oggetto sui binari': ['Nessun oggetto sui binari.', 'C\'è un oggetto sui binari lato banchina: non è d\'ingombro, lo recuperiamo a fine servizio.'],
+    // the agent's answer: [all in order (8 times in 10), something found]
+    const CHECK = { 'Porte di un treno': ['stazione.verifica.porte_regolari', 'stazione.verifica.porta_bloccata'],
+      'Persona sui binari': ['stazione.verifica.nessuno_binari', 'stazione.verifica.persona_allontanata'],
+      'Oggetto sui binari': ['stazione.verifica.nessun_oggetto', 'stazione.verifica.oggetto_binari'],
       'Situazione in banchina': null };
-    const ASSIST = ['passeggero con un malore, assistito: ora sta bene ed è sceso', 'porta bloccata, ripristinata', 'oggetto incastrato in una porta, rimosso', 'passeggero molesto, fatto scendere'];
     function trainsHere(F, X) { return F.ag.agents().filter(a => !a.hidden && a.v === 0 && (a.stopAt === X || (a.status === 'stopped' && a.at === X))); }
     function stationCmds() {
       const { F, X } = radioStation, G = F.engine.G, st = F.ag.S.stn[X] || {}, here = trainsHere(F, X), tn = a => trainNo(F, F.trains[a.k]);
@@ -4447,39 +4484,39 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     function bindStation() {
       const { F, X, name } = radioStation, G = F.engine.G;
       radioCmds.querySelectorAll('[data-st="sit"]').forEach(b => b.onclick = () => {
-        say('DCT', `Stazione ${name}, com'è la situazione? Passo.`, 'pc');
+        say('DCT', tx('stazione.situazione.chiede', { stazione: name }), 'pc');
         const c = crowd(F, X), cl = (F.ag.S.stn[X] || {}).closed;
-        stationSays(cl ? 'Stazione chiusa al pubblico, ingressi chiusi, nessun problema. Passo.' : `${CROWD[c].charAt(0).toUpperCase() + CROWD[c].slice(1)}, nessuna situazione di pericolo. Passo.`);
+        stationSays(cl ? tx('stazione.situazione.chiusa') : tx('stazione.situazione.risposta', { folla: crowdTxt(c) }));
       });
       radioCmds.querySelectorAll('[data-ann]').forEach(b => b.onclick = () => {
-        const k = b.dataset.ann; say('DCT', `Stazione ${name}, fai l'annuncio: ${ANN[k]}. Passo.`, 'pc'); stationSays('Ricevuto, annuncio fatto. Passo.');
+        const k = b.dataset.ann; say('DCT', tx('stazione.annuncio.ordine', { stazione: name, annuncio: tx(ANN[k]) }), 'pc'); stationSays(tx('stazione.annuncio.risposta'));
       });
       radioCmds.querySelectorAll('[data-scr]').forEach(b => b.onclick = () => {
         const k = b.dataset.scr; F.ag.event({ kind: 'station', st: X, what: 'msg', text: k || null });
-        say('DCT', k ? `Stazione ${name}: sugli schermi di banchina "${k}".` : `Stazione ${name}: schermi di banchina normali.`, 'pc'); radioCmdHtml = ''; drawRadioCmds();
+        say('DCT', k ? tx('stazione.schermi.messaggio', { stazione: name, messaggio: k }) : tx('stazione.schermi.normali', { stazione: name }), 'pc'); radioCmdHtml = ''; drawRadioCmds();
       });
       radioCmds.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => {
-        const k = b.dataset.chk; say('DCT', `Stazione ${name}, verifica in banchina: ${k.toLowerCase()}. Passo.`, 'pc');
-        const ans = CHECK[k] ? (Math.random() < 0.8 ? CHECK[k][0] : CHECK[k][1]) : CROWD[crowd(F, X)].charAt(0).toUpperCase() + CROWD[crowd(F, X)].slice(1) + '.';
-        stationSays('Ricevuto, vado a vedere. Passo.', 1200);
-        stPending.push({ F, X, kind: 'check', at: state.t + 60 + Math.random() * 90, text: ans + ' Passo.' });
+        const k = b.dataset.chk; say('DCT', tx('stazione.verifica.ordine', { stazione: name, cosa: k.toLowerCase() }), 'pc');
+        const ans = CHECK[k] ? tx(Math.random() < 0.8 ? CHECK[k][0] : CHECK[k][1]) : tx('stazione.verifica.banchina', { folla: crowdTxt(crowd(F, X)) });
+        stationSays(tx('stazione.verifica.vado'), 1200);
+        stPending.push({ F, X, kind: 'check', at: state.t + 60 + Math.random() * 90, text: ans });
       });
       radioCmds.querySelectorAll('[data-ass]').forEach(b => b.onclick = () => {
         const k = +b.dataset.ass, no = trainNo(F, F.trains[k]);
-        say('DCT', `Stazione ${name}, manda l'agente sul treno ${no}: il treno resta fermo finché non mi riferisci. Passo.`, 'pc');
+        say('DCT', tx('stazione.assistenza.ordine', { stazione: name, treno: no }), 'pc');
         F.ag.event({ kind: 'order', k, what: 'hold' });
-        stationSays(`Ricevuto, salgo sul treno ${no}. Passo.`, 1200);
-        stPending.push({ F, X, k, kind: 'assist', at: state.t + 120 + Math.random() * 240, text: `Treno ${no}: ${pick(ASSIST)}. Il treno può ripartire. Passo.` });
+        stationSays(tx('stazione.assistenza.risposta', { treno: no }), 1200);
+        stPending.push({ F, X, k, kind: 'assist', at: state.t + 120 + Math.random() * 240, text: tx('stazione.assistenza.esito', { treno: no }) });
         radioCmdHtml = ''; drawRadioCmds();
       });
       radioCmds.querySelectorAll('[data-rel]').forEach(b => b.onclick = () => {
         const k = +b.dataset.rel, no = trainNo(F, F.trains[k]); F.ag.event({ kind: 'order', k, what: 'release' });
-        say('DCT', `Treno ${no}, puoi ripartire, segui il segnale. Passo.`, 'pc'); radioCmdHtml = ''; drawRadioCmds();
+        say('DCT', tx('treno.riparti.ordine', { treno: no }), 'pc'); radioCmdHtml = ''; drawRadioCmds();
       });
       radioCmds.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => {
         const close = b.dataset.acc === 'close'; F.ag.event({ kind: 'station', st: X, what: close ? 'close' : 'open' });
-        say('DCT', close ? `Stazione ${name}, chiudi gli ingressi: i treni non fermano finché non riapro. Passo.` : `Stazione ${name}, riapri gli ingressi, i treni tornano a fermare. Passo.`, 'pc');
-        stationSays(close ? 'Ricevuto, chiudo gli ingressi e faccio uscire i passeggeri. Passo.' : 'Ricevuto, ingressi aperti. Passo.'); radioCmdHtml = ''; drawRadioCmds();
+        say('DCT', close ? tx('stazione.chiusura.ordine', { stazione: name }) : tx('stazione.riapertura.ordine', { stazione: name }), 'pc');
+        stationSays(close ? tx('stazione.chiusura.risposta') : tx('stazione.riapertura.risposta')); radioCmdHtml = ''; drawRadioCmds();
       });
     }
     // the answers that take time (the agent goes to see, gets on the train), in game time
@@ -4520,16 +4557,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const sel = document.getElementById('radioVTo'); if (sel) sel.onchange = () => { radioVTo = sel.value; drawRadioCmds(); };
       const go = document.getElementById('radioSendSpeed'), off = document.getElementById('radioSpeedOff'), G = F.engine.G, no = radioTrain.no;
       if (go) go.onclick = () => {
-        const to = radioVTo === '' ? null : +radioVTo, until = to == null ? 'fino a nuovo ordine' : 'fino alla partenza da ' + cap(G.names[to]);
-        say('DCT', `Treno ${no}, limita la velocità a ${radioVSel} km/h ${until}. Passo.`, 'pc');
+        const to = radioVTo === '' ? null : +radioVTo, until = to == null ? tx('pezzo.velocita.fino_nuovo_ordine') : tx('pezzo.velocita.fino_partenza', { stazione: cap(G.names[to]) });
+        say('DCT', tx('treno.velocita.ordine', { treno: no, velocita: radioVSel, fino: until }), 'pc');
         F.ag.event({ kind: 'order', k: tr.agentK, what: 'speed', arg: { kmh: radioVSel, to } });
         (CALLS[tr.agentK] = CALLS[tr.agentK] || {}).vlimTo = to;
-        driverSays(pick([`Ricevuto DCT, marcia a ${radioVSel} km/h ${until}. Passo.`, `Copiato, ${radioVSel} all'ora ${until}. Passo.`]));
+        driverSays(tx('treno.velocita.risposta', { velocita: radioVSel, fino: until }));
       };
       if (off) off.onclick = () => {
-        say('DCT', `Treno ${no}, annulla la limitazione di velocità, riprendi la marcia normale. Passo.`, 'pc');
+        say('DCT', tx('treno.velocita.annulla', { treno: no }), 'pc');
         F.ag.event({ kind: 'order', k: tr.agentK, what: 'speedoff' });
-        driverSays('Ricevuto DCT, riprendo la velocità normale. Passo.');
+        driverSays(tx('treno.velocita.annulla_risposta'));
       };
     }
     function drawRadioCmds() {
@@ -4590,93 +4627,94 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         const n = nextStop(F, tr); if (!n) return;
         tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {};
         const before = tr.env.extra[n.key] || 0, total = before + radioStopSel;
-        say('DCT', `Treno ${radioTrain.no}, ${WHY_TXT[radioWhy]}: ${before ? 'aggiungi ' + (radioStopSel === 60 ? 'un altro minuto' : 'altri ' + durTxt(radioStopSel)) + ' di sosta' : 'fai una sosta di ' + durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`, 'pc');
+        const quanto = radioStopSel === 60 ? tx('pezzo.sosta.altro_minuto') : tx('pezzo.sosta.altri', { durata: durTxt(radioStopSel) });
+        const sv = { treno: radioTrain.no, motivo: tx(WHY_TXT[radioWhy]), durata: durTxt(radioStopSel), aggiunta: quanto, stazione: cap(n.name) };
+        say('DCT', before ? tx('treno.sosta.ordine_aggiunta', sv) : tx('treno.sosta.ordine', sv), 'pc');
         tr.env.extra[n.key] = total; relive(tr);           // a second order adds to the first (one more minute = one more minute)
         const w0 = radioWatch.find(w => w.tr === tr && w.key === n.key);
         if (w0) w0.dur = total; else radioWatch.push({ tr, F, key: n.key, name: n.name, dur: total, said: 0 });
-        if (before) { driverSays(`Ricevuto DCT, ${radioStopSel === 60 ? 'un altro minuto' : 'altri ' + durTxt(radioStopSel)} a ${cap(n.name)}: in tutto ${durTxt(total)} di sosta in più. Avviso i passeggeri. Passo.`); return; }
+        if (before) { driverSays(tx('treno.sosta.risposta_aggiunta', { aggiunta: quanto, stazione: cap(n.name), totale: durTxt(total) })); return; }
         const st0 = trainState(F, tr, state.t);
         const dawn = state.t < 6 * 3600 + 15 * 60 && radioWhy !== 'nessun motivo';
         if (radioWhy === 'treno davanti in ritardo' && st0.trip >= 0 && firstRuns(F).has(st0.trip))
-          driverSays(pick([`Ritardo il treno davanti? DCT, sono il primo della giornata: davanti a me ci sono solo i topi e il buio. Va bene, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`,
-                           `Davanti a me? DCT, ho aperto io la linea stamattina, davanti non c'è nessuno! Faccio comunque ${durTxt(radioStopSel)} a ${cap(n.name)}, magari il caffè è ancora caldo. Passo.`]));
-        else if (dawn) driverSays(`Iniziamo bene la giornata! Ricevuto, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`);
-        else if (radioStopSel > 30 && st0.trip >= 0 && lastRuns(F).has(st0.trip)) driverSays(`Ricevuto, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Il collega non ha voglia di tornare a casa? Passo.`);
-        else driverSays(pick([`Ricevuto DCT, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Avviso i passeggeri. Passo.`,
-                         `Copiato, DCT. A ${cap(n.name)} tengo le porte aperte ${durTxt(radioStopSel)}. Passo e chiudo.`,
-                         `Ricevuto. Fermata prolungata a ${cap(n.name)}, ${durTxt(radioStopSel)}. Passo.`]));
+          driverSays(tx('treno.sosta.risposta_primo_treno', sv));
+        else if (dawn) driverSays(tx('treno.sosta.risposta_alba', sv));
+        else if (radioStopSel > 30 && st0.trip >= 0 && lastRuns(F).has(st0.trip)) driverSays(tx('treno.sosta.risposta_ultimo_treno', sv));
+        else driverSays(tx('treno.sosta.risposta', sv));
       };
       const pGo = document.getElementById('placeGo');
       if (pGo) pGo.onclick = () => { const q = document.getElementById('placeSel').value, k = tr.agentK; if (q === F.depot.target[k]) return;
         const old = F.depot.target[k]; delete F.depot.target[k];
-        if (!pastEntrance(F, k) && depotAssign(F, k, q)) { say('DCT', `Treno ${radioTrain.no}, cambio posto in deposito: vai in ${depotName(F, q)}. Passo.`, 'pc'); driverSays(`Ricevuto DCT, vado in ${depotName(F, q)}. Passo.`); }
-        else { F.depot.target[k] = old; say('DCT', `Treno ${radioTrain.no}, vai in ${depotName(F, q)}. Passo.`, 'pc'); driverSays('Negativo DCT, ho già passato l\'ingresso del deposito. Passo.'); }
+        if (!pastEntrance(F, k) && depotAssign(F, k, q)) { say('DCT', tx('treno.posto.ordine', { treno: radioTrain.no, posto: depotName(F, q) }), 'pc'); driverSays(tx('treno.posto.risposta', { posto: depotName(F, q) })); }
+        else { F.depot.target[k] = old; say('DCT', tx('treno.posto.ordine_tardi', { treno: radioTrain.no, posto: depotName(F, q) }), 'pc'); driverSays(tx('treno.posto.negativo')); }
         radioCmdHtml = ''; drawRadioCmds(); };
       const dOpen = document.getElementById('depOpen');
       if (dOpen) dOpen.onclick = () => { const q = depotAsk(F, tr.agentK); if (!q) return;
-        say('DCT', `Treno ${radioTrain.no}, apro il segnale ${sigNo(F, q.si)}, via libera per ${q.what}. Passo.`, 'pc');
+        say('DCT', tx('treno.segnale_deposito.ordine', { treno: radioTrain.no, segnale: sigNo(F, q.si), cosa: q.what }), 'pc');
         F.ag.event({ kind: 'il', what: 'clear', si: q.si }); env.resetSigs();
-        driverSays(pick(['Ricevuto DCT, segnale aperto, procedo. Passo.', 'Copiato, vedo il bianco. Mi muovo. Passo.'])); radioCmdHtml = ''; drawRadioCmds(); };
+        driverSays(tx('treno.segnale_deposito.risposta')); radioCmdHtml = ''; drawRadioCmds(); };
       const p2w = document.getElementById('p2Wait'), p2d = document.getElementById('p2Divert');
-      if (p2w) p2w.onclick = () => { say('DCT', `Treno ${radioTrain.no}, resta fermo sul tronchetto e attendi che il binario 2 si liberi. Passo.`, 'pc');
-        driverSays('Ricevuto DCT, attendo il via libera per il binario 2. Passo.'); };
+      if (p2w) p2w.onclick = () => { say('DCT', tx('treno.binario2_occupato.attendi', { treno: radioTrain.no }), 'pc');
+        driverSays(tx('treno.binario2_occupato.attendi_risposta')); };
       if (p2d) p2d.onclick = () => {
         const c = CALLS[tr.agentK], alt = c && c.p2 && tr.alts[c.p2.ai]; if (!alt) return;
-        say('DCT', `Treno ${radioTrain.no}, ti devio al binario 3: ci aspettiamo di partire dal binario 3. Passo.`, 'pc');
+        say('DCT', tx('treno.binario2_occupato.devia', { treno: radioTrain.no }), 'pc');
         const keep = tr.segs.slice(alt.i, alt.i + alt.n);
         setPlat(tr, alt, 1);
         if (F.ag.replan(tr.agentK) === false) {          // it is already past the switch: back to platform 2
           tr.segs.splice(alt.i, keep.length, ...keep); tr.starts = tr.segs.map(x => x[3][0]); alt.plat = 2; relive(tr);
-          driverSays('Negativo DCT, ho già passato lo scambio. Resto in attesa per il binario 2. Passo.');
-        } else { c.p2 = null; driverSays('Ricevuto, vado sul binario 3 e parto da lì. Passo.'); }
+          driverSays(tx('treno.binario2_occupato.devia_negativo'));
+        } else { c.p2 = null; driverSays(tx('treno.binario2_occupato.devia_risposta')); }
       };
       const cancel = document.getElementById('radioCancel');
-      if (cancel) cancel.onclick = () => { say('DCT', `Treno ${radioTrain.no}, annulla la sosta prolungata, servizio regolare. Passo.`, 'pc');
+      if (cancel) cancel.onclick = () => { say('DCT', tx('treno.sosta.annulla', { treno: radioTrain.no }), 'pc');
         radioWatch.filter(w => w.tr === tr).forEach(w => { delete tr.env.extra[w.key]; radioWatch.splice(radioWatch.indexOf(w), 1); });
-        relive(tr); driverSays('Ricevuto DCT, riprendo il servizio regolare. Passo.'); };
+        relive(tr); driverSays(tx('treno.sosta.annulla_risposta')); };
       radioCmds.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => {
         const a = tr.alts[+b.dataset.ai], pl = +b.dataset.rp;
-        say('DCT', `Treno ${radioTrain.no}, a San Donato si aspetti di partire dal binario ${pl}. Passo.`, 'pc');
+        say('DCT', tx('treno.binario_partenza.ordine', { treno: radioTrain.no, binario: pl }), 'pc');
         tr.segs.splice(a.i, a.n, ...JSON.parse(JSON.stringify(a.opts[String(pl)]))); tr.starts = tr.segs.map(x => x[3][0]); a.plat = pl;
         if (tr.env) tr.env.extra = {}; relive(tr);
-        driverSays(`Ricevuto, ci aspettiamo di partire dal binario ${pl}. Passo.`);
+        driverSays(tx('treno.binario_partenza.risposta', { binario: pl }));
         closeAfter(F, tr, a.dep);
       });
       radioCmds.querySelectorAll('[data-rt]').forEach(b => b.onclick = () => {
         const c = tr.calts[+b.dataset.ci], t = +b.dataset.rt, nm = c.names[t];
-        say('DCT', `Treno ${radioTrain.no}, a Comasina vai nel tronchetto ${nm}. Passo.`, 'pc');
+        say('DCT', tx('treno.tronchetto.ordine', { treno: radioTrain.no, tronchetto: nm }), 'pc');
         const plan = tailChain(F, tr, c, t) || (!tailBusy(F, tr, t, c) ? [{ tr, c, to: t }] : null);
-        if (!plan) { driverSays(`Negativo DCT, il tronchetto ${nm} resta occupato troppo a lungo. Resto sul programmato. Passo.`); return; }
+        if (!plan) { driverSays(tx('treno.tronchetto.negativo', { tronchetto: nm })); return; }
         if (plan.length > 1) {
           plan.forEach(p => { applyAlt(p.tr, p.c.i, p.c.n, p.c.opts[String(p.to)], true); p.c.tail = p.to; });
           reliveFleet(F, null);
           const others = [...new Set(plan.slice(1).map(p => trainNo(F, p.tr)))];
-          driverSays(`Ricevuto, a Comasina entro nel tronchetto ${nm}. ` + (others.length === 1 ? `Il treno ${others[0]} cambia tronchetto.` : `Cambiano tronchetto anche i treni ${others.join(', ')}.`) + ' Passo.');
+          driverSays(others.length === 1 ? tx('treno.tronchetto.risposta_cambia_altro', { tronchetto: nm, treno2: others[0] })
+                                         : tx('treno.tronchetto.risposta_cambiano_altri', { tronchetto: nm, elenco: others.join(', ') }));
           return;
         }
         const w = tailWait(F, tr, t, c);
         applyAlt(tr, c.i, c.n, c.opts[String(t)]); c.tail = t; c.done = false;
         closeAfter(F, tr, c.leave + 30);
-        driverSays(w ? `Ricevuto, tronchetto ${nm}. Attendo in banchina che il treno ${trainNo(F, w)} lo liberi. Passo.`
-                     : pick([`Ricevuto, a Comasina entro nel tronchetto ${nm}. Passo.`, `Copiato DCT, tronchetto ${nm}. Passo e chiudo.`]));
+        driverSays(w ? tx('treno.tronchetto.risposta_attendo', { tronchetto: nm, treno2: trainNo(F, w) })
+                     : tx('treno.tronchetto.risposta', { tronchetto: nm }));
       });
       const c1 = document.getElementById('radioC1');
       if (c1) c1.onclick = () => {
         const a = tr.carr1[k1];
-        say('DCT', `Treno ${radioTrain.no}, a Comasina entra al binario 1 e cambia banco lì. Passo.`, 'pc');
-        if (!a || a.done || state.t > a.close) { driverSays('Negativo DCT, sono già troppo vicino a Comasina. Passo.'); return; }
+        say('DCT', tx('treno.comasina_binario1.ordine', { treno: radioTrain.no }), 'pc');
+        if (!a || a.done || state.t > a.close) { driverSays(tx('treno.comasina_binario1.negativo')); return; }
         (tr.calts || []).forEach(c => { if (c.i === a.i) c.done = true; });
         applyAlt(tr, a.i, a.n, a.segs); a.done = true; tr.c1 = { arr: a.arr, dep: a.dep }; if (tr.env) tr.env.extra = {};
         closeAfter(F, tr, a.dep);
-        driverSays(pick(['Ricevuto DCT, a Comasina entro al binario 1 e cambio banco in banchina. Passo.', 'Copiato, binario 1 con cambio banco in stazione. Passo e chiudo.']));
+        driverSays(tx('treno.comasina_binario1.risposta'));
       };
       const p2 = document.getElementById('radioP2');
       if (p2) p2.onclick = () => {
-        say('DCT', `Treno ${radioTrain.no}, a San Donato entra al binario 2 e cambia banco lì. Passo.`, 'pc');
+        say('DCT', tx('treno.sandonato_binario2.ordine', { treno: radioTrain.no }), 'pc');
         const before = !!tr.p2; env.p2Msg = ''; orderP2(F, tr, k2); if (tr.env) tr.env.extra = {};
         if (tr.p2 && !before) closeAfter(F, tr, tr.p2.dep);
-        if (tr.p2 && !before) driverSays(pick(['Ricevuto DCT, entro al binario 2 e cambio banco in stazione. Passo.', 'Copiato, binario 2 con inversione sul posto. Passo e chiudo.']));
-        else driverSays('Negativo DCT, ' + (env.p2Msg.replace(/^Order refused: /, '').replace('platform 2 is not free', 'il binario 2 non è libero').replace('is standing there', 'è fermo lì') || 'non posso eseguire') + ' Passo.');
+        if (tr.p2 && !before) driverSays(tx('treno.sandonato_binario2.risposta'));
+        // (the page's reason is in English: the pieces it has are said in Italian, the rest as it is)
+        else driverSays(tx('treno.sandonato_binario2.negativo', { motivo: env.p2Msg.replace(/^Order refused: /, '').replace('platform 2 is not free', () => tx('pezzo.binario2.non_libero')).replace('is standing there', () => tx('pezzo.binario2.fermo_li')) || tx('pezzo.binario2.non_posso_eseguire') }));
       };
     }
     // replace segments i..i+n-1 of a train's plan, keeping its other choices (platform, platform 2, tail) in step
@@ -4727,13 +4765,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       return null;
     }
     // every conversation ends when the train leaves: "Ripartito, passo. Buona giornata."
-    const BYE = 'Ripartito, passo. Buona giornata.', closing = [];
+    const BYE = () => tx('treno.ripartito'), closing = [];
     function closeAfter(F, tr, t) { const i = closing.findIndex(c => c.tr === tr); if (i >= 0) closing.splice(i, 1); closing.push({ F, tr, t }); }
     function closingTick() {
       for (let i = closing.length - 1; i >= 0; i--) { const c = closing[i];
         if (state.t < c.t) continue;
         const st = trainState(c.F, c.tr, state.t);
-        if (st.v > 0 || state.t > c.t + 1800) { if (st.v > 0) say('T' + trainNo(c.F, c.tr), BYE, 'dr'); closing.splice(i, 1); } }
+        if (st.v > 0 || state.t > c.t + 1800) { if (st.v > 0) say('T' + trainNo(c.F, c.tr), BYE(), 'dr'); closing.splice(i, 1); } }
     }
     // last passenger run of the evening in each direction (easter egg on the radio)
     let LASTRUNS = null;
@@ -4758,9 +4796,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // moving by the timetable, and only after 5 minutes held at the same signal. ----
     const redStops = new Map(), dcoCalls = [];
     function sigName(bl) {
-      if (bl.kind === 'throat') return 'segnale di protezione (' + bl.name.trim() + ')';
+      if (bl.kind === 'throat') return tx('pezzo.segnale.protezione_sezione', { dove: bl.name.trim() });
       const n = cap(bl.name.slice(2)).replace(' (Blocco)', '').replace(' Arrivo', '');
-      return bl.kind === 'entry' ? 'segnale di protezione di ' + n : bl.kind === 'departure' ? 'segnale di partenza di ' + n.split(' → ')[0] : 'segnale di blocco ' + n.replace(' → ', ' – ');
+      return bl.kind === 'entry' ? tx('pezzo.segnale.protezione', { dove: n }) : bl.kind === 'departure' ? tx('pezzo.segnale.partenza', { dove: n.split(' → ')[0] }) : tx('pezzo.segnale.blocco', { dove: n.replace(' → ', ' – ') });
     }
     // does the timetable plan have this train standing still at time t? (then a red ahead is normal, no call)
     function planStanding(tr, t) {
@@ -4780,9 +4818,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const c = IL.ahead(pid, from + F.engine.half, 900).find(x => IL.isManual(x.si) && il.grant[x.si] !== k); if (!c) return null;
       const st = leg ? leg.status : a.status, n = (F.engine.net.signals[c.si] || {}).n, lr = loopRole(F.trains[k].segs[a.si]);
       // #A02/#A03: from the depot onto the line; #A04/#A05: from the line into the depot; shunting signals: depot moves
-      const what = lr === 'in' || lr === 'in2' || lr === 'gate' ? 'uscita verso l\'anello di prova' : lr === 'home' ? 'rientro in deposito dall\'anello di prova'
-        : n === 2 || n === 3 ? 'entrata in linea' : n === 4 || n === 5 ? 'entrata in deposito'
-        : st === 'from_depot' || st === 'empty' && (pid !== a.pid || ag.S.t < a.wait || a.status === 'parked') ? 'uscita dal deposito' : 'manovra in deposito';
+      const what = tx(lr === 'in' || lr === 'in2' || lr === 'gate' ? 'pezzo.deposito.uscita_anello' : lr === 'home' ? 'pezzo.deposito.rientro_anello'
+        : n === 2 || n === 3 ? 'pezzo.deposito.entrata_linea' : n === 4 || n === 5 ? 'pezzo.deposito.entrata_deposito'
+        : st === 'from_depot' || st === 'empty' && (pid !== a.pid || ag.S.t < a.wait || a.status === 'parked') ? 'pezzo.deposito.uscita_deposito' : 'pezzo.deposito.manovra');
       return { si: c.si, open: il.pass[c.si] > 0, what, dist: c.d - (from + F.engine.half),
                due: ag.S.t < a.wait ? a.wait : null, red: a.red && a.red.why && a.red.why.sig === c.si ? a.red.since : null, loop: !!lr };
     }
@@ -4794,46 +4832,47 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         // depot on manual: 2 minutes before moving (or on reaching a red depot signal) the driver asks for it, again after 1 minute
         const dq = depotAsk(F, k);
         if (dq && !dq.open) {
-          const t = ag.S.t, h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? 'Buongiorno' : 'Buonasera', key = dq.si + ':' + (dq.due || 'r');
+          const t = ag.S.t, h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? tx('pezzo.saluto.giorno') : tx('pezzo.saluto.sera'), key = dq.si + ':' + (dq.due || 'r');
           const atSig = dq.red != null || dq.due != null && dq.dist < 40;           // standing in front of it
+          const dv = { saluto: hi, treno: no, segnale: sigNo(F, dq.si), cosa: dq.what };
           if (dq.loop) {          // going to (or back from) the test loop: it asks after 2 minutes at the red signal, again after 7
             const w = dq.red != null ? t - dq.red : -1;
             if (c.depKey !== key && w >= 120) { c.depKey = key; c.depAgain = false;
-              call(`${hi} DCT, qui treno ${no}: sono fermo da 2 minuti al segnale ${sigNo(F, dq.si)}, richiesta apertura per ${dq.what}. Passo.`); }
+              call(tx('chiamata.deposito.anello_due_minuti', dv)); }
             else if (c.depKey === key && !c.depAgain && w >= 420) { c.depAgain = true;
-              call(`DCT, qui treno ${no}, sono fermo da 7 minuti al segnale ${sigNo(F, dq.si)}: attendo ancora l'apertura per ${dq.what}. Passo.`); }
+              call(tx('chiamata.deposito.anello_sette_minuti', dv)); }
           } else
           if (c.depKey !== key && atSig && (dq.due == null || t >= dq.due - 120)) { c.depKey = key; c.depAgain = false;
-            call(`${hi} DCT, qui treno ${no}: richiesta apertura segnale ${sigNo(F, dq.si)} per ${dq.what}. Passo.`); }
+            call(tx('chiamata.deposito.richiesta', dv)); }
           else if (c.depKey === key && !c.depAgain && (dq.due != null ? t >= dq.due + 60 : dq.red != null && t - dq.red >= 60)) { c.depAgain = true;
-            call(`DCT, qui treno ${no}, sono ancora in attesa dell'apertura del segnale ${sigNo(F, dq.si)} per ${dq.what}. Passo.`); }
+            call(tx('chiamata.deposito.sollecito', dv)); }
         } else if (!dq) c.depKey = null;
         if (a.status === 'stopped' && !c.stopped) {
           c.stopped = true; const at = a.inside ? G.names[a.inside.stops[a.inside.q].st] : '';
-          call(`DCT, qui treno ${no}, fermo a ${cap(at)}: la linea davanti è interrotta. Attendo istruzioni. Passo.`);
+          call(tx('chiamata.interruzione.fermo', { treno: no, stazione: cap(at) }));
         }
         if (a.status !== 'stopped') c.stopped = false;
         // stopped at a red signal: the driver calls the DCT after 30 seconds (M3 rule), in the line and at a station
         const redCall = a.status === 'turnback' ? 300 : a.stopAt == null ? 30 : a.why === 'segnale' && !a.pcHold && !a.vlim ? 30 : Infinity;     // (at a station: 30 s too, unless the DCT ordered something)
         if (a.red && a.v === 0 && em.ag.S.t - a.red.since >= redCall && !c.red && !(dq && !dq.open && dq.red != null) && !(a.why === 'guasto' || a.why === 'tensione' || a.why === 'rosso' || a.why === 'fermo') && !(((a.red.now || a.red.why || {}).route || {}).sigFail != null || ((a.red.now || a.red.why || {}).route || {}).ghost != null || ((a.red.now || a.red.why || {}).route || {}).swHand != null)) {   // (depot signals on manual: their own calls; failures: their own calls)
           c.red = true; const w = a.red.now || a.red.why || {};
-          const what = w.sig != null ? 'al segnale ' + (typeof w.sig === 'number' && w.route !== undefined ? '#A' + String(w.sig).padStart(2, '0') : sigNo(F, w.sig)) : 'dietro al treno ' + trainNo(F, F.trains[w.train] || tr);
-          call(`DCT, qui treno ${no}, sono fermo ${what}, via impedita. Chiedo spiegazioni. Passo.`);
+          call(w.sig != null ? tx('chiamata.rosso.segnale', { treno: no, segnale: typeof w.sig === 'number' && w.route !== undefined ? '#A' + String(w.sig).padStart(2, '0') : sigNo(F, w.sig) })
+                             : tx('chiamata.rosso.dietro_treno', { treno: no, treno2: trainNo(F, F.trains[w.train] || tr) }));
         }
-        if (!a.red && c.red) { c.red = false; say('T' + no, `Qui ${no}, via libera. Ripartito, passo. Buona giornata.`, 'dr'); }
+        if (!a.red && c.red) { c.red = false; say('T' + no, tx('chiamata.rosso.via_libera', { treno: no }), 'dr'); }
         // San Donato: from the tail towards platform 2 while a train reverses there: it waits, then asks the DCT
         if (a.mode === 'plan' && !a.hidden && a.stopAt == null && a.v === 0 && a.red && em.ag.S.t - a.red.since >= 30 && !c.p2) {
           const ai = (tr.alts || []).findIndex(x => x.plat === 2 && state.t <= x.leave && x.leave - state.t < 15 * 60 && x.opts['1']);
           const o = ai >= 0 ? trainOnPlatform(F, P2WAY, state.t, tr) : null;
           if (o && o.p2 && state.t <= o.p2.dep + 60) { c.p2 = { ai };
-            call(`DCT, qui treno ${no}, sono sul tronchetto di San Donato: il binario 2 è occupato dal treno ${trainNo(F, o)} in retrocessione. Resto fermo o mi mandate al binario 3? Chiedo istruzioni. Passo.`); }
+            call(tx('chiamata.binario2_occupato', { treno: no, treno2: trainNo(F, o) })); }
         }
         if (c.p2 && (!a.red || !tr.alts[c.p2.ai] || tr.alts[c.p2.ai].plat !== 2)) c.p2 = null;
         if (c.vlimTo != null && !a.vlim) { const where = G.names[c.vlimTo]; c.vlimTo = null;
-          if (!radioEl.hidden && radioTrain && radioTrain.tr === tr) say('T' + no, `Qui ${no}, lasciata ${cap(where)}: fine limitazione, riprendo la velocità normale. Passo.`, 'dr'); }
+          if (!radioEl.hidden && radioTrain && radioTrain.tr === tr) say('T' + no, tx('treno.velocita.fine_limitazione', { treno: no, stazione: cap(where) }), 'dr'); }
         if (a.late != null && a.late > 600 && (!c.late || em.ag.S.t - c.late > 900)) {
           c.late = em.ag.S.t;
-          call(`DCT, qui treno ${no}, siamo in forte ritardo (+${Math.round(a.late / 60)} min). Chiedo istruzioni. Passo.`);
+          call(tx('chiamata.ritardo', { treno: no, ritardo: Math.round(a.late / 60) }));
         }
       });
     }
@@ -4860,7 +4899,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
           }
         }
         const w = redStops.get(tr);
-        if (!red) { if (w) { if (w.called) say('T' + trainNo(F, tr), `Qui ${trainNo(F, tr)}, ${w.name} a via libera. ${BYE}`, 'dr'); redStops.delete(tr); } return; }
+        if (!red) { if (w) { if (w.called) say('T' + trainNo(F, tr), tx('chiamata.rosso.via_libera_segnale', { treno: trainNo(F, tr), segnale: w.name }), 'dr'); redStops.delete(tr); } return; }
         if (!w) {
           // at a platform = a timetable stop of the planned run, not just near a station
           const ps = tr.segs[o.seg], pds = ps && ps[0] === o.pid ? ps[4] : [];
@@ -4872,7 +4911,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
           w.called = true; dcoCalls.push({ t: state.t, train: trainNo(F, tr), sig: w.name });
           if (radioEl.hidden) openRadio(F, tr);
           radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000);
-          say('T' + trainNo(F, tr), `DCT, qui treno ${trainNo(F, tr)}, sono fermo al ${w.name}, via impedita. Chiedo spiegazioni. Passo.`, 'call');
+          say('T' + trainNo(F, tr), tx('chiamata.rosso.cinque_minuti', { treno: trainNo(F, tr), segnale: w.name }), 'call');
         }
       });
     }
@@ -4881,14 +4920,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       stationTick();
       for (let i = radioWatch.length - 1; i >= 0; i--) {
         const w = radioWatch[i], st = trainState(w.F, w.tr, state.t), here = st.v === 0 && w.tr.segs[st.seg] && (st.seg + ':' ) && stationAt(w.F, st.pid, st.d) === w.name;
-        if (w.said === 0 && here) { w.said = 1; if (radioTrain && radioTrain.tr === w.tr) { say('T' + radioTrain.no, `Fermo a ${cap(w.name)}, porte aperte, attendo ${durTxt(w.dur)}.`, 'dr'); } }
-        else if (w.said === 1 && !here) { if (radioTrain && radioTrain.tr === w.tr) say('T' + radioTrain.no, BYE, 'dr'); radioWatch.splice(i, 1); }
+        if (w.said === 0 && here) { w.said = 1; if (radioTrain && radioTrain.tr === w.tr) { say('T' + radioTrain.no, tx('treno.sosta.inizio', { stazione: cap(w.name), durata: durTxt(w.dur) }), 'dr'); } }
+        else if (w.said === 1 && !here) { if (radioTrain && radioTrain.tr === w.tr) say('T' + radioTrain.no, BYE(), 'dr'); radioWatch.splice(i, 1); }
       }
       drawRadioCmds();
     }
 
 
-    return { say, cap, pick, trainNo, openRadio, openStationRadio, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
+    return { say, cap, trainNo, openRadio, openStationRadio, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
              radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain };
   }
   const api = { create };
@@ -4975,6 +5014,9 @@ window.MTL_PACKS = {"M3": ["", "6", "7"]};
   // the day just loaded after the end of the previous one (continuity): the state of the line to put back, the speed
   // the M3 mark on the train card (tools/assemble.py puts Giovanni's image here)
   const M3LOGO = 'data:image/png;base64,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';
+  // the radio phrases (web/frasi.js, data/radio_m3.json in the network of the M3): tx('code', { values })
+  let FRASI = null;
+  const tx = (code, v) => (FRASI || (FRASI = MTLFrasi.create(((fleets.find(f => f.line === 'M3' && f.engine) || {}).engine || { net: {} }).net.radio || {}))).t(code, v);
   // the marks of the other lines and services (tools/assemble.py fills this from web/img/lines)
   const LOGOS = (() => { try { return JSON.parse('{"M1": "data:image/png;base64,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", "M2": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJAAAABgCAYAAADy1PuhAAAaF0lEQVR42u1deXAc1Zn/vfe655BmdI2s+7Ity7J1WJJtsPFFEgLZQCDshoQchC2KZAPZHLub3YQlwaEg2U022S2SCpCtZKmEJEWxW5ADkpCFAnzIB8aS7xNbh21ZlqxbmqO739s/unt0TfccGski2x/V5g+P5+t+/Xvf8fu+7w0BAAgQEAgAuOfp5o2M0M9qEDdCoAQCLjjy/1k0QkkvIdjLIZ559rMHXwKA7dtBH30UnJjg+cAT1e4CT9a/EUY+xxiRNUWAa8JZPkdAKAGTCQQHBBcvhCfCDz735aO927eDkruev4sBx5hnwPOS1y+/PziiCAjBAUJBQJzlcwSAEEIIAPD6ZRoJqqcQYTf+7PNv9RIA+OSPmp/IzHV9MTikREAcl+WIHZQQcfslV2hUeXV5b9st5N4nW9YKhv0QEEKAAo7VcSQehoTq8khSJKTcS1WCz0suRgUXcMDjSKJREdeEICBfkihwo6ZyAIQ6C+NIQvABqKZwCJAmCRBFQgOcgNmRVIBEAcKcZN2RVMVxW444AHLEAZAjDoAccQDkiCMOgBxxAOSIAyBHHAA54ogDIEccADmyiEW6FkoJiVe3JYAQEBB/Vrrndt8UhOgVbyFg3J+I3jMBASHG3wm+YPe/4AASEFDUSNxPMSqBEmnKIqVLdxj2bU8CjMqghKVVd0qgAQGhFIJzRNQgFDUCAQFKKBiVQIwOHC40aFwFFxyMSHBJHsjMBUCAC/7nAyABAYlKKMwqt3w5wli40dAgxsOjoGlqUxJCQGauhHSPBAcwERlLm+5UhFEGRYsgGByHW/KiLK8aywrqUBGoQUFWKXyeHEjMBSEEImoIwxP96BnqxPm+4zh35Sj6RntACUWGy6fbqnkC0oIBiFKGsdAQbqy9Ew/e9G1oQjN2+XThQgOjDLtPv4wnXvlH+NzZ4EKbs+7R4BBuafw47t/2SFzdrx9/AU+++jD83hxwri2s1SEUgMBIcBABXxHeX383Nq74CywvWA1G5YS+YyQ4iCPdrXjt2P/g6IW9kKgMl+yZl2dZWBcmgLVL3wNKGSBIzB3OoL/YxvJNyM3IR1CZmLs7EQAlBOuWvheUMhBBouY/lu6myi3I8uZC1ZToC12QTUYYIloYXGi4tele3LH2fgR8RdMALgSgh3FkpomFgP6cWd5cbKq5FZtqbsXes3/CL1u/h8tDnfB5sqGlGUQLYqMJCFRNQa6vAKtL12Py8UXMiwuO7IwAVhStQVgJghIyJ92KFkG+vwQri5snA2UL3UJwBHxFWF7YgLA6N93JWsmQMo4sTw4e+tDTuG/b1xHwFYFzzYhjBChhYJSBEgZK6PSL6n9HCIWAMMAmsKH6ZnzrrufQsvRGjASHwCh7FwKIUISVIFYUrkF2RgBCcGNnk5iXMYKEpsqt4EJNIHOy0U0pwmoQK4tbkOnOAhfc+L7YFzd1V2w2LBBZEMsTioyjIKsM3/zLn2NNxWZoXAcApcyw1CSpTUMJAyEEGteQ5c3DV297Ehurb8ZoaDitIFogAOnmt7lqq2GKRZwF1RerseIG+Nw5czK7xAggTd0ijm4TMGsqNyPD7U+7yY+lT9HC8Htz8c+3/yeKciqhcdWwJnMHL6MMXHBQwvCFW76H5QX1CEbG05YgLAiAVK7C58lBY/kN0wBiZ7EEBIqyK1C1ZJXhxmhK8FE1BTkZ+agvu97QTeOAV9ddmrsMFYEaRNRQzHgpnQ5e1RQ8eNO/TAFP/NBUGIN8ifA9lFBwocEtefDA+x6HxOS0pffzDiBKKCJKCEuXrEJhdjkEREIvhHMetQQKj6S0GykhCKshLC+sR8BXBCFEQt/DOQclFGsqNiGihectDjIz0/fWfQTNlVugcS0OeAS44dp04lAnEIUQcTNVShg0rqFqySq8r+6jGA+PpMWVzTuACCFQeARrKjZNA0aijHFTxWZ45IyE/93M71A1BU0VWwzXmZzu5sotcDFPXJebquXRNBVZ3jz81foHDIKQ2FocgOhZJCEIRsYwNN6H8fAoCNFjnkTcs4DAB9fcY2Rk6uJP4znn8MiZaKrcMu3lJGK5AKAyfyXK8qrR3X8aLtmbFCGmcQ2Zbj8aDfDShHXrn1taUIeS3Cr0DHXCJbnjvqDkrA/FaHAYNzd8HPn+YiNOoZbgIdAD4lePPY+9Z1/BleFuRNQwZOZCcW4Vbq6/G9dX32xrZSmhEIKjMLsc9WUbsP+d/0XmHHk2Or/WhyKshlCWtxwVgZqEYpCZAGBUQkPZxqRdiam7In8lSnOXJuw6TevAuQaZuVBXdj0iaijtrLQQAhKVsanm1hl1rdmfgwBGQ4N4/Df34alXH8bxC/sxNNGPoDKO4eAAjnTvwXdeegC/av13EEJsLa1uTQWaq7YZGekidmGUEChaCI3lG8GolDQTaj5cc9UWSFROygJQI7tZU7EJhNCUXKDuxrYm5B5SybwKs8uxorDRiGeoNQtKgKdf+wbaOnYgz1cIrysTEpXBCINEJWS4/MjOCOD5fT/EzlO/jQbN1taVYEVhI7xy5pyzzHkFEBcCEnWhuXIrACR9dIO5qCsK16AwuxwRNZywC+SCwy15knadU/kjAKgtacGSrBIoWiRt098EFIoaRkX+SrgNtxzru7nQQAjFoc5d2Hf2T8jNLICqRcCNarv5n0kael0+/Obtn0DVItYMurEOS7JKkZ2RD43PjWebNwDpDLC+y6oLG5N2X+Z3cMHhlr1YVboe4QRTakIIImoYJTlLsWxJXVLxz0zdGS4/aovXIqwGo6BKBy+mCQ3ledUJ8WK7Tr+sd5nYpOxccLgkDy4OnkdH/ynj/kXM5wKADJcP2RkBI5BejACiFGElhNWl6+GWvYZfJjYZhmWwAABoqdqq75QEPAklFBE1hLqy63XOg2sp6RZR3duQ7kSMgCDfX6z37sS4zPVSNQWd/SchM3fcBIKAQFHD6BnqmLZ2Vs+V6fbrcdCidGFCtwQmA2z3Buxcg7nrV5esR8BXqJvnOI8shACjLCHXafddpsWsK7sOORn50DQF6ThCSS+IUuRlFoAQConJRsPY5GXWuFSuYCQ4oHM2Ii4qp/Q82X1cGCy1POfYbl7SeAIClUcQ8BViVcn6aUCY/SAEI8FB+DxZMVssTFfi9+aipqgJe8++gkx3NoRFkDhZPC3FypLmabFULNF1Z8d0r4ToJF1uZgFWFDXg7Y43kenyp4EXEmCEoW+0B90DZ8G5Nku/mY4PTfRDUSOTx+jG27QgcMsZCYWcQmhzzsLmB0CEIhwJorlyK7K8uZYch9ma8OKBH+PWpk8j318S5TxmmVyiF1dbz/xBf2hhl74HsapkLTJcfmvdhp4X3noKH173WeRk5EcBPTO2YIShqXIr9p97LWE3GjfAl714dtd345YiCBC1SvEUCwhITEbAVzg9jbUIpEPKBMgcnRCdHwDpi2S6kFhmUudlCELKBN48+Wuc7zthfJZbupKG8o3we3Ohaqr9igvE1w2CsdAw3jjxIrqunrZkqqOF3fJN8LnT20+jM8jU9kqUu9KJRgXZ3gBK85bbuGcRtdIjwUFQyubUPz0vAFK5Cr8nF/XlGy0zIBMoZy4fQu9wF45e2Asrx226koKsUiwrqDP6dGjMZVQ1BTmZ+aizKZ4KgxM62XMQvcPdONq91zJMMwu7xbmVqMyv1bOxRXgaoJ60BFFT3AS/J2dK20rMnARD430YmuhPml+bdwBRo/dnWcFqFGSVGr6cWsVxeLvjDTAq49iF/VC0iN6tGANFpnVoqtgClcfu06GEIKwEUV3YiNzMJUbfEYltpQAcPP8GZMmFI917DNY79nJwrvM0ayo2Q1EjC9ZklmzSAhC8v/5jgE0ILaCvY2f/KYyFhhKq/C8ogAghULkSJfCsaHVKGVRNwdHuvfB5snFx8BzOXTlqyYtMLa5myD5oMZhlQgg0oU7RLWIuISUMYTWIYxf3we/JRdfAGXRdPQUgdhlgsri6eQolsXiEUYax8DDWLX0PGis2QRj9PzYJGA53ty7OUobGNXhlH9ZUbLZkgM0XcL7vOC4OnoNHykBYDaKtY6dl3EKNILIsUI3ywApEYrgSjWvwubNt+45MUJ29fASXh7vglr0IhsdwqHNXHN1A5ZJalOYuMxjxxeHG9LKIAr8nG/du+VrcIJsarq69c2daNgNN78PoBF5FYAXKA9XRGSYrIqu9cyfCahAggIu5cbi7FUJwS1eiGX06DeWzi6vUyL6q8mtRnFNlWTw1dbd17oCqKQAAmclo79ply5ZzrkGiMhrKNxjF1WvvxojRhhtSJvA3730MRTmVhlWxqOpznZx869xruDh4Hi7JM2ceKK0AooQgooXRUL4RlDDLAialFEIIHOraDZm5wbkGl+RB19XTuDBwDnpftI0rqdoKF3NPc1H6ToygsWKTXpG20M2o3lh1pHvPpG7Zi/N9J9A73G0E7Nwybmqu3AZGpbQWV+cSOI8EB3Dv5q9iQ/Ut0GLwSTOYXWhcw8vtP4PM5LQ8Q1oBxIWAzNxotilgmoXDS0Pn0dl/Cm7Jo3MtlGEiMopDhiXgMV2J/n3LCxpQlFMJZUpxVS+eem2Lp6a57rp6Ct0DZ6K6JSphLDSEw92tNjGYvlQ1xU0ozCrTi6vXzArpDWQjE1dx94Yv40Mt9xlJgHWHodll+caJF3H6cju8rsy0DBumDUCEEChqCEXZFVhe2BA3BjnctRvjkcm2SrM/pr1zp40rIYa1cqOu9LpoOm+6ztLcZahaUmudvkdd5y6EIhOghqsUQg+s2zp3WN63yYh75AzUlq67Zum8PnGhT89+dMMX8bENXwCPAx4hBAilGJrox/P7fgCPK3Px9URTo4Grruw6uCSP0Y9CLAPSts6d0zgI04K8c+Uo+kcvRbkfK2mp2mZ02OmtoBE1jPqyDZCobNl3ZALmUNcuyMZYsAlqt+zFmcuHMDxxNcr9WJEoLZXbrlnMQwjBaGgIn7jh73H3hi+BCy36XHbMNwHBT994DFfHeuGa8uyLBkBC6OCILq6w2AmEYGCsF+/0HjFcyOQHJSZhJDiAIwaxFzOljvbprEW+vxiKpkAAYFSaLNwSWLrO3uFunO87oY/6Rr9fLwEMjl3B8YtvTSMbY7mx1aXrjd4cZcF+IYIQAhBgNDSMT2/5Kj5y3YNTamjEJivWR4Rebv8Zdp95Gf40T6fSdO0MRYsg4C9GbcnaaS86Vgxy9MI+nQVl8jSkmVVq05UQG1eS6c7CyuIWRNQQNE1BQVYZaoqbpr3omK6zuxVjoSFIFgRaW+eb5huzYMT1qdmaoiaElYVxY6Y1Hg+P4jM3PoI7Wu7XwUNZAuCR0Na5A8/u+i787pyY/Nm1B5CRQq8saobPkx01mVZZVFvHm4abmG0lPJIXp3vaMBYais5oWcUyzVVbQQgQVkNYVbIOXjnTUjeN6t5htKjOTnHdsgfHLx5ASBm31B2dXK3cYnQMzjd4dDcdUibwufc9jg+s+ZSebcUZyTH7yc9dOYYn/vgP+mYl1gz1NQZQ/OlPkxMaD4/gZM9BuCXvLDehV5NduDp2GScuvW3pSsw4qr5sA7K8AahcQUvVNmvdRjlleOIqzlw+FG0jnalbZm5cGbmA0z2HooC2AmJj+Q3weXLsC7tpiCs51xBWg/jbm7+Dm+ruirok25jHCKovDJzFv/7uAYTV0JxrXvMKIFVTkO3NQ33ZBusMyADCqZ6D6B/t0YNYiJhg5ILjYEc8VyIQ8BWhKr8WmS7/ZPHUxnUeu7gfg+NXIDHZQjeBxtVJNyasLUJhdjmWLlk9LxMb5hqqXIXKFfzdB/4DW1fentDUqmmdLgycxeO/uR8jwYF5Lb/QdDxoWA1hWUG90aJpP/15sGOHrek3s7HjF/cjHH051sXVVaXrULVkFbK8uZbN6WSK+4rHY7kkN45074XKVUs3MVnY3TQvfBAl1EgOBL7ywR8YJGFi4GGU4XzfcTz24n0YGu+Hx5Uxr2cczRlAiRVP9VMmIloYxy7sixJ4VpyFS3Lj8lAXzvYejksq1pdtwNbaO+K6zlBkHCcuHbAdThRGY/qlwXPoNPqT7Iqrayq3wOvKTHlkKDZ49HVilOFrtz2JtUvfkyB4dNd2qqcNj/36PoyEBucdPGkBkMY1ZLj8WFO5OS55eK73KHqGOiDHqcGY49DtNsVVM/upLmzAttoPG+6LxQQFAJy+3I4rIxficiCUUITUYLQ2ZldcrQjUoCyvOuFpkYTAowbhlrx46PYfo6H8hiTAI+FI9x58+7efQUiZgFvyLsjpanRu1scsntagLHcZELeAuTOhCVMuBFzMgyPdrUZAaH2bjEpwSW4bgspwnZ07EpqBEkJApi4c6twVrV7buQu9sDv34iqjDCF1AhnuLDx8x0+wqmRdUuA5cP51fOelB6BqilEnXJij+ejcdozOADdW3ABCqCXHwCgFFxyHu1tnFUGtXIlb8qB74Cy6Bk7Dqk9nFkpiss9m39EegyEXcVlbt+xFR/9J9Ax2Gqdf2PUIbZ3GaqcKnmBkHDneAL7+4Z+iurAhgZM6JsHTeuYP+P7vvwiAQGauBe1XmhOA9KDTY1s8NeebLg68g+6rp40WgvgPSClFMDKOdps+nan0ol2w29F/0mhfcCek22zQOty92zIGM591RVEjirIrkpqanWlBJ8JjCPiK8I07n0FVfm3cwuhUnuf14y/giVd0nodRacGb3VIGkFk8LcmtwrKCeuv03Sxgdu3CRGQs4TNpzGN5zUavVFLlmX1HiX6HEAKMSFMKuxaMuNGGsrp0fUrFVUYljIdHUJRTiUfufAalucsSAI+I8jx/PPwrPPnqQ3BLXoMcXfhOyZQBFC2ell6nm02rAqaxqO0ziqfxrRuHS/bgXN9x+z6dOFZM7zvaZUx2ioQtq1v24mzvYQyO90W5Hytprtymg0ckB56x0DDKAyvwyJ3PoDC7InrMcJytC0oZftf2DP7rzcf086KpBEIImHHQZqJXOup4KXdUmy0QzQYDHLuAqXNCfaOXcO7KMT0zSAIEEpWMM4/3oDC7HFwIMJLo/emdeXrf0Ulb6iDWLpeYjKGJfhy7uA+ba26LzodNe5VGgL2qdB0CviKMh4b1ZjOIuJtvNDSE6oIGfO32p5GTka9X1QmL+0yKFsEvW7+P5/Y8Ab83ByPBwZTLEx45Q9/UcyhvpAQgs3i6xF+C2uKWaWn1TCvCCMPR7j0YCQ4gy5ubVCXYrPC3de7ATfUfTSrTMcF2qGs3xsIjyPbmpVSFbuvYgc01t9kWdv2eHKwsbsaeM3+wnZo110mv3a3FP932ZHQEJz549Ax3NDSEPF8hvnLrD1P+TQ8BAQqKV489j66rZ+Z0eFZqAKL65OnKkhZkuK2nP6MMcOcOww0ka+U43HKG3qcTHEC2Ny/hcw4nXeeOlOpAguuM+IlLBzARGUWGy287NdtcuRW7T79sOzVrrklYCeLmxk/Ab9TSJBb/NZjPHPAV4Y6W+9MSvxzqbsU7V47BLXlStkI0NQukW4d405+mqT7V0w6P5E06hjFHdQfGr+D4xf3TiMH4u5VgcPwKzvYeSSh9j6VbZi70jV7CqZ42S92TU7MbkOXNS6i4qicg4YQ3w8z70rg2p0vVFP3/fO79TDQV+OhH5wZsj841i6cnLh3A1bHL+g+DpOxrBdpsiqtW6btV31EymSbn2mQNzWZqNt9fEmdqdva/SyXtJ0g+WJ7PIDppAOlH5wZRXdiAPF+h9S4iZgzxpr5zU7xXwTlckhcnLh5ASJmw7NOJ6TqNvqPUeS69Nnbswj6o0alZa8A2VW5ZsNPtF4vQVHalylU0VW6dtniz3Zc5/fmW3vuTIkchIOBiLvSOXMCZy+1x3dhk39EoTl46qPv3FIudZmH30tB5nOs7bvm806ZmF+B0+3c1gMziaUP5RsP66As99TIPwz57+Qh6h7rmfESu2adz0HAlM/XF0n2q5yD6Ri9Z9h0ly3e1d+w0Tofns3Sa5Y7S3GUoz6tO6HT76Enz1/BacACZ05/LCupQlrc8esC16c/NixnEVnvnjpRPmZ+Zkut9OnuM08ekWTpn6j7Y8abRd5QG3cyNQ127jfjDSrf+izktVTciosYvGDOif4/ErJ9lvi7zsPJ0uFopSVMATVOxorARw8Gr0DSbpiuu4VDX7lmTF6m5Eg4X86BnqAOHu1tRlV8bPcE0NkcVxtELe5MmLi11Sx50DZzGyUtvozinKqZu80CDpUtWwS3bk5aEEIyHhzE8cRWaTePafIl5r4o6981N7nmqJQwCV+JWXsAleUEJmeR1LFjosBpM69iLEHpaH61+k1m3ZvxmLkdYCaU1mI2rO7oMOs9j7zb13u8oP7XQMbdxMlxEDVvO780jkagP88c6Dm7mm0x3r7D52xeKFl7EuhGXVQYIFDWCCEJYePRM3ishdM4bPCUmmiaoeH5+tpuCJhC6XSvdwoowigFIem1+dT2tayRdS+XvNs3p1r3Yfpt+QdJ4RxxxAOSIAyBHHAA54gDIEQdAjjjiAMgRB0COOAByxAGQI444AHJkIQEkoBBnHRxJFUACopswIgTAneVwJBkRQigUBH9kEiVkMfz4gyPvEuCASy4qANJKIeFHalgLUkb+PPoLHJl3IURw/Ue5yXfpLz7TdpYL8U23X2YCQhUOiByxMT4QiHizXJIS1n7+7ANv/57d9fxd7Lm/fm3X6psKyrzZrvVCE0RwoQlCQBwoOQJAEAgiBCeUUG+WzIJj6usZlHzytrU9GgFAtm8HefRR8HuebvkyY+QhKtECwQW45iDIEYBQAsoINJWPQ+CpiYvBh//70eMRiCmD5tu3gz76KPjHflRX7pbcnyIgNwkhlgohZAhy7Xq/HblWzkr/gxKNEnIJEDs0jf7iFw8eOGr8PQGB+D+/nQcdkEoeSAAAAABJRU5ErkJggg==", "M4": "data:image/png;base64,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", "M5": "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMjIwLjIzMiIgaGVpZ2h0PSIxNDYuNzg5IiB2aWV3Qm94PSIwIDAgMjIwLjIzMiAxNDYuNzg5Ij4KPHBhdGgKICAgZmlsbD0iI0E0OTRDMSIKICAgZD0iTTIyMC4yMzIsMTM0LjU0N2MwLDYuNzY2LTUuNDkxLDEyLjI0Mi0xMi4yMjgsMTIuMjQySDEyLjI4N2MtNi43NjYsMC0xMi4yNDItNS40NzctMTIuMjQyLTEyLjI0MlYxMi4yMTkgIEMwLjA0NSw1LjQ2MSw1LjUyMSwwLDEyLjI4NywwaDE5NS43MTljNi43MzQsMCwxMi4yMjcsNS40NjEsMTIuMjI3LDEyLjIxOUwyMjAuMjMyLDEzNC41NDciCiAgIGlkPSJwYXRoNSIKICAgc3R5bGU9ImZpbGw6Izk5OGVjNDtmaWxsLW9wYWNpdHk6MSIgLz4KPHBvbHlnb24KICAgZmlsbD0iI0ZGRkZGRiIKICAgcG9pbnRzPSIxMTUuMDI5LDExMS43MjcgOTguNzI1LDU4Ljg1OSA4Mi40MDQsMTExLjcyNyA2Ny43NDgsMTExLjcyNyA1MS40MjgsNTguODU5IDM1LjExNSwxMTEuNzI3ICAgMjAuNDQzLDExMS43MjcgNDQuMDY4LDM1LjA3IDU4Ljc1NiwzNS4wNyA3NS4wNzYsODcuOTM4IDkxLjM2NSwzNS4wNyAxMDYuMDYxLDM1LjA3IDEyOS43MjUsMTExLjcyNyAiCiAgIGlkPSJwb2x5Z29uNyIgLz4KPHBhdGgKICAgZmlsbD0iI0ZGRkZGRiIKICAgZD0iTTE2Ny42MDcsNTYuMDY5Yy0yLjk4MywwLTUuODczLDAuNTA0LTguNTg4LDEuNDM3bDEuOTIxLTkuNjA0aDI4LjI1di0xMy4yNWgtNDAuMjVsLTcuNzUsNDJoMC4yOTggIGMtMC4wMDcsMC4wMjgtMC4wMTgsMC4wNTUtMC4wMjUsMC4wODNoMTMuNTljMC4wMTEtMC4wMjgsMC4wMjQtMC4wNTUsMC4wMzYtMC4wODNoMC4xMDJsMC4wODgtMC40NDEgIGMxLjk1NC00LjQ2MSw1LjYxNy03LjQ3Nyw5LjgyOC03LjQ3N2M2LjI2LDAsMTEuMzM0LDYuNjQyLDExLjMzNCwxNC44MzRzLTUuMDc0LDE0LjgzNC0xMS4zMzQsMTQuODM0ICBjLTUuNTE5LDAtMTAuMTEtNS4xNjQtMTEuMTIyLTEyaC0xMy41NDNjMC41NywxNS43NjEsMTEuMTI5LDI2LjE5OSwyNC42NjUsMjYuMTk5YzE0LjMzLDAsMjUuOTQ3LTEyLjk5OSwyNS45NDctMjkuMDMzICBTMTgxLjkzNyw1Ni4wNjksMTY3LjYwNyw1Ni4wNjl6IgogICBpZD0icGF0aDkiIC8+Cjwvc3ZnPg==", "R": "data:image/png;base64,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", "S": "data:image/png;base64,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", "S1": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA8CAYAAAA6/NlyAAAEcklEQVR42u2Ze2xTVRzHP+d269qta7sH8tpijDFzG0yjw4DPhJCZhYyHr7GAOqIQMcxAIpvxkcgkQDTMTEXj0BnFBy4LiLgBYcAQR8KmSMbDLSYa4kSjY9DX1t679vgHZAu02rJNaNf7/av55f5O+7nn/B7nV8El9WZPX4AUqwQUAimMD7mBdiGVmvTfjzcBCIBzWQWvA2sYxxKC9em/db4kerNuWyiQ24kDiQDzFIFcRbxIYbUC3BkvvBIKlXGUoCJRqkKcSQfWgXVgHVgH1oF1YB1YB9aBdeCRKWHsVjJgnFuE8cHZGG65CZFmR9it4FORTjeDP3WjHfwOdUcz0u2JeFlz5UrMFcsuszkemIf/lzMjGwKcyyqQo2U15OVg2VSNYdqtYZ8N/N2LZ/UraIeOhD9+UyZha92JMJvGDHjUR1rJnop1W11EsADKhExS62tJuKPgv3fCbMLy3htBsNc9hlM2vIxIs1+dk9FI8roX//1HZWZg+ejtsC/lmgMrN2aTeP+sILtvawPnc++m7+YZuMpXIvsuBIf89FwM+TlXxIaCcX4x1n2NJN5zV/Rl6YT8HBAiyD5QW3cxMakq2v7D9K+rCemfOLNw6HNS6QLsh7/B8s5GlMz06MzSwmYNaU96spSBN98HTQNA3d1C4ux7kU4X0uEk4HAinS78x08O+zzxGEr21OguS4Gzf4YuJRXLMJWXobUeQTvUhtbahnvF1c/5BztPkVCQHz3Ag+3HkE4XwpoavPupFowlRRhLigDwn+7G9+VX+Bp2hq3D0u2hf10N/tPdWL/+NHpiWA54Gdj0bsS1OnltFfaOfZjKy0LGPqqK74vtOOY8jO+zxujstLz1n6NMnIBpxdLQEFfuvCWF5NdewJCfg2fNq8PrvPUBWsexkBk96nrp/g21uMqWM/jjiYh9khYtxPjQ3OHN3Xvgf4cd08uD1taOc94SHMWleDfX4z/VHdbH9PSSGL48XJL/ZBf9J7tgYy1K1mSMxXMwPbsUJTMjRPORh7CmIp2u6AcWKckklS9CsVkRdhvCZkXYrGj7v8W7ZevFstXzB94tW/E17sK2twFl8sTgIzbpBvyxACy1QZIrK0C5PCpEknEIeOjZ8xfQDhwmafEjwetcQ9jRxbCq4u/6OfgNFt5O4n0zr/gWBcP03GDY/gECf/XGTgyrTS2Y83KC7Ja6GrybP0Q7+gPCmopp8aMhOyZ1exMEArED7P14G6bljwf11MKSgrnqOcxhmhbvlk9ia6YlHU48lWtBXv3QxFNVPeKpxXWtw2pzC+5nnkdecER24ejtw/3UKtQdTVwPjUkdVptb0FrbMM4vJnFWIYZpuYg0O4rVgnR5CPSdx//rGbQ9By92VBFm5kBvX8ieWjrdI7/SjsUQL5akD+J1YB1YB9aBdWAdWAfWgXVgHVgHjhjYHUe8DkUgv48bXEGHQkDUxA2vlDVK+tnOXUKwfvzjyur0nhO7h/7u65tSUILCagkzAMs4oXQhOIpkU0ZP5x6AfwCZToFV9BvtugAAAABJRU5ErkJggg==", "S12": "data:image/png;base64,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", "S13": "data:image/png;base64,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", "S2": "data:image/png;base64,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", "S4": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADwAAAA9CAYAAADxoArXAAAFPklEQVR42u2ba0xTZxjHf+f0AgU6WhAQEBBRiTqDXETdRAcmy5w6zaaZ2TLnki3zg0um0WQXL4kSzcx0W9wS/bBkxmwZcW4ZgonLmMPbYCiZwAQmDFZEBeRWoNDr2QdMTW3RUodl9DxJP/Tte56T33nf5/8+z3NSgbu261zuagneBSELCGNiWD8CFQJ8sifnl1MAAsDO83n7kXiPCW3Svr1Lzn4o7CjNfUEQhB8JABOQVoqCwBYCxCSEreLdmA0UyxKB0AAC1ooEmMnAMrAMLAPLwDKwDCwDy8Ay8HgGtg7ZQRqfwMpHdWAx2ak81cpflzrpajExaLRiszgACA5TEjNDy8ynIklbHovmCdWofNvMDi4cb8Zuv/f0tJFqstcm+N4E2Hkuz8HdVs9orbG8k6IDdRg7zA+dG6JTsWbHHFKyI7z2f+qjWv4ovuUyNnlGGG99me1zD8DnLd16zUjBB9VewQKYeqwUvF/Frfo+r+bX/NzmBuvXGC46UIfd6nCPkSARVbDC4zV2q4OfDl9/qO+OpgGKDtSNnxhuqe6l/e9+t/Flm1JYtD4RQRRoutLNd7uqGeqzucwxVPXQ1TpIRLxmRME7ubtmWPjGi0p7gkWABesSEMRhOUjO1JP75rQRHljPiL5PH6yno3lgfKm0ecDmQQ7g3FfNLH4tybmlZy2Npq1xAI1WSXCYkmCtimCtkthUrUe/lYWtVJ257focRQHJIfkXWBfreTteON5MWYGBqRl6UrIjSVkQwYptqV75bGvs58x98T0nL4Y7hgHaGvr9CzwtKwK1RoFl0D3ObBYHDWWdNJR1AqCP15CxMo70VXEjnsMW03Dc2sz3RDAyIYQV21M59k6l/2M4WKtkycZkr+Z2tw5ScrSRT1+6SPmJFo8ZWOH+a3QaTM7vqmAF6/LnEhSqHB+iBbBofSJPv5rkdcpiMw8fScUH613Gy0+0UFva4TK2fOtMopLHpl3uey4tQN7bKWz8PJOkdL3Xl1UWtjoBb9YaKTnS6PJ75up40p6LHb+5dMLccDZ8ls4dg4m60nYayru4UdP7QGWtONlCcoaek7trXJKXmOlhPLt5xpgWD4qlbyTv9jWXdsmVw1UkpumY93wsWWumoI/TcLuhH4vJXdj6Oswo1Qrqz7tu5dTFk+hqMdFS3ev8NFV2u4qjAJJdoqW6F12chqAQ5diucH+nhbICA4N9Vob6bAz22RgyWklfFcf8F6c4C4XM1fHMeiaaIxvKGei2uPhw2CWPZ3ll4U2v7l9ydDgMEufp0E4KGltgUSHw27cGt/Hrl+44ge9f9dpf292SCaXaP72HUd81RKdCH+eeeDRWdGG42uOWF9+sM7rNDY8JRlQIfgH2SbRm50Zz8et/3FLLb7ZfZeHLCcTPDsfUY6Hihxv03h5yuz5t+WQkh386Hj41AAa6LXzxSpnnnPohFqpXs+nYAtQahbMz8iA7tvkK7U33ionoaWG8fjgDAHWIYrQ7RfJphUP1alZsS+X7PX+OqnelUIms3fskITqVs3Z+6IrcByQqhjO9x34Oz1kWg1ItUvxxvZsKe7JJSaGs2TF7xErpf9HES82JYvrCSGpLOzBU9dDW0M+Q0Yp50E5QiJIQnYqoqaGk5kQxNV2HQuX/rvAjNfEeh5kHbC4CJ4g8SlEhKRnn9l9XTPKbBxlYBpaBZWAZWAaWgWVgGVgG9h24P4B4jSIClwMI+LIoIRwKFFpJkg6J+TklRSDtm/C0Avn5S8+ednY6dp3PWyXBFiTmM5H+ige/C0iH9iw5W0wg2r8NttZ5WKYgzgAAAABJRU5ErkJggg==", "S5": "data:image/png;base64,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", "S6": "data:image/png;base64,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", "TRENO": "data:image/png;base64,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"}'); } catch (e) { return {}; } })();
   // the interchanges of the M3 stations, on the yellow panel under the name (Giovanni, 2 Nov 2026): marks, or a second name
@@ -6431,19 +6473,19 @@ window.MTL_PACKS = {"M3": ["", "6", "7"]};
     document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
     const note = t => { pcNoteMsg = { sel: state.sel, text: t, until: Date.now() + 8000 }; const e = document.getElementById('pcNote'); if (e) e.textContent = t; };
     const WHY = w => !w ? '' : w.train != null ? 'c\'è il treno ' + tno(w.train) + ' sopra' : w.route != null ? 'impegnato dall\'itinerario del treno ' + tno(w.route) : w.pcRoute != null ? 'impegnato dall\'itinerario preparato ' + (w.id || '') : w.swLock != null ? 'scambio ' + w.swLock + ' bloccato nell\'altra posizione' : w.swFail != null ? 'scambio ' + w.swFail + ' guasto' : w.nothing ? 'nessun itinerario da annullare' : 'non possibile';
-    const run = (e, ok) => { const r = F.ag.event(Object.assign({ kind: 'pccmd' }, e)); if (r) { note('Non si può: ' + WHY(r) + '.'); return; } say('', 'DCT: ' + ok, 'pc'); if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals(); renderCard(); };
+    const run = (e, ok) => { const r = F.ag.event(Object.assign({ kind: 'pccmd' }, e)); if (r) { note('Non si può: ' + WHY(r) + '.'); return; } say('', ok(), 'pc'); if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals(); renderCard(); };
     card.querySelectorAll('[data-pc]').forEach(b => b.onclick = () => {
       const w = b.dataset.pc;
-      if (w === 'clear') { F.ag.event({ kind: 'pc', key: 'n:' + n }); say('', `DCT: ${tag} via libera al prossimo treno.`, 'pc'); renderCard(); return; }
+      if (w === 'clear') { F.ag.event({ kind: 'pc', key: 'n:' + n }); say('', tx('dct.segnale_via_libera', { segnale: tag }), 'pc'); renderCard(); return; }
       if (w === 'vista') { const r = F.ag.event({ kind: 'fault', what: 'avista', n }); if (r && r.noTrain) note('Nessun treno fermo a questo semaforo.'); fxFeed(F); renderCard(); return; }
-      if (w === 'red') run({ what: 'red', n, on: true }, `${tag} rosso fisso.`);
-      if (w === 'unred') run({ what: 'red', n, on: false }, `${tag} restituito all'apparato.`);
-      if (w === 'cancel') run({ what: 'cancel', n }, `itinerario da ${tag} annullato.`);
+      if (w === 'red') run({ what: 'red', n, on: true }, () => tx('dct.segnale_rosso', { segnale: tag }));
+      if (w === 'unred') run({ what: 'red', n, on: false }, () => tx('dct.segnale_restituito', { segnale: tag }));
+      if (w === 'cancel') run({ what: 'cancel', n }, () => tx('dct.itinerario_annullato', { segnale: tag }));
     });
-    card.querySelectorAll('[data-form]').forEach(b => b.onclick = () => run({ what: 'form', id: b.dataset.form }, `itinerario ${b.dataset.form} preparato da ${tag}.`));
-    card.querySelectorAll('[data-sw]').forEach(b => b.onclick = () => run({ what: 'sw', nd: +b.dataset.sw, pos: b.dataset.pos }, `scambio ${b.dataset.sw} in posizione ${b.textContent}.`));
-    card.querySelectorAll('[data-lock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.lock, pos: b.dataset.pos }, `scambio ${b.dataset.lock} bloccato.`));
-    card.querySelectorAll('[data-unlock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.unlock, pos: null }, `scambio ${b.dataset.unlock} sbloccato.`));
+    card.querySelectorAll('[data-form]').forEach(b => b.onclick = () => run({ what: 'form', id: b.dataset.form }, () => tx('dct.itinerario_preparato', { itinerario: b.dataset.form, segnale: tag })));
+    card.querySelectorAll('[data-sw]').forEach(b => b.onclick = () => run({ what: 'sw', nd: +b.dataset.sw, pos: b.dataset.pos }, () => tx('dct.scambio_posizione', { scambio: b.dataset.sw, posizione: b.textContent })));
+    card.querySelectorAll('[data-lock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.lock, pos: b.dataset.pos }, () => tx('dct.scambio_bloccato', { scambio: b.dataset.lock })));
+    card.querySelectorAll('[data-unlock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.unlock, pos: null }, () => tx('dct.scambio_sbloccato', { scambio: b.dataset.unlock })));
   }
   // schematic of the terminal platforms with the train standing on each
   function platformDiagram(F, b, t) {
@@ -7087,7 +7129,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"]};
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); tr.carr10 = tr.carr1 && JSON.parse(JSON.stringify(tr.carr1)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino|hitachi/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
@@ -7105,7 +7147,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"]};
   // ================= DEPOT (web/DepotM3.js: places and test loop) =================
   function depotOf(F) {
     if (!F.depotPaths || !F.ag) return null;
-    if (!F.dm) F.dm = MTLDepotM3.create(F, { say, fmt: t => fmt(t), trainNo: tr => trainNo(F, tr),
+    if (!F.dm) F.dm = MTLDepotM3.create(F, { say, tx: (...a) => tx(...a), fmt: t => fmt(t), trainNo: tr => trainNo(F, tr),
       trial: k => { const r = realTrain(F, F.trains[k], F.ag.S.t); return !!(r && r.trial && !admitted(r.units)); },
       call: (tr, text) => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + trainNo(F, tr), text, 'call'); } });
     return F.dm;
@@ -7180,14 +7222,15 @@ window.MTL_PACKS = {"M3": ["", "6", "7"]};
     const ends = {}; clEnds.querySelectorAll('select[data-end]').forEach(x => { ends[x.dataset.end] = x.value; });
     F.ag.event({ kind: 'close', cl: { a: c.a, b: c.b, ends }, label: c.label });
     const nav = F.ag.S.log.filter(x => x.nav && x.t === F.ag.S.t), G = F.engine.G;
-    const navTxt = nav.map(x => { const [na, nb] = x.nav.split('-').map(Number); return ` Navetta ${G.names[na]} – ${G.names[nb]}: ${x.none ? 'nessun treno ora sul binario, ci va il primo treno che arriva' : 'treno ' + (x.k + 1)}; gli altri treni in quel tratto vanno alla stazione più vicina e aspettano il DCT.`; }).join('');
-    say('', `DCT: tratta ${c.label} chiusa alle ${fmt(F.ag.S.t, true).join('')}. I treni girano alle stazioni di fine tratta.${navTxt}`, 'sys');
+    const navTxt = nav.map(x => { const [na, nb] = x.nav.split('-').map(Number), v = { da: G.names[na], a: G.names[nb] };
+      return ' ' + (x.none ? tx('pezzo.navetta_libera', v) : tx('pezzo.navetta_treno', Object.assign(v, { treno: x.k + 1 }))); }).join('');
+    say('', tx('dct.tratta_chiusa', { tratta: c.label, ora: fmt(F.ag.S.t, true).join(''), navette: navTxt }), 'sys');
     syncClosureUI();
   }
   function reopenStretch() {
     const F = m3fleet(), c = closureNow(F); if (!c || c.reopened) return;
     F.ag.event({ kind: 'reopen' });
-    say('', `DCT: tratta ${c.label} riaperta. 40 km/h sulla tratta per 20 minuti. Ogni treno prende la prima partenza scoperta (il DCT può assegnarne un'altra via radio).`, 'sys');
+    say('', tx('dct.tratta_riaperta', { tratta: c.label }), 'sys');
     syncClosureUI();
   }
   function backToTimetable() { const F = m3fleet(); if (!F || !closureNow(F)) return; F.ag.event({ kind: 'normal' }); syncClosureUI(); }
@@ -7241,7 +7284,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"]};
     const bb = L.latLngBounds(segs.flatMap(([pid, d0, d1]) => [trackAt(F, pid, d0), trackAt(F, pid, d1)]));
     if (!map.getBounds().contains(bb)) map.fitBounds(bb.pad(0.6), { maxZoom: 16 });
   }
-  const MR = MTLRadio.create({ D, trips, state, P2WAY, fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
+  const MR = MTLRadio.create({ tx: (...a) => tx(...a), D, trips, state, P2WAY, fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
     get p2Msg() { return p2Msg; }, set p2Msg(v) { p2Msg = v; },
     resetSigs: () => { if (SIGS) SIGS.forEach(x => { x.a = null; }); },
     trackAt: (...a) => trackAt(...a),
@@ -7495,7 +7538,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"]};
   function fxAnswer(F, id, what) {
     if (!F || !F.ag) return;
     const r = F.ag.event({ kind: 'fault', what: 'answer', id, answer: what });
-    if (r && r.no) MR.say('', 'DCT: risposta non più valida.', 'sys');
+    if (r && r.no) MR.say('', tx('dct.risposta_non_valida'), 'sys');
     fxFeed(F); renderAlarms();
   }
   // the train card: the failures of train k, the technician of the line maintenance (Radio manutenzione, San Donato)
