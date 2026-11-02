@@ -265,6 +265,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .pclist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .pclist li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .pclist li span { display: flex; flex-direction: column; min-width: 0; } .pclist small { color: var(--muted); font-size: 11px; }
+.pclist li .rgr { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto; } .pclist .rg { font-size: 12px; color: var(--muted); } .pclist .rg.ok { color: #7ee08f; }
+.pclist .rg.off { font: 700 11px/1 var(--display); letter-spacing: .05em; padding: 4px 6px; border-radius: 4px; background: #e5383b; color: #fff; } .pclist li.scoperta b { color: #ffb4b4; }
 .pclist .pcsw { flex-direction: row; gap: 4px; flex-wrap: wrap; justify-content: flex-end; } .pclist em { color: #ffcf3f; font-style: normal; font-size: 12px; }
 .cab { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 10px; }
 /* the train card (Giovanni's sketch, 2 Nov 2026): 10% bigger; line mark and what the train does on top, the facts of the
@@ -382,7 +384,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="clends" id="clEnds"></div>
     <div class="row"><button id="closeBtn">Chiudi la tratta</button><button id="reopenBtn" disabled>Riapri la tratta</button><button id="normalBtn" disabled title="Tutti i treni tornano al loro orario programmato">Torna all'orario</button></div>
     <p class="note" id="secNote">I treni sui lati aperti girano alle stazioni dove finisce la tratta, come nelle regole; quelli dentro si fermano alla stazione successiva e aspettano il DCT.</p>
-    <div class="row"><button id="depotAuto" aria-pressed="true" title="Automatico: i segnali del deposito si aprono da soli. Manuale: clic sul segnale per dare via libera a un treno">Deposito: automatico</button><button id="turniBtn" title="Quale treno fa ogni tabella oggi: si cambia finché i treni sono ancora fermi al loro posto">Turni del giorno</button></div>
+    <div class="row"><button id="depotAuto" aria-pressed="true" title="Automatico: i segnali del deposito si aprono da soli. Manuale: clic sul segnale per dare via libera a un treno">Deposito: automatico</button><button id="turniBtn" title="Quale treno fa ogni tabella oggi: si cambia finché i treni sono ancora fermi al loro posto">Turni del giorno</button><button id="regoBtn" title="Le partenze dei prossimi 60 minuti e il treno che le fa: togliere un treno, far uscire una riserva per una tabella scoperta">Regolatore</button></div>
     <p class="note" id="ilNote" hidden></p>
   </section>
   <section class="m3panel faults" aria-label="Emergenze del DCT">
@@ -993,6 +995,11 @@ window.MTL_PACKS = __PACKS__;
     // after reopening the trains are renumbered: the tabella of the run the train is making (agents.js, a.tabM)
     const ag = F.ag && tr.agentK != null ? F.ag.agents()[tr.agentK] : null, tm = ag && ag.mode !== 'plan' && ag.tabM != null && F.trains[ag.tabM] ? F.trains[ag.tabM].n : null;
     if (tm != null) return { ...F.stock[u], n: tm, tab: tm, u, renum: tm !== tr.n };
+    // the regolatore (fase E): a reserve train out of the depot for a tabella has its number; the train it replaces, its car number
+    if (tr.cover && F.trains[tr.cover.m]) { const c = F.trains[tr.cover.m].n; return { ...F.stock[u], n: c, tab: c, u, cover: true }; }
+    if (tr.coveredBy) return { ...F.stock[u], n: mat, tab: null, u };
+    // (its own tabella taken by another train after the reopening, and no run of its own yet: it goes by its car number)
+    if (ag && ag.mode !== 'plan' && tr.tab && F.ag.agents().some(x => x !== ag && x.mode !== 'plan' && x.tabM === tr.agentK)) return { ...F.stock[u], n: mat, tab: null, u, renum: true };
     return { ...F.stock[u], n: tr.tab ? tr.n : mat, tab: tr.tab ? tr.n : null, u };
   }
   const parkedLabel = (F, where) => where && where !== 'depot' ? 'Parked overnight in a ' + where + ' tail track' : 'Parked in the ' + F.home + ' depot';
@@ -1300,6 +1307,7 @@ window.MTL_PACKS = __PACKS__;
     if (typeof state.sel === 'string' && state.sel[0] === 's') return renderStop();
     if (typeof state.sel === 'string' && state.sel[0] === 'g') return renderSignalCard();
     if (state.sel === 'turni') return renderTurni();
+    if (state.sel === 'rego') return renderRego();
     if (typeof state.sel === 'string') return renderTrainCard();
     const tr = trips[state.sel], r = routes[tr.r], t = state.t;
     if (t > tr.end + 30) { state.sel = null; card.hidden = true; return; }
@@ -2876,7 +2884,7 @@ window.MTL_PACKS = __PACKS__;
         FRASI = null; renderCard();
       } else if (F0) {
         F0.trains.forEach(tr => { tr.segs = JSON.parse(JSON.stringify(tr.segs0)); tr.starts = tr.segs.map(x => x[3][0]); tr.live = null;
-          if (tr.alts0) tr.alts = JSON.parse(JSON.stringify(tr.alts0)); if (tr.arr20) tr.arr2 = JSON.parse(JSON.stringify(tr.arr20)); if (tr.calts0) tr.calts = JSON.parse(JSON.stringify(tr.calts0)); if (tr.carr10) tr.carr1 = JSON.parse(JSON.stringify(tr.carr10)); tr.c1 = null; tr.p2 = null; });
+          if (tr.alts0) tr.alts = JSON.parse(JSON.stringify(tr.alts0)); if (tr.arr20) tr.arr2 = JSON.parse(JSON.stringify(tr.arr20)); if (tr.calts0) tr.calts = JSON.parse(JSON.stringify(tr.calts0)); if (tr.carr10) tr.carr1 = JSON.parse(JSON.stringify(tr.carr10)); tr.c1 = null; tr.p2 = null; tr.cover = tr.coveredBy = null; if (tr.where0) tr.where = tr.where0; });
         F0.depot = null; F0.loop = null; F0.dm = null; F0.ag = null;
       }
       dayPick = next; try { localStorage.setItem('mtl-day', dayPick); } catch (e) {} syncDay();
@@ -2914,7 +2922,7 @@ window.MTL_PACKS = __PACKS__;
     const F = m3eng(); if (!F || !F.ag) { state.sel = null; card.hidden = true; return; }
     const placeTxt = tr => { const w = startKind(tr); return w === 'C' ? 'Comasina' : w === 'S' ? 'San Donato' : 'deposito'; };
     const rows = F.trains.map((tr, k) => ({ tr, k, r: realTrain(F, tr, state.t), tab: isTab(tr), dep: firstDep(tr) }));
-    const tabs = rows.filter(x => x.tab).sort((a, b) => a.dep - b.dep), res = rows.filter(x => !x.tab && x.r && !x.r.none);
+    const tabs = rows.filter(x => x.tab).sort((a, b) => a.dep - b.dep), res = rows.filter(x => !x.tab && !x.tr.cover && x.r && !x.r.none);
     const canSwap = x => startKind(x.tr) === 'D' && standing(F, x.k);
     const usable = y => y.r && !y.r.none && !y.r.missing && !(y.r.cars && y.r.cars < 6) && !inMaint(y.r.units) && (!(F.stock[y.r.u] || {}).trial || ADMIT.has(String(y.r.units)));
     const opts = x => [...tabs, ...res].filter(y => y !== x && canSwap(y) && usable(y));
@@ -2946,6 +2954,103 @@ window.MTL_PACKS = __PACKS__;
       if (was !== m) { TABS.set(k, m); const from = was != null ? F.trains[was].n : tr.n, to = F.trains[m].n;
         if (from !== to) say('DCT', tx('dct.rinumera', { treno: from, tabella: to }), 'pc'); } });
   }
+  // ---------- the regolatore (fase E): the timetable as departures to cover ----------
+  // Each passenger run of a tabella and the train that makes it: its own train (in orario), a reserve train sent out of
+  // the depot for it, a train of the hybrid timetable after a reopening (the run taken), or nobody (scoperta). The DCT
+  // takes a train out of the service (at the end of its run; still in its place in the depot: it stays there) and sends
+  // a reserve train out for a tabella left without its train, from the first departure from San Donato it can make.
+  // The time to get a reserve train ready: Tempi sheet of the rules Excel (a proposal, to be checked by Giovanni).
+  const PREP = F => { const tm = (F.engine.net.rules || {}).tempi || {}, v = Object.entries(tm).find(([n]) => n.startsWith('Treno di riserva')); return v && v[1][0] != null ? +v[1][0] : 600; };
+  function runsOf(F, m) {
+    const sof = F._sof = F._sof || stopsOfF(F);
+    return F.trains[m].segs.map((s, j) => { if (s[1] !== 'service' || s[2] < 0) return null; const sts = sof(s); if (sts.length < 2) return null;
+      return { j, X: sts[0].st, to: sts[sts.length - 1].st, dir: sts[sts.length - 1].st > sts[0].st ? 'N' : 'S', t: s[3][sts[0].j] }; }).filter(Boolean);
+  }
+  function coverage(F, t0, t1) {
+    const A = F.ag.agents(), used = new Set(F.ag.runs ? F.ag.runs() : []), hyb = !!(F.ag.S.cl || F.ag.S.reopened != null), out = [];
+    F.trains.forEach((tr, m) => { if (!isTab(tr) || tr.cover) return;
+      runsOf(F, m).forEach(r => { if (r.t < t0 || r.t > t1) return;
+        const a = A[m], c = tr.coveredBy; let by = null, how = '';
+        if (c && r.j >= c.from) { const b = A[c.k]; if (b && b.mode === 'plan') { by = c.k; how = 'riserva'; } }
+        else if (a && a.mode === 'plan' && a.si <= r.j && !a.wdWant) { by = m; how = 'orario'; }
+        if (by == null && hyb && used.has(m + ':' + r.j)) how = 'ibrido';
+        else if (by == null && hyb && a && a.mode !== 'plan' && !a.hidden && a.status !== 'depot') how = 'libera';
+        out.push(Object.assign({ m, by, how }, r)); }); });
+    return out.sort((p, q) => p.t - q.t);
+  }
+  // a tabella without its train for the rest of the day: its train taken out of the service (or broken), no reserve yet
+  const uncovered = (F, m) => { const a = F.ag.agents()[m], tr = F.trains[m]; return isTab(tr) && !tr.cover && !tr.coveredBy && a && (a.mode !== 'plan' || !!a.wdWant); };
+  const reserves = F => F.trains.map((tr, k) => ({ tr, k, r: realTrain(F, tr, state.t) })).filter(x => !isTab(x.tr) && !x.tr.cover && standing(F, x.k)
+    && x.r && !x.r.none && !x.r.missing && !(x.r.cars && x.r.cars < 6) && !inMaint(x.r.units) && (!(F.stock[x.r.u] || {}).trial || ADMIT.has(String(x.r.units))));
+  function withdraw(F, k) {
+    const a = F.ag.agents()[k], no = realTrain(F, F.trains[k], state.t); if (!a || a.mode !== 'plan' || a.wdWant || !no) return false;
+    if (standing(F, k)) { if (!F.ag.event({ kind: 'regola', what: 'keep', k })) return false; say('DCT', tx('dct.regola.trattieni', { treno: no.n }), 'pc'); return true; }
+    if (!F.ag.event({ kind: 'regola', what: 'home', k })) return false;
+    say('DCT', tx('dct.regola.ritira', { treno: no.n }), 'pc'); say('T' + no.n, tx('regola.ricevuto_rientro'), 'dr'); return true;
+  }
+  // a run from San Donato as the trains out of the depot make it: from the platform the depot leads to (the run of the
+  // tabella may leave from another platform, binario 2 after turning: from the depot that is a movement for a failed track)
+  function onDepotWay(F, s) {
+    const W = F._dway = F._dway || [...new Map(F.trains.map(tr => tr.segs0 || tr.segs).filter(g => g[0] && g[1] && g[0][1] === 'from_depot' && g[1][1] === 'service' && g[1][0] === g[0][0])
+      .map(g => [g[1][0], { pid: g[1][0], d: g[1][4][0] }])).values()];
+    for (const w of W) {
+      if (w.pid === s[0]) return JSON.parse(JSON.stringify(s));
+      const dl = s[4][s[4].length - 1], ml = F.ag.mapTo(s[0], dl, w.pid); if (ml == null) continue;
+      const off = ml - dl, ds = s[4].map(d => { const m = F.ag.mapTo(s[0], d, w.pid); return m != null ? m : d + off; }); ds[0] = w.d;
+      for (let j = 1; j < ds.length; j++) if (s[4][j] === s[4][j - 1] || ds[j] < ds[j - 1]) ds[j] = ds[j - 1];          // (the stops stay stops)
+      const c = JSON.parse(JSON.stringify(s)); c[0] = w.pid; c[4] = ds; return c;
+    }
+    return null;
+  }
+  // the reserve train k out of its place for tabella m: a run out of the depot to San Donato, then the day of the tabella
+  function insertReserve(F, k, m) {
+    const R = F.trains[k], T = F.trains[m], a = F.ag.agents()[k], q = F.depot && F.depot.at[k];
+    if (!a || q == null || !reserves(F).some(x => x.k === k) || !uncovered(F, m)) return null;
+    const t0 = state.t + PREP(F), save = R.segs;
+    for (const r of runsOf(F, m)) {
+      if (r.X !== 0 || r.dir !== 'N' || r.t < t0) continue;
+      const s = onDepotWay(F, T.segs[r.j]); if (!s) continue;
+      R.segs = [[s[0], 'from_depot', -1, [s[3][0] - 1, s[3][0]], [s[4][0], s[4][0]], +q], s, ...JSON.parse(JSON.stringify(T.segs.slice(r.j + 1)))];
+      if (!F.dm.rewriteOut(R, 0, q) || R.segs[0][3][0] < t0) { R.segs = save; continue; }
+      R.starts = R.segs.map(x => x[3][0]); R.where0 = R.where0 || R.where; R.where = ['depot', (T.where || [])[1] || 'depot'];
+      R.cover = { m, from: r.j }; T.coveredBy = { k, from: r.j }; R.live = null; T.live = null;
+      F.ag.event({ kind: 'regola', what: 'insert', k, pid: R.segs[0][0], d: R.segs[0][4][0] });
+      return { t: r.t, q };
+    }
+    R.segs = save; return { none: true };
+  }
+  function regoTick() {
+    const F = m3eng(); if (!F || !F.ag) return;
+    if (state.sel === 'rego' && !card.hidden && !card.contains(document.activeElement) && (regoTick.n = (regoTick.n || 0) + 1) % 5 === 0) renderRego();
+  }
+  function renderRego() {
+    const F = m3eng(); if (!F || !F.ag) { state.sel = null; card.hidden = true; return; }
+    const names = F.engine.G.names, nm = X => cap(String(names[X] || '').toLowerCase()), L = coverage(F, state.t - 60, state.t + 3600), R = reserves(F);
+    const lbl = { orario: '', riserva: 'riserva', ibrido: 'orario ibrido' };
+    const who = x => x.by != null ? (realTrain(F, F.trains[x.by], state.t) || {}).units || '' : '';
+    const row = x => { const tab = F.trains[x.m].n, free = uncovered(F, x.m), mine = x.by === x.m && x.how === 'orario';
+      const right = x.by != null ? `<span class="rg ok">${who(x)}${lbl[x.how] ? ' · ' + lbl[x.how] : ''}</span>${mine ? `<button data-wd="${x.m}" title="A fine corsa scarica e rientra">Ritira</button>` : ''}`
+        : x.how === 'ibrido' ? '<span class="rg ok">presa (orario ibrido)</span>' : x.how === 'libera' ? '<span class="rg">libera: la prende il primo treno</span>'
+        : `<span class="rg off">SCOPERTA</span>${free && R.length ? `<select data-ins="${x.m}" aria-label="Riserva per la tabella ${tab}"><option value="">Riserva…</option>${R.map(y => `<option value="${y.k}">${y.r.units} (${depotName(F, F.depot.at[y.k])})</option>`).join('')}</select>` : ''}`;
+      return `<li class="${x.by == null && x.how !== 'ibrido' && x.how !== 'libera' ? 'scoperta' : ''}"><span><b>${fmt(x.t)} · tabella ${tab}</b><small>da ${nm(x.X)} verso ${nm(x.to)}</small></span><span class="rgr">${right}</span></li>`; };
+    const by = X => L.filter(x => (X === 0 ? x.X === 0 : X === 1 ? x.X === names.length - 1 : x.X !== 0 && x.X !== names.length - 1));
+    const sec = (t, l) => l.length ? `<div class="pclbl">${t}</div><ul class="pclist">${l.map(row).join('')}</ul>` : '';
+    const sc = L.filter(x => x.by == null && x.how !== 'ibrido' && x.how !== 'libera').length;
+    card.innerHTML = `<div class="hd"><div><h2>Regolatore</h2><div class="sub">${DAYS[dayPick]} · partenze fino alle ${fmt(state.t + 3600)} · ${L.length} corse${sc ? ', <b>' + sc + ' scoperte</b>' : ''}</div></div></div>
+      <p class="note">Ritira: il treno finisce la corsa, scarica e rientra (se è ancora fermo al suo posto in deposito, resta lì). Una tabella rimasta senza treno si copre con una riserva in deposito: esce per la prima partenza da San Donato che fa in tempo a prendere (${Math.round(PREP(F) / 60)} minuti per prepararla).</p>
+      ${sec('Da San Donato', by(0))}${sec('Da Comasina', by(1))}${sec('Da altre stazioni', by(2))}
+      <div class="pclbl">Riserva in deposito</div><ul class="pclist">${R.map(y => `<li><span><b>${y.r.units}</b><small>${depotName(F, F.depot.at[y.k])}</small></span></li>`).join('') || '<li><span><small>nessun treno pronto</small></span></li>'}</ul>
+      <div class="foot"><span></span><button id="cardClose">Chiudi</button></div>`;
+    card.hidden = false;
+    document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
+    card.querySelectorAll('[data-wd]').forEach(b => b.onclick = () => { withdraw(F, +b.dataset.wd); renderRego(); });
+    card.querySelectorAll('[data-ins]').forEach(sel => sel.onchange = () => { if (sel.value === '') return; const m = +sel.dataset.ins, k = +sel.value, u = (realTrain(F, F.trains[k], state.t) || {}).units;
+      const r = insertReserve(F, k, m);
+      if (r && r.t != null) say('', tx('dct.regola.inserisci', { treno: u, posto: depotName(F, r.q), tabella: F.trains[m].n, ora: fmt(r.t) }), 'sys');
+      else if (r) say('', tx('dct.regola.nessuna_corsa', { tabella: F.trains[m].n, treno: u }), 'sys');
+      renderRego(); });
+  }
+  document.getElementById('regoBtn').onclick = () => { state.sel = state.sel === 'rego' ? null : 'rego'; state.follow = false; renderCard(); };
   // the data of the next kind of day, loaded in the night before they are needed
   function preloadNextDay() {
     const next = (dayPick % 7) + 1, nsfx = hasDay(dayType(next)) ? dayType(next) : '';
@@ -3455,7 +3560,7 @@ window.MTL_PACKS = __PACKS__;
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
+    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); regoTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);

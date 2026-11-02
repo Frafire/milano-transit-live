@@ -65,6 +65,11 @@
    2,
    2,
    "Giovanni 31/10/2026: stima, da verificare"
+  ],
+  "Treno di riserva: preparazione prima di uscire dal deposito (regolatore)": [
+   600,
+   900,
+   "Proposta Claude 02/11/2026: da verificare (Giovanni)"
   ]
  },
  "semafori": {
@@ -3744,7 +3749,7 @@
    "Quando si può usare": "Ritardi, guasti, sciopero, emergenze",
    "Cosa vede il PC (prima e dopo)": "Treni in linea, corse scoperte",
    "Serve? Priorità": null,
-   "Nel programma oggi": "in parte (solo togliere: rientro in deposito; fase E)",
+   "Nel programma oggi": "sì (fase E, Regolatore: Ritira a fine corsa; una riserva in deposito copre la tabella dalla prima partenza da San Donato)",
    "Note": null
   },
   {

@@ -2193,6 +2193,41 @@
    "testi": [
     "Treno {treno}, da adesso sei la tabella {tabella}. Passo."
    ]
+  },
+  "dct.regola.inserisci": {
+   "chi": "sistema",
+   "quando": "Regolatore: il DCT fa uscire un treno di riserva dal deposito per coprire una tabella scoperta",
+   "testi": [
+    "Regolatore: il {treno} esce dal posto {posto} come tabella {tabella}, partenza da San Donato alle {ora}."
+   ]
+  },
+  "dct.regola.nessuna_corsa": {
+   "chi": "sistema",
+   "quando": "Regolatore: per la tabella non c'è più una partenza da San Donato che il treno di riserva faccia in tempo a prendere",
+   "testi": [
+    "Regolatore: per la tabella {tabella} non c'è più una partenza da San Donato in tempo per il {treno}."
+   ]
+  },
+  "dct.regola.ritira": {
+   "chi": "DCT",
+   "quando": "Regolatore: il DCT toglie un treno dal servizio (a fine corsa rientra in deposito, o in un tronchino a Comasina)",
+   "testi": [
+    "Treno {treno}, a fine corsa scarichi i passeggeri e rientri. Passo."
+   ]
+  },
+  "dct.regola.trattieni": {
+   "chi": "DCT",
+   "quando": "Regolatore: il DCT toglie un treno che è ancora fermo al suo posto in deposito",
+   "testi": [
+    "Treno {treno}, resta al tuo posto in deposito: oggi la tua tabella non esce. Passo."
+   ]
+  },
+  "regola.ricevuto_rientro": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma che a fine corsa rientra",
+   "testi": [
+    "Ricevuto DCT, a fine corsa scarico e rientro. Passo."
+   ]
   }
  }
 }

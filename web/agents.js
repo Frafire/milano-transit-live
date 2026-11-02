@@ -650,7 +650,7 @@
       const out = [];
       Array.from({ length: nTrains() }, (_, m) => planOf(m)).forEach((p, m) => p.forEach((z, j) => {
         if (usedRuns.has(m + ':' + j)) return;
-        const ag = S.agents[m]; if (ag && ag.mode === 'plan' && j >= (ag.si || 0) && m !== exceptK) return;    // still to be run by its own train
+        const ag = S.agents[m]; if (ag && ag.mode === 'plan' && m !== exceptK) return;    // its own train runs that tabella (also the runs it has done)
         const zs = stopsOf(z); if (zs.length < 2 || runDir(zs) !== dir) return;
         const x = zs.findIndex(y => y.st === X); if (x < 0 || x === zs.length - 1) return;
         const tx = z[4][zs[x].j + 1] === zs[x].d ? z[3][zs[x].j + 1] : z[3][zs[x].j];
@@ -675,7 +675,9 @@
         for (const c of freeRuns(X, dir, S.t - 120, S.t + 900)) { const score = c.tx > S.t + 120 ? 2 * (c.tx - S.t) : S.t - c.tx; if (!best || score < best.score) best = Object.assign(c, { score }); }
       } else {
         const C = freeRuns(X, dir, S.t - 120, S.t + 1800);
-        best = (a && a.tabM != null && C.find(c => c.m === a.tabM && c.j > (a.tabJ == null ? -1 : a.tabJ) && c.tx <= C[0].tx + 600)) || C[0] || null;
+        // (the tabelle other trains have taken: not a second train with the same number, if there is another run)
+        const held = new Set(S.agents.filter(x => x !== a && x.mode !== 'plan' && x.tabM != null).map(x => x.tabM));
+        best = (a && a.tabM != null && C.find(c => c.m === a.tabM && c.j > (a.tabJ == null ? -1 : a.tabJ) && c.tx <= C[0].tx + 600)) || C.find(c => !held.has(c.m) && c.tx <= C[0].tx + 300) || C[0] || null;
         if (best) r.hard = true;
       }
       if (best) { takeRun(r, best); if (a && !soft) { a.tabM = best.m; a.tabJ = best.j; } }
@@ -1035,6 +1037,7 @@
     // ---------- one step of one agent ----------
     function stepAgent(a) {
       if (a.mode === 'static' || a.hidden) return;
+      if (a.wdWant) { if (a.mode !== 'plan') a.wdWant = false; else if (Math.floor(S.t) % 5 === 0 && goHome(a, true)) a.wdWant = false; }
       if (a.attached != null) { follow(a); return; }       // coupled behind a broken train (rescue)
       if (S.t < a.wait) {
         // its next move starts in a few seconds (the cab change is done): the route is set in advance, the switches
@@ -1205,7 +1208,18 @@
         if (!Object.keys(x).length) delete S.stn[e.st];
         lastResult = true;
       }
+      else if (e.kind === 'regola') lastResult = regola(e);                   // the regolatore: a train out of the service, a reserve out
       else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
+    }
+    // the regolatore (fase E, the page decides): 'home' a train ends its run, lets the passengers off and goes in (turning at a
+    // terminus: when it can, a.wdWant); 'keep' a train still in its place in the depot stays there; 'insert' a reserve train
+    // starts its new day (its plan was rewritten by the page: a run out of the depot, then the runs of a tabella) from its place
+    function regola(e) {
+      const a = S.agents[e.k]; if (!a) return false;
+      if (e.what === 'home') { if (a.mode !== 'plan') return false; a.wdWant = !goHome(a, true); return true; }
+      if (e.what === 'keep') { if (a.hidden || a.mode !== 'plan' || a.legs.some(l => !l.kind && l.status === 'service')) return false; a.mode = 'static'; a.status = 'parked'; a.v = 0; a.kept = true; return true; }
+      if (e.what === 'insert') { a.pid = e.pid; a.d = e.d; a.v = 0; a.mode = 'plan'; a.si = -1; a.legs = []; a.wait = 0; a.hidden = false; a.status = 'parked'; delete S.rt.routes[a.k]; return true; }
+      return false;
     }
     // a new event now: what was planned after this moment is dropped (a new branch of the day)
     function event(e) {
@@ -1398,7 +1412,9 @@
       if (c.clLast && c.clLast.cl) { close(c.clLast.cl); S.clLast = Object.assign({}, c.clLast, { t0: S.t }); }
       snapshot();
     }
-    return { S, TL, IL, RT, FX, carryOut, carryIn, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
+    return { S, TL, IL, RT, FX, carryOut, carryIn, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei),
+      // the regolatore (fase E): a train out of the service at the end of its run, one kept in the depot, the runs taken in the hybrid timetable
+      runs: () => [...usedRuns] };
   }
 
   const api = { create, DT, HEADWAY };

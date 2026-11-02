@@ -25,14 +25,8 @@ Fatto: Motore dal vivo nel browser: i treni sono agenti (accelerazione, frenata,
 
 ## E Orario ibrido e continuità
 
-- **Pianificato** — Cambio giornata senza ricaricare la pagina (Claude)
-- **Pianificato** — Assegnazione dei turni a inizio giornata (pannello alle 3:30) (Claude): Se il giocatore non tocca niente: DCT automatico
-- **Pianificato** — Le tabelle vanno ai treni fisici dove si trovano (Claude)
-- **Pianificato** — Una settimana di fila senza ricaricare (Claude)
-- **Pianificato** — Rinumerazione dopo un'interruzione (nuove tabelle ai treni) (Claude): Come lo spiega il collega di Giovanni
-- **Pianificato** — Regolatore: l'orario come partenze da coprire (Claude)
-- **Pianificato** — Inserire o togliere un treno (Claude): Pannello PC riga 26
-- **Pianificato** — Treno guasto in manutenzione almeno 2 giorni (3–4 se grave) (Claude): La sua tabella la prende una riserva
+Fatto: Cambio giornata senza ricaricare la pagina; Assegnazione dei turni a inizio giornata (pannello alle 3:30); Le tabelle vanno ai treni fisici dove si trovano; Una settimana di fila senza ricaricare; Rinumerazione dopo un'interruzione (nuove tabelle ai treni); Regolatore: l'orario come partenze da coprire; Inserire o togliere un treno; Treno guasto in manutenzione almeno 2 giorni (3–4 se grave).
+
 
 ## 2 Calendario
 

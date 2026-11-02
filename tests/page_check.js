@@ -15,6 +15,7 @@
 // - giorno: Friday 02:58 with a signal failed: at 02:59 Saturday's timetable comes in without leaving the page, the failure still there
 // - rinumera: closure and reopening: the trains get the number of the tabella of the run they take, the DCT tells them
 // - turni: Turni del giorno: a reserve train on a tabella before it leaves; it leaves from its own place
+// - regolatore: a train taken out of the service: its runs are scoperte; a reserve train goes out for its tabella and makes them
 // - settimana: seven changes of day in a row; every tabella has a train; depot trains start from their places; maintenance
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
 //   admitted from the admin menu at night, from the next day it runs a traditional train's duties, out of its own place
@@ -189,10 +190,13 @@ const SCENARIOS = {
       document.querySelector('.closures #closeBtn').click(); await sleep(300);
       st.playing = true; st.speed = 60; await sleep(15000); st.playing = false; await sleep(300);
       document.getElementById('reopenBtn').click(); await sleep(300);
-      st.playing = true; st.speed = 60; await sleep(20000); st.playing = false; await sleep(1500);
+      st.playing = true; st.speed = 60; await sleep(4000); st.playing = false; await sleep(1500);
+      st.sel = 'f' + M.fleets.indexOf(F) + ':0'; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(400);
+      const log = document.getElementById('radioLog').innerText;      // (the DCT calls come right after the reopening: the log keeps the last 80)
+      st.playing = true; st.speed = 60; await sleep(16000); st.playing = false; await sleep(1500);
       const A = F.ag.agents(), renum = F.trains.filter((tr, k) => { const r = M.realTrain(F, tr, st.t); return r && r.renum; }).length;
       const nums = F.trains.map(tr => M.realTrain(F, tr, st.t)).filter(r => r && r.tab != null && !r.none).map(r => r.n);
-      const dup = nums.length - new Set(nums).size, log = document.getElementById('radioLog').innerText;
+      const dup = nums.length - new Set(nums).size;
       return { ok: renum > 0 && /da adesso sei la tabella/.test(log) && dup <= 1, renum, dup, hybrid: A.filter(a => a.tabM != null).length,
         log: log.split('\n').filter(l => /tabella/.test(l)).slice(-3) };
     });
@@ -380,6 +384,37 @@ const SCENARIOS = {
       st.playing = false; const a = A();
       return { ok: now === uJ && String(placeK) === String(pJ) && F.trains[k].segs.find(s => s[1] === 'from_depot' || s[5] != null)[5] == pJ && Math.abs(a.d - d0) >= 50 && a.pid === p0,
         tabella: F.trains[k].n, before: uK, after: now, place: [pK, pJ, placeK], moved: Math.round(Math.abs(a.d - d0)), pid: [p0, a.pid] };
+    });
+  },
+  async regolatore(p) { // fase E: Regolatore. A train in service is taken out (it ends its run and goes in); its runs are
+    // scoperte; a reserve train in the depot is sent out for the tabella: it leaves its place in time, makes the first run
+    // from San Donato with the number of the tabella, and the train taken out has no number of a tabella any more
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      st.playing = false; st.t = 8 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      document.getElementById('regoBtn').click(); await sleep(300);
+      const b = document.querySelector('#card button[data-wd]'); if (!b) return { ok: false, why: 'no train to take out', card: document.getElementById('card').innerText.slice(0, 300) };
+      const m = +b.dataset.wd, tab = F.trains[m].n, uM = M.realTrain(F, F.trains[m], st.t).units; b.click(); await sleep(300);
+      st.playing = true; st.speed = 60; const t0 = Date.now();
+      while (Date.now() - t0 < 40000 && F.ag.agents()[m].mode === 'plan') await sleep(200);
+      st.playing = false; await sleep(300);
+      const homeMode = F.ag.agents()[m].mode; document.getElementById('regoBtn').click(); await sleep(100); document.getElementById('regoBtn').click(); await sleep(300);
+      const sc = [...document.querySelectorAll('#card li.scoperta')].map(li => li.innerText.split('\n')[0]).filter(x => x.includes('tabella ' + tab)).length;
+      const sel = document.querySelector('#card select[data-ins="' + m + '"]'); if (!sel || sel.options.length < 2) return { ok: false, why: 'no reserve offered', homeMode, sc, card: document.getElementById('card').innerText.slice(0, 400) };
+      const k = +sel.options[1].value, uK = M.realTrain(F, F.trains[k], st.t).units; sel.value = sel.options[1].value; sel.dispatchEvent(new Event('change')); await sleep(300);
+      const R = F.trains[k]; if (!R.cover) return { ok: false, why: 'reserve not sent', homeMode, sc };
+      const out = R.segs[0][3][0], dep = R.segs.find(x => x[1] === 'service')[3][0], A = () => F.ag.agents()[k];
+      const go = out - 120; st.t = Math.max(st.t, go); const tj = Date.now(); await sleep(1000);
+      while (Date.now() - tj < 90000 && st.t < go - 5) { st.t = go; await sleep(500); }        // (with events the jump is driven)
+      st.speed = 30; st.playing = true; const t1 = Date.now();
+      while (Date.now() - t1 < 60000 && st.t < dep + 400 && !(A().status === 'service' && A().v > 0 && A().legs[0] && A().legs[0].trip != null && st.t > dep)) await sleep(200);
+      st.playing = false; await sleep(300);
+      const a = A(), rK = M.realTrain(F, R, st.t), rM = M.realTrain(F, F.trains[m], st.t);
+      const nums = F.trains.map(tr => M.realTrain(F, tr, st.t)).filter(r => r && r.tab != null && !r.none).map(r => r.n), dup = nums.length - new Set(nums).size;
+      const log = (document.getElementById('radioLog') || {}).innerText || '';
+      return { ok: homeMode !== 'plan' && sc > 0 && out >= 8 * 3600 && a.status === 'service' && rK.n === tab && rM.tab == null && dup === 0,
+        tabella: tab, out: uM, reserve: uK, leaves: out, dep, status: a.status, shown: rK.n, outShown: rM.n, dup, sc };
     });
   },
   async settimana(p) {  // fase E: a whole week of changes of day without leaving the page. Every day every tabella has a
