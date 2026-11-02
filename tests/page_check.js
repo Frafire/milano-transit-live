@@ -1,4 +1,4 @@
-// The page itself (docs/index.html) in a headless browser: the parts of the game that live in the page.
+// The game page (docs/gioca.html, M3 chosen in the menu) in a headless browser: the parts of the game that live in the page.
 // - loop: two trains from the depot to the test loop; the second is told to wait at #A94 and goes in when the first
 //   reports the loop free; both get a depot place on the way back (never the same one)
 // - manual: depot on manual, a train going to the loop calls at a red depot signal after 2 and after 7 minutes
@@ -21,7 +21,7 @@
 // Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea|emergenza|giorno ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
-const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html') + '?day=' + (process.env.DAY || 1);      // (the weekday timetable unless DAY=6/7)
+const PAGE = 'file://' + path.resolve(__dirname, '../docs/gioca.html') + '?linee=M3&day=' + (process.env.DAY || 1);      // (the weekday timetable unless DAY=6/7)
 
 const SCENARIOS = {
   async loop(p) {

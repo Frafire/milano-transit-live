@@ -44,6 +44,7 @@ canvas.veh { position: absolute; top: 0; left: 0; pointer-events: none; z-index:
 .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .brand h1 { flex: 1; }
 .brand h1 { margin: 0; font: 700 20px/1 var(--display); letter-spacing: .04em; text-transform: uppercase; }
+.brand .tomenu { color: inherit; text-decoration: none; } .brand .tomenu:hover { color: var(--signal); }
 .brand small { color: var(--muted); font-size: 12px; }
 .clock { font: 600 52px/1 var(--display); color: var(--signal); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .clock .s { font-size: 28px; color: var(--muted); }
@@ -343,7 +344,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 <div class="loading" id="loading">Loading timetable…</div>
 
 <section class="console" aria-label="Simulation controls">
-  <div class="brand keep"><button id="conMin" class="conmin" aria-expanded="true" title="Chiudi o apri il pannello">▾</button><h1>Milano Transit Live</h1>
+  <div class="brand keep"><button id="conMin" class="conmin" aria-expanded="true" title="Chiudi o apri il pannello">▾</button><h1><a href="index.html" class="tomenu" title="Torna al menu">Milano Transit Live</a></h1>
     <div class="roles" role="group" aria-label="Mode"><button class="role" data-role="admin" aria-pressed="true">Admin</button><button class="role" data-role="player" aria-pressed="false">Player</button></div>
   </div>
   <div class="keep">
@@ -560,15 +561,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 <script src="agents.js"></script>
 <script src="DepotM3.js"></script>
 <script src="radio.js"></script>
-<script id="payload" type="application/octet-stream">__DATA__</script>
-<script id="m3payload" type="application/octet-stream">__M3__</script>
-<script id="livepayload" type="application/octet-stream">__LIVE__</script>
-<script id="payload6" type="application/octet-stream">__DATA6__</script>
-<script id="m3payload6" type="application/octet-stream">__M36__</script>
-<script id="livepayload6" type="application/octet-stream">__LIVE6__</script>
-<script id="payload7" type="application/octet-stream">__DATA7__</script>
-<script id="m3payload7" type="application/octet-stream">__M37__</script>
-<script id="livepayload7" type="application/octet-stream">__LIVE7__</script>
+<script>
+// The data are not in this page: one file per line and kind of day in dati/ (tools/assemble.py), loaded for the lines
+// chosen in the menu (index.html -> gioca.html?linee=M3). PACKS: the files there are, e.g. {"M3": ["", "6", "7"]}
+// ('' = weekday, 6 = Saturday, 7 = Sunday). A <script> and not fetch(), so the page also works opened from the disk.
+window.MTL_PACKS = __PACKS__;
+</script>
 <script>
 (async function () {
   // ---------- load data ----------
@@ -578,14 +576,23 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   try { dayPick = +(localStorage.getItem('mtl-day') || (((new Date().getDay() + 6) % 7) + 1)); } catch (e) {}
   { const q = +new URLSearchParams(location.search).get('day'); if (q >= 1 && q <= 7) dayPick = q; }
   const dayType = d => d === 6 ? '6' : d === 7 ? '7' : '';
-  let SUF = dayType(dayPick); if (!(document.getElementById('payload' + SUF).textContent.trim()[0] !== '_' && document.getElementById('payload' + SUF).textContent.trim().length > 10)) { SUF = ''; if (dayPick > 5) dayPick = 1; }
-  const b64 = document.getElementById('payload' + SUF).textContent.trim();
+  // the lines chosen in the menu (?linee=M3; without it: M3, as before the menu). Only lines with their data files count.
+  const LINES = (new URLSearchParams(location.search).get('linee') || 'M3').split(',').map(l => l.trim().toUpperCase()).filter(l => (MTL_PACKS[l] || []).length);
+  if (!LINES.length) { document.getElementById('loading').innerHTML = 'Linea non ancora giocabile. <a href="index.html" style="color:inherit;margin-left:8px">Torna al menu</a>'; return; }
+  if (LINES.length > 1) console.warn('More than one line chosen: only ' + LINES[0] + ' is loaded for now', LINES);
+  const LINE = LINES[0];
+  const hasDay = sfx => MTL_PACKS[LINE].includes(sfx);
+  let SUF = dayType(dayPick); if (!hasDay(SUF)) { SUF = ''; if (dayPick > 5) dayPick = 1; }
+  await new Promise((ok, ko) => { const sc = document.createElement('script'); sc.src = 'dati/' + LINE.toLowerCase() + '_' + (SUF || '1') + '.js'; sc.onload = ok;
+    sc.onerror = () => { document.getElementById('loading').textContent = 'Dati della linea non trovati (' + sc.src + ')'; ko(new Error('pack ' + sc.src)); }; document.head.append(sc); });
+  const PACK = window.MTL_PACK[LINE + SUF];      // { data, fleet, live }: base64 of gzip, as they were in the page before
+  const b64 = PACK.data;
   const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
   const text = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
   const D = JSON.parse(text);
   let FLEETDATA = null;
   try {
-    const b2 = document.getElementById('m3payload' + SUF).textContent.trim();
+    const b2 = PACK.fleet || '';
     if (b2 && b2[0] !== '_') {
       const bin2 = Uint8Array.from(atob(b2), c => c.charCodeAt(0));
       FLEETDATA = JSON.parse(await new Response(new Blob([bin2]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
@@ -593,7 +600,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   } catch (e) { console.warn('Fleet data not loaded', e); }
   let LIVE0 = null;      // the normal day already driven at build time (M3)
   try {
-    const b3 = document.getElementById('livepayload' + SUF).textContent.trim();
+    const b3 = PACK.live || '';
     if (b3 && b3[0] !== '_') {
       const bin3 = Uint8Array.from(atob(b3), c => c.charCodeAt(0));
       LIVE0 = JSON.parse(await new Response(new Blob([bin3]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
@@ -626,7 +633,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   let SURFACE = false;
   // M3 only (Giovanni, Oct 2026): the other metro lines are not generated, drawn or moved, to keep the engine light
   // and the bugs isolated. Set ONLY_LINE = null to have every line back (the data must be packed too).
-  const ONLY_LINE = 'M3';
+  const ONLY_LINE = LINE;      // the line chosen in the menu (only M3 can be chosen for now)
   const lineOn = ri => !ONLY_LINE || routes[ri].id === ONLY_LINE;
   try { SURFACE = localStorage.getItem('mtl-surface') === '1'; } catch (e) {}
   const tripOrder = trips.map((_, i) => i).filter(i => (SURFACE && !ONLY_LINE) || (routes[trips[i].r].t === 1 && lineOn(trips[i].r))).sort((a, b) => trips[a].start - trips[b].start);
@@ -701,7 +708,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   document.querySelectorAll('.dayb').forEach(b => b.onclick = () => { if (b.disabled) return; const d = +b.dataset.d; try { localStorage.setItem('mtl-day', d); } catch (e) {}
     if (dayType(d) !== SUF) { const u = new URL(location.href); u.searchParams.delete('day'); location.href = u.toString(); return; }      // another timetable: load it
     dayPick = d; syncDay(); });
-  for (const [d, sfx] of [[6, '6'], [7, '7']]) { const has = document.getElementById('payload' + sfx).textContent.trim().length > 10; const b = document.querySelector(`.dayb[data-d="${d}"]`); if (b && has) { b.disabled = false; b.title = ''; } }
+  for (const [d, sfx] of [[6, '6'], [7, '7']]) { const has = hasDay(sfx); const b = document.querySelector(`.dayb[data-d="${d}"]`); if (b && has) { b.disabled = false; b.title = ''; } }
   syncDay();
 
   // ---------- map ----------

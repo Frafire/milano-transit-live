@@ -6,7 +6,7 @@ A free, open-source simulation of Milan's public transport on a satellite map, g
 
 ## Play
 
-Open `docs/index.html` in Chrome or Firefox. Once GitHub Pages is switched on (Settings → Pages → branch `main`, folder `/docs`), the game is online at the repository's Pages link.
+Open `docs/index.html` in Chrome or Firefox: the menu (Gioca! → Metro → line) opens the game, `docs/gioca.html?linee=M3`. Today only M3 can be played; the other lines are shown grey, "In arrivo". Once GitHub Pages is switched on (Settings → Pages → branch `main`, folder `/docs`), the game is online at the repository's Pages link.
 
 ## What works today
 
@@ -24,18 +24,22 @@ The plan is in [`docs/planning/milano-transit-live-roadmap.xlsx`](docs/planning/
 Needs Python 3.10+ (no extra packages), Node.js (for the engine test) and bash.
 
 1. Run `./build.sh`. It uses `data/gtfs_m3/`, an M3-only extract of the ATM/AMAT GTFS kept in the project (about 2.6 MB; feed version and dates in its README), so the build is the same for everyone. Add a service day as a second argument (`./build.sh data/gtfs_m3 YYYYMMDD`) if needed.
-2. The game is written to `docs/index.html`. The build also runs the checks in `tests/`: tails and depot tracks never hold two trains, block sections, the normal day driven by the agents, one line closure with reopening, timetable and spacing.
+2. The menu is written to `docs/index.html`, the game to `docs/gioca.html`, and its data to `docs/dati/` (one file per line and kind of day: `m3_1.js` weekday, `m3_6.js` Saturday, `m3_7.js` Sunday; the game loads only the line chosen in the menu). The build also runs the checks in `tests/`: tails and depot tracks never hold two trains, block sections, the normal day driven by the agents, one line closure with reopening, timetable and spacing.
 3. For a newer timetable: download the full GTFS zip from the Comune di Milano open data portal (dataset "Orari del trasporto pubblico locale nel Comune di Milano in formato GTFS", about 470 MB unzipped), unzip it into `gtfs/` (ignored by git), then run `python3 tools/extract_gtfs.py gtfs data/gtfs_m3` and `./build.sh`. For all lines (M1, M4, buses): `ALL_LINES=1 ./build.sh gtfs`.
 
 ## Layout
 
 | Folder | What is in it |
 |---|---|
-| `web/` | The page (`template.html`) and Leaflet |
+| `web/` | The menu (`home.html`), the game page (`template.html`) and Leaflet |
 | `tools/` | Python build steps: timetable → compact JSON, track router, M3/M4 operations (`build_line.py`), M1 (`build_trips.py`), buses (`build_bus.py`), real fleets, page assembly |
 | `data/` | Metro tracks from OpenStreetMap and the track rules and signals from the editor |
 | `tests/` | Checks run by the build |
 | `docs/` | The built game (served by GitHub Pages) and planning files |
+
+## The menu
+
+`web/home.html`, built into `docs/index.html`: Gioca!, then Metro / Tram / Bus / Tutta la rete, then the metro line (M1, M2, M3, M4 + M5, M1 + M2 + M3 together, all lines). What can be played is in [`data/linee.json`](data/linee.json): `"giocabile"` or `"in arrivo"` (grey, not clickable). The build stops if a line is `giocabile` without its data. `tests/home_check.js` checks the menu and that choosing M3 loads only M3's data.
 
 ## Live engine (M3)
 

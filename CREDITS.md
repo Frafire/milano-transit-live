@@ -1,6 +1,6 @@
 # Credits and data licenses
 
-Milano Transit Live is an **unofficial fan project**. It is not affiliated with, endorsed by or connected to ATM (Azienda Trasporti Milanesi) or the Comune di Milano. It does not use the ATM logo. It is free, has no ads and nothing to buy.
+Milano Transit Live is an **unofficial fan project**. It is not affiliated with, endorsed by or connected to ATM (Azienda Trasporti Milanesi) or the Comune di Milano. It does not use the ATM company logo; it uses the metro line marks (M1–M5) only to name the lines. It is free, has no ads and nothing to buy.
 
 | What | Source | License | What we must do |
 |---|---|---|---|
@@ -12,6 +12,9 @@ Milano Transit Live is an **unofficial fan project**. It is not affiliated with,
 | Street map | OpenStreetMap / CARTO | OSM tile policy / CARTO basemap terms | Visible credit; CARTO key for non-commercial use before going public |
 | Rail overlay | OpenRailwayMap | CC BY-SA 2.0 | Visible credit |
 | Map library | Leaflet 1.9.4 (`web/vendor/leaflet`) | BSD-2-Clause | Keep `web/vendor/leaflet/LICENSE` |
-| Fonts | Google Fonts (Barlow, Barlow Condensed, Doto) | SIL Open Font License | Nothing extra |
+| Fonts | Google Fonts (Barlow, Barlow Condensed, Doto, VT323) | SIL Open Font License | Nothing extra |
+| Metro line marks (`web/img/lines/`, `web/img/m3_logo.png`, `web/img/home/metro.png`) | Images chosen by Giovanni | Checked by Giovanni: no copyright | Used only to name the lines |
+| Menu background photo (`web/img/home/sfondo.jpg`, tram 1503) | **Source to be confirmed** | **To be confirmed** | Credit the author before publishing; without the file the menu uses a plain background |
+| Network diagram behind the metro menu (`web/img/home/rete.png`, from a schematic map of the Milan metro, text removed) | **Source to be confirmed** (likely Wikimedia Commons) | **To be confirmed** (likely CC BY-SA) | Credit the author and keep the same license for the derived image |
 
 Fleet lists (M3 and M4 train numbers) were typed in by Giovanni from public sources.

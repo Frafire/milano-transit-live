@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Milano Transit Live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&family=Doto:wght@700;900&family=VT323&display=swap">
+<style>
+/* The menu: a blurred city photo behind translucent navy tiles (modern), with the game's own pieces on top:
+   the platform screen (Doto) for the title and the "In arrivo" tags, the pixel signals beside Gioca!.
+   Three steps on one page (#mezzo, #metro in the address); what can be played comes from data/linee.json. */
+:root {
+  --night: #0b2233;
+  --tile: rgba(30, 86, 122, .78);
+  --tile-hi: rgba(42, 112, 156, .9);
+  --fg: #ffffff;
+  --muted: rgba(255,255,255,.72);
+  --signal: #ffcf3f;
+  --live: #e5383b;
+  --led: #ff9416;
+  --crt: #8dff9e;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --dots: "Doto", "Courier New", monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body { margin: 0; background: var(--night); color: var(--fg); font: 15px/1.4 var(--body); }
+.bg { position: fixed; inset: -40px; z-index: 0; background: __SFONDO__ center / cover no-repeat; filter: blur(16px) saturate(1.1); transform: scale(1.06); }
+.bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(11,34,51,.55), rgba(11,34,51,.82)); }
+.net { position: fixed; z-index: 0; left: 50%; top: 55%; width: min(1300px, 140vw); transform: translate(-50%, -50%); opacity: .2; filter: blur(1.5px); pointer-events: none; }
+.wrap { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px;
+  padding-block: calc(14px + env(safe-area-inset-top, 0px)) calc(18px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* header (steps 2 and 3) */
+header { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
+.word { font: 800 22px/0.92 var(--display); text-transform: uppercase; letter-spacing: .02em; text-shadow: 0 2px 8px rgba(0,0,0,.4); color: inherit; text-decoration: none; }
+.word .t { display: inline-block; background: var(--signal); color: var(--night); padding: 1px 6px 0; margin: 2px 0; }
+.word .l { display: flex; align-items: center; gap: 6px; font-size: 30px; }
+.word .l i { width: 10px; height: 10px; border-radius: 50%; background: var(--live); box-shadow: 0 0 0 3px rgba(229,56,59,.3); animation: blink 1.6s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: .35; } }
+.tabs { display: flex; gap: 4px; margin-left: auto; }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 104px; padding: 10px 12px 8px; color: var(--muted); font: 700 13px var(--display); letter-spacing: .08em; text-transform: uppercase; background: none; border: 0; cursor: pointer; }
+.tab svg { width: 30px; height: 30px; }
+.tab[aria-current=step] { background: rgba(255,207,63,.92); color: var(--night); }
+.tab:hover:not([aria-current=step]) { color: #fff; }
+.tab:focus-visible, .word:focus-visible { outline: 3px solid var(--crt); outline-offset: 2px; }
+
+/* LED board (the platform screens of the game) */
+.case { background: linear-gradient(180deg, #b4b9be, #8a9096 60%, #7a8086); border-radius: 10px; padding: 10px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -2px 0 rgba(0,0,0,.25), 0 10px 30px rgba(0,0,0,.45); }
+.screen { position: relative; background: #0b0a08; border: 3px solid #4b5055; border-radius: 3px; overflow: hidden;
+  color: var(--led); font-family: var(--dots); font-weight: 900; text-shadow: 0 0 6px rgba(255,140,20,.65); }
+.screen::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle, transparent 52%, rgba(0,0,0,.6) 62%); background-size: 3px 3px; }
+.case-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 7px; }
+.plate { background: #eceded; color: #1d1d1d; font: 600 12px var(--body); padding: 2px 8px; border-radius: 3px; }
+.grille { width: 54px; height: 8px; background: repeating-linear-gradient(90deg, #5d6268 0 2px, transparent 2px 5px); border-radius: 2px; opacity: .8; }
+
+/* step 1 */
+#avvio { flex: 1; display: grid; place-items: center; min-width: 0; width: 100%; }
+.start { display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; padding-block: 6vh; width: 100%; min-width: 0; box-sizing: border-box; }
+.start .case { width: 100%; max-width: 720px; box-sizing: border-box; min-width: 0; }
+.title { margin: 0; padding: 22px 18px 10px; font-size: clamp(30px, 7.4vw, 66px); font-weight: 900; line-height: 1.02; letter-spacing: .04em; text-wrap: balance; }
+.title small { display: block; font-size: .42em; letter-spacing: .3em; margin-top: 10px; opacity: .9; }
+.ticker { border-top: 2px solid #1d1a14; padding: 6px 0 8px; white-space: nowrap; overflow: hidden; font-size: clamp(15px, 2.6vw, 22px); letter-spacing: .08em; }
+.ticker span { display: inline-block; padding-left: 100%; animation: run 18s linear infinite; }
+@keyframes run { to { transform: translateX(-100%); } }
+.go { display: flex; align-items: center; gap: 18px; }
+.sig { width: 22px; height: 36px; image-rendering: pixelated; filter: drop-shadow(0 0 4px rgba(255,60,40,.35)); }
+.sig.on { display: none; }
+.go:hover .sig.off, .go:focus-within .sig.off { display: none; }
+.go:hover .sig.on, .go:focus-within .sig.on { display: block; filter: drop-shadow(0 0 5px rgba(255,255,255,.45)); }
+.cta { font: 800 30px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--night); background: var(--signal); border: 2px solid var(--signal); padding: 16px 56px; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.cta:hover, .cta:focus-visible { background: #fff; border-color: #fff; outline: none; }
+
+/* tiles */
+.grid { display: grid; gap: 10px; }
+.tile { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; text-align: left;
+  min-height: 210px; padding: 12px 14px; color: var(--fg); font: inherit; cursor: pointer;
+  background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,.18)), var(--tile); border: 2px solid transparent; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.tile::before { content: ''; position: absolute; left: 50%; top: 0; width: 64%; height: 100%; transform: translateX(-50%);
+  clip-path: polygon(28% 0, 72% 0, 100% 100%, 0 100%); background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.02)); pointer-events: none; }
+.tile .ring { position: absolute; left: 50%; top: 44%; width: 46%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; border: 14px solid rgba(255,255,255,.07); }
+.tile .ico { position: absolute; left: 50%; top: 44%; transform: translate(-50%, -50%); width: 40%; max-width: 170px; display: grid; place-items: center; }
+.tile .ico svg, .tile .ico img { width: 100%; height: auto; filter: drop-shadow(0 4px 10px rgba(0,0,0,.3)); }
+.tile .lab { position: relative; font: 700 clamp(16px, 2.2vw, 22px)/1.1 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.tile .desc { position: relative; font-size: 12.5px; line-height: 1.3; color: var(--muted); max-width: 36ch; max-height: 0; overflow: hidden; transition: max-height .2s; }
+.tile:not(.off):hover, .tile:not(.off):focus-visible { border-color: #fff; background: linear-gradient(180deg, transparent 60%, rgba(0,0,0,.18)), var(--tile-hi); outline: none; }
+.tile:not(.off):hover .desc, .tile:not(.off):focus-visible .desc { max-height: 4em; }
+.tile:not(.off):hover::after, .tile:not(.off):focus-visible::after { content: ''; position: absolute; top: 0; left: 0; border: 9px solid transparent; border-top-color: #fff; border-left-color: #fff; }
+.tile.off { cursor: not-allowed; background: rgba(36,52,64,.72); }
+.tile.off .ico, .tile.off .lab, .tile.off .ring, .tile.off .stripe { filter: grayscale(1); opacity: .5; }
+.tag { position: absolute; top: 10px; right: 10px; z-index: 1; font: 900 12px/1 var(--dots); letter-spacing: .08em; text-transform: uppercase; padding: 6px 8px 5px; background: #0b0a08; border: 2px solid #4b5055; border-radius: 3px; }
+.tag.soon { color: var(--led); text-shadow: 0 0 5px rgba(255,140,20,.65); }
+.tag.ok { color: var(--crt); text-shadow: 0 0 5px rgba(120,255,150,.55); }
+.tile .stripe { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; }
+
+#mezzo .grid { grid-template-columns: repeat(3, 1fr); }
+#mezzo .tile { min-height: 300px; }
+#mezzo .all { grid-column: 1 / -1; min-height: 76px; flex-direction: row; align-items: center; justify-content: flex-start; gap: 14px; }
+#mezzo .all .ico { position: static; transform: none; width: 44px; }
+#mezzo .all::before, #mezzo .all .ring { display: none; }
+
+#metro .grid { grid-template-columns: repeat(4, 1fr); }
+#metro .tile { min-height: 250px; }
+#metro .tile .ico { width: 54%; }
+#metro .tile .ico img { border-radius: 8px; }
+#metro .pair .ico { display: flex; gap: 8px; width: 80%; }
+#metro .pair .ico img { width: 50%; }
+#metro .wide { grid-column: span 2; min-height: 80px; flex-direction: row; align-items: center; gap: 12px; justify-content: flex-start; }
+#metro .wide::before, #metro .wide .ring { display: none; }
+#metro .wide .ico { position: static; transform: none; display: flex; gap: 4px; width: auto; }
+#metro .wide .ico img { height: 26px; width: auto; border-radius: 3px; }
+
+.foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: 12px; margin-top: auto; }
+.foot a { color: inherit; }
+.toast { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 20; width: min(440px, calc(100vw - 32px)); box-sizing: border-box;
+  background: #071109; border: 4px solid #2a3a2e; box-shadow: 0 0 0 2px #000, 0 10px 30px rgba(0,0,0,.6); font: 19px/1.2 "VT323", ui-monospace, monospace; color: var(--crt); padding: 10px 12px; }
+
+@media (max-width: 760px) {
+  .tabs { margin-left: 0; width: 100%; } .tab { flex: 1; min-width: 0; padding-inline: 4px; font-size: 12px; }
+  #mezzo .grid { grid-template-columns: 1fr 1fr; } #mezzo .tile:first-child { grid-column: 1 / -1; min-height: 220px; } #mezzo .tile { min-height: 170px; }
+  #metro .grid { grid-template-columns: 1fr 1fr; } #metro .tile { min-height: 170px; }
+  #metro .pair, #metro .wide, #metro .tile.big { grid-column: 1 / -1; } #metro .tile.big .ico { width: 30%; }
+  #mezzo .all, #metro .wide { min-height: 64px; }
+  .tile .desc { display: none; } .tag { font-size: 10px; padding: 4px 5px; } .go { gap: 10px; } .cta { padding-inline: 32px; }
+}
+@media (prefers-reduced-motion: reduce) { .word .l i { animation: none; } .ticker span { animation: none; padding-left: 12px; } .tile .desc { transition: none; } }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<img class="net" id="net" src="__RETE__" alt="" hidden>
+
+<div class="wrap">
+  <header id="hdr" hidden>
+    <a class="word" href="#" title="Torna all'inizio">Milano<br><span class="t">Transit</span><span class="l">Live <i></i></span></a>
+    <nav class="tabs" aria-label="Passi">
+      <button class="tab" data-to=""><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg>Inizio</button>
+      <button class="tab" data-to="mezzo"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z"/></svg>Mezzo</button>
+      <button class="tab" data-to="metro"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5h4l5 7 5-7h4v14h-3V10l-6 8-6-8v9H3z"/></svg>Linea</button>
+    </nav>
+  </header>
+
+  <!-- 1: avvio -->
+  <section id="avvio" hidden>
+    <div class="start">
+      <div class="case">
+        <div class="screen">
+          <h1 class="title">MILANO TRANSIT LIVE<small>BENVENUTO</small></h1>
+          <div class="ticker" aria-hidden="true"><span>SEI IL POSTO CENTRALE · GUASTI, TRENI TRATTENUTI, TRATTE CHIUSE · OGGI IN SERVIZIO: M3 COMASINA – SAN DONATO</span></div>
+        </div>
+        <div class="case-foot"><span class="plate">Posto Centrale</span><span class="grille"></span></div>
+      </div>
+      <div class="go">
+        <img class="sig off" src="__SIG_STOP__" alt=""><img class="sig on" src="__SIG_GO__" alt="">
+        <button class="cta" id="play">Gioca!</button>
+        <img class="sig off" src="__SIG_STOP__" alt=""><img class="sig on" src="__SIG_GO__" alt="">
+      </div>
+    </div>
+  </section>
+
+  <!-- 2: mezzo -->
+  <section id="mezzo" hidden>
+    <div class="grid">
+      <button class="tile" data-k="metro" data-to="metro">
+        <span class="ring"></span>
+        <span class="ico"><svg viewBox="0 0 100 100" fill="#fff" aria-hidden="true"><path d="M24 14h52a10 10 0 0 1 10 10v50a8 8 0 0 1-8 8H22a8 8 0 0 1-8-8V24a10 10 0 0 1 10-10zm2 10v26h48V24zm-2 40a6 6 0 1 0 0.1 0zm52 0a6 6 0 1 0 0.1 0zM38 64h24v6H38z" fill-rule="evenodd"/><path d="M22 86h14l-6 8h-14zm56 0H64l6 8h14z"/><rect x="34" y="4" width="32" height="6" rx="2"/></svg></span>
+        <span class="lab">Metro</span>
+        <span class="desc">Comandi la linea dal Posto Centrale: guasti, treni trattenuti, tratte chiuse.</span>
+      </button>
+      <button class="tile" data-k="tram">
+        <span class="ring"></span>
+        <span class="ico"><svg viewBox="0 0 100 100" fill="#fff" aria-hidden="true"><path d="M40 4h20v4H52l8 12h-6l-8-12zM28 22h44a8 8 0 0 1 8 8v52a6 6 0 0 1-6 6H26a6 6 0 0 1-6-6V30a8 8 0 0 1 8-8zm2 8v24h40V30zm-2 38a5 5 0 1 0 .1 0zm44 0a5 5 0 1 0 .1 0z" fill-rule="evenodd"/><path d="M26 90h12l-4 6H22zm48 0H62l4 6h12z"/></svg></span>
+        <span class="lab">Tram</span>
+      </button>
+      <button class="tile" data-k="bus">
+        <span class="ring"></span>
+        <span class="ico"><svg viewBox="0 0 100 100" fill="#fff" aria-hidden="true"><path d="M22 8h56a10 10 0 0 1 10 10v64a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4V18A10 10 0 0 1 22 8zm2 12v30h52V20zm-2 44a6 6 0 1 0 .1 0zm56 0a6 6 0 1 0 .1 0z" fill-rule="evenodd"/><rect x="18" y="86" width="14" height="10" rx="2"/><rect x="68" y="86" width="14" height="10" rx="2"/><rect x="2" y="24" width="6" height="16" rx="2"/><rect x="92" y="24" width="6" height="16" rx="2"/></svg></span>
+        <span class="lab">Bus</span>
+      </button>
+      <button class="tile all" data-k="rete">
+        <span class="ico"><svg viewBox="0 0 48 48" fill="#fff" aria-hidden="true"><circle cx="10" cy="12" r="5"/><circle cx="38" cy="12" r="5"/><circle cx="24" cy="26" r="6"/><circle cx="10" cy="40" r="5"/><circle cx="38" cy="40" r="5"/><path d="M10 12 24 26 38 12M10 40 24 26 38 40" stroke="#fff" stroke-width="3" fill="none"/></svg></span>
+        <span class="lab">Tutta la rete</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- 3: linea metro -->
+  <section id="metro" hidden>
+    <div class="grid">
+      <button class="tile" data-k="M1"><span class="ring"></span><span class="ico"><img src="__M1__" alt="M1"></span><span class="lab">Linea rossa</span><span class="stripe" style="background:#e5392f"></span></button>
+      <button class="tile" data-k="M2"><span class="ring"></span><span class="ico"><img src="__M2__" alt="M2"></span><span class="lab">Linea verde</span><span class="stripe" style="background:#5e9732"></span></button>
+      <button class="tile" data-k="M3"><span class="ring"></span><span class="ico"><img src="__M3__" alt="M3"></span><span class="lab">Linea gialla</span><span class="desc">Comasina – San Donato. Deposito, tronchini, flotta reale.</span><span class="stripe" style="background:#fbb816"></span></button>
+      <button class="tile pair" data-k="M4,M5"><span class="ring"></span><span class="ico"><img src="__M4__" alt="M4"><img src="__M5__" alt="M5"></span><span class="lab">Blu e lilla</span><span class="stripe" style="background:linear-gradient(90deg,#1d3a6b 50%,#998ec4 50%)"></span></button>
+      <button class="tile wide" data-k="M1+M2+M3"><span class="ico"><img src="__M1__" alt="M1"><img src="__M2__" alt="M2"><img src="__M3__" alt="M3"></span><span class="lab">Insieme</span></button>
+      <button class="tile wide" data-k="metro-tutte"><span class="ico"><img src="__METRO__" alt=""></span><span class="lab">Tutte le linee</span></button>
+    </div>
+  </section>
+
+  <footer class="foot"><span>Simulazione non ufficiale, non affiliata ad ATM. Gratuita, senza pubblicità.</span><a href="https://github.com/Frafire/milano-transit-live">Codice su GitHub (GPL-3.0)</a></footer>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+// what can be played: data/linee.json, put here by tools/assemble.py
+const LINEE = __LINEE__;
+const ok = k => k.split(/[,]/).some(x => LINEE[x] === 'giocabile');
+const metroLines = ['M1', 'M2', 'M3', 'M4', 'M5'].filter(l => LINEE[l] === 'giocabile');
+if (!LINEE.metro) LINEE.metro = metroLines.length ? 'giocabile' : 'in arrivo';
+const gioca = k => 'gioca.html?linee=' + (k === 'metro-tutte' ? ['M1', 'M2', 'M3', 'M4', 'M5'] : k.split(/[+,]/)).join(',');
+
+document.querySelectorAll('.tile[data-k]').forEach(b => {
+  const k = b.dataset.k, yes = ok(k);
+  const tag = document.createElement('span'); tag.className = 'tag ' + (yes ? 'ok' : 'soon');
+  tag.textContent = yes ? (k === 'metro' ? metroLines.join(' ') + ' giocabile' : 'Giocabile') : 'In arrivo';
+  b.prepend(tag);
+  if (!yes) { b.classList.add('off'); b.setAttribute('aria-disabled', 'true'); b.onclick = () => toast('IN ARRIVO. Per ora si gioca solo: ' + metroLines.join(', ') + '.'); return; }
+  if (/^M\d$/.test(k) && b.closest('#metro')) b.classList.add('big');
+  b.onclick = b.dataset.to != null ? () => go(b.dataset.to) : () => { location.href = gioca(k); };
+});
+
+const views = ['avvio', 'mezzo', 'metro'];
+function go(v) { location.hash = v; }
+function show() {
+  const v = views.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'avvio';
+  views.forEach(id => document.getElementById(id).hidden = id !== v);
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-current', (t.dataset.to || 'avvio') === v ? 'step' : 'false'));
+  document.getElementById('hdr').hidden = v === 'avvio';
+  document.getElementById('net').hidden = v !== 'metro';
+  document.getElementById('toast').hidden = true;
+}
+addEventListener('hashchange', show); show();
+document.getElementById('play').onclick = () => go('mezzo');
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => go(t.dataset.to));
+document.querySelector('.word').onclick = e => { e.preventDefault(); go(''); };
+let tt;
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, 3200); }
+</script>
+</body>
+</html>
