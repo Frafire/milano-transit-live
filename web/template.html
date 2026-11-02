@@ -1348,7 +1348,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // part black and narrowing towards the roof)
     const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
     // the sign, one display: the train number in green on the left, the destination in orange in the middle
-    const V = { x: 38, y: 8, w: 185, h: 22 };
+    const V = { x: 38, y: 12, w: 185, h: 21 };
     const ledText = (t, x0, p, fill) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;
       for (const ch of t) { const g = F57[ch] || F57[' '];
         for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .43).toFixed(2)}"/>`;
@@ -1370,6 +1370,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <rect x="${sx}" y="155.5" width="20" height="3.6" rx="1.8" fill="#5f656b"/>`;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-17 -3 296 279">
       <defs>
+        <linearGradient id="rf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7f8387"/><stop offset=".6" stop-color="#aeb2b6"/><stop offset="1" stop-color="#cdd0d3"/></linearGradient>
         <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d7da"/><stop offset=".5" stop-color="#c3c7cb"/><stop offset="1" stop-color="#a9aeb3"/></linearGradient>
         <linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".1" stop-color="#000" stop-opacity="0"/><stop offset=".9" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
         <linearGradient id="up" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3d41"/><stop offset=".12" stop-color="#202225"/><stop offset="1" stop-color="#121315"/></linearGradient>
@@ -1384,14 +1385,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <!-- mirrors (black, on their arms) -->
       <path d="M3 26 h-4 l-3 -3 h-8 a3 3 0 0 0 -3 3 v54 a3 3 0 0 0 3 3 h8 l3 -3 h4 z" fill="#17181a"/><path d="M-13 29 h7 v48 h-7 z" fill="#25272a"/>
       <path d="M258 26 h4 l3 -3 h8 a3 3 0 0 1 3 3 v54 a3 3 0 0 1 -3 3 h-8 l-3 -3 h-4 z" fill="#17181a"/><path d="M267 29 h7 v48 h-7 z" fill="#25272a"/>
-      <!-- the grey body and, above the light units, the black upper part narrowing towards the roof -->
-      <path d="M3 9 Q3 2 10 2 H251 Q258 2 258 9 V203 H3 Z" fill="url(#bd)"/>
-      <path d="M3 9 Q3 2 10 2 H251 Q258 2 258 9 V203 H3 Z" fill="url(#sd)"/>
-      <path d="M13 136 V2 H248 V136 Z" fill="url(#up)"/>
+      <!-- the roof arching over the cab; the grey body and, above the light units, the black upper part, rounded with the roof -->
+      <path d="M5 34 Q9 -9 66 -8 H195 Q252 -9 256 34 Z" fill="url(#rf)"/>
+      <path d="M3 38 Q4 5 44 3 H217 Q257 5 258 38 V203 H3 Z" fill="url(#bd)"/>
+      <path d="M3 38 Q4 5 44 3 H217 Q257 5 258 38 V203 H3 Z" fill="url(#sd)"/>
+      <path d="M13 136 V38 H3 Q4 5 44 3 H217 Q257 5 258 38 H248 V136 Z" fill="url(#up)"/>
       <rect x="${V.x - 1.5}" y="${V.y - 1.5}" width="${V.w + 3}" height="${V.h + 3}" rx="2" fill="#2c2e31"/><rect x="${V.x}" y="${V.y}" width="${V.w}" height="${V.h}" rx="1" fill="#040405"/>
       ${sign}
       <!-- the yellow edges, curving with the roof -->
-      <path d="M3 9 Q3 2 10 2 H13.5 V203 H3 Z" fill="url(#yl)"/><path d="M258 9 Q258 2 251 2 H247.5 V203 H258 Z" fill="url(#yl)"/>
+      <path d="M3 38 H13.5 V203 H3 Z" fill="url(#yl)"/><path d="M258 38 H247.5 V203 H258 Z" fill="url(#yl)"/>
       <!-- windscreen: two panes and the door between them -->
       <rect x="15" y="39.75" width="69" height="92.25" rx="2" fill="url(#gl)"/><rect x="162.75" y="39.75" width="75" height="92.25" rx="2" fill="url(#gl)"/>
       <rect x="87.75" y="34.5" width="71.25" height="151.5" fill="#0f1012"/>
@@ -1425,7 +1427,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   // Each side: the outer lamp white (warm) when running, the inner one red when standing. White ribbed bumpers.
   function tradSVG(lot2, dest, lights, no, car) {
     const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
-    const V = { x: 44, y: 9, w: 173, h: 21 }, led = lot2 ? '#ffb01e' : '#e9f1ff';
+    const V = { x: 44, y: 14, w: 173, h: 20 }, led = lot2 ? '#ffb01e' : '#e9f1ff';
     const ledText = (t, x0, p) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;
       for (const ch of t) { const g = F57[ch] || F57[' '];
         for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .43).toFixed(2)}"/>`;
@@ -1442,7 +1444,6 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <rect x="${xi}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${red ? rd : '#4a2622'}" ${red ? 'filter="url(#glr)"' : ''}/>`;
     const band = lot2
       ? `<rect x="14" y="134" width="233" height="15" fill="url(#yl)"/>
-         <rect x="64" y="137" width="9" height="9" rx="1.5" fill="#e7b512" stroke="#8a6a06" stroke-width=".8"/><rect x="66" y="140" width="5" height="3" fill="#6b5205"/>
          <rect x="14" y="149" width="233" height="31" fill="#121315"/>
          ${lamps(24, 52, 158, 22, 11, 2)}${lamps(215, 187, 158, 22, 11, 2)}`
       : `<rect x="14" y="134" width="233" height="16" fill="#2a2d31"/>
@@ -1452,7 +1453,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
          ${lamps(27, 56, 160, 21, 11, 5.5)}${lamps(213, 184, 160, 21, 11, 5.5)}`;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-17 -3 296 279">
       <defs>
-        <linearGradient id="rf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9aaa6"/><stop offset="1" stop-color="#d7d7d1"/></linearGradient>
+        <linearGradient id="rf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8f908c"/><stop offset=".6" stop-color="#bdbdb7"/><stop offset="1" stop-color="#e4e4de"/></linearGradient>
         <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f1ec"/><stop offset=".6" stop-color="#e3e3dd"/><stop offset="1" stop-color="#c9c9c3"/></linearGradient>
         <linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".2"/><stop offset=".08" stop-color="#000" stop-opacity="0"/><stop offset=".92" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
         <linearGradient id="dk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lot2 ? '#1c1d20' : '#33363a'}"/><stop offset="1" stop-color="${lot2 ? '#121315' : '#26292d'}"/></linearGradient>
@@ -1463,19 +1464,19 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         <filter id="led" x="-.1" y="-.6" width="1.2" height="2.2"><feGaussianBlur stdDeviation=".8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
       <!-- the roof seen from the front (it arches over the cab), the white body, the dark front panel inside it -->
-      <path d="M8 22 Q12 -2 60 -1 H201 Q249 -2 253 22 Z" fill="url(#rf)"/>
-      <path d="M3 26 Q4 6 30 4 H231 Q257 6 258 26 V203 H3 Z" fill="url(#bd)"/><path d="M3 26 Q4 6 30 4 H231 Q257 6 258 26 V203 H3 Z" fill="url(#sd)"/>
-      <path d="M14 26 Q15 9 34 8 H227 Q246 9 247 26 V180 H14 Z" fill="url(#dk)"/>
+      <path d="M5 34 Q9 -9 66 -8 H195 Q252 -9 256 34 Z" fill="url(#rf)"/>
+      <path d="M3 38 Q4 5 44 3 H217 Q257 5 258 38 V203 H3 Z" fill="url(#bd)"/><path d="M3 38 Q4 5 44 3 H217 Q257 5 258 38 V203 H3 Z" fill="url(#sd)"/>
+      <path d="M14 38 Q15 8 46 7 H215 Q246 8 247 38 V180 H14 Z" fill="url(#dk)"/>
       <rect x="${V.x - 1.5}" y="${V.y - 1.5}" width="${V.w + 3}" height="${V.h + 3}" rx="2" fill="#0b0c0d"/><rect x="${V.x}" y="${V.y}" width="${V.w}" height="${V.h}" rx="1" fill="#040405"/>
       <g fill="${led}" filter="url(#led)">${sign}</g>
       <!-- windscreen: the two side panes and, between them, the front door with its window -->
-      <rect x="20" y="37" width="85" height="93" rx="3" fill="url(#gl)"/><rect x="156" y="37" width="85" height="93" rx="3" fill="url(#gl)"/>
-      <rect x="111" y="39" width="39" height="89" rx="2" fill="url(#gl)"/>
+      <rect x="20" y="41" width="85" height="89" rx="3" fill="url(#gl)"/><rect x="156" y="41" width="85" height="89" rx="3" fill="url(#gl)"/>
+      <rect x="111" y="43" width="39" height="85" rx="2" fill="url(#gl)"/>
       <path d="M30 126 L58 42 L67 42 L39 126 Z M166 126 L194 42 L202 42 L174 126 Z M116 122 L130 44 L135 44 L121 122 Z" fill="#fff" opacity=".06"/>
       <path d="M26 45 h24 M162 45 h26 M115 47 h12" stroke="#c7d1da" stroke-opacity=".35" stroke-width="1.3" stroke-linecap="round"/>
       ${band}
       <!-- the door: its outline down to the bottom of the dark panel, the handle -->
-      <path d="M107.5 34 V181.5 H153.5 V34" fill="none" stroke="#08090a" stroke-width="2.2"/><path d="M107.5 34 H153.5" stroke="#08090a" stroke-width="1.6"/>
+      <path d="M107.5 39 V181.5 H153.5 V39" fill="none" stroke="#08090a" stroke-width="2.2"/><path d="M107.5 39 H153.5" stroke="#08090a" stroke-width="1.6"/>
       <rect x="145" y="${lot2 ? 162 : 163}" width="4" height="9" rx="1.2" fill="#8a8d90"/>
       <path d="M3 200 H258" stroke="#000" stroke-opacity=".25" stroke-width="1"/>
       <!-- white ribbed bumpers, the coupler between them -->
