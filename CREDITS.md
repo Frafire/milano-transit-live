@@ -14,7 +14,6 @@ Milano Transit Live is an **unofficial fan project**. It is not affiliated with,
 | Map library | Leaflet 1.9.4 (`web/vendor/leaflet`) | BSD-2-Clause | Keep `web/vendor/leaflet/LICENSE` |
 | Fonts | Google Fonts (Barlow, Barlow Condensed, Doto, VT323) | SIL Open Font License | Nothing extra |
 | Metro line marks (`web/img/lines/`, `web/img/m3_logo.png`, `web/img/home/metro.png`) | Images chosen by Giovanni | Checked by Giovanni: no copyright | Used only to name the lines |
-| Menu background photo (`web/img/home/sfondo.jpg`, tram 1503) | **Source to be confirmed** | **To be confirmed** | Credit the author before publishing; without the file the menu uses a plain background |
 | Network diagram behind the metro menu (`web/img/home/rete.png`, from a schematic map of the Milan metro, text removed) | **Source to be confirmed** (likely Wikimedia Commons) | **To be confirmed** (likely CC BY-SA) | Credit the author and keep the same license for the derived image |
 
 Fleet lists (M3 and M4 train numbers) were typed in by Giovanni from public sources.
