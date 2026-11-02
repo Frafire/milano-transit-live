@@ -631,7 +631,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const admitted = units => APPLIED.has(String(units));
   function admitPairs(F) {
     const st = F.stock || [], used = new Set(); F.trains.forEach(tr => (tr.duties0 || tr.duties || []).forEach(d => { if (d[2] >= 0) used.add(d[2]); }));
-    const old = st.map((_, u) => u).filter(u => /1° lotto/.test(st[u].type || '') && used.has(u));
+    // a 1st-lot train that starts the day out of a depot place (not one sleeping in a tail): the new train leaves from its place
+    const fromDepot = new Set(); F.trains.forEach(tr => { const d = (tr.duties0 || tr.duties || []).filter(x => x[2] >= 0).sort((p, q) => p[0] - q[0])[0], s0 = (tr.segs0 || tr.segs)[0];
+      if (d && s0 && s0[5] != null && (s0[1] === 'from_depot' || s0[1] === 'empty')) fromDepot.add(d[2]); });
+    const old = st.map((_, u) => u).filter(u => /1° lotto/.test(st[u].type || '') && used.has(u) && fromDepot.has(u));
     return st.map((_, u) => u).filter(u => st[u].trial && ADMIT.has(String(st[u].units))).map((h, n) => [h, old[n]]).filter(p => p[1] != null);
   }
   // the duties with the admitted trains swapped in; returns the timelines whose places swap ([before, after] of each new train)
@@ -1276,7 +1279,6 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const d = trainDelay(F, tr, state.t), mm = s => Math.floor(Math.abs(s) / 60) + ':' + String(Math.round(Math.abs(s)) % 60).padStart(2, '0');
     const dtx = d == null ? 'FUORI SERVIZIO' : d >= 60 ? 'RITARDO +' + mm(d) : d <= -60 ? 'ANTICIPO −' + mm(d) : 'IN ORARIO';
     if (dl.textContent !== dtx) { dl.textContent = dtx; dl.classList.toggle('late', d != null && d >= 120); dl.classList.toggle('early', d != null && d <= -180); }
-    if (dl.classList.contains('pill')) dl.hidden = d == null;
   }
   // lateness of a train for its card: the trains of the one engine know it from their last departure
   function trainDelay(F, tr, t) {
@@ -1713,6 +1715,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const d = d0 == null && dl.classList.contains('pill') && (st.trip >= 0 || st.agent && st.agent.status === 'service') ? 0 : d0;
     const dtx = d == null ? 'FUORI SERVIZIO' : d >= 60 ? 'RITARDO +' + mm(d) : d <= -60 ? 'ANTICIPO −' + mm(d) : 'IN ORARIO';
     if (dl.textContent !== dtx) { dl.textContent = dtx; dl.classList.toggle('late', d != null && d >= 120); dl.classList.toggle('early', d != null && d <= -180); }
+    if (dl.classList.contains('pill')) dl.hidden = d == null;
   }
 
   // lateness of a train for its card: the trains of the one engine know it from their last departure
