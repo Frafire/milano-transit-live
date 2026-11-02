@@ -4,7 +4,7 @@
   "Tipo": "treno",
   "Guasto": "Il treno non riparte (guasto di trazione)",
   "Come si presenta (cosa vedono macchinista e PC)": "Il treno resta fermo in stazione o in linea; il macchinista chiama il PC",
-  "Cosa fa il macchinista (e quanto ci mette)": "Chiama il PC, il PC da ordine di riarmare il treno Prova a riarmare il treno (riarmo); se non riparte richiama.",
+  "Cosa fa il macchinista (e quanto ci mette)": "Il macchinista riarma da solo (è sua responsabilità): se il treno riparte, riparte e poi avvisa il DCT; se non riparte chiama il DCT, che dispone le istruzioni.",
   "Cosa fa il PC": "Ferma i treni dietro, decide se aspettare o mandare il soccorso",
   "Quando diventa soccorso": "Dopo 2-3 riarmi falliti",
   "Come si risolve / soccorso": "Riarmo; altrimenti soccorso con il treno dietro o con il trattorino",
@@ -12,7 +12,7 @@
   "Quanto spesso / come si attiva": "casuale / dal menu admin",
   "Volte al giorno (stima)": 0.3,
   "Nel programma oggi": "sì (fase D1)",
-  "Note": "Riarmo (interruttore rapido, IR): un paio di minuti dopo aver dato comunicazione al DCT. Dopo 3 riarmi falliti si esclude l'UdT guasta (ogni treno ha 2 UdT indipendenti) e si prosegue con l'altra: passeggeri giù alla prossima stazione, poi vuoto al deposito di Rogoredo (ROD). Soccorso solo se si fermano tutte e due (rarissimo)",
+  "Note": "Riarmo (interruttore rapido, IR): prima da solo; se non riesce, su istruzione del DCT. Dopo 3 riarmi falliti si esclude l'UdT guasta (ogni treno ha 2 UdT indipendenti) e si prosegue con l'altra: passeggeri giù alla prossima stazione, poi vuoto al deposito di Rogoredo (ROD). Soccorso solo se si fermano tutte e due (rarissimo)",
   "_mine": [
    "Note"
   ]
@@ -415,7 +415,7 @@
   "N.": 23,
   "Tipo": "treno",
   "Guasto": "Il treno funziona ma chiede continuamente di essere riarmato",
-  "Come si presenta (cosa vedono macchinista e PC)": "Il treno si ferma più volte lungo la linea; ogni volta il macchinista chiama il PC e riarma",
+  "Come si presenta (cosa vedono macchinista e PC)": "Il treno si ferma più volte lungo la linea; ogni volta il macchinista riarma, riparte e avvisa il DCT",
   "Cosa fa il macchinista (e quanto ci mette)": "Riarma (un paio di minuti dopo aver avvisato il PC) e prosegue",
   "Cosa fa il PC": "Chiama la Manutenzione di linea a San Donato e indica il treno: il tecnico sale sempre a San Donato, quando il treno ci arriva",
   "Quando diventa soccorso": "Se il tecnico non risolve e il treno non riparte più",

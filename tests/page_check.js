@@ -15,6 +15,7 @@
 // - giorno: Friday 02:58 with a signal failed: at 02:59 Saturday's timetable is loaded, at 03:30, the failure still there
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
 //   admitted from the admin menu at night, from the next day it runs a traditional train's duties, out of its own place
+// - comasina: by radio, a train from San Donato goes into Comasina platform 1 and changes cab there (no tail)
 // - guasto: admin menu Guasti, a train in service does not start again: the call among the PC alarms, the PC answers Riarma
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
 // Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea|emergenza|giorno ...]   (no argument: all of them). Exit code 1 if one fails.
@@ -217,11 +218,15 @@ const SCENARIOS = {
       const a = F.ag.agents().find(x => !x.hidden && x.status === 'service' && x.v > 8 && x.at > 3 && x.at < 17); if (!a) return { ok: false, why: 'no train running' };
       const kSel = document.getElementById('fxKind'), tSel = document.getElementById('fxTrain'); if (!kSel.options.length) return { ok: false, why: 'empty failure menu' };
       kSel.value = 'trazione'; tSel.value = String(a.k); document.getElementById('fxGo').click(); await sleep(300);
-      st.playing = true; st.speed = 10; let btn = null; const t0 = Date.now();
-      while (Date.now() - t0 < 20000 && !(btn = document.querySelector('#pcAlarms [data-fxa="rearm"]'))) await sleep(200);
+      // the driver re-arms by himself first: it works (he goes, then tells the DCT) or he calls for instructions
+      st.playing = true; st.speed = 10; let btn = null; const t0 = Date.now(), FX0 = F.ag.FX;
+      while (Date.now() - t0 < 20000 && !(btn = document.querySelector('#pcAlarms [data-fxa="rearm"]')) && FX0.list().some(f => f.k === a.k && f.kind === 'trazione')) await sleep(200);
       st.playing = false; await sleep(200);
-      if (!btn) return { ok: false, why: 'no call among the alarms', alarms: document.getElementById('pcAlarms').innerText.slice(0, 300) };
-      const call = btn.closest('li').innerText; btn.click(); await sleep(300);
+      if (!btn) { st.sel = 'f' + M.fleets.indexOf(F) + ':' + a.k; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(300);
+        const log = document.getElementById('radioLog').innerText, over = !FX0.list().some(f => f.k === a.k && f.kind === 'trazione');
+        return { ok: over && /Ho riarmato e sono ripartito/.test(log) && !/riarma il treno/.test(log), self: true, over, log: log.split('\n').filter(l => /riarm|non riparte/i.test(l)).slice(-3) }; }
+      const call = btn.closest('li').innerText; if (!/Ho provato a riarmare/.test(call)) return { ok: false, why: 'called before re-arming by himself', call };
+      btn.click(); await sleep(300);
       st.playing = true; st.speed = 60; const t1 = Date.now(), FX = F.ag.FX;
       while (Date.now() - t1 < 40000 && FX.list().some(f => f.k === a.k && f.kind === 'trazione')) await sleep(250);
       st.playing = false; await sleep(200);
@@ -267,6 +272,20 @@ const SCENARIOS = {
       btn.click(); await sleep(300); const d0 = a.d;
       st.playing = true; st.speed = 10; await sleep(4000); st.playing = false; await sleep(200);
       return { ok: stopped && Math.abs(a.d - d0) > 5 && !F.ag.zones().length, train: a.k, stretch: [A, B], stopped, movedAfter: Math.round(Math.abs(a.d - d0)) };
+    });
+  },
+  async comasina(p) {  // Comasina platform 1 by radio: the order, the driver's answer, the plan changed
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      st.playing = false; st.t = 9 * 3600; await sleep(2500);
+      const k = F.trains.findIndex(tr => (tr.carr1 || []).some(c => !c.done && st.t >= c.open && st.t <= c.close - 300));
+      if (k < 0) return { ok: false, why: 'no train to send into platform 1' };
+      st.sel = 'f' + M.fleets.indexOf(F) + ':' + k; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(400);
+      const b = document.getElementById('radioC1'); if (!b) return { ok: false, why: 'no Comasina button in the radio' };
+      b.click(); await sleep(300);
+      const tr = F.trains[k], log = document.getElementById('radioLog').innerText;
+      return { ok: !!tr.c1 && /binario 1/.test(log) && tr.segs.some(s => s[1] === 'turnback' && s[4][0] === s[4][1] && s[4][0] > 10000), k, c1: tr.c1, log: log.split('\n').filter(l => /binario 1/.test(l)).slice(-2) };
     });
   },
   async nuovo(p) {     // the new train in test: test laps by itself; admitted: the duties of a traditional train the next day

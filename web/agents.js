@@ -115,6 +115,9 @@
     const turnAt = (X, dir) => { const tr = G.turns[X + ':' + dir]; if (!tr) return null; const k = ((S.turnOv && S.turnOv[X + ':' + dir]) || TP[X + ':' + dir] || ['A', 'C', 'B']).find(x => tr[x]); return k ? { kind: k, t: tr[k] } : null; };
     // one track only at an end of the closure (rules closure_one_track): another turn, or a navetta (NAV, from the build)
     const OT = o.closureOneTrack || {}, NAV = o.navette || {}, REVP = o.revPaths || {};
+    // the paths that run a track the wrong way (the navette, a train going back on its track): slower there, with the
+    // block the other way and its devices cut out (Giovanni, 2 Nov 2026)
+    const CONTRA = new Set([...Object.values(REVP), ...Object.values(NAV).map(v => v.contra)].filter(x => x != null)), ILL = (ops.illegal_kmh || 30) / 3.6;
 
     // ---------- legs: what an agent still has to drive ----------
     // { pid, status, trip, stops: [{ d, st, dep, arr, j }], end, start, dir, plan, timed, si, t0 }
@@ -134,7 +137,7 @@
     const IL = o.interlocking && ILmod ? ILmod.create(Object.assign({}, o.interlocking, { sigpos: o.sigpos, half: o.half })) : null;
     S.il = IL ? IL.fresh(null) : null;
     const RR = o.routeRules || {};
-    const RT = RTmod.create({ sigall: o.sigall || {}, pathEdges, netEdges, itineraries: o.itineraries, times: RR.times, capacity: RR.capacity, pcSignals: RR.pcSignals, tailSlots: RR.tailSlots, half });
+    const RT = RTmod.create({ sigall: o.sigall || {}, pathEdges, netEdges, itineraries: o.itineraries, times: RR.times, capacity: RR.capacity, pcSignals: RR.pcSignals, tailSlots: RR.tailSlots, exitZones: RR.exitZones, half });
     S.rt = RT.fresh();
     // the other ways of a movement (San Donato): VAR[pid] = [[itinerary id, way, twin pid]]; START[id]: its first signal
     const VAR = o.variants || {}, START = {}; for (const it of o.itineraries || []) START[it.id] = it.start;
@@ -314,6 +317,7 @@
         if ((leg.stops || []).some(x => own(x.d)) || (a.lastStop && a.lastStop.pid === a.pid && own(a.lastStop.d))) continue;
         v = Math.min(v, z0 <= a.d + half ? THRU : Math.sqrt(THRU * THRU + 2 * B * (z0 - a.d - half))); }
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
+      if (CONTRA.has(a.pid)) v = Math.min(v, ILL);                           // on a track the wrong way
       // after reopening: 40 km/h on the stretch that was closed, for 20 minutes (Giovanni)
       if (SLOW && S.t < SLOW.until) { const pe = pathEdges[a.pid], vz = SLOW.kmh / 3.6;
         if (pe) for (const [ei, , x0, x1] of pe.e) { if (x1 < a.d - half) continue; if (x0 > a.d + half + 300) break;
@@ -337,6 +341,7 @@
       const z = o.zones && o.zones[a.pid];
       if (z && (leg.status !== 'service' || leg.skip)) for (const [z0, z1, zv] of z) if (!(z1 < a.d - half || z0 > a.d + half)) v = Math.min(v, zv);
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
+      if (CONTRA.has(a.pid)) v = Math.min(v, ILL);                           // on a track the wrong way
       if (SLOW && S.t < SLOW.until) { const pe = pathEdges[a.pid]; if (pe) for (const [ei, , x0, x1] of pe.e) if (x1 >= a.d - half && x0 <= a.d + half && SLOW.set.has(ei)) v = Math.min(v, SLOW.kmh / 3.6); }
       if (a.vlim) v = Math.min(v, a.vlim);
       if (a.avista && a.avista.pid === a.pid) v = Math.min(v, VISTA);

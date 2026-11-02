@@ -5168,5 +5168,9 @@
    ],
    "len": 102.5
   }
- ]
+ ],
+ "exit_zones": {
+  "_about": "Zona di uscita degli itinerari (il collega di Giovanni, 2 nov 2026): negli apparati ACEI della M3 un itinerario si forma e resta attivo solo con libero il circuito di binario a valle del suo segnale di fine. A Comasina quel circuito comprende la comunicazione a forbice dei tronchetti: un treno non arriva sul binario 2 mentre un altro manovra tra tronchetti e banchine (deviatoi liberi e bloccati). A San Donato c'e un circuito in mezzo (Giovanni): niente zona. Chiave: numero del segnale di fine; nodes: gli scambi della zona (nodi della rete).",
+  "11": {"nodes": [181, 182, 191, 180, 124], "name": "Comasina binario 2 (arrivi): comunicazione dei tronchetti"}
+ }
 }

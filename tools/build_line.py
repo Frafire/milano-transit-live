@@ -8,7 +8,7 @@ CFG = {
              SD_TAILS=[163, 116], COM_TAILS=[183, 179], COM_TAIL_NO={179: 1, 183: 2}, SD_DEP={1: 143, 2: 120}, PLATS=[1, 2],
              SD_OUT_NODE=165, IN_VIA=[124, 153, 160], DEPOT_IN_VIA=[124, 153, 160], AFTER_ARR=160,
              PULL_OUT=300, PLAT_WAIT=120,
-             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, tail_at_signal=True, nose_stop=True, blocks=True, degraded=True, recovery=[['BRENTA', 'S', (45.4428, 45.4450, 9.2140, 9.2180)], ['CENTRALE FS', 'S', (45.4815, 45.4850, 9.1995, 9.2070)], ['CENTRALE FS', 'N', (45.4815, 45.4850, 9.1995, 9.2070)]], com_choice=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
+             depot_box=(45.4285, 45.4335, 9.2515, 9.2585), skip_dead=(201,), half=52.5, training=True, through=True, tail_at_signal=True, nose_stop=True, blocks=True, degraded=True, recovery=[['BRENTA', 'S', (45.4428, 45.4450, 9.2140, 9.2180)], ['CENTRALE FS', 'S', (45.4815, 45.4850, 9.1995, 9.2070)], ['CENTRALE FS', 'N', (45.4815, 45.4850, 9.1995, 9.2070)]], com_choice=True, ARR2=dict(via=[124, 153, 196], end=120, lift=[103]), C1=dict(via=[195, 125], end=124, lift=[60, 108]), SECTION=dict(sb=[136, 153], nb=[165, 137], lift=[66]), THROATS=dict(home=dict(ends=[120, 143, 160], p1=[143, 165], depot=[[141, 142], [142, 143]]), far=dict(ends=[124, 181])),
              labels=[('3', 78, 70, 'on'), ('2', 103, 85, 'on'), ('1', 79, 100, 'on')]),
   'M4': dict(tracks='osm_m4.txt', main='Linea M4', home='San Cristoforo', far='Linate Aeroporto',
              HOME_STOP=(45.44236, 9.12977), FAR_STOP=(45.46284, 9.27800),
@@ -709,6 +709,51 @@ def arrive_p2(tl, pd, nxt, ctail2):
     ARR2[tl.k].append({'i': pd['i'], 'n': len(tl.segs) - pd['i'], 'segs': tmp.segs + [appr, serv, tail_move],
                        'open': round(rog), 'close': round(tA - 40), 'from': round(tA), 'dep': nxt['dep'], 'arr': round(tA)})
 
+CARR1 = collections.defaultdict(list)
+def arrive_c1(tl, cp, tr_in, end_in, via_in, t_leave_in, t_plat_in):
+    """Player order: at Comasina the train from San Donato crosses over before the station into platform 1 (the
+    departure one) and the driver changes cab there, no tail (Giovanni, 2 Nov 2026: it happened often, also at San
+    Donato). Replaces the run in, the tail and the run back out (same times at San Donato)."""
+    a = CFG.get('C1')
+    if not a: return
+    i0 = cp['seg0']; n = len(tl.segs) - i0; tmp = TL(-1)
+    # the path: the usual way up to the crossover (its first node), then over it and platform 1 the wrong way (only there)
+    via2 = list(cp['via']) + ['c1']
+    key = ('leg', cp['start'], tuple(via2), a['end'])
+    if key not in path_key:
+        try: st1 = PATH_STATES[leg_path(cp['start'], cp['via'], a['via'][0])]
+        except RuntimeError as e: print('C1 route', e); return
+        saved = {w: ONEWAY.pop(w) for w in a['lift'] if w in ONEWAY}
+        try:
+            st, rest = list(st1), True
+            for nd in a['via'][1:] + [a['end']]:
+                r = _router.route(list(_router.successors(*st[-1])), nd)
+                if r is None: rest = False; break
+                st += r
+        finally:
+            ONEWAY.update(saved)
+        if not rest: print('C1 route: no way over the crossover'); return
+        make_path(key, st)
+    try:
+        pidA, dA, _, tA = service_leg(tmp, cp['start'], via2, a['end'], cp['tr'], cp['t_leave'], SD_STOP, COM_STOP, cp['status'], cp['t_plat'])
+    except RuntimeError as e:
+        print('C1 route', e); return
+    if cp['store'] is not None: tmp.segs[-2].append(cp['store'])
+    t_ready = tA + DWELL_END + REVERSE                  # passengers off, driver changes cab
+    if tr_in['dep'] - 30 < t_ready: return
+    t_board = max(t_ready, tr_in['dep'] - DWELL_MAX)
+    tmp.add(pidA, 'turnback', [tA, t_ready], [dA, dA])
+    tmpB = TL(-1)
+    try:
+        pidB, dB_arr, dB_end, _ = service_leg(tmpB, a['end'], [x for x in via_in if x != a['end']], end_in, tr_in, t_ready, COM_STOP, SD_STOP, 'turnback', t_board)
+    except RuntimeError as e:
+        print('C1 route back', e); return
+    appr, serv = tmpB.segs
+    d0 = serv[4][0]; appr[4] = [d0, d0]                 # it is already standing at the platform
+    last = tl.segs[-1]                                  # the run after the arrival at San Donato keeps its times
+    tmp.segs += [appr, serv, [pidB, last[1], last[2], list(last[3]), [round(dB_arr, 1), round(dB_end, 1)], *last[5:]]]
+    CARR1[tl.k].append({'i': i0, 'n': n, 'segs': tmp.segs, 'open': round(cp['tr']['dep']), 'close': round(tA - 90), 'arr': round(tA), 'dep': tr_in['dep']})
+
 CALTS = collections.defaultdict(list)
 def tail_alternative(tl, cp, tr_in, end_in, via_in, t_leave_in, t_plat_in, go_depot):
     """The same turnaround at Comasina through the other tail track (the player can choose it)."""
@@ -842,9 +887,12 @@ for k, chain in enumerate(trains):
                 loc = ('sd', end, t_end)
             if com_pending and CFG.get('com_choice'):
                 tail_alternative(tl, com_pending, tr, end, via, t_leave, t_plat, go_depot)
+            if com_pending and CFG.get('C1'):
+                arrive_c1(tl, com_pending, tr, end, via, t_leave, t_plat)
             com_pending = None
     tl.start_where, tl.end_where = start_where, end_where
     out.append(tl)
+if CFG.get('C1'): print('Comasina platform 1 arrivals (player order):', sum(len(v) for v in CARR1.values()))
 
 if CFG['training']:
     # ---------------- driver training on the anello di prova ----------------
@@ -1896,7 +1944,9 @@ NET['route_rules'] = {'times': {'blade': _tval('Ago dello scambio'), 'signal': _
                       'pcSignals': sorted(int(n) for n, v in _rsg.items() if (v.get('comando') or '').startswith('manuale') or (v.get('via_libera') or '').lower().startswith('dato dal pc')),
                       # normally red (Aspetto normale: rosso): via libera only for the train whose route is set
                       'redNormal': sorted(int(n) for n, v in _rsg.items() if (v.get('aspetto') or '').strip().lower() == 'rosso'),
-                      'tailSlots': {k: v for k, v in (_rules_.get('tail_slots') or {}).items() if k in ('positions', 'slot_m')}}
+                      'tailSlots': {k: v for k, v in (_rules_.get('tail_slots') or {}).items() if k in ('positions', 'slot_m')},
+                      # the exit zone after a route's end signal (Comasina binario 2: the crossover of the tails)
+                      'exitZones': {k: v['nodes'] for k, v in (_rules_.get('exit_zones') or {}).items() if not k.startswith('_')}}
 print('route rules:', NET['route_rules'])
 NET['variants'] = {str(k): v for k, v in VARIANTS.items()}
 # closures (foglio Chiusure): how trains turn at the station where the closed stretch ends, and which closures there are
@@ -1933,7 +1983,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'trains': [tl.segs for tl in out],
            'where': [[tl.start_where, tl.end_where] for tl in out],
            'alts': [ALTS.get(tl.k, []) for tl in out],
-           'arr2': [ARR2.get(tl.k, []) for tl in out],
+           'arr2': [ARR2.get(tl.k, []) for tl in out], 'carr1': [CARR1.get(tl.k, []) for tl in out],
            'calts': [CALTS.get(tl.k, []) for tl in out],
            'pulls': [[PULL_PLAT[ti], dep] for ti, dep in ((tr['ti'], tr['dep']) for tr in pulls) if ti in PULL_PLAT],
            'labels': PLAT_LABELS,

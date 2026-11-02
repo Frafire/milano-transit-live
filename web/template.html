@@ -656,10 +656,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     el.closest('.admin-only').hidden = !T.length;
     const note = () => { const pairs = admitPairs(F), lines = [];
       T.forEach(([x, u]) => { const p = pairs.find(q => q[0] === u), on = APPLIED.has(String(x.units));
-        if (p && !on) lines.push(`Dal prossimo giorno di servizio il treno ${u + 1} (${x.units}) prende i turni del treno ${p[1] + 1} (${F.stock[p[1]].units}), che resta in deposito.`);
-        else if (p) lines.push(`Il treno ${u + 1} (${x.units}) è in servizio con i turni del treno ${p[1] + 1}.`);
-        else if (on) lines.push(`Il treno ${u + 1} (${x.units}) torna in prova dal prossimo giorno di servizio.`);
-        else lines.push(`Il treno ${u + 1} (${x.units}) è in prova: giri sull'anello di prova fuori dalle ore di punta.`); });
+        if (p && !on) lines.push(`Dal prossimo giorno di servizio il ${x.units} prende i turni del ${F.stock[p[1]].units}, che resta in deposito.`);
+        else if (p) lines.push(`Il ${x.units} è in servizio con i turni del ${F.stock[p[1]].units}.`);
+        else if (on) lines.push(`Il ${x.units} torna in prova dal prossimo giorno di servizio.`);
+        else lines.push(`Il ${x.units} è in prova: giri sull'anello di prova fuori dalle ore di punta.`); });
       return lines.join(' '); };
     el.innerHTML = T.map(([x]) => `<label><input type="checkbox" data-adm="${x.units}" ${ADMIT.has(String(x.units)) ? 'checked' : ''}> ${x.units} ${x.type}: ammesso al servizio</label>`).join('') + `<p class="note" id="admNote">${note()}</p>`;
     el.querySelectorAll('[data-adm]').forEach(c => c.onchange = () => {
@@ -828,7 +828,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // test platforms on the anello di prova (fermate di prova): shown like the station platforms
     ((F.test && F.test.platforms) || []).forEach(tp => L.polyline(tp.pts, { color: '#d9d4c7', weight: 7, opacity: .85, lineCap: 'butt', interactive: true })
       .bindTooltip(tp.name + ' · banchina di prova', { className: 'st', direction: 'top' }).addTo(platLayer));
-    fleet.trains = F.trains.map((segs, i) => ({ n: i + 1, segs, starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: (F.alts || [])[i] || [], arr2: (F.arr2 || [])[i] || [], calts: (F.calts || [])[i] || [], duties: (F.duties || [])[i] || null }));
+    fleet.trains = F.trains.map((segs, i) => ({ n: i + 1, segs, starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: (F.alts || [])[i] || [], arr2: (F.arr2 || [])[i] || [], calts: (F.calts || [])[i] || [], carr1: (F.carr1 || [])[i] || [], duties: (F.duties || [])[i] || null }));
     if (F.net && F.ops && window.MTLEngine) {
       fleet.engine = { ops: { ...F.ops, train_half: F.half }, rev: F.reverse_s, net: F.net, S: F.section, half: F.half, pathEdges: F.path_edges, fileSpeeds: F.speeds || {} };
       fleet.engine.fileCuts = F.cuts || {};
@@ -894,8 +894,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (!F.stock || !F.stock.length || !tr.duties) return null;
     const now = tr.duties.find(x => x[0] <= t && t <= x[1]);
     if (now && now[2] < 0) return { n: '?', missing: true };
-    const u = unitMap(F, t).get(tr);
-    return u != null ? { n: u + 1, ...F.stock[u] } : { n: '—', none: true };
+    // the number of a train is its tabella (the duty it runs), not the train itself (Giovanni's colleague, 2 Nov 2026):
+    // the timelines with passenger runs are the tabelle; a train without one (reserve, in test) goes by its car number
+    const u = unitMap(F, t).get(tr); if (u == null) return { n: '—', none: true };
+    if (tr.tab == null) tr.tab = (tr.segs0 || tr.segs).some(s => s[1] === 'service');
+    const mat = (String(F.stock[u].units || '').match(/\d+/) || [''])[0];
+    return { ...F.stock[u], n: tr.tab ? tr.n : mat, tab: tr.tab ? tr.n : null, u };
   }
   const parkedLabel = (F, where) => where && where !== 'depot' ? 'Parked overnight in a ' + where + ' tail track' : 'Parked in the ' + F.home + ' depot';
   // live engine: drive this train from its (possibly changed) plan
@@ -1154,7 +1158,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const p = map.latLngToContainerPoint(NC0 < CARS && st.pid != null ? trackAt(F, st.pid, st.d + half - NC0 * CAR / 2) : st.pos);
       if (p.x < -80 || p.y < -80 || p.x > s.x + 80 || p.y > s.y + 80) continue;
       const key = 'f' + fi + ':' + i; drawn.push([p.x, p.y, key]);
-      const col = fleetColors(F, st, F.trains[i]), num = F.trips ? F.line.slice(1) : rt ? (F.line === 'M4' && !rt.missing ? rt.units.slice(-2) : String(rt.n)) : String(F.trains[i].n);
+      const col = fleetColors(F, st, F.trains[i]), num = F.trips ? F.line.slice(1) : rt ? (F.line === 'M4' && !rt.missing ? rt.units.slice(-2) : F.line === 'M3' && rt.tab === null ? '' : String(rt.n)) : String(F.trains[i].n);
       if (longView) {
         const w = Math.max(6.8, 2.7 / mpp), pts = [], NC = rt && rt.cars ? rt.cars : CARS, d0c = NC < CARS ? st.d + half - NC * CAR : st.d - half;
         for (let c = 0; c <= NC; c++) pts.push(map.latLngToContainerPoint(trackAt(F, st.pid, d0c + c * CAR)));
@@ -1664,7 +1668,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const red = st.status === 'parked' || st.status === 'turnback' && still || (a && (a.hidden || a.mode === 'static' || a.waiting && still)) || (still && st.status !== 'service' && st.status !== 'stopped');
     // the car at the front: the first number of the units (8103-8104 + ...: 8103)
     const car = rt && rt.units ? (String(rt.units).match(/\d{4}/) || [''])[0] : '';
-    return { kind, dest: oos ? 'FUORI SERVIZIO' : dest, lights: red ? 'red' : 'white', no: oos ? '' : rt && rt.n != null ? String(rt.n) : String(tr.n || ''), car };
+    return { kind, dest: oos ? 'FUORI SERVIZIO' : dest, lights: red ? 'red' : 'white', no: oos || (rt && rt.tab == null) ? '' : rt && rt.n != null ? String(rt.n) : String(tr.n || ''), car };
   }
   const TACHO = { target: -135, cur: null, run: false, last: 0 };
   function tachoAnim(ts) {
@@ -2716,7 +2720,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   function makeAgents(F) {
     const E_ = F.engine, G = E_.G;
     F._moves = applyAdmissions(F); fillNewTrains(F);
-    F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
+    F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); tr.carr10 = tr.carr1 && JSON.parse(JSON.stringify(tr.carr1)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
       planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
@@ -2764,7 +2768,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const F = fleets.find(f => f.ag); if (!F) return;
     const keep = F.depot ? Object.assign({}, F.depot.at, F.depot.target) : null;
     F.trains.forEach(tr => { tr.segs = JSON.parse(JSON.stringify(tr.segs0)); tr.starts = tr.segs.map(x => x[3][0]); tr.live = null;
-      if (tr.alts0) tr.alts = JSON.parse(JSON.stringify(tr.alts0)); if (tr.arr20) tr.arr2 = JSON.parse(JSON.stringify(tr.arr20)); if (tr.calts0) tr.calts = JSON.parse(JSON.stringify(tr.calts0)); });
+      if (tr.alts0) tr.alts = JSON.parse(JSON.stringify(tr.alts0)); if (tr.arr20) tr.arr2 = JSON.parse(JSON.stringify(tr.arr20)); if (tr.calts0) tr.calts = JSON.parse(JSON.stringify(tr.calts0)); if (tr.carr10) tr.carr1 = JSON.parse(JSON.stringify(tr.carr10)); tr.c1 = null; tr.p2 = null; });
     F.depot = null; F.loop = null; F.dm = null; makeAgents(F);
     // a new train admitted (or back in test): it starts the day from the place it stood in, the other train from its own
     if (keep) (F._moves || []).forEach(([a, b]) => { const x = keep[a], y = keep[b]; delete keep[a]; delete keep[b]; if (y != null) keep[a] = y; if (x != null) keep[b] = x; });

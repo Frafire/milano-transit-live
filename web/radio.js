@@ -318,6 +318,9 @@
       // platform 2 and reversal, coming from Rogoredo
       const k2 = (tr.arr2 || []).findIndex(a => !a.done && state.t >= a.open && state.t <= a.close);
       if (k2 >= 0) h += radioSec('arr2', 'Arrivo a San Donato', `<div class="row"><button id="radioP2">Entra al binario 2 e inverti lì</button></div>`);
+      // platform 1 at Comasina, coming from San Donato: over the crossover before the station, change of cab on the platform
+      const k1 = (tr.carr1 || []).findIndex(a => !a.done && state.t >= a.open && state.t <= a.close);
+      if (k1 >= 0) h += radioSec('c1', 'Arrivo a Comasina', `<div class="row"><button id="radioC1">Entra al binario 1 e cambia banco lì</button></div>`);
       if (h === radioCmdHtml) return;          // unchanged: keep the buttons as they are (nothing closes or flickers)
       radioCmdHtml = h; radioCmds.innerHTML = h; bindRadioSecs(); bindSpeed(F, tr);
       radioCmds.querySelectorAll('[data-rs]').forEach(b => b.onclick = () => { radioStopSel = +b.dataset.rs; drawRadioCmds(); });
@@ -397,6 +400,16 @@
         driverSays(w ? `Ricevuto, tronchetto ${nm}. Attendo in banchina che il treno ${trainNo(F, w)} lo liberi. Passo.`
                      : pick([`Ricevuto, a Comasina entro nel tronchetto ${nm}. Passo.`, `Copiato DCT, tronchetto ${nm}. Passo e chiudo.`]));
       });
+      const c1 = document.getElementById('radioC1');
+      if (c1) c1.onclick = () => {
+        const a = tr.carr1[k1];
+        say('DCT', `Treno ${radioTrain.no}, a Comasina entra al binario 1 e cambia banco lì. Passo.`, 'pc');
+        if (!a || a.done || state.t > a.close) { driverSays('Negativo DCT, sono già troppo vicino a Comasina. Passo.'); return; }
+        (tr.calts || []).forEach(c => { if (c.i === a.i) c.done = true; });
+        applyAlt(tr, a.i, a.n, a.segs); a.done = true; tr.c1 = { arr: a.arr, dep: a.dep }; if (tr.env) tr.env.extra = {};
+        closeAfter(F, tr, a.dep);
+        driverSays(pick(['Ricevuto DCT, a Comasina entro al binario 1 e cambio banco in banchina. Passo.', 'Copiato, binario 1 con cambio banco in stazione. Passo e chiudo.']));
+      };
       const p2 = document.getElementById('radioP2');
       if (p2) p2.onclick = () => {
         say('DCT', `Treno ${radioTrain.no}, a San Donato entra al binario 2 e cambia banco lì. Passo.`, 'pc');
@@ -411,7 +424,7 @@
       const add = JSON.parse(JSON.stringify(segs)), end = i + n, delta = add.length - n;
       tr.segs.splice(i, n, ...add); tr.starts = tr.segs.map(x => x[3][0]);
       const fix = list => (list || []).forEach(a => { if (a.i >= end) a.i += delta; else if (a.i + (a.n || 1) > i && a.i < end && a.i !== i) a.done = true; });
-      fix(tr.alts); fix(tr.arr2); fix(tr.calts);
+      fix(tr.alts); fix(tr.arr2); fix(tr.calts); fix(tr.carr1);
       tr.alts = (tr.alts || []).filter(a => !a.done);
       if (tr.env && tr.env.extra) Object.keys(tr.env.extra).forEach(k => { if (+k.split(':')[0] >= i) delete tr.env.extra[k]; });
       if (!noRelive) relive(tr);

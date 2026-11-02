@@ -400,13 +400,25 @@
           f.called = true; call(f, `DCT, treno {T}: a ${name(f.st)} la gente entra all'ultimo e non riesco a chiudere le porte. Chiedo l'agente.`, ['agent']);
         }
         if (f.kind === 'freno' && f.ph === 'armed' && a.v > 5) f.ph = 'stopping';     // in the line, running
+        // the driver re-arms by himself first (it is his job, Giovanni's colleague 2 Nov 2026): it works, he goes and then
+        // tells the DCT; it does not, he calls the DCT for instructions
         if ((f.kind === 'trazione' || f.kind === 'freno') && f.ph === 'stopping' && a.v === 0 && !(a.stopAt != null && S.t < a.dwellUntil)) {
-          f.ph = 'call'; call(f, f.kind === 'trazione' ? `DCT, treno {T}: il treno non riparte${where(a)}. Chiedo istruzioni.` : `DCT, treno {T}: frenatura di emergenza intempestiva${where(a)}, il freno non si allenta.`, ['rearm']);
+          f.ph = 'rearm'; f.self = true; f.where = where(a); f.until = S.t + between(60, 120);
         }
         if (f.ph === 'rearm' && S.t >= f.until) {
-          if (f.kind === 'riarmo') { say(f, 'dr', 'Riarmato, riparto.'); f.ph = 'run'; f.next = S.t + between(300, 900); continue; }
+          if (f.kind === 'riarmo') {
+            f.ph = 'run'; f.next = S.t + between(300, 900);
+            if (f.self) { f.self = false; call(f, `DCT, treno {T}: il treno mi ha chiesto di nuovo il riarmo${f.where || ''}. Ho riarmato e sono ripartito. Passo.`, f.tech ? ['ack'] : ['ack', 'tech']); }
+            else say(f, 'dr', 'Riarmato, riparto.');
+            continue;
+          }
           const ok = !f.force && rnd() < (f.kind === 'freno' ? [0.8, 0.6, 0.4] : [0.7, 0.5, 0.3])[Math.min(f.tries, 2)];
-          if (ok) { end(f, 'Riarmo riuscito, riparto.'); continue; }
+          if (ok) { end(f, f.self ? (f.kind === 'trazione' ? `DCT, treno {T}: il treno non ripartiva${f.where || ''}. Ho riarmato e sono ripartito. Passo.`
+            : `DCT, treno {T}: frenatura di emergenza intempestiva${f.where || ''}. Ho riarmato, il freno si è allentato e sono ripartito. Passo.`) : 'Riarmo riuscito, riparto.'); continue; }
+          if (f.self && f.tries === 0) { f.self = false; f.tries = 1; f.ph = 'call';
+            call(f, f.kind === 'trazione' ? `DCT, treno {T}: il treno non riparte${f.where || ''}. Ho provato a riarmare ma non riparte. Chiedo istruzioni.`
+              : `DCT, treno {T}: frenatura di emergenza intempestiva${f.where || ''}, ho riarmato ma il freno non si allenta. Chiedo istruzioni.`, ['rearm']); continue; }
+          f.self = false;
           f.tries++;
           // the third time: the broken unit is cut out and the train goes with the other one; both dead: the rescue
           if (f.tries >= 3 && f.force !== 'soccorso' && (f.force === 'udt' || rnd() < 0.97)) { f.ph = 'udt'; call(f, 'DCT, treno {T}: terzo riarmo non riuscito. Escludo l\'unità guasta, posso proseguire con l\'altra.', ['home']); }
@@ -429,7 +441,7 @@
         if (f.kind === 'malore_treno' && f.ph === 'held' && S.t >= f.until) end(f, `Qui ${name(f.st)}: il passeggero è stato soccorso, emergenza rientrata. Il treno {T} può ripartire.`, 'ag');
         if (f.kind === 'riarmo' || f.kind === 'secondario') {
           if (f.kind === 'riarmo' && f.ph === 'run' && !f.tech0 && S.t >= f.next && a.v > 3 && a.stopAt == null) { f.ph = 'stopping'; }
-          if (f.ph === 'stopping' && a.v === 0) { f.ph = 'call'; call(f, `DCT, treno {T}: il treno mi chiede di nuovo il riarmo${where(a)}.`, f.tech ? ['rearm'] : ['rearm', 'tech']); }
+          if (f.ph === 'stopping' && a.v === 0) { f.ph = 'rearm'; f.self = true; f.where = where(a); f.until = S.t + between(40, 90); }
           // the technician: on at San Donato, he checks during the change of cab and on to Rogoredo. There: fixed, he gets off
           // (back with the next train); not fixed: passengers off, the train turns over the crossover of Rogoredo and goes
           // back empty to ROD with him (Giovanni)

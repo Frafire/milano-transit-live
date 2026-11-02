@@ -101,6 +101,7 @@
     const depotSwitch = nd => nodeEdges(nd).every(ei => NE[ei].cat === 'yard');
     // the tail positions (Comasina: 3 of 110 m, 1 the outermost, next to the switch): the movements of the table into
     // and out of a tail differ only by the position, so it is read from the metres on the dead-end piece
+    const EXITZ = o.exitZones && Object.keys(o.exitZones).length ? o.exitZones : null;
     const SLOT = (o.tailSlots && o.tailSlots.slot_m) || 110, NPOS = (o.tailSlots && o.tailSlots.positions) || 3, HALF = o.half || 52.5;
     const fromWall = (ei, x) => { const e = NE[ei]; return nodeEdges(e.a).length === 1 ? x : nodeEdges(e.b).length === 1 ? (e.len || 0) - x : null; };
     const slotOf = c => c == null || c > SLOT * NPOS + 20 ? null : Math.max(1, Math.min(NPOS, NPOS - Math.floor(c / SLOT)));
@@ -155,6 +156,10 @@
     function request(st, k, pid, d, n, occ, blocked, upTo, dry) {
       if (held(st, k, pid, d)) return true;
       const d1 = Math.min(nextSignal(pid, d), upTo != null && upTo > d + 1 ? upTo : Infinity), { pieces, nodes } = span(pid, d, d1);
+      // the exit zone after the end signal (Comasina binario 2: the switches of the tails' crossover must be free and stay
+      // so until the train has come in, its tail about a train's length from the signal)
+      const ez = EXITZ && (SA[pid] || []).find(x => Math.abs(x[0] - d1) < 0.5);
+      if (ez && EXITZ[ez[1]]) for (const nd of EXITZ[ez[1]]) if (!nodes.some(x => x[0] === nd)) nodes.push([nd, d1 - 2 * HALF - 25, true]);
       let it = BY_START.size ? identify(n, pieces) : null;
       // the rest of a movement this train is already making (a signal half way along it, as #A363 at Sondrio inside
       // SON-4): the same movement, not the one that starts at that signal

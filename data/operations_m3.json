@@ -63,5 +63,7 @@
     "base_pct": 90,
     "every_s": 5
   },
-  "marcia_a_vista_kmh": 15
+  "marcia_a_vista_kmh": 15,
+  "_illegal": "Un treno sul binario illegale (contromano: navetta, treno che torna indietro sul suo binario): blocco orientato dall'altra parte, dispositivi esclusi, quindi più lento (Giovanni e il suo collega, 2 nov 2026)",
+  "illegal_kmh": 30
 }

@@ -41,7 +41,7 @@ for (const kind of ['line', 'people', 'rescue', 'strike'].includes(ARG) ? [] : K
   // what must happen: the train stands (re-arming), longer at a station, manual driving, the failure is over
   const homed = a.hidden || a.status === 'parked' || a.mode === 'home';
   const want = { udt: homed && [...phases].includes('udt'), atp: homed && vAtp <= 30.5, soccorso: [...phases].includes('towed') && homed && (rk == null || ag.agents()[rk].hidden || ag.agents()[rk].status === 'parked' || ag.agents()[rk].mode === 'home'),
-                 secondario: [...phases].some(x => x.endsWith('/board')), trazione: stood + longDwell >= 240, freno: stood >= 200, riarmo: stood >= 100, porta: longDwell >= 60, porte_persone: longDwell >= 30,
+                 secondario: [...phases].some(x => x.endsWith('/board')), trazione: stood + longDwell >= 60, freno: stood >= 60, riarmo: stood >= 80, porta: longDwell >= 60, porte_persone: longDwell >= 30,
                  allarme: longDwell >= 60, malore_treno: longDwell >= 1200, ato: true }[kind];
   const ended = kind === 'ato' ? !f.done || a.hidden || a.status === 'parked' : kind === 'atp' || kind === 'soccorso' || kind === 'udt' ? homed : f.done != null;
   const techOk = kind !== 'riarmo' || [...phases].some(x => x.endsWith('/board'));
