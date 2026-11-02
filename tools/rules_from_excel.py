@@ -56,4 +56,17 @@ guasti = [r for r in rows('Guasti') if r.get('Guasto') and r.get('N.') is not No
 out = {'_about': 'Regole dell\'interlocking M3 scritte da Giovanni in data/Regole_interlocking_M3.xlsx, lette da tools/rules_from_excel.py. Non modificare a mano: si cambia il file Excel e si rilancia lo script.',
        'tempi': tempi, 'semafori': semafori, 'itinerari': itinerari, 'precedenze': precedenze, 'chiusure': chiusure, 'situazioni': situazioni, 'pannello_pc': pannello, 'guasti': guasti}
 json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1, default=str)
+# the radio phrases (sheet Radio): code -> { chi, quando, testi } -> data/radio_m3.json (the build puts them in net.radio)
+if 'Radio' in wb.sheetnames:
+    frasi = {}
+    for r in rows('Radio'):
+        c = r.get('Codice')
+        if not c: continue
+        testi = [r.get(h) for h in ('Testo', 'Variante 2', 'Variante 3', 'Variante 4', 'Variante 5')]
+        testi = [str(x) for x in testi if x not in (None, '')]
+        if testi: frasi[c] = {'chi': r.get('Chi parla'), 'quando': r.get('Quando si dice'), 'testi': testi}
+    RADIO = os.path.join(os.path.dirname(OUT), 'radio_m3.json')
+    json.dump({'_about': 'Le frasi della radio, dal foglio Radio di data/Regole_interlocking_M3.xlsx (tools/rules_from_excel.py). Non modificare a mano: si cambia il foglio e si rilancia lo script. {T} e {R}: i numeri del treno e del treno di soccorso.', 'frasi': frasi},
+              open(RADIO, 'w'), ensure_ascii=False, indent=1)
+    print('radio: %d frasi -> %s' % (len(frasi), os.path.relpath(RADIO, ROOT)))
 print('regole: %d tempi, %d semafori, %d itinerari, %d precedenze, %d chiusure, %d righe del pannello PC -> %s' % (len(tempi), len(semafori), len(itinerari), len(precedenze), len(chiusure), len(pannello), os.path.relpath(OUT, ROOT)))
