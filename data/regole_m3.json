@@ -3168,7 +3168,7 @@
    "Semafori rossi fissi e scambi bloccati": "Tutti i segnali Tra Brenta - SDM sono rossi e gli scambi bloccati in posizione standard. Salvo dispaccio e apertura manuale del PC. Brenta A309 A19 A277 e A20 sono rossi e bloccati pure loro. Salvo che non ci sia bisogno di instradare un treno nel tronchetto (sempre a seguito di un dispatcho)",
    "Treni rimasti nella tratta (su ordine del PC)": "possono continuare verso San Donato (binario libero) e poi deposito o tronchino oppure fermarsi alla stazione più vicina",
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "A308 si apre solo per i treni vuoti in manovra di inversione a Lodi (oltre A308 e ritorno sul binario 2).",
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì"
   },
   {
    "CHIUSURA": "CHIUSURA San Donato – Porta Romana",
@@ -3188,7 +3188,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA San Donato – Sondrio",
@@ -3198,7 +3198,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA San Donato – Maciachini",
@@ -3208,7 +3208,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Rogoredo FS – Lodi T.I.B.B.",
@@ -3218,7 +3218,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Rogoredo FS – Porta Romana",
@@ -3238,7 +3238,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Rogoredo FS – Sondrio",
@@ -3248,7 +3248,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Rogoredo FS – Maciachini",
@@ -3258,7 +3258,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Rogoredo FS – Comasina",
@@ -3268,7 +3268,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Lodi T.I.B.B. – Porta Romana",
@@ -3278,7 +3278,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": "I treni rimasti sulla tratta invertono e tornano a San Donato, per il legale o illegale dipende da quali binari sono utilizzabili",
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "Linea limitata Comasina - Porta Romana e San Donato e Lodi TIBB  Lato San Donato con il binario 1 non disponibile: binario unico sul binario 2 (non c'è altra soluzione).",
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì"
   },
   {
    "CHIUSURA": "CHIUSURA Lodi T.I.B.B. – Centrale FS",
@@ -3288,7 +3288,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Lodi T.I.B.B. – Sondrio",
@@ -3298,7 +3298,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Lodi T.I.B.B. – Maciachini",
@@ -3308,7 +3308,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Lodi T.I.B.B. – Comasina",
@@ -3318,7 +3318,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Porta Romana – Centrale FS",
@@ -3338,7 +3338,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": "I treni rimasti sulla tratta si fermano alla stazione più vicina e ci rimangono fino alla riapertura. Nel caso di un treno guasto i treni possono essere istruiti di fare invii a vuoto verso i capolinea",
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "La linea è limitata tra San Donato e Porta Romana e Tra Sondrio e Comasina  Lato San Donato con il binario 1 non disponibile: binario unico sul binario 2 (non c'è altra soluzione).",
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì"
   },
   {
    "CHIUSURA": "CHIUSURA Porta Romana – Maciachini",
@@ -3348,7 +3348,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Porta Romana – Comasina",
@@ -3358,7 +3358,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Centrale FS – Sondrio",
@@ -3368,7 +3368,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": null,
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": null,
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì (calcolata dalle altre)"
   },
   {
    "CHIUSURA": "CHIUSURA Centrale FS – Maciachini",
@@ -3398,7 +3398,7 @@
    "Semafori rossi fissi e scambi bloccati": null,
    "Treni rimasti nella tratta (su ordine del PC)": "I treni rimasti sulla tratta raggiungono la stazione più vicina se instruiti dal PC posso arrivare a comasina ed instradarsi sui tronchi",
    "Regole (scritte a mano: binari utilizzabili, eccezioni...)": "Linea Limitata a Sondrio e tra Comasina Maciachini",
-   "Nel programma oggi": "non ancora"
+   "Nel programma oggi": "sì"
   },
   {
    "CHIUSURA": "CHIUSURA Sondrio – Comasina",
@@ -3491,7 +3491,7 @@
    "Quando si può usare": "Sempre",
    "Cosa vede il PC (prima e dopo)": "Itinerario illuminato sul quadro, scambi in posizione",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (scheda del semaforo)",
    "Note": null
   },
   {
@@ -3502,7 +3502,7 @@
    "Quando si può usare": "Sempre",
    "Cosa vede il PC (prima e dopo)": "Itinerario spento, semaforo rosso",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (scheda del semaforo)",
    "Note": null
   },
   {
@@ -3513,7 +3513,7 @@
    "Quando si può usare": "Sempre",
    "Cosa vede il PC (prima e dopo)": "Semaforo marcato bloccato",
    "Serve? Priorità": null,
-   "Nel programma oggi": "in parte (chiusure)",
+   "Nel programma oggi": "sì (scheda del semaforo, chiusure)",
    "Note": null
   },
   {
@@ -3524,7 +3524,7 @@
    "Quando si può usare": "Sempre",
    "Cosa vede il PC (prima e dopo)": "Posizione dello scambio, tempo dell'ago",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (scheda del semaforo)",
    "Note": null
   },
   {
@@ -3535,7 +3535,7 @@
    "Quando si può usare": "Guasto scambio",
    "Cosa vede il PC (prima e dopo)": "Scambio marcato bloccato",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (scheda del semaforo)",
    "Note": null
   },
   {
@@ -3711,7 +3711,7 @@
    "Quando si può usare": "Tratta chiusa",
    "Cosa vede il PC (prima e dopo)": "Treni fermi e da quanto e la strada che devono fare",
    "Serve? Priorità": "alta",
-   "Nel programma oggi": "in parte",
+   "Nel programma oggi": "sì (radio: istruzioni nella tratta chiusa)",
    "Note": null
   },
   {
@@ -3733,7 +3733,7 @@
    "Quando si può usare": "Ritardi, sempre per mantenere le distanze",
    "Cosa vede il PC (prima e dopo)": "Intervalli tra i treni",
    "Serve? Priorità": "alta",
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "in parte (ATO intelligente: velocità; le soste no)",
    "Note": null
   },
   {
@@ -3744,7 +3744,7 @@
    "Quando si può usare": "Ritardi, guasti, sciopero, emergenze",
    "Cosa vede il PC (prima e dopo)": "Treni in linea, corse scoperte",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "in parte (solo togliere: rientro in deposito; fase E)",
    "Note": null
   },
   {
@@ -3755,7 +3755,7 @@
    "Quando si può usare": "Guasto treno",
    "Cosa vede il PC (prima e dopo)": "Treno guasto, mezzo di soccorso, tratta impegnata",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D4-D5: spinta, traino, Badoni)",
    "Note": null
   },
   {
@@ -3766,7 +3766,7 @@
    "Quando si può usare": "Guasto binario",
    "Cosa vede il PC (prima e dopo)": "Elemento guasto sul quadro",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D2)",
    "Note": null
   },
   {
@@ -3788,7 +3788,7 @@
    "Quando si può usare": "Sciopero",
    "Cosa vede il PC (prima e dopo)": "Treni in linea",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D5)",
    "Note": null
   },
   {
@@ -3810,7 +3810,7 @@
    "Quando si può usare": null,
    "Cosa vede il PC (prima e dopo)": null,
    "Serve? Priorità": null,
-   "Nel programma oggi": "in parte",
+   "Nel programma oggi": "in parte (mappa e scheda del semaforo; quadro DCT da disegnare)",
    "Note": null
   },
   {
@@ -3832,7 +3832,7 @@
    "Quando si può usare": null,
    "Cosa vede il PC (prima e dopo)": null,
    "Serve? Priorità": null,
-   "Nel programma oggi": "in parte",
+   "Nel programma oggi": "sì (Allarmi DCT)",
    "Note": null
   },
   {
@@ -3854,7 +3854,7 @@
    "Quando si può usare": "Sempre",
    "Cosa vede il PC (prima e dopo)": "Registro della radio di stazione",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (radio di stazione, risposte a scelta)",
    "Note": null
   },
   {
@@ -3876,7 +3876,7 @@
    "Quando si può usare": "Chiusure, guasti, sciopero",
    "Cosa vede il PC (prima e dopo)": "Testo sugli schermi della stazione",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "in parte (solo STAZIONE CHIUSA)",
    "Note": null
   },
   {
@@ -3887,7 +3887,7 @@
    "Quando si può usare": "Su segnalazione del macchinista o del PC",
    "Cosa vede il PC (prima e dopo)": "Risposta dell'agente (trovato / niente da segnalare), tempo",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D3)",
    "Note": null
   },
   {
@@ -3898,7 +3898,7 @@
    "Quando si può usare": "Guasti, emergenze",
    "Cosa vede il PC (prima e dopo)": "Agente sul treno, treno trattenuto",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D1-D3)",
    "Note": null
   },
   {
@@ -3909,7 +3909,7 @@
    "Quando si può usare": "Sovraffollamento, emergenza, chiusura tratta",
    "Cosa vede il PC (prima e dopo)": "Stazione chiusa al pubblico",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (i treni passano a 30 km/h)",
    "Note": null
   },
   {
@@ -3920,7 +3920,7 @@
    "Quando si può usare": "Sempre",
    "Cosa vede il PC (prima e dopo)": "Allarme sul pannello con la stazione e il motivo",
    "Serve? Priorità": null,
-   "Nel programma oggi": "no",
+   "Nel programma oggi": "sì (fase D3)",
    "Note": null
   },
   {
