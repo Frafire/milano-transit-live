@@ -2101,19 +2101,19 @@ window.MTL_PACKS = __PACKS__;
     document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
     const note = t => { pcNoteMsg = { sel: state.sel, text: t, until: Date.now() + 8000 }; const e = document.getElementById('pcNote'); if (e) e.textContent = t; };
     const WHY = w => !w ? '' : w.train != null ? 'c\'è il treno ' + tno(w.train) + ' sopra' : w.route != null ? 'impegnato dall\'itinerario del treno ' + tno(w.route) : w.pcRoute != null ? 'impegnato dall\'itinerario preparato ' + (w.id || '') : w.swLock != null ? 'scambio ' + w.swLock + ' bloccato nell\'altra posizione' : w.swFail != null ? 'scambio ' + w.swFail + ' guasto' : w.nothing ? 'nessun itinerario da annullare' : 'non possibile';
-    const run = (e, ok) => { const r = F.ag.event(Object.assign({ kind: 'pccmd' }, e)); if (r) { note('Non si può: ' + WHY(r) + '.'); return; } say('', 'DCT: ' + ok, 'pc'); if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals(); renderCard(); };
+    const run = (e, ok) => { const r = F.ag.event(Object.assign({ kind: 'pccmd' }, e)); if (r) { note('Non si può: ' + WHY(r) + '.'); return; } say('', ok(), 'pc'); if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals(); renderCard(); };
     card.querySelectorAll('[data-pc]').forEach(b => b.onclick = () => {
       const w = b.dataset.pc;
-      if (w === 'clear') { F.ag.event({ kind: 'pc', key: 'n:' + n }); say('', `DCT: ${tag} via libera al prossimo treno.`, 'pc'); renderCard(); return; }
+      if (w === 'clear') { F.ag.event({ kind: 'pc', key: 'n:' + n }); say('', tx('dct.segnale_via_libera', { segnale: tag }), 'pc'); renderCard(); return; }
       if (w === 'vista') { const r = F.ag.event({ kind: 'fault', what: 'avista', n }); if (r && r.noTrain) note('Nessun treno fermo a questo semaforo.'); fxFeed(F); renderCard(); return; }
-      if (w === 'red') run({ what: 'red', n, on: true }, `${tag} rosso fisso.`);
-      if (w === 'unred') run({ what: 'red', n, on: false }, `${tag} restituito all'apparato.`);
-      if (w === 'cancel') run({ what: 'cancel', n }, `itinerario da ${tag} annullato.`);
+      if (w === 'red') run({ what: 'red', n, on: true }, () => tx('dct.segnale_rosso', { segnale: tag }));
+      if (w === 'unred') run({ what: 'red', n, on: false }, () => tx('dct.segnale_restituito', { segnale: tag }));
+      if (w === 'cancel') run({ what: 'cancel', n }, () => tx('dct.itinerario_annullato', { segnale: tag }));
     });
-    card.querySelectorAll('[data-form]').forEach(b => b.onclick = () => run({ what: 'form', id: b.dataset.form }, `itinerario ${b.dataset.form} preparato da ${tag}.`));
-    card.querySelectorAll('[data-sw]').forEach(b => b.onclick = () => run({ what: 'sw', nd: +b.dataset.sw, pos: b.dataset.pos }, `scambio ${b.dataset.sw} in posizione ${b.textContent}.`));
-    card.querySelectorAll('[data-lock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.lock, pos: b.dataset.pos }, `scambio ${b.dataset.lock} bloccato.`));
-    card.querySelectorAll('[data-unlock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.unlock, pos: null }, `scambio ${b.dataset.unlock} sbloccato.`));
+    card.querySelectorAll('[data-form]').forEach(b => b.onclick = () => run({ what: 'form', id: b.dataset.form }, () => tx('dct.itinerario_preparato', { itinerario: b.dataset.form, segnale: tag })));
+    card.querySelectorAll('[data-sw]').forEach(b => b.onclick = () => run({ what: 'sw', nd: +b.dataset.sw, pos: b.dataset.pos }, () => tx('dct.scambio_posizione', { scambio: b.dataset.sw, posizione: b.textContent })));
+    card.querySelectorAll('[data-lock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.lock, pos: b.dataset.pos }, () => tx('dct.scambio_bloccato', { scambio: b.dataset.lock })));
+    card.querySelectorAll('[data-unlock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.unlock, pos: null }, () => tx('dct.scambio_sbloccato', { scambio: b.dataset.unlock })));
   }
   // schematic of the terminal platforms with the train standing on each
   function platformDiagram(F, b, t) {
@@ -2850,14 +2850,15 @@ window.MTL_PACKS = __PACKS__;
     const ends = {}; clEnds.querySelectorAll('select[data-end]').forEach(x => { ends[x.dataset.end] = x.value; });
     F.ag.event({ kind: 'close', cl: { a: c.a, b: c.b, ends }, label: c.label });
     const nav = F.ag.S.log.filter(x => x.nav && x.t === F.ag.S.t), G = F.engine.G;
-    const navTxt = nav.map(x => { const [na, nb] = x.nav.split('-').map(Number); return ` Navetta ${G.names[na]} – ${G.names[nb]}: ${x.none ? 'nessun treno ora sul binario, ci va il primo treno che arriva' : 'treno ' + (x.k + 1)}; gli altri treni in quel tratto vanno alla stazione più vicina e aspettano il DCT.`; }).join('');
-    say('', `DCT: tratta ${c.label} chiusa alle ${fmt(F.ag.S.t, true).join('')}. I treni girano alle stazioni di fine tratta.${navTxt}`, 'sys');
+    const navTxt = nav.map(x => { const [na, nb] = x.nav.split('-').map(Number), v = { da: G.names[na], a: G.names[nb] };
+      return ' ' + (x.none ? tx('pezzo.navetta_libera', v) : tx('pezzo.navetta_treno', Object.assign(v, { treno: x.k + 1 }))); }).join('');
+    say('', tx('dct.tratta_chiusa', { tratta: c.label, ora: fmt(F.ag.S.t, true).join(''), navette: navTxt }), 'sys');
     syncClosureUI();
   }
   function reopenStretch() {
     const F = m3fleet(), c = closureNow(F); if (!c || c.reopened) return;
     F.ag.event({ kind: 'reopen' });
-    say('', `DCT: tratta ${c.label} riaperta. 40 km/h sulla tratta per 20 minuti. Ogni treno prende la prima partenza scoperta (il DCT può assegnarne un'altra via radio).`, 'sys');
+    say('', tx('dct.tratta_riaperta', { tratta: c.label }), 'sys');
     syncClosureUI();
   }
   function backToTimetable() { const F = m3fleet(); if (!F || !closureNow(F)) return; F.ag.event({ kind: 'normal' }); syncClosureUI(); }
@@ -3165,7 +3166,7 @@ window.MTL_PACKS = __PACKS__;
   function fxAnswer(F, id, what) {
     if (!F || !F.ag) return;
     const r = F.ag.event({ kind: 'fault', what: 'answer', id, answer: what });
-    if (r && r.no) MR.say('', 'DCT: risposta non più valida.', 'sys');
+    if (r && r.no) MR.say('', tx('dct.risposta_non_valida'), 'sys');
     fxFeed(F); renderAlarms();
   }
   // the train card: the failures of train k, the technician of the line maintenance (Radio manutenzione, San Donato)
