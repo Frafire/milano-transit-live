@@ -525,16 +525,29 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 <script id="payload" type="application/octet-stream">__DATA__</script>
 <script id="m3payload" type="application/octet-stream">__M3__</script>
 <script id="livepayload" type="application/octet-stream">__LIVE__</script>
+<script id="payload6" type="application/octet-stream">__DATA6__</script>
+<script id="m3payload6" type="application/octet-stream">__M36__</script>
+<script id="livepayload6" type="application/octet-stream">__LIVE6__</script>
+<script id="payload7" type="application/octet-stream">__DATA7__</script>
+<script id="m3payload7" type="application/octet-stream">__M37__</script>
+<script id="livepayload7" type="application/octet-stream">__LIVE7__</script>
 <script>
 (async function () {
   // ---------- load data ----------
-  const b64 = document.getElementById('payload').textContent.trim();
+  // the day chosen (Lun-Ven: the weekday timetable; Sab, Dom: their own, built from their GTFS service days). ?day=1..7
+  // in the address chooses it too (the tests). Another kind of day: the page loads again with its data.
+  let dayPick = 1;
+  try { dayPick = +(localStorage.getItem('mtl-day') || (((new Date().getDay() + 6) % 7) + 1)); } catch (e) {}
+  { const q = +new URLSearchParams(location.search).get('day'); if (q >= 1 && q <= 7) dayPick = q; }
+  const dayType = d => d === 6 ? '6' : d === 7 ? '7' : '';
+  let SUF = dayType(dayPick); if (!(document.getElementById('payload' + SUF).textContent.trim()[0] !== '_' && document.getElementById('payload' + SUF).textContent.trim().length > 10)) { SUF = ''; if (dayPick > 5) dayPick = 1; }
+  const b64 = document.getElementById('payload' + SUF).textContent.trim();
   const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
   const text = await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
   const D = JSON.parse(text);
   let FLEETDATA = null;
   try {
-    const b2 = document.getElementById('m3payload').textContent.trim();
+    const b2 = document.getElementById('m3payload' + SUF).textContent.trim();
     if (b2 && b2[0] !== '_') {
       const bin2 = Uint8Array.from(atob(b2), c => c.charCodeAt(0));
       FLEETDATA = JSON.parse(await new Response(new Blob([bin2]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
@@ -542,7 +555,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   } catch (e) { console.warn('Fleet data not loaded', e); }
   let LIVE0 = null;      // the normal day already driven at build time (M3)
   try {
-    const b3 = document.getElementById('livepayload').textContent.trim();
+    const b3 = document.getElementById('livepayload' + SUF).textContent.trim();
     if (b3 && b3[0] !== '_') {
       const bin3 = Uint8Array.from(atob(b3), c => c.charCodeAt(0));
       LIVE0 = JSON.parse(await new Response(new Blob([bin3]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
@@ -580,16 +593,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   try { SURFACE = localStorage.getItem('mtl-surface') === '1'; } catch (e) {}
   const tripOrder = trips.map((_, i) => i).filter(i => (SURFACE && !ONLY_LINE) || (routes[trips[i].r].t === 1 && lineOn(trips[i].r))).sort((a, b) => trips[a].start - trips[b].start);
   const DAYS = ['', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
-  let dayPick = 1;
-  try { dayPick = +(localStorage.getItem('mtl-day') || (((new Date().getDay() + 6) % 7) + 1)); } catch (e) {}
-  if (dayPick > 5) dayPick = 1;
   const syncDay = () => {
     document.querySelectorAll('.dayb').forEach(b => b.setAttribute('aria-pressed', +b.dataset.d === dayPick));
     let after = false; try { after = state.t >= 24 * 3600; } catch (e) {}           // before the clock exists: the day itself
     const cal = after ? (dayPick % 7) + 1 : dayPick;
-    document.getElementById('day').textContent = 'Orario feriale · ' + DAYS[cal] + (after ? ' (notte, orario di ' + DAYS[dayPick] + ')' : '') + ' · giornata 03:30–02:59';
+    document.getElementById('day').textContent = (SUF === '6' ? 'Orario del sabato · ' : SUF === '7' ? 'Orario festivo · ' : 'Orario feriale · ') + DAYS[cal] + (after ? ' (notte, orario di ' + DAYS[dayPick] + ')' : '') + ' · giornata 03:30–02:59';
   };
-  document.querySelectorAll('.dayb').forEach(b => b.onclick = () => { if (b.disabled) return; dayPick = +b.dataset.d; try { localStorage.setItem('mtl-day', dayPick); } catch (e) {} syncDay(); });
+  document.querySelectorAll('.dayb').forEach(b => b.onclick = () => { if (b.disabled) return; const d = +b.dataset.d; try { localStorage.setItem('mtl-day', d); } catch (e) {}
+    if (dayType(d) !== SUF) { const u = new URL(location.href); u.searchParams.delete('day'); location.href = u.toString(); return; }      // another timetable: load it
+    dayPick = d; syncDay(); });
+  for (const [d, sfx] of [[6, '6'], [7, '7']]) { const has = document.getElementById('payload' + sfx).textContent.trim().length > 10; const b = document.querySelector(`.dayb[data-d="${d}"]`); if (b && has) { b.disabled = false; b.title = ''; } }
   syncDay();
 
   // ---------- map ----------
@@ -1370,7 +1383,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <rect x="${sx}" y="155.5" width="20" height="3.6" rx="1.8" fill="#5f656b"/>`;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-17 -3 296 279">
       <defs>
-        <linearGradient id="rf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7f8387"/><stop offset=".6" stop-color="#aeb2b6"/><stop offset="1" stop-color="#cdd0d3"/></linearGradient>
+        <linearGradient id="rf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c0d0e"/><stop offset="1" stop-color="#1a1c1f"/></linearGradient>
         <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d7da"/><stop offset=".5" stop-color="#c3c7cb"/><stop offset="1" stop-color="#a9aeb3"/></linearGradient>
         <linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".1" stop-color="#000" stop-opacity="0"/><stop offset=".9" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
         <linearGradient id="up" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3d41"/><stop offset=".12" stop-color="#202225"/><stop offset="1" stop-color="#121315"/></linearGradient>
@@ -1453,7 +1466,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
          ${lamps(27, 56, 160, 21, 11, 5.5)}${lamps(213, 184, 160, 21, 11, 5.5)}`;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-17 -3 296 279">
       <defs>
-        <linearGradient id="rf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8f908c"/><stop offset=".6" stop-color="#bdbdb7"/><stop offset="1" stop-color="#e4e4de"/></linearGradient>
+        <linearGradient id="rf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c0d0e"/><stop offset="1" stop-color="#1a1c1f"/></linearGradient>
         <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f1ec"/><stop offset=".6" stop-color="#e3e3dd"/><stop offset="1" stop-color="#c9c9c3"/></linearGradient>
         <linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".2"/><stop offset=".08" stop-color="#000" stop-opacity="0"/><stop offset=".92" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
         <linearGradient id="dk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lot2 ? '#1c1d20' : '#33363a'}"/><stop offset="1" stop-color="${lot2 ? '#121315' : '#26292d'}"/></linearGradient>

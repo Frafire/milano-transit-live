@@ -22,5 +22,16 @@ fleets = [json.load(open(f)) for f in (('m1.json', 'm3.json', 'm4.json', 'b130.j
 m = base64.b64encode(gzip.compress(json.dumps({'fleets': fleets}, separators=(',', ':')).encode(), 9)).decode()
 live = base64.b64encode(gzip.compress(open('m3_live.json', 'rb').read(), 9)).decode() if os.path.exists('m3_live.json') else ''
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
-open(OUT, 'w').write(t.replace('__DATA__', d).replace('__M3__', m).replace('__LIVE__', live))
+t = t.replace('__DATA__', d).replace('__M3__', m).replace('__LIVE__', live)
+# Saturday and Sunday (their own builds next to this one: ../build_sat, ../build_sun); missing: '_' (the page uses the weekday)
+for suf, dn in (('6', 'build_sat'), ('7', 'build_sun')):
+    bd = os.path.join(os.path.dirname(os.path.abspath('.')), dn)
+    if all(os.path.exists(os.path.join(bd, f)) for f in ('data.json.gz', 'm3.json', 'm3_live.json')):
+        d2 = base64.b64encode(open(os.path.join(bd, 'data.json.gz'), 'rb').read()).decode()
+        m2 = base64.b64encode(gzip.compress(json.dumps({'fleets': [json.load(open(os.path.join(bd, 'm3.json')))]}, separators=(',', ':')).encode(), 9)).decode()
+        l2 = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm3_live.json'), 'rb').read(), 9)).decode()
+        print('day', suf, 'from', dn)
+    else: d2 = m2 = l2 = '_'
+    t = t.replace('__DATA%s__' % suf, d2).replace('__M3%s__' % suf, m2).replace('__LIVE%s__' % suf, l2)
+open(OUT, 'w').write(t)
 print('written', OUT, round(os.path.getsize(OUT) / 1e6, 1), 'MB')

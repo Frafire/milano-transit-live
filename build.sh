@@ -38,6 +38,18 @@ node "$ROOT/tests/pc_check.js"
 node "$ROOT/tests/instr_check.js"
 node "$ROOT/tests/faults_check.js"
 node "$ROOT/tests/headway_check.js" || echo "WARNING: trains closer than 2 minutes"
+# Saturday and Sunday: their own service days of the same feed (GTFS s_ and f_), built the same way next to build/
+# (SAT_DAY, SUN_DAY: a Saturday and a Sunday of the feed); the main checks of the day driven by the agents on them
+SAT_DAY="${SAT_DAY:-20260919}"; SUN_DAY="${SUN_DAY:-20260920}"
+for pair in "sat:$SAT_DAY" "sun:$SUN_DAY"; do
+  n="${pair%%:*}"; d="${pair##*:}"; BD="$ROOT/build_$n"; mkdir -p "$BD"
+  find "$ROOT/data" -maxdepth 1 -type f -exec cp {} "$BD"/ \;
+  echo "== $n: timetable for service day $d"
+  (cd "$BD" && python3 "$ROOT/tools/build_data.py" "$GTFS" "$d" data.json > bd.log && gzip -9 -kf data.json && LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log && \
+    grep -h "tail clashes\|not covered" m3.log && node "$ROOT/tools/precompute_live.js" > pre.log && python3 "$ROOT/tests/check_tails.py" && python3 "$ROOT/tests/check_depot.py" && \
+    node "$ROOT/tests/day_agents_check.js" 5 24 && node "$ROOT/tests/timetable_check.js" && (node "$ROOT/tests/headway_check.js" || echo "WARNING ($n): trains closer than 2 minutes"))
+done
+cd "$B"
 echo "== page"
 python3 "$ROOT/tools/assemble.py"
 echo "== the page in a browser (depot, test loop, radio)"

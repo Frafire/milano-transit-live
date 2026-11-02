@@ -17,7 +17,7 @@
 // Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea|emergenza ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
-const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html');
+const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html') + '?day=' + (process.env.DAY || 1);      // (the weekday timetable unless DAY=6/7)
 
 const SCENARIOS = {
   async loop(p) {
