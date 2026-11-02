@@ -1286,9 +1286,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   // the three kinds of M3 train: Tradizionale 1° lotto (blue sign, lights in the yellow band), 2° lotto (orange sign,
   // lights in a black band under a thin yellow one), Meneghino (silver with yellow edges, red sign, light boxes)
   const FRONT = { W: 56, H: 62, cache: new Map() };
-  function trainFront(kind, dest, lights, no) {
-    const key = kind + '|' + dest + '|' + lights + '|' + (no || ''); if (FRONT.cache.has(key)) return FRONT.cache.get(key);
+  function trainFront(kind, dest, lights, no, car) {
+    const key = kind + '|' + dest + '|' + lights + '|' + (no || '') + '|' + (car || ''); if (FRONT.cache.has(key)) return FRONT.cache.get(key);
     if (kind === 'meneghino') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(meneghinoSVG(dest, lights, no)); FRONT.cache.set(key, url); return url; }
+    if (kind === 'lotto1' || kind === 'lotto2') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(tradSVG(kind === 'lotto2', dest, lights, no, car)); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url; }
     const S = 5, W = FRONT.W, H = FRONT.H, c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
     const x = c.getContext('2d'), R = (cx, cy, w, h, col) => { x.fillStyle = col; x.fillRect(cx * S, cy * S, w * S, h * S); };
     const men = kind === 'meneghino', lot2 = kind === 'lotto2';
@@ -1416,6 +1417,73 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <path d="M114 256 q-3 11 8 15 M146 256 q4 10 -5 15" fill="none" stroke="#b5221c" stroke-width="2"/><path d="M122 258 q4 9 16 10" fill="none" stroke="#2a1514" stroke-width="2"/>
     </svg>`;
   }
+  // the traditional trains (1st and 2nd lot: the same shape, Giovanni's photos of 8001-8065 and 8103-8109). Flat front:
+  // a dark panel framed by the white body, the sign on top (number and destination in one colour: white LEDs on the
+  // revised 1st lot, yellow on the 2nd), the windscreen in two, then
+  //   2nd lot (old livery): a yellow stripe with the car number on its plate, the lamps in a black band;
+  //   1st lot (revised, new livery): a grey band with the car number, the lamps in a yellow mask.
+  // Each side: the outer lamp white (warm) when running, the inner one red when standing. White ribbed bumpers.
+  function tradSVG(lot2, dest, lights, no, car) {
+    const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
+    const V = { x: 44, y: 9, w: 173, h: 21 }, led = lot2 ? '#ffb01e' : '#e9f1ff';
+    const ledText = (t, x0, p) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;
+      for (const ch of t) { const g = F57[ch] || F57[' '];
+        for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .43).toFixed(2)}"/>`;
+        x += (g[0].length + 1) * p; }
+      return out; };
+    const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
+    let sign = ''; const numEnd = num ? V.x + 5 + colsOf(num) * 2.2 + 6 : V.x + 4;
+    if (num) sign += ledText(num, V.x + 5, 2.2);
+    if (txt) { const cols = colsOf(txt), p = Math.min(2.35, (V.x + V.w - 4 - numEnd) / cols, (V.h - 4) / 7); sign += ledText(txt, Math.max(numEnd, V.x + (V.w - cols * p) / 2), p); }
+    const red = lights === 'red', warm = '#fff6dc', rd = '#ff2f22';
+    // the lamps of one side: outer white, inner red (lit or not)
+    const lamps = (xo, xi, y, w, h, rx) => `
+      <rect x="${xo}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${red ? '#4b4a45' : warm}" ${red ? '' : 'filter="url(#glw)"'}/>
+      <rect x="${xi}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${red ? rd : '#4a2622'}" ${red ? 'filter="url(#glr)"' : ''}/>`;
+    const carNo = String(car || '').replace(/[^0-9]/g, '').slice(0, 4);
+    const band = lot2
+      ? `<rect x="14" y="134" width="233" height="15" fill="url(#yl)"/>
+         <rect x="62" y="136" width="44" height="11" rx="1.5" fill="#f5c61c" stroke="#9b7a08" stroke-width=".8"/>
+         <text x="84" y="145" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="10.5" fill="#15161a">${carNo}</text>
+         <rect x="14" y="149" width="233" height="31" fill="#121315"/>
+         ${lamps(24, 52, 158, 22, 11, 2)}${lamps(215, 187, 158, 22, 11, 2)}`
+      : `<rect x="14" y="134" width="233" height="16" fill="#2a2d31"/>
+         <text x="30" y="146" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="10.5" fill="#e8e8e2">${carNo}</text>
+         <rect x="14" y="150" width="233" height="30" fill="#2a2d31"/>
+         <path d="M18 153 H243 V177 H18 Z" fill="url(#yl)"/>
+         <rect x="21" y="157" width="62" height="17" rx="8" fill="#1a1b1e"/><rect x="178" y="157" width="62" height="17" rx="8" fill="#1a1b1e"/>
+         ${lamps(27, 56, 160, 21, 11, 5.5)}${lamps(213, 184, 160, 21, 11, 5.5)}`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-17 -3 296 279">
+      <defs>
+        <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f1ec"/><stop offset=".6" stop-color="#e3e3dd"/><stop offset="1" stop-color="#c9c9c3"/></linearGradient>
+        <linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".2"/><stop offset=".08" stop-color="#000" stop-opacity="0"/><stop offset=".92" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+        <linearGradient id="dk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${lot2 ? '#1c1d20' : '#33363a'}"/><stop offset="1" stop-color="${lot2 ? '#121315' : '#26292d'}"/></linearGradient>
+        <linearGradient id="gl" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#4a5560"/><stop offset=".35" stop-color="#232a31"/><stop offset="1" stop-color="#0d1115"/></linearGradient>
+        <linearGradient id="yl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d9a409"/><stop offset=".5" stop-color="#f6c823"/><stop offset="1" stop-color="#d9a409"/></linearGradient>
+        <filter id="glw" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glr" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="led" x="-.1" y="-.6" width="1.2" height="2.2"><feGaussianBlur stdDeviation=".8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <!-- the white body, the dark front panel inside it -->
+      <path d="M3 12 Q3 2 13 2 H248 Q258 2 258 12 V203 H3 Z" fill="url(#bd)"/><path d="M3 12 Q3 2 13 2 H248 Q258 2 258 12 V203 H3 Z" fill="url(#sd)"/>
+      <path d="M14 10 Q14 5 19 5 H242 Q247 5 247 10 V180 H14 Z" fill="url(#dk)"/>
+      <rect x="${V.x - 1.5}" y="${V.y - 1.5}" width="${V.w + 3}" height="${V.h + 3}" rx="2" fill="#0b0c0d"/><rect x="${V.x}" y="${V.y}" width="${V.w}" height="${V.h}" rx="1" fill="#040405"/>
+      <g fill="${led}" filter="url(#led)">${sign}</g>
+      <!-- windscreen: two panes and the post between them -->
+      <rect x="20" y="37" width="107" height="93" rx="3" fill="url(#gl)"/><rect x="134" y="37" width="107" height="93" rx="3" fill="url(#gl)"/>
+      <path d="M30 126 L66 42 L76 42 L40 126 Z M146 126 L182 42 L191 42 L155 126 Z" fill="#fff" opacity=".06"/>
+      <path d="M26 45 h30 M140 45 h32" stroke="#c7d1da" stroke-opacity=".35" stroke-width="1.3" stroke-linecap="round"/>
+      ${band}
+      <path d="M3 200 H258" stroke="#000" stroke-opacity=".25" stroke-width="1"/>
+      <!-- white ribbed bumpers, the coupler between them -->
+      <path d="M0 203 H261 V212 H0 Z" fill="#b9b9b3"/>
+      <rect x="4" y="212" width="80" height="30" rx="3" fill="#ecece6" stroke="#b5b5ae"/><rect x="177" y="212" width="80" height="30" rx="3" fill="#ecece6" stroke="#b5b5ae"/>
+      <path d="M8 218 H80 M8 224 H80 M8 230 H80 M8 236 H80 M181 218 H253 M181 224 H253 M181 230 H253 M181 236 H253" stroke="#c4c4bd" stroke-width="2"/>
+      <rect x="98" y="208" width="65" height="38" rx="3" fill="#1d1f22" stroke="#33373b"/>
+      <rect x="108" y="218" width="45" height="30" rx="3" fill="#cfcfc9" stroke="#8d8d87"/><circle cx="121" cy="233" r="7" fill="#2a2c2f"/><circle cx="140" cy="233" r="7" fill="#2a2c2f"/>
+      <path d="M118 248 q-2 10 6 14 M144 248 q3 9 -4 14" fill="none" stroke="#b5221c" stroke-width="2"/>
+    </svg>`;
+  }
   const frontKind = rt => !rt || !rt.type ? null : /meneghino/i.test(rt.type) ? 'meneghino' : /2°/.test(rt.type) ? 'lotto2' : 'lotto1';
   // what the sign shows and which lights: the run's destination; red lights standing in the depot or a tail
   function frontOf(F, tr, st) {
@@ -1427,7 +1495,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // red: in the depot or a tail, changing cab, standing out of service; white: running, or in service at a station
     const a = st.agent, still = Math.abs(st.v || 0) < 0.05;
     const red = st.status === 'parked' || st.status === 'turnback' && still || (a && (a.hidden || a.mode === 'static' || a.waiting && still)) || (still && st.status !== 'service' && st.status !== 'stopped');
-    return { kind, dest, lights: red ? 'red' : 'white', no: rt && rt.n != null ? String(rt.n) : String(tr.n || '') };
+    // the car at the front: the first number of the units (8103-8104 + ...: 8103)
+    const car = rt && rt.units ? (String(rt.units).match(/\d{4}/) || [''])[0] : '';
+    return { kind, dest, lights: red ? 'red' : 'white', no: rt && rt.n != null ? String(rt.n) : String(tr.n || ''), car };
   }
   const TACHO = { target: -135, cur: null, run: false, last: 0 };
   function tachoAnim(ts) {
@@ -1470,7 +1540,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const lm = document.getElementById('tachoLim'), lim = st.agent && st.agent.vmaxHere;
     if (lm) { const a = lim ? (-135 + Math.min(92, lim) / 90 * 270).toFixed(1) : null; if (lm.dataset.a !== String(a)) { lm.dataset.a = a; lm.style.display = a == null ? 'none' : ''; if (a != null) lm.setAttribute('transform', `rotate(${a} 60 60)`); } }
     const fr = document.getElementById('trainFront');
-    if (fr) { const f = frontOf(F, tr, st); if (f) { const k = f.kind + f.dest + f.lights + f.no; if (fr.dataset.k !== k) { fr.dataset.k = k; fr.src = trainFront(f.kind, f.dest, f.lights, f.no); fr.alt = 'Frontale del treno' + (f.dest ? ', veletta ' + f.dest : ''); } } }
+    if (fr) { const f = frontOf(F, tr, st); if (f) { const k = f.kind + f.dest + f.lights + f.no; if (fr.dataset.k !== k) { fr.dataset.k = k; fr.src = trainFront(f.kind, f.dest, f.lights, f.no, f.car); fr.alt = 'Frontale del treno' + (f.dest ? ', veletta ' + f.dest : ''); } } }
     const dt = document.getElementById('doorTile'), txt = open ? 'PORTE APERTE' : 'PORTE CHIUSE';
     if (dt.textContent !== txt) { dt.textContent = txt; dt.classList.toggle('open', open); }
     const dl = document.getElementById('delayTile'); if (!dl) return;
@@ -1503,7 +1573,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
     // rail: the front of the train (M3, by type) and the cab speedometer; then doors and lateness
     const fr = F.bus ? null : frontOf(F, tr, st);
-    const tiles = (F.bus ? '' : `<div class="cab">${fr ? `<img class="tfront" id="trainFront" alt="Frontale del treno" src="${trainFront(fr.kind, fr.dest, fr.lights, fr.no)}" data-k="${fr.kind + fr.dest + fr.lights + fr.no}">` : ''}${tachoSVG()}</div>
+    const tiles = (F.bus ? '' : `<div class="cab">${fr ? `<img class="tfront" id="trainFront" alt="Frontale del treno" src="${trainFront(fr.kind, fr.dest, fr.lights, fr.no, fr.car)}" data-k="${fr.kind + fr.dest + fr.lights + fr.no}">` : ''}${tachoSVG()}</div>
       <div class="tiles"><div class="tile door" id="doorTile">PORTE CHIUSE</div><div class="tile delay" id="delayTile">IN ORARIO</div></div>`)
       + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
     body = tiles + faultBox(F, i) + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
