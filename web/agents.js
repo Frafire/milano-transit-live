@@ -594,7 +594,7 @@
         out.push({ pid: outP.pid, status: 'turnback', stops: [], end: stopP(outP, o2, X), start: outP.tail[0], rev: true });
         const r = runTo(X, o2, T, outP.pid, 0, stopP(outP, o2, X));
         if (outP.pid !== (o2 === 'N' ? G.N.pid : G.S.pid)) { r.stops.forEach(z => { z.d = stopP(outP, o2, z.st); }); r.end = r.stops[r.stops.length - 1].d; }
-        if (S.reopened) withTimetable(r, X, o2);
+        if (S.reopened) withTimetable(r, X, o2, false, a);
         // after reopening, once the timetable has no more runs for it (end of the service): empty to San Donato and
         // into the depot, where it is switched off
         if (S.reopened && !r.timed && S.t > lastDeparture() - 600) {
@@ -666,12 +666,19 @@
       r.stops.forEach(z => { z.dep = dep[z.st] != null ? dep[z.st] : undefined; });
       r.timed = true; r.ref = best.z[2]; r.runKey = best.key;
     }
-    function withTimetable(r, X, dir, soft) {
+    // a: the train. After reopening (the hybrid system, Giovanni's colleague 2 Nov 2026) the trains are renumbered: a train
+    // taking a run of tabella m becomes tabella m (a.tabM) and goes on with its next runs when it can, so the trains come
+    // back in line with the timetable
+    function withTimetable(r, X, dir, soft, a) {
       let best = null;
       if (soft) {
         for (const c of freeRuns(X, dir, S.t - 120, S.t + 900)) { const score = c.tx > S.t + 120 ? 2 * (c.tx - S.t) : S.t - c.tx; if (!best || score < best.score) best = Object.assign(c, { score }); }
-      } else { best = freeRuns(X, dir, S.t - 120, S.t + 1800)[0] || null; if (best) r.hard = true; }
-      if (best) takeRun(r, best);
+      } else {
+        const C = freeRuns(X, dir, S.t - 120, S.t + 1800);
+        best = (a && a.tabM != null && C.find(c => c.m === a.tabM && c.j > (a.tabJ == null ? -1 : a.tabJ) && c.tx <= C[0].tx + 600)) || C[0] || null;
+        if (best) r.hard = true;
+      }
+      if (best) { takeRun(r, best); if (a && !soft) { a.tabM = best.m; a.tabJ = best.j; } }
     }
     // the PC gives a train another departure: the free ones from where its next run starts
     function nextRunOf(a) { return a.legs.find(l => !l.kind && l.stops && l.stops.length && l.status === 'service' && !l.nav); }
@@ -1019,7 +1026,7 @@
       const stops = [];
       for (let i = here.st; here.dir === 'N' ? i <= T : i >= T; i += here.dir === 'N' ? 1 : -1) stops.push({ st: i, d: i === here.st ? d2 : stopOf(here.dir, i) + off });
       const r = { pid, status: 'service', trip: -1, stops, end: stops[stops.length - 1].d, start: d2, dir: here.dir, arrive: { at: T, dir: here.dir }, frame: { off } };
-      withTimetable(r, here.st, here.dir);
+      withTimetable(r, here.st, here.dir, false, a);
       a.legs = [r]; a.mode = 'shuttle'; a.part = [0, last]; a.stopAt = null; a.dwellUntil = S.t;
       S.log.push({ t: S.t, k: a.k, at: G.names[here.st], dir: here.dir, ref: r.ref });
     }
@@ -1307,7 +1314,7 @@
         const r = nextRunOf(a), dl = departuresFor(k); if (!r || !dl) return false;
         const [m, j] = String(arg && arg.key || '').split(':').map(Number), c = freeRuns(dl.st, dl.dir, -Infinity, Infinity, k).find(x => x.m === m && x.j === j);
         if (!c) return false;
-        takeRun(r, c); r.hard = true; return c.tx;
+        takeRun(r, c); r.hard = true; if (S.reopened) { a.tabM = c.m; a.tabJ = c.j; } return c.tx;
       }
       if (kind === 'instr') return instruct(a, arg && arg.key);
       if (a.mode === 'inside' && a.status === 'stopped') {
@@ -1354,7 +1361,7 @@
     function state(k) {
       const a = S.agents[k]; if (!a) return null;
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
-      return { inside: a.inside, to: leg && leg.arrive ? leg.arrive.at : null, pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, trip: a.trip,
+      return { tabM: a.mode !== 'plan' ? a.tabM : null, inside: a.inside, to: leg && leg.arrive ? leg.arrive.at : null, pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, trip: a.trip,
                seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold, vlim: a.vlim ? Math.round(a.vlim * 3.6) : null, vlimTo: a.vlimTo,
                stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn, manual: !!((FX && FX.manual(a)) || a.manualTo != null), faults: FX ? FX.list().filter(f => f.k === k) : [] };
     }

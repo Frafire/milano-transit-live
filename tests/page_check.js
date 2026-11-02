@@ -13,6 +13,7 @@
 // - linea: admin menu Guasti, a signal in front of a running train stays red: the driver asks, the PC gives the marcia a vista
 // - emergenza: Emergenze PC, pulsante rosso on the stretch of a running train: it stops; Togli from the alarms: it goes again
 // - giorno: Friday 02:58 with a signal failed: at 02:59 Saturday's timetable comes in without leaving the page, the failure still there
+// - rinumera: closure and reopening: the trains get the number of the tabella of the run they take, the DCT tells them
 // - turni: Turni del giorno: a reserve train on a tabella before it leaves; it leaves from its own place
 // - settimana: seven changes of day in a row; every tabella has a train; depot trains start from their places; maintenance
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
@@ -175,6 +176,25 @@ const SCENARIOS = {
       st.playing = true; st.speed = 30; await sleep(8000); st.playing = false; await sleep(300);
       const a = F.ag.agents().find(x => x.mode === 'navetta'), log = document.getElementById('radioLog').innerText;
       return { ok: !!a && /Navetta/.test(log), option: one.textContent, nav, train: a && a.k, at: a && a.at };
+    });
+  },
+  async rinumera(p) {   // fase E: after reopening a closed stretch the trains are renumbered: the tabella of the run they take
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.ag && f.line === 'M3');
+      st.playing = false; st.t = 8 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      const sel = document.querySelector('.closures #clSel'), o = [...sel.options].find(x => /Porta Romana – Centrale/.test(x.textContent));
+      if (!o) return { ok: false, why: 'no closure Porta Romana – Centrale FS' };
+      sel.value = o.value; sel.onchange(); await sleep(200);
+      document.querySelector('.closures #closeBtn').click(); await sleep(300);
+      st.playing = true; st.speed = 60; await sleep(15000); st.playing = false; await sleep(300);
+      document.getElementById('reopenBtn').click(); await sleep(300);
+      st.playing = true; st.speed = 60; await sleep(20000); st.playing = false; await sleep(1500);
+      const A = F.ag.agents(), renum = F.trains.filter((tr, k) => { const r = M.realTrain(F, tr, st.t); return r && r.renum; }).length;
+      const nums = F.trains.map(tr => M.realTrain(F, tr, st.t)).filter(r => r && r.tab != null && !r.none).map(r => r.n);
+      const dup = nums.length - new Set(nums).size, log = document.getElementById('radioLog').innerText;
+      return { ok: renum > 0 && /da adesso sei la tabella/.test(log) && dup <= 1, renum, dup, hybrid: A.filter(a => a.tabM != null).length,
+        log: log.split('\n').filter(l => /tabella/.test(l)).slice(-3) };
     });
   },
   async stazione(p) {   // radio alla stazione: Corvetto closed to the public, the trains go through without stopping; screens say so

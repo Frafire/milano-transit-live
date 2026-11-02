@@ -2186,6 +2186,13 @@
    "testi": [
     "Turni di {giorno} assegnati: un treno per tabella. Si cambiano da Turni del giorno finché i treni sono fermi in deposito."
    ]
+  },
+  "dct.rinumera": {
+   "chi": "DCT",
+   "quando": "Dopo la riapertura di una tratta: il treno prende una corsa di un'altra tabella e viene rinumerato, per tornare in linea con l'orario",
+   "testi": [
+    "Treno {treno}, da adesso sei la tabella {tabella}. Passo."
+   ]
   }
  }
 }

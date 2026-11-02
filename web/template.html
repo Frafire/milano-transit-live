@@ -990,6 +990,9 @@ window.MTL_PACKS = __PACKS__;
     const u = unitMap(F, t).get(tr); if (u == null) return { n: '—', none: true };
     if (tr.tab == null) tr.tab = (tr.segs0 || tr.segs).some(s => s[1] === 'service');
     const mat = (String(F.stock[u].units || '').match(/\d+/) || [''])[0];
+    // after reopening the trains are renumbered: the tabella of the run the train is making (agents.js, a.tabM)
+    const ag = F.ag && tr.agentK != null ? F.ag.agents()[tr.agentK] : null, tm = ag && ag.mode !== 'plan' && ag.tabM != null && F.trains[ag.tabM] ? F.trains[ag.tabM].n : null;
+    if (tm != null) return { ...F.stock[u], n: tm, tab: tm, u, renum: tm !== tr.n };
     return { ...F.stock[u], n: tr.tab ? tr.n : mat, tab: tr.tab ? tr.n : null, u };
   }
   const parkedLabel = (F, where) => where && where !== 'depot' ? 'Parked overnight in a ' + where + ' tail track' : 'Parked in the ' + F.home + ' depot';
@@ -1311,11 +1314,11 @@ window.MTL_PACKS = __PACKS__;
     }
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${r.color};color:${r.id === 'M3' ? '#111' : '#fff'}">${r.n}</span>
       <div><h2>→ <span class="cap">${tr.h}</span></h2><div class="sub">${kind} · ${r.l}</div></div></div>
-      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Close</button></div>
+      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="cardClose">Close</button></div>
       <ol class="stops">${rows}</ol>`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
-    document.getElementById('closeBtn').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
+    document.getElementById('cardClose').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
     const nx = card.querySelector('li.next');
     if (nx && !card.matches(':hover')) nx.scrollIntoView({ block: 'nearest' });
   }
@@ -1402,10 +1405,10 @@ window.MTL_PACKS = __PACKS__;
     body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
       <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + (st.trip >= 0 ? st.label : 'Not in passenger service')}</div></div></div>
-      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Close</button></div>${body}`;
+      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="cardClose">Close</button></div>${body}`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
-    document.getElementById('closeBtn').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
+    document.getElementById('cardClose').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
     const ttBtn = document.getElementById('ttBtn'); if (ttBtn) ttBtn.onclick = () => { state.fullTT = !state.fullTT; renderCard(); };
     const rOpen = document.getElementById('radioOpen'); if (rOpen) rOpen.onclick = () => openRadio(F, tr);
     updateTiles();
@@ -1855,10 +1858,10 @@ window.MTL_PACKS = __PACKS__;
     card.innerHTML = `<div class="hd">${logo}<div class="hdtx"><h2>${title}</h2>${what ? `<div class="what">${what}</div>` : ''}
         <div class="sub"><span>${no}</span>${stTxt}${F.bus ? '' : '<span class="pill" id="delayTile" hidden></span>'}</div></div></div>
       ${info}${cab}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${trial && F.dm && tr.agentK != null && (F.dm.loopInfo(tr.agentK) || {}).onLoop ? '' : testLoopBox(F, tr, st)}
-      <div class="foot"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Chiudi</button></div>`;
+      <div class="foot"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="cardClose">Chiudi</button></div>`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
-    document.getElementById('closeBtn').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
+    document.getElementById('cardClose').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
     const ttBtn = document.getElementById('ttBtn'); if (ttBtn) ttBtn.onclick = () => { state.fullTT = !state.fullTT; renderCard(); };
     const rOpen = document.getElementById('radioOpen'); if (rOpen) rOpen.onclick = () => openRadio(F, tr);
     updateTiles();
@@ -2115,13 +2118,13 @@ window.MTL_PACKS = __PACKS__;
       ? `<div class="stsign${nm.length > 11 ? ' long' : ''}" role="heading" aria-level="2"><span class="lb"></span><span class="lb"></span><b style="font-size:${nm.length > 13 ? 21 : nm.length > 11 ? 23 : nm.length > 9 ? 25 : 28}px">${nm}</b><span class="lb"></span><span class="lb"></span></div>
       ${interPanel(nm)}<div class="screens">${m3Screens(F, b, t)}</div>
       ${F.ag ? '<button class="radiobtn bar" id="stRadio">📻 RADIO DI STAZIONE</button>' : ''}
-      <div class="stfoot"><span></span>${stationClock(t)}<button id="closeBtn">Chiudi</button></div>`
+      <div class="stfoot"><span></span>${stationClock(t)}<button id="cardClose">Chiudi</button></div>`
       : `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
       <div><h2>${b.n}</h2><div class="sub">Prossimi treni</div></div></div>
       <div class="board">${rows}</div>${platformDiagram(F, b, t)}
-      <div class="row"><button id="closeBtn">Close</button></div>`;
+      <div class="row"><button id="cardClose">Close</button></div>`;
     card.hidden = false;
-    document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
+    document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
     const sr = document.getElementById('stRadio');
     if (sr) sr.onclick = () => { const G = F.engine.G, X = G.names.findIndex(n => n.toUpperCase().replace(/\s+M\d$/, '') === nm); if (X >= 0) MR.openStationRadio(F, X); };
   }
@@ -2154,9 +2157,9 @@ window.MTL_PACKS = __PACKS__;
         ps.map(p => `<button data-sw="${nd}" data-pos="${p.pos}" ${p.pos === cur ? 'aria-pressed="true"' : ''} title="${posTxt(p)}">${p.ids[0]}</button>`).join('') +
         (lk ? `<button data-unlock="${nd}">Sblocca</button>` : cur ? `<button data-lock="${nd}" data-pos="${cur}">Blocca</button>` : '') + `</span></li>`; }).join('') + `</ul>`;
     const nm = pcNoteMsg && pcNoteMsg.sel === state.sel && Date.now() < pcNoteMsg.until ? pcNoteMsg.text : '';
-    h += `<p class="note pcnote" id="pcNote" aria-live="polite">${nm}</p><div class="row"><button id="closeBtn">Close</button></div>`;
+    h += `<p class="note pcnote" id="pcNote" aria-live="polite">${nm}</p><div class="row"><button id="cardClose">Close</button></div>`;
     card.innerHTML = h; card.hidden = false;
-    document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
+    document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
     const note = t => { pcNoteMsg = { sel: state.sel, text: t, until: Date.now() + 8000 }; const e = document.getElementById('pcNote'); if (e) e.textContent = t; };
     const WHY = w => !w ? '' : w.train != null ? 'c\'è il treno ' + tno(w.train) + ' sopra' : w.route != null ? 'impegnato dall\'itinerario del treno ' + tno(w.route) : w.pcRoute != null ? 'impegnato dall\'itinerario preparato ' + (w.id || '') : w.swLock != null ? 'scambio ' + w.swLock + ' bloccato nell\'altra posizione' : w.swFail != null ? 'scambio ' + w.swFail + ' guasto' : w.nothing ? 'nessun itinerario da annullare' : 'non possibile';
     const run = (e, ok) => { const r = F.ag.event(Object.assign({ kind: 'pccmd' }, e)); if (r) { note('Non si può: ' + WHY(r) + '.'); return; } say('', ok(), 'pc'); if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals(); renderCard(); };
@@ -2226,9 +2229,9 @@ window.MTL_PACKS = __PACKS__;
         <div class="atm-row atm-date">${dateRow}</div></div>
         <div class="atm-foot"><span class="atm-plate">Fermata n° ${s.code}</span><span class="atm-grille"></span></div></div></div>
       <div class="orario"><div class="label">Orario feriale</div>${tables}</div>
-      <div class="row"><button id="closeBtn">Close</button></div>`;
+      <div class="row"><button id="cardClose">Close</button></div>`;
     card.hidden = false;
-    document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
+    document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
     const nx = card.querySelector('.orario span.nx');
     if (nx && !card.matches(':hover') && !card.dataset.scrolled) { nx.scrollIntoView({ block: 'nearest' }); }
   }
@@ -2925,14 +2928,24 @@ window.MTL_PACKS = __PACKS__;
       <ul class="pclist">${tabs.map(row).join('')}</ul>
       <div class="pclbl">Riserva in deposito</div><ul class="pclist">${res.map(x => `<li><span><b>${x.r.units}</b><small>${F.depot && F.depot.at[x.k] != null ? depotName(F, F.depot.at[x.k]) : ''}${inMaint(x.r.units) ? ' · in manutenzione ancora ' + MAINT[x.r.units] + (MAINT[x.r.units] === 1 ? ' giorno' : ' giorni') : (F.stock[x.r.u] || {}).trial && !ADMIT.has(String(x.r.units)) ? ' · in prova' : ''}</small></span></li>`).join('') || '<li><span><small>nessuno</small></span></li>'}</ul>
       ${maint.length ? `<p class="note">In manutenzione: ${maint.map(([u, d]) => u + ' (ancora ' + d + (d === 1 ? ' giorno)' : ' giorni)')).join(', ')}.</p>` : ''}
-      <div class="foot"><span></span><button id="closeBtn">Chiudi</button></div>`;
+      <div class="foot"><span></span><button id="cardClose">Chiudi</button></div>`;
     card.hidden = false;
-    document.getElementById('closeBtn').onclick = () => { state.sel = null; renderCard(); };
+    document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
     card.querySelectorAll('[data-tab]').forEach(sel => sel.onchange = () => { const k = +sel.dataset.tab, j = +sel.value; if (sel.value === '') return;
       const a = realTrain(F, F.trains[k], state.t), b = realTrain(F, F.trains[j], state.t);
       if (swapUnits(F, k, j)) say('', tx('dct.turni.cambio', { tabella: F.trains[k].n, treno: b.units, treno2: a.units }), 'sys'); renderCard(); });
   }
   document.getElementById('turniBtn').onclick = () => { state.sel = state.sel === 'turni' ? null : 'turni'; state.follow = false; renderCard(); };
+  // the renumbering after a reopening (fase E): the DCT tells each train its new tabella, once
+  const TABS = new Map();
+  function renumberTick() {
+    const F = m3eng(); if (!F || !F.ag) return;
+    F.trains.forEach((tr, k) => { const a = F.ag.agents()[k]; if (!a) return;
+      const m = a.mode !== 'plan' && a.tabM != null ? a.tabM : null, was = TABS.get(k);
+      if (m == null) { TABS.delete(k); return; }
+      if (was !== m) { TABS.set(k, m); const from = was != null ? F.trains[was].n : tr.n, to = F.trains[m].n;
+        if (from !== to) say('DCT', tx('dct.rinumera', { treno: from, tabella: to }), 'pc'); } });
+  }
   // the data of the next kind of day, loaded in the night before they are needed
   function preloadNextDay() {
     const next = (dayPick % 7) + 1, nsfx = hasDay(dayType(next)) ? dayType(next) : '';
@@ -3442,7 +3455,7 @@ window.MTL_PACKS = __PACKS__;
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
+    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
