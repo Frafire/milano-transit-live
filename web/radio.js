@@ -11,7 +11,6 @@
     const radioEl = document.getElementById('radio'), radioLog = document.getElementById('radioLog'), radioCmds = document.getElementById('radioCmds');
     const radioTx = document.getElementById('radioTx'), radioWho = document.getElementById('radioWho');
     let radioTrain = null; const radioMsgs = [], radioWatch = [];
-    const pick = a => a[Math.floor(Math.random() * a.length)];
     const durTxt = s => { const m = Math.floor(s / 60), r = s % 60; return (m ? (m === 1 ? '1 minuto' : m + ' minuti') : '') + (r ? (m ? ' e ' : '') + r + ' secondi' : ''); };
     const cap = x => x.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, y => y.toUpperCase());
     function trainNo(F, tr) { const rt = realTrain(F, tr, state.t); return rt && !rt.missing && !rt.none ? rt.n : tr.n; }
@@ -50,14 +49,14 @@
       radioTrain = { F, tr, no: trainNo(F, tr) };
       radioWho.textContent = 'Treno ' + radioTrain.no; radioCmdHtml = '';
       radioEl.hidden = false;
-      if (!radioMsgs.length) say('', 'Canale aperto. Tu sei il Dirigente Centrale del Traffico (DCT).', 'sys');
+      if (!radioMsgs.length) say('', tx('canale.aperto'), 'sys');
       drawRadioLog(); drawRadioCmds();
     }
     document.getElementById('radioClose').onclick = () => { radioEl.hidden = true; showRoute(null, null); };
     // (no free text to the driver: Giovanni, 1 Nov 2026; the drivers' own calls stay)
     const RADIO_WHY = ['treno davanti in ritardo', 'regolarizzare l’intervallo', 'guasto più avanti', 'nessun motivo'];
-    const WHY_TXT = { 'treno davanti in ritardo': 'il treno davanti a te è in ritardo', 'regolarizzare l’intervallo': 'devo regolarizzare l’intervallo',
-                      'guasto più avanti': 'c’è un guasto più avanti', 'nessun motivo': 'per servizio' };
+    const WHY_TXT = { 'treno davanti in ritardo': 'pezzo.motivo.treno_davanti_ritardo', 'regolarizzare l’intervallo': 'pezzo.motivo.regolarizzare_intervallo',
+                      'guasto più avanti': 'pezzo.motivo.guasto_avanti', 'nessun motivo': 'pezzo.motivo.servizio' };
     let radioStopSel = 60, radioWhy = RADIO_WHY[0], radioCmdHtml = '';
     // emergency orders (closure, reopening)
     function emergencyCmds(F, tr) {
@@ -91,27 +90,26 @@
       const igo = document.getElementById('instrGo');
       if (igo) igo.onclick = () => {
         const ops = F.ag.instrOptions(tr.agentK), x = ops.find(y => y.key === instrSel); if (!x) return;
-        const lb = labTxt(x.label); say('DCT', `Treno ${no}, ${lb.charAt(0).toLowerCase() + lb.slice(1)}. Senza passeggeri, marcia a vista sui segnali che ti do io. Passo.`, 'pc');
+        const lb = labTxt(x.label); say('DCT', tx('treno.istruzione.ordine', { treno: no, dove: lb.charAt(0).toLowerCase() + lb.slice(1) }), 'pc');
         const r = F.ag.event({ kind: 'order', k: tr.agentK, what: 'instr', arg: { key: x.key } });
-        driverSays(r ? 'Ricevuto DCT, eseguo. Passo.' : 'Negativo DCT, da qui non posso. Passo.');
+        driverSays(r ? tx('treno.istruzione.risposta') : tx('treno.ordine.negativo'));
         showRoute(F, null); radioCmdHtml = ''; drawRadioCmds();
       };
       const why = document.getElementById('emWhy');
-      if (why) why.onclick = () => { say('DCT', `Treno ${no}, c'è un guasto alla linea: la tratta ${em.label} è interrotta. Resta in attesa di istruzioni. Passo.`, 'pc'); driverSays('Ricevuto DCT, avviso i passeggeri e attendo. Passo.'); };
+      if (why) why.onclick = () => { say('DCT', tx('treno.interruzione.spiega', { treno: no, tratta: em.label }), 'pc'); driverSays(tx('treno.interruzione.risposta')); };
       radioCmds.querySelectorAll('[data-em]').forEach(b => b.onclick = () => {
         const kind = b.dataset.em, nx = F.ag.nextOf(tr.agentK);
-        const TXT = { next: `Treno ${no}, prosegui senza passeggeri fino a ${nx != null ? cap(G.names[nx]) : 'la prossima stazione'}. Passo.`, depot: `Treno ${no}, rientra in deposito senza passeggeri. Passo.`,
-          hold: `Treno ${no}, resta fermo in stazione a porte aperte fino a nuovo ordine. Passo.`, release: `Treno ${no}, puoi ripartire, segui il segnale. Passo.`,
-          skip: `Treno ${no}, autorizzato il salto delle prossime fermate. Passo.`, limit: `Treno ${no}, limita la corsa alla prima stazione utile e inverti. Passo.` };
-        say('DCT', TXT[kind], 'pc');
+        const TXT = { next: 'treno.prosegui.ordine', depot: 'treno.deposito.ordine', hold: 'treno.trattieni.ordine', release: 'treno.riparti.ordine',
+          skip: 'treno.salta_fermate.ordine', limit: 'treno.limita_corsa.ordine' };
+        say('DCT', tx(TXT[kind], { treno: no, stazione: nx != null ? cap(G.names[nx]) : tx('pezzo.prossima_stazione') }), 'pc');
         const r = F.ag.event({ kind: 'order', k: tr.agentK, what: kind });
-        if (!r) { driverSays('Negativo DCT, da qui non posso. Passo.'); return; }
-        if (kind === 'hold') driverSays(`Ricevuto DCT, resto fermo a ${cap(String(r))} e avviso i passeggeri. Passo.`);
-        else if (kind === 'release') driverSays('Ricevuto, chiudo le porte e riparto. Passo.');
-        else if (kind === 'next') { driverSays(pick(['Ricevuto, faccio scendere i passeggeri e proseguo vuoto. Passo.', 'Copiato DCT, proseguo a vuoto. Passo.'])); }
-        else if (kind === 'depot') driverSays('Ricevuto, rientro in deposito a vuoto. Passo.');
-        else if (kind === 'skip') driverSays('Ricevuto, salto le fermate e annuncio ai passeggeri. Passo.');
-        else driverSays(`Ricevuto, fine corsa a ${cap(String(r))}, poi inverto. Passo.`);
+        if (!r) { driverSays(tx('treno.ordine.negativo')); return; }
+        if (kind === 'hold') driverSays(tx('treno.trattieni.risposta', { stazione: cap(String(r)) }));
+        else if (kind === 'release') driverSays(tx('treno.riparti.risposta'));
+        else if (kind === 'next') { driverSays(tx('treno.prosegui.risposta')); }
+        else if (kind === 'depot') driverSays(tx('treno.deposito.risposta'));
+        else if (kind === 'skip') driverSays(tx('treno.salta_fermate.risposta'));
+        else driverSays(tx('treno.limita_corsa.risposta', { stazione: cap(String(r)) }));
         radioCmdHtml = ''; drawRadioCmds();
       });
     }
@@ -132,9 +130,9 @@
       sel.onchange = () => { depSel = sel.value; radioCmdHtml = ''; drawRadioCmds(); };
       go.onclick = () => {
         const G = F.engine.G, dl = F.ag.departuresFor(tr.agentK), x = dl && dl.list.find(y => y.key === depSel), no = radioTrain.no; if (!x) return;
-        say('DCT', `Treno ${no}, ti assegno la partenza delle ${fmt(x.tx)} da ${cap(G.names[dl.st])}. Passo.`, 'pc');
+        say('DCT', tx('treno.partenza.ordine', { treno: no, ora: fmt(x.tx), stazione: cap(G.names[dl.st]) }), 'pc');
         const r = F.ag.event({ kind: 'order', k: tr.agentK, what: 'dep', arg: { key: x.key } });
-        driverSays(r ? `Ricevuto, parto alle ${fmt(x.tx)}. Passo.` : 'Negativo DCT, quella partenza non è più libera. Passo.');
+        driverSays(r ? tx('treno.partenza.risposta', { ora: fmt(x.tx) }) : tx('treno.partenza.negativo'));
         radioCmdHtml = ''; drawRadioCmds();
       };
     }
@@ -144,7 +142,7 @@
     function openStationRadio(F, X) {
       const G = F.engine.G; radioTrain = null; radioStation = { F, X, name: cap(G.names[X]) };
       radioWho.textContent = 'Stazione ' + radioStation.name; radioCmdHtml = ''; radioEl.hidden = false;
-      if (!radioMsgs.length) say('', 'Canale aperto. Tu sei il Dirigente Centrale del Traffico (DCT).', 'sys');
+      if (!radioMsgs.length) say('', tx('canale.aperto'), 'sys');
       drawRadioLog(); drawRadioCmds();
     }
     function stationSays(text, delayMs = 1800) {
@@ -158,16 +156,18 @@
       const late = F.ag.agents().filter(a => !a.hidden && a.late != null && a.late > 180).length * 0.08;
       return Math.max(0, Math.min(3, Math.round(peak + big + cl + late + (Math.random() - 0.5))));
     }
-    const CROWD = ['banchina quasi vuota', 'poca gente in banchina', 'banchina affollata', 'banchina molto affollata, faccio defluire i passeggeri'];
-    const ANN = { 'Ritardi sulla linea': 'il servizio è in ritardo, ci scusiamo per il disagio', 'Servizio limitato': 'il servizio è limitato, i treni non proseguono oltre la stazione indicata',
-      'Tratta interrotta': 'la circolazione è interrotta su una parte della linea', 'Navetta': 'su una parte della linea il servizio è svolto da una navetta',
-      'Treni che non fermano': 'i treni non fermano in questa stazione', 'Servizio regolare': 'la circolazione è tornata regolare' };
+    const CROWD = ['pezzo.banchina.quasi_vuota', 'pezzo.banchina.poca_gente', 'pezzo.banchina.affollata', 'pezzo.banchina.molto_affollata'];
+    const crowdTxt = c => { const s = tx(CROWD[c]); return s.charAt(0).toUpperCase() + s.slice(1); };
+    // the button labels (keys) are the page's; the announcement said on the radio is a phrase
+    const ANN = { 'Ritardi sulla linea': 'pezzo.annuncio.ritardi', 'Servizio limitato': 'pezzo.annuncio.servizio_limitato',
+      'Tratta interrotta': 'pezzo.annuncio.tratta_interrotta', 'Navetta': 'pezzo.annuncio.navetta',
+      'Treni che non fermano': 'pezzo.annuncio.treni_non_fermano', 'Servizio regolare': 'pezzo.annuncio.servizio_regolare' };
     const SCR_TXT = ['SERVIZIO LIMITATO', 'TRATTA INTERROTTA', 'CIRCOLAZIONE RALLENTATA', 'SERVIZIO SOSPESO', 'STAZIONE CHIUSA'];
-    const CHECK = { 'Porte di un treno': ['Porte controllate, tutto regolare.', 'Una porta era bloccata da uno zaino, liberata.'],
-      'Persona sui binari': ['Nessuno sui binari, banchina regolare.', 'C\'era una persona oltre la linea gialla, l\'ho fatta allontanare.'],
-      'Oggetto sui binari': ['Nessun oggetto sui binari.', 'C\'è un oggetto sui binari lato banchina: non è d\'ingombro, lo recuperiamo a fine servizio.'],
+    // the agent's answer: [all in order (8 times in 10), something found]
+    const CHECK = { 'Porte di un treno': ['stazione.verifica.porte_regolari', 'stazione.verifica.porta_bloccata'],
+      'Persona sui binari': ['stazione.verifica.nessuno_binari', 'stazione.verifica.persona_allontanata'],
+      'Oggetto sui binari': ['stazione.verifica.nessun_oggetto', 'stazione.verifica.oggetto_binari'],
       'Situazione in banchina': null };
-    const ASSIST = ['passeggero con un malore, assistito: ora sta bene ed è sceso', 'porta bloccata, ripristinata', 'oggetto incastrato in una porta, rimosso', 'passeggero molesto, fatto scendere'];
     function trainsHere(F, X) { return F.ag.agents().filter(a => !a.hidden && a.v === 0 && (a.stopAt === X || (a.status === 'stopped' && a.at === X))); }
     function stationCmds() {
       const { F, X } = radioStation, G = F.engine.G, st = F.ag.S.stn[X] || {}, here = trainsHere(F, X), tn = a => trainNo(F, F.trains[a.k]);
@@ -187,39 +187,39 @@
     function bindStation() {
       const { F, X, name } = radioStation, G = F.engine.G;
       radioCmds.querySelectorAll('[data-st="sit"]').forEach(b => b.onclick = () => {
-        say('DCT', `Stazione ${name}, com'è la situazione? Passo.`, 'pc');
+        say('DCT', tx('stazione.situazione.chiede', { stazione: name }), 'pc');
         const c = crowd(F, X), cl = (F.ag.S.stn[X] || {}).closed;
-        stationSays(cl ? 'Stazione chiusa al pubblico, ingressi chiusi, nessun problema. Passo.' : `${CROWD[c].charAt(0).toUpperCase() + CROWD[c].slice(1)}, nessuna situazione di pericolo. Passo.`);
+        stationSays(cl ? tx('stazione.situazione.chiusa') : tx('stazione.situazione.risposta', { folla: crowdTxt(c) }));
       });
       radioCmds.querySelectorAll('[data-ann]').forEach(b => b.onclick = () => {
-        const k = b.dataset.ann; say('DCT', `Stazione ${name}, fai l'annuncio: ${ANN[k]}. Passo.`, 'pc'); stationSays('Ricevuto, annuncio fatto. Passo.');
+        const k = b.dataset.ann; say('DCT', tx('stazione.annuncio.ordine', { stazione: name, annuncio: tx(ANN[k]) }), 'pc'); stationSays(tx('stazione.annuncio.risposta'));
       });
       radioCmds.querySelectorAll('[data-scr]').forEach(b => b.onclick = () => {
         const k = b.dataset.scr; F.ag.event({ kind: 'station', st: X, what: 'msg', text: k || null });
-        say('DCT', k ? `Stazione ${name}: sugli schermi di banchina "${k}".` : `Stazione ${name}: schermi di banchina normali.`, 'pc'); radioCmdHtml = ''; drawRadioCmds();
+        say('DCT', k ? tx('stazione.schermi.messaggio', { stazione: name, messaggio: k }) : tx('stazione.schermi.normali', { stazione: name }), 'pc'); radioCmdHtml = ''; drawRadioCmds();
       });
       radioCmds.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => {
-        const k = b.dataset.chk; say('DCT', `Stazione ${name}, verifica in banchina: ${k.toLowerCase()}. Passo.`, 'pc');
-        const ans = CHECK[k] ? (Math.random() < 0.8 ? CHECK[k][0] : CHECK[k][1]) : CROWD[crowd(F, X)].charAt(0).toUpperCase() + CROWD[crowd(F, X)].slice(1) + '.';
-        stationSays('Ricevuto, vado a vedere. Passo.', 1200);
-        stPending.push({ F, X, kind: 'check', at: state.t + 60 + Math.random() * 90, text: ans + ' Passo.' });
+        const k = b.dataset.chk; say('DCT', tx('stazione.verifica.ordine', { stazione: name, cosa: k.toLowerCase() }), 'pc');
+        const ans = CHECK[k] ? tx(Math.random() < 0.8 ? CHECK[k][0] : CHECK[k][1]) : tx('stazione.verifica.banchina', { folla: crowdTxt(crowd(F, X)) });
+        stationSays(tx('stazione.verifica.vado'), 1200);
+        stPending.push({ F, X, kind: 'check', at: state.t + 60 + Math.random() * 90, text: ans });
       });
       radioCmds.querySelectorAll('[data-ass]').forEach(b => b.onclick = () => {
         const k = +b.dataset.ass, no = trainNo(F, F.trains[k]);
-        say('DCT', `Stazione ${name}, manda l'agente sul treno ${no}: il treno resta fermo finché non mi riferisci. Passo.`, 'pc');
+        say('DCT', tx('stazione.assistenza.ordine', { stazione: name, treno: no }), 'pc');
         F.ag.event({ kind: 'order', k, what: 'hold' });
-        stationSays(`Ricevuto, salgo sul treno ${no}. Passo.`, 1200);
-        stPending.push({ F, X, k, kind: 'assist', at: state.t + 120 + Math.random() * 240, text: `Treno ${no}: ${pick(ASSIST)}. Il treno può ripartire. Passo.` });
+        stationSays(tx('stazione.assistenza.risposta', { treno: no }), 1200);
+        stPending.push({ F, X, k, kind: 'assist', at: state.t + 120 + Math.random() * 240, text: tx('stazione.assistenza.esito', { treno: no }) });
         radioCmdHtml = ''; drawRadioCmds();
       });
       radioCmds.querySelectorAll('[data-rel]').forEach(b => b.onclick = () => {
         const k = +b.dataset.rel, no = trainNo(F, F.trains[k]); F.ag.event({ kind: 'order', k, what: 'release' });
-        say('DCT', `Treno ${no}, puoi ripartire, segui il segnale. Passo.`, 'pc'); radioCmdHtml = ''; drawRadioCmds();
+        say('DCT', tx('treno.riparti.ordine', { treno: no }), 'pc'); radioCmdHtml = ''; drawRadioCmds();
       });
       radioCmds.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => {
         const close = b.dataset.acc === 'close'; F.ag.event({ kind: 'station', st: X, what: close ? 'close' : 'open' });
-        say('DCT', close ? `Stazione ${name}, chiudi gli ingressi: i treni non fermano finché non riapro. Passo.` : `Stazione ${name}, riapri gli ingressi, i treni tornano a fermare. Passo.`, 'pc');
-        stationSays(close ? 'Ricevuto, chiudo gli ingressi e faccio uscire i passeggeri. Passo.' : 'Ricevuto, ingressi aperti. Passo.'); radioCmdHtml = ''; drawRadioCmds();
+        say('DCT', close ? tx('stazione.chiusura.ordine', { stazione: name }) : tx('stazione.riapertura.ordine', { stazione: name }), 'pc');
+        stationSays(close ? tx('stazione.chiusura.risposta') : tx('stazione.riapertura.risposta')); radioCmdHtml = ''; drawRadioCmds();
       });
     }
     // the answers that take time (the agent goes to see, gets on the train), in game time
@@ -260,16 +260,16 @@
       const sel = document.getElementById('radioVTo'); if (sel) sel.onchange = () => { radioVTo = sel.value; drawRadioCmds(); };
       const go = document.getElementById('radioSendSpeed'), off = document.getElementById('radioSpeedOff'), G = F.engine.G, no = radioTrain.no;
       if (go) go.onclick = () => {
-        const to = radioVTo === '' ? null : +radioVTo, until = to == null ? 'fino a nuovo ordine' : 'fino alla partenza da ' + cap(G.names[to]);
-        say('DCT', `Treno ${no}, limita la velocità a ${radioVSel} km/h ${until}. Passo.`, 'pc');
+        const to = radioVTo === '' ? null : +radioVTo, until = to == null ? tx('pezzo.velocita.fino_nuovo_ordine') : tx('pezzo.velocita.fino_partenza', { stazione: cap(G.names[to]) });
+        say('DCT', tx('treno.velocita.ordine', { treno: no, velocita: radioVSel, fino: until }), 'pc');
         F.ag.event({ kind: 'order', k: tr.agentK, what: 'speed', arg: { kmh: radioVSel, to } });
         (CALLS[tr.agentK] = CALLS[tr.agentK] || {}).vlimTo = to;
-        driverSays(pick([`Ricevuto DCT, marcia a ${radioVSel} km/h ${until}. Passo.`, `Copiato, ${radioVSel} all'ora ${until}. Passo.`]));
+        driverSays(tx('treno.velocita.risposta', { velocita: radioVSel, fino: until }));
       };
       if (off) off.onclick = () => {
-        say('DCT', `Treno ${no}, annulla la limitazione di velocità, riprendi la marcia normale. Passo.`, 'pc');
+        say('DCT', tx('treno.velocita.annulla', { treno: no }), 'pc');
         F.ag.event({ kind: 'order', k: tr.agentK, what: 'speedoff' });
-        driverSays('Ricevuto DCT, riprendo la velocità normale. Passo.');
+        driverSays(tx('treno.velocita.annulla_risposta'));
       };
     }
     function drawRadioCmds() {
@@ -330,93 +330,94 @@
         const n = nextStop(F, tr); if (!n) return;
         tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {};
         const before = tr.env.extra[n.key] || 0, total = before + radioStopSel;
-        say('DCT', `Treno ${radioTrain.no}, ${WHY_TXT[radioWhy]}: ${before ? 'aggiungi ' + (radioStopSel === 60 ? 'un altro minuto' : 'altri ' + durTxt(radioStopSel)) + ' di sosta' : 'fai una sosta di ' + durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`, 'pc');
+        const quanto = radioStopSel === 60 ? tx('pezzo.sosta.altro_minuto') : tx('pezzo.sosta.altri', { durata: durTxt(radioStopSel) });
+        const sv = { treno: radioTrain.no, motivo: tx(WHY_TXT[radioWhy]), durata: durTxt(radioStopSel), aggiunta: quanto, stazione: cap(n.name) };
+        say('DCT', before ? tx('treno.sosta.ordine_aggiunta', sv) : tx('treno.sosta.ordine', sv), 'pc');
         tr.env.extra[n.key] = total; relive(tr);           // a second order adds to the first (one more minute = one more minute)
         const w0 = radioWatch.find(w => w.tr === tr && w.key === n.key);
         if (w0) w0.dur = total; else radioWatch.push({ tr, F, key: n.key, name: n.name, dur: total, said: 0 });
-        if (before) { driverSays(`Ricevuto DCT, ${radioStopSel === 60 ? 'un altro minuto' : 'altri ' + durTxt(radioStopSel)} a ${cap(n.name)}: in tutto ${durTxt(total)} di sosta in più. Avviso i passeggeri. Passo.`); return; }
+        if (before) { driverSays(tx('treno.sosta.risposta_aggiunta', { aggiunta: quanto, stazione: cap(n.name), totale: durTxt(total) })); return; }
         const st0 = trainState(F, tr, state.t);
         const dawn = state.t < 6 * 3600 + 15 * 60 && radioWhy !== 'nessun motivo';
         if (radioWhy === 'treno davanti in ritardo' && st0.trip >= 0 && firstRuns(F).has(st0.trip))
-          driverSays(pick([`Ritardo il treno davanti? DCT, sono il primo della giornata: davanti a me ci sono solo i topi e il buio. Va bene, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`,
-                           `Davanti a me? DCT, ho aperto io la linea stamattina, davanti non c'è nessuno! Faccio comunque ${durTxt(radioStopSel)} a ${cap(n.name)}, magari il caffè è ancora caldo. Passo.`]));
-        else if (dawn) driverSays(`Iniziamo bene la giornata! Ricevuto, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Passo.`);
-        else if (radioStopSel > 30 && st0.trip >= 0 && lastRuns(F).has(st0.trip)) driverSays(`Ricevuto, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Il collega non ha voglia di tornare a casa? Passo.`);
-        else driverSays(pick([`Ricevuto DCT, sosta di ${durTxt(radioStopSel)} a ${cap(n.name)}. Avviso i passeggeri. Passo.`,
-                         `Copiato, DCT. A ${cap(n.name)} tengo le porte aperte ${durTxt(radioStopSel)}. Passo e chiudo.`,
-                         `Ricevuto. Fermata prolungata a ${cap(n.name)}, ${durTxt(radioStopSel)}. Passo.`]));
+          driverSays(tx('treno.sosta.risposta_primo_treno', sv));
+        else if (dawn) driverSays(tx('treno.sosta.risposta_alba', sv));
+        else if (radioStopSel > 30 && st0.trip >= 0 && lastRuns(F).has(st0.trip)) driverSays(tx('treno.sosta.risposta_ultimo_treno', sv));
+        else driverSays(tx('treno.sosta.risposta', sv));
       };
       const pGo = document.getElementById('placeGo');
       if (pGo) pGo.onclick = () => { const q = document.getElementById('placeSel').value, k = tr.agentK; if (q === F.depot.target[k]) return;
         const old = F.depot.target[k]; delete F.depot.target[k];
-        if (!pastEntrance(F, k) && depotAssign(F, k, q)) { say('DCT', `Treno ${radioTrain.no}, cambio posto in deposito: vai in ${depotName(F, q)}. Passo.`, 'pc'); driverSays(`Ricevuto DCT, vado in ${depotName(F, q)}. Passo.`); }
-        else { F.depot.target[k] = old; say('DCT', `Treno ${radioTrain.no}, vai in ${depotName(F, q)}. Passo.`, 'pc'); driverSays('Negativo DCT, ho già passato l\'ingresso del deposito. Passo.'); }
+        if (!pastEntrance(F, k) && depotAssign(F, k, q)) { say('DCT', tx('treno.posto.ordine', { treno: radioTrain.no, posto: depotName(F, q) }), 'pc'); driverSays(tx('treno.posto.risposta', { posto: depotName(F, q) })); }
+        else { F.depot.target[k] = old; say('DCT', tx('treno.posto.ordine_tardi', { treno: radioTrain.no, posto: depotName(F, q) }), 'pc'); driverSays(tx('treno.posto.negativo')); }
         radioCmdHtml = ''; drawRadioCmds(); };
       const dOpen = document.getElementById('depOpen');
       if (dOpen) dOpen.onclick = () => { const q = depotAsk(F, tr.agentK); if (!q) return;
-        say('DCT', `Treno ${radioTrain.no}, apro il segnale ${sigNo(F, q.si)}, via libera per ${q.what}. Passo.`, 'pc');
+        say('DCT', tx('treno.segnale_deposito.ordine', { treno: radioTrain.no, segnale: sigNo(F, q.si), cosa: q.what }), 'pc');
         F.ag.event({ kind: 'il', what: 'clear', si: q.si }); env.resetSigs();
-        driverSays(pick(['Ricevuto DCT, segnale aperto, procedo. Passo.', 'Copiato, vedo il bianco. Mi muovo. Passo.'])); radioCmdHtml = ''; drawRadioCmds(); };
+        driverSays(tx('treno.segnale_deposito.risposta')); radioCmdHtml = ''; drawRadioCmds(); };
       const p2w = document.getElementById('p2Wait'), p2d = document.getElementById('p2Divert');
-      if (p2w) p2w.onclick = () => { say('DCT', `Treno ${radioTrain.no}, resta fermo sul tronchetto e attendi che il binario 2 si liberi. Passo.`, 'pc');
-        driverSays('Ricevuto DCT, attendo il via libera per il binario 2. Passo.'); };
+      if (p2w) p2w.onclick = () => { say('DCT', tx('treno.binario2_occupato.attendi', { treno: radioTrain.no }), 'pc');
+        driverSays(tx('treno.binario2_occupato.attendi_risposta')); };
       if (p2d) p2d.onclick = () => {
         const c = CALLS[tr.agentK], alt = c && c.p2 && tr.alts[c.p2.ai]; if (!alt) return;
-        say('DCT', `Treno ${radioTrain.no}, ti devio al binario 3: ci aspettiamo di partire dal binario 3. Passo.`, 'pc');
+        say('DCT', tx('treno.binario2_occupato.devia', { treno: radioTrain.no }), 'pc');
         const keep = tr.segs.slice(alt.i, alt.i + alt.n);
         setPlat(tr, alt, 1);
         if (F.ag.replan(tr.agentK) === false) {          // it is already past the switch: back to platform 2
           tr.segs.splice(alt.i, keep.length, ...keep); tr.starts = tr.segs.map(x => x[3][0]); alt.plat = 2; relive(tr);
-          driverSays('Negativo DCT, ho già passato lo scambio. Resto in attesa per il binario 2. Passo.');
-        } else { c.p2 = null; driverSays('Ricevuto, vado sul binario 3 e parto da lì. Passo.'); }
+          driverSays(tx('treno.binario2_occupato.devia_negativo'));
+        } else { c.p2 = null; driverSays(tx('treno.binario2_occupato.devia_risposta')); }
       };
       const cancel = document.getElementById('radioCancel');
-      if (cancel) cancel.onclick = () => { say('DCT', `Treno ${radioTrain.no}, annulla la sosta prolungata, servizio regolare. Passo.`, 'pc');
+      if (cancel) cancel.onclick = () => { say('DCT', tx('treno.sosta.annulla', { treno: radioTrain.no }), 'pc');
         radioWatch.filter(w => w.tr === tr).forEach(w => { delete tr.env.extra[w.key]; radioWatch.splice(radioWatch.indexOf(w), 1); });
-        relive(tr); driverSays('Ricevuto DCT, riprendo il servizio regolare. Passo.'); };
+        relive(tr); driverSays(tx('treno.sosta.annulla_risposta')); };
       radioCmds.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => {
         const a = tr.alts[+b.dataset.ai], pl = +b.dataset.rp;
-        say('DCT', `Treno ${radioTrain.no}, a San Donato si aspetti di partire dal binario ${pl}. Passo.`, 'pc');
+        say('DCT', tx('treno.binario_partenza.ordine', { treno: radioTrain.no, binario: pl }), 'pc');
         tr.segs.splice(a.i, a.n, ...JSON.parse(JSON.stringify(a.opts[String(pl)]))); tr.starts = tr.segs.map(x => x[3][0]); a.plat = pl;
         if (tr.env) tr.env.extra = {}; relive(tr);
-        driverSays(`Ricevuto, ci aspettiamo di partire dal binario ${pl}. Passo.`);
+        driverSays(tx('treno.binario_partenza.risposta', { binario: pl }));
         closeAfter(F, tr, a.dep);
       });
       radioCmds.querySelectorAll('[data-rt]').forEach(b => b.onclick = () => {
         const c = tr.calts[+b.dataset.ci], t = +b.dataset.rt, nm = c.names[t];
-        say('DCT', `Treno ${radioTrain.no}, a Comasina vai nel tronchetto ${nm}. Passo.`, 'pc');
+        say('DCT', tx('treno.tronchetto.ordine', { treno: radioTrain.no, tronchetto: nm }), 'pc');
         const plan = tailChain(F, tr, c, t) || (!tailBusy(F, tr, t, c) ? [{ tr, c, to: t }] : null);
-        if (!plan) { driverSays(`Negativo DCT, il tronchetto ${nm} resta occupato troppo a lungo. Resto sul programmato. Passo.`); return; }
+        if (!plan) { driverSays(tx('treno.tronchetto.negativo', { tronchetto: nm })); return; }
         if (plan.length > 1) {
           plan.forEach(p => { applyAlt(p.tr, p.c.i, p.c.n, p.c.opts[String(p.to)], true); p.c.tail = p.to; });
           reliveFleet(F, null);
           const others = [...new Set(plan.slice(1).map(p => trainNo(F, p.tr)))];
-          driverSays(`Ricevuto, a Comasina entro nel tronchetto ${nm}. ` + (others.length === 1 ? `Il treno ${others[0]} cambia tronchetto.` : `Cambiano tronchetto anche i treni ${others.join(', ')}.`) + ' Passo.');
+          driverSays(others.length === 1 ? tx('treno.tronchetto.risposta_cambia_altro', { tronchetto: nm, treno2: others[0] })
+                                         : tx('treno.tronchetto.risposta_cambiano_altri', { tronchetto: nm, elenco: others.join(', ') }));
           return;
         }
         const w = tailWait(F, tr, t, c);
         applyAlt(tr, c.i, c.n, c.opts[String(t)]); c.tail = t; c.done = false;
         closeAfter(F, tr, c.leave + 30);
-        driverSays(w ? `Ricevuto, tronchetto ${nm}. Attendo in banchina che il treno ${trainNo(F, w)} lo liberi. Passo.`
-                     : pick([`Ricevuto, a Comasina entro nel tronchetto ${nm}. Passo.`, `Copiato DCT, tronchetto ${nm}. Passo e chiudo.`]));
+        driverSays(w ? tx('treno.tronchetto.risposta_attendo', { tronchetto: nm, treno2: trainNo(F, w) })
+                     : tx('treno.tronchetto.risposta', { tronchetto: nm }));
       });
       const c1 = document.getElementById('radioC1');
       if (c1) c1.onclick = () => {
         const a = tr.carr1[k1];
-        say('DCT', `Treno ${radioTrain.no}, a Comasina entra al binario 1 e cambia banco lì. Passo.`, 'pc');
-        if (!a || a.done || state.t > a.close) { driverSays('Negativo DCT, sono già troppo vicino a Comasina. Passo.'); return; }
+        say('DCT', tx('treno.comasina_binario1.ordine', { treno: radioTrain.no }), 'pc');
+        if (!a || a.done || state.t > a.close) { driverSays(tx('treno.comasina_binario1.negativo')); return; }
         (tr.calts || []).forEach(c => { if (c.i === a.i) c.done = true; });
         applyAlt(tr, a.i, a.n, a.segs); a.done = true; tr.c1 = { arr: a.arr, dep: a.dep }; if (tr.env) tr.env.extra = {};
         closeAfter(F, tr, a.dep);
-        driverSays(pick(['Ricevuto DCT, a Comasina entro al binario 1 e cambio banco in banchina. Passo.', 'Copiato, binario 1 con cambio banco in stazione. Passo e chiudo.']));
+        driverSays(tx('treno.comasina_binario1.risposta'));
       };
       const p2 = document.getElementById('radioP2');
       if (p2) p2.onclick = () => {
-        say('DCT', `Treno ${radioTrain.no}, a San Donato entra al binario 2 e cambia banco lì. Passo.`, 'pc');
+        say('DCT', tx('treno.sandonato_binario2.ordine', { treno: radioTrain.no }), 'pc');
         const before = !!tr.p2; env.p2Msg = ''; orderP2(F, tr, k2); if (tr.env) tr.env.extra = {};
         if (tr.p2 && !before) closeAfter(F, tr, tr.p2.dep);
-        if (tr.p2 && !before) driverSays(pick(['Ricevuto DCT, entro al binario 2 e cambio banco in stazione. Passo.', 'Copiato, binario 2 con inversione sul posto. Passo e chiudo.']));
-        else driverSays('Negativo DCT, ' + (env.p2Msg.replace(/^Order refused: /, '').replace('platform 2 is not free', 'il binario 2 non è libero').replace('is standing there', 'è fermo lì') || 'non posso eseguire') + ' Passo.');
+        if (tr.p2 && !before) driverSays(tx('treno.sandonato_binario2.risposta'));
+        // (the page's reason is in English: the pieces it has are said in Italian, the rest as it is)
+        else driverSays(tx('treno.sandonato_binario2.negativo', { motivo: env.p2Msg.replace(/^Order refused: /, '').replace('platform 2 is not free', () => tx('pezzo.binario2.non_libero')).replace('is standing there', () => tx('pezzo.binario2.fermo_li')) || tx('pezzo.binario2.non_posso_eseguire') }));
       };
     }
     // replace segments i..i+n-1 of a train's plan, keeping its other choices (platform, platform 2, tail) in step
@@ -467,13 +468,13 @@
       return null;
     }
     // every conversation ends when the train leaves: "Ripartito, passo. Buona giornata."
-    const BYE = 'Ripartito, passo. Buona giornata.', closing = [];
+    const BYE = () => tx('treno.ripartito'), closing = [];
     function closeAfter(F, tr, t) { const i = closing.findIndex(c => c.tr === tr); if (i >= 0) closing.splice(i, 1); closing.push({ F, tr, t }); }
     function closingTick() {
       for (let i = closing.length - 1; i >= 0; i--) { const c = closing[i];
         if (state.t < c.t) continue;
         const st = trainState(c.F, c.tr, state.t);
-        if (st.v > 0 || state.t > c.t + 1800) { if (st.v > 0) say('T' + trainNo(c.F, c.tr), BYE, 'dr'); closing.splice(i, 1); } }
+        if (st.v > 0 || state.t > c.t + 1800) { if (st.v > 0) say('T' + trainNo(c.F, c.tr), BYE(), 'dr'); closing.splice(i, 1); } }
     }
     // last passenger run of the evening in each direction (easter egg on the radio)
     let LASTRUNS = null;
@@ -498,9 +499,9 @@
     // moving by the timetable, and only after 5 minutes held at the same signal. ----
     const redStops = new Map(), dcoCalls = [];
     function sigName(bl) {
-      if (bl.kind === 'throat') return 'segnale di protezione (' + bl.name.trim() + ')';
+      if (bl.kind === 'throat') return tx('pezzo.segnale.protezione_sezione', { dove: bl.name.trim() });
       const n = cap(bl.name.slice(2)).replace(' (Blocco)', '').replace(' Arrivo', '');
-      return bl.kind === 'entry' ? 'segnale di protezione di ' + n : bl.kind === 'departure' ? 'segnale di partenza di ' + n.split(' → ')[0] : 'segnale di blocco ' + n.replace(' → ', ' – ');
+      return bl.kind === 'entry' ? tx('pezzo.segnale.protezione', { dove: n }) : bl.kind === 'departure' ? tx('pezzo.segnale.partenza', { dove: n.split(' → ')[0] }) : tx('pezzo.segnale.blocco', { dove: n.replace(' → ', ' – ') });
     }
     // does the timetable plan have this train standing still at time t? (then a red ahead is normal, no call)
     function planStanding(tr, t) {
@@ -520,9 +521,9 @@
       const c = IL.ahead(pid, from + F.engine.half, 900).find(x => IL.isManual(x.si) && il.grant[x.si] !== k); if (!c) return null;
       const st = leg ? leg.status : a.status, n = (F.engine.net.signals[c.si] || {}).n, lr = loopRole(F.trains[k].segs[a.si]);
       // #A02/#A03: from the depot onto the line; #A04/#A05: from the line into the depot; shunting signals: depot moves
-      const what = lr === 'in' || lr === 'in2' || lr === 'gate' ? 'uscita verso l\'anello di prova' : lr === 'home' ? 'rientro in deposito dall\'anello di prova'
-        : n === 2 || n === 3 ? 'entrata in linea' : n === 4 || n === 5 ? 'entrata in deposito'
-        : st === 'from_depot' || st === 'empty' && (pid !== a.pid || ag.S.t < a.wait || a.status === 'parked') ? 'uscita dal deposito' : 'manovra in deposito';
+      const what = tx(lr === 'in' || lr === 'in2' || lr === 'gate' ? 'pezzo.deposito.uscita_anello' : lr === 'home' ? 'pezzo.deposito.rientro_anello'
+        : n === 2 || n === 3 ? 'pezzo.deposito.entrata_linea' : n === 4 || n === 5 ? 'pezzo.deposito.entrata_deposito'
+        : st === 'from_depot' || st === 'empty' && (pid !== a.pid || ag.S.t < a.wait || a.status === 'parked') ? 'pezzo.deposito.uscita_deposito' : 'pezzo.deposito.manovra');
       return { si: c.si, open: il.pass[c.si] > 0, what, dist: c.d - (from + F.engine.half),
                due: ag.S.t < a.wait ? a.wait : null, red: a.red && a.red.why && a.red.why.sig === c.si ? a.red.since : null, loop: !!lr };
     }
@@ -534,46 +535,47 @@
         // depot on manual: 2 minutes before moving (or on reaching a red depot signal) the driver asks for it, again after 1 minute
         const dq = depotAsk(F, k);
         if (dq && !dq.open) {
-          const t = ag.S.t, h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? 'Buongiorno' : 'Buonasera', key = dq.si + ':' + (dq.due || 'r');
+          const t = ag.S.t, h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? tx('pezzo.saluto.giorno') : tx('pezzo.saluto.sera'), key = dq.si + ':' + (dq.due || 'r');
           const atSig = dq.red != null || dq.due != null && dq.dist < 40;           // standing in front of it
+          const dv = { saluto: hi, treno: no, segnale: sigNo(F, dq.si), cosa: dq.what };
           if (dq.loop) {          // going to (or back from) the test loop: it asks after 2 minutes at the red signal, again after 7
             const w = dq.red != null ? t - dq.red : -1;
             if (c.depKey !== key && w >= 120) { c.depKey = key; c.depAgain = false;
-              call(`${hi} DCT, qui treno ${no}: sono fermo da 2 minuti al segnale ${sigNo(F, dq.si)}, richiesta apertura per ${dq.what}. Passo.`); }
+              call(tx('chiamata.deposito.anello_due_minuti', dv)); }
             else if (c.depKey === key && !c.depAgain && w >= 420) { c.depAgain = true;
-              call(`DCT, qui treno ${no}, sono fermo da 7 minuti al segnale ${sigNo(F, dq.si)}: attendo ancora l'apertura per ${dq.what}. Passo.`); }
+              call(tx('chiamata.deposito.anello_sette_minuti', dv)); }
           } else
           if (c.depKey !== key && atSig && (dq.due == null || t >= dq.due - 120)) { c.depKey = key; c.depAgain = false;
-            call(`${hi} DCT, qui treno ${no}: richiesta apertura segnale ${sigNo(F, dq.si)} per ${dq.what}. Passo.`); }
+            call(tx('chiamata.deposito.richiesta', dv)); }
           else if (c.depKey === key && !c.depAgain && (dq.due != null ? t >= dq.due + 60 : dq.red != null && t - dq.red >= 60)) { c.depAgain = true;
-            call(`DCT, qui treno ${no}, sono ancora in attesa dell'apertura del segnale ${sigNo(F, dq.si)} per ${dq.what}. Passo.`); }
+            call(tx('chiamata.deposito.sollecito', dv)); }
         } else if (!dq) c.depKey = null;
         if (a.status === 'stopped' && !c.stopped) {
           c.stopped = true; const at = a.inside ? G.names[a.inside.stops[a.inside.q].st] : '';
-          call(`DCT, qui treno ${no}, fermo a ${cap(at)}: la linea davanti è interrotta. Attendo istruzioni. Passo.`);
+          call(tx('chiamata.interruzione.fermo', { treno: no, stazione: cap(at) }));
         }
         if (a.status !== 'stopped') c.stopped = false;
         // stopped at a red signal: the driver calls the DCT after 30 seconds (M3 rule), in the line and at a station
         const redCall = a.status === 'turnback' ? 300 : a.stopAt == null ? 30 : a.why === 'segnale' && !a.pcHold && !a.vlim ? 30 : Infinity;     // (at a station: 30 s too, unless the DCT ordered something)
         if (a.red && a.v === 0 && em.ag.S.t - a.red.since >= redCall && !c.red && !(dq && !dq.open && dq.red != null) && !(a.why === 'guasto' || a.why === 'tensione' || a.why === 'rosso' || a.why === 'fermo') && !(((a.red.now || a.red.why || {}).route || {}).sigFail != null || ((a.red.now || a.red.why || {}).route || {}).ghost != null || ((a.red.now || a.red.why || {}).route || {}).swHand != null)) {   // (depot signals on manual: their own calls; failures: their own calls)
           c.red = true; const w = a.red.now || a.red.why || {};
-          const what = w.sig != null ? 'al segnale ' + (typeof w.sig === 'number' && w.route !== undefined ? '#A' + String(w.sig).padStart(2, '0') : sigNo(F, w.sig)) : 'dietro al treno ' + trainNo(F, F.trains[w.train] || tr);
-          call(`DCT, qui treno ${no}, sono fermo ${what}, via impedita. Chiedo spiegazioni. Passo.`);
+          call(w.sig != null ? tx('chiamata.rosso.segnale', { treno: no, segnale: typeof w.sig === 'number' && w.route !== undefined ? '#A' + String(w.sig).padStart(2, '0') : sigNo(F, w.sig) })
+                             : tx('chiamata.rosso.dietro_treno', { treno: no, treno2: trainNo(F, F.trains[w.train] || tr) }));
         }
-        if (!a.red && c.red) { c.red = false; say('T' + no, `Qui ${no}, via libera. Ripartito, passo. Buona giornata.`, 'dr'); }
+        if (!a.red && c.red) { c.red = false; say('T' + no, tx('chiamata.rosso.via_libera', { treno: no }), 'dr'); }
         // San Donato: from the tail towards platform 2 while a train reverses there: it waits, then asks the DCT
         if (a.mode === 'plan' && !a.hidden && a.stopAt == null && a.v === 0 && a.red && em.ag.S.t - a.red.since >= 30 && !c.p2) {
           const ai = (tr.alts || []).findIndex(x => x.plat === 2 && state.t <= x.leave && x.leave - state.t < 15 * 60 && x.opts['1']);
           const o = ai >= 0 ? trainOnPlatform(F, P2WAY, state.t, tr) : null;
           if (o && o.p2 && state.t <= o.p2.dep + 60) { c.p2 = { ai };
-            call(`DCT, qui treno ${no}, sono sul tronchetto di San Donato: il binario 2 è occupato dal treno ${trainNo(F, o)} in retrocessione. Resto fermo o mi mandate al binario 3? Chiedo istruzioni. Passo.`); }
+            call(tx('chiamata.binario2_occupato', { treno: no, treno2: trainNo(F, o) })); }
         }
         if (c.p2 && (!a.red || !tr.alts[c.p2.ai] || tr.alts[c.p2.ai].plat !== 2)) c.p2 = null;
         if (c.vlimTo != null && !a.vlim) { const where = G.names[c.vlimTo]; c.vlimTo = null;
-          if (!radioEl.hidden && radioTrain && radioTrain.tr === tr) say('T' + no, `Qui ${no}, lasciata ${cap(where)}: fine limitazione, riprendo la velocità normale. Passo.`, 'dr'); }
+          if (!radioEl.hidden && radioTrain && radioTrain.tr === tr) say('T' + no, tx('treno.velocita.fine_limitazione', { treno: no, stazione: cap(where) }), 'dr'); }
         if (a.late != null && a.late > 600 && (!c.late || em.ag.S.t - c.late > 900)) {
           c.late = em.ag.S.t;
-          call(`DCT, qui treno ${no}, siamo in forte ritardo (+${Math.round(a.late / 60)} min). Chiedo istruzioni. Passo.`);
+          call(tx('chiamata.ritardo', { treno: no, ritardo: Math.round(a.late / 60) }));
         }
       });
     }
@@ -600,7 +602,7 @@
           }
         }
         const w = redStops.get(tr);
-        if (!red) { if (w) { if (w.called) say('T' + trainNo(F, tr), `Qui ${trainNo(F, tr)}, ${w.name} a via libera. ${BYE}`, 'dr'); redStops.delete(tr); } return; }
+        if (!red) { if (w) { if (w.called) say('T' + trainNo(F, tr), tx('chiamata.rosso.via_libera_segnale', { treno: trainNo(F, tr), segnale: w.name }), 'dr'); redStops.delete(tr); } return; }
         if (!w) {
           // at a platform = a timetable stop of the planned run, not just near a station
           const ps = tr.segs[o.seg], pds = ps && ps[0] === o.pid ? ps[4] : [];
@@ -612,7 +614,7 @@
           w.called = true; dcoCalls.push({ t: state.t, train: trainNo(F, tr), sig: w.name });
           if (radioEl.hidden) openRadio(F, tr);
           radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000);
-          say('T' + trainNo(F, tr), `DCT, qui treno ${trainNo(F, tr)}, sono fermo al ${w.name}, via impedita. Chiedo spiegazioni. Passo.`, 'call');
+          say('T' + trainNo(F, tr), tx('chiamata.rosso.cinque_minuti', { treno: trainNo(F, tr), segnale: w.name }), 'call');
         }
       });
     }
@@ -621,14 +623,14 @@
       stationTick();
       for (let i = radioWatch.length - 1; i >= 0; i--) {
         const w = radioWatch[i], st = trainState(w.F, w.tr, state.t), here = st.v === 0 && w.tr.segs[st.seg] && (st.seg + ':' ) && stationAt(w.F, st.pid, st.d) === w.name;
-        if (w.said === 0 && here) { w.said = 1; if (radioTrain && radioTrain.tr === w.tr) { say('T' + radioTrain.no, `Fermo a ${cap(w.name)}, porte aperte, attendo ${durTxt(w.dur)}.`, 'dr'); } }
-        else if (w.said === 1 && !here) { if (radioTrain && radioTrain.tr === w.tr) say('T' + radioTrain.no, BYE, 'dr'); radioWatch.splice(i, 1); }
+        if (w.said === 0 && here) { w.said = 1; if (radioTrain && radioTrain.tr === w.tr) { say('T' + radioTrain.no, tx('treno.sosta.inizio', { stazione: cap(w.name), durata: durTxt(w.dur) }), 'dr'); } }
+        else if (w.said === 1 && !here) { if (radioTrain && radioTrain.tr === w.tr) say('T' + radioTrain.no, BYE(), 'dr'); radioWatch.splice(i, 1); }
       }
       drawRadioCmds();
     }
 
 
-    return { say, cap, pick, trainNo, openRadio, openStationRadio, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
+    return { say, cap, trainNo, openRadio, openStationRadio, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
              radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain };
   }
   const api = { create };
