@@ -12,7 +12,9 @@
 // - segnale: the PC holds #A13 at red from its card: no route from it
 // - linea: admin menu Guasti, a signal in front of a running train stays red: the driver asks, the PC gives the marcia a vista
 // - emergenza: Emergenze PC, pulsante rosso on the stretch of a running train: it stops; Togli from the alarms: it goes again
-// - giorno: Friday 02:58 with a signal failed: at 02:59 Saturday's timetable is loaded, at 03:30, the failure still there
+// - giorno: Friday 02:58 with a signal failed: at 02:59 Saturday's timetable comes in without leaving the page, the failure still there
+// - turni: Turni del giorno: a reserve train on a tabella before it leaves; it leaves from its own place
+// - settimana: seven changes of day in a row; every tabella has a train; depot trains start from their places; maintenance
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
 //   admitted from the admin menu at night, from the next day it runs a traditional train's duties, out of its own place
 // - comasina: by radio, a train from San Donato goes into Comasina platform 1 and changes cab there (no tail)
@@ -322,24 +324,79 @@ const SCENARIOS = {
     });
     return { ok: a.ok && b.ok, inTest: a, admitted: b };
   },
-  async giorno(p) {    // continuity (Giovanni): Friday night into Saturday, the failures of the line carried
-    const before = await p.evaluate(async () => {
+  async giorno(p) {    // continuity (Giovanni): Friday night into Saturday, without leaving the page, the failures of the line carried
+    return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
-      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      const M = window.mtl, st = M.state; window.__stay = 1;
       document.querySelector('.dayb[data-d="5"]').click(); await sleep(300);
       st.playing = false; st.t = 26.9 * 3600; await sleep(2500);
+      let F = M.fleets.find(f => f.line === 'M3' && f.ag);
       F.ag.event({ kind: 'fault', what: 'new', fault: 'segnale', target: 232 });
       const pressed = document.querySelector('.dayb[aria-pressed="true"]').dataset.d;
-      st.speed = 60; st.playing = true; return { pressed, label: document.getElementById('day').textContent };
+      st.speed = 60; st.playing = true; const t0 = Date.now();
+      while (Date.now() - t0 < 40000 && !(st.t < 4 * 3600 && /sabato/.test(document.getElementById('day').textContent) && M.fleets.find(f => f.line === 'M3' && f.ag))) await sleep(250);
+      await sleep(1500); st.playing = false;
+      F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      const label = document.getElementById('day').textContent, failed = !!(F && F.ag.rt().sigFail && F.ag.rt().sigFail[232]);
+      return { ok: pressed === '6' && /Orario del sabato/.test(label) && window.__stay === 1 && failed, pressed, label, stayed: window.__stay === 1, failed, t: Math.round(st.t) };
     });
-    await p.waitForTimeout(4000); await p.waitForLoadState('load'); await p.waitForTimeout(7000);
-    const after = await p.evaluate(async () => {
+  },
+  async turni(p) {     // fase E: the shifts of the day; a reserve train put on a tabella before it leaves: it leaves from its place
+    return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
-      const M = window.mtl; for (let i = 0; i < 40 && !(M.fleets.find(f => f.line === 'M3' && f.ag)); i++) await sleep(250);
-      const F = M.fleets.find(f => f.line === 'M3' && f.ag);
-      return { label: document.getElementById('day').textContent, t: M.state.t, failed: !!(F && F.ag.rt().sigFail && F.ag.rt().sigFail[232]), list: F ? F.ag.FX.list().map(f => f.kind) : null };
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      st.playing = false; st.t = 3.6 * 3600; await sleep(2500);
+      document.getElementById('turniBtn').click(); await sleep(300);
+      const sel = [...document.querySelectorAll('#card select[data-tab]')].find(x => [...x.options].some(o => /riserva/.test(o.text)));
+      if (!sel) return { ok: false, why: 'no tabella that can take a reserve train', card: document.getElementById('card').innerText.slice(0, 300) };
+      const k = +sel.dataset.tab, opt = [...sel.options].find(o => /riserva/.test(o.text)), j = +opt.value;
+      const uK = M.realTrain(F, F.trains[k], st.t).units, uJ = M.realTrain(F, F.trains[j], st.t).units, pK = F.depot.at[k], pJ = F.depot.at[j];
+      sel.value = opt.value; sel.dispatchEvent(new Event('change')); await sleep(300);
+      const now = M.realTrain(F, F.trains[k], st.t).units, placeK = F.depot.at[k];
+      // on to its first departure: it leaves from the reserve's place
+      const A = () => F.ag.agents()[k], d0 = A().d, p0 = A().pid, dep = F.trains[k].segs.find(x => x[1] === 'service')[3][0];
+      st.t = dep - 900; await sleep(4000); st.speed = 30; st.playing = true; const t0 = Date.now();
+      while (Date.now() - t0 < 60000 && !(A().pid === p0 && Math.abs(A().d - d0) >= 50) && st.t < dep + 600) await sleep(200);
+      st.playing = false; const a = A();
+      return { ok: now === uJ && String(placeK) === String(pJ) && F.trains[k].segs.find(s => s[1] === 'from_depot' || s[5] != null)[5] == pJ && Math.abs(a.d - d0) >= 50 && a.pid === p0,
+        tabella: F.trains[k].n, before: uK, after: now, place: [pK, pJ, placeK], moved: Math.round(Math.abs(a.d - d0)), pid: [p0, a.pid] };
     });
-    return { ok: before.pressed === '6' && /sabato/.test(after.label) && after.t < 4 * 3600 && after.failed, before, after };
+  },
+  async settimana(p) {  // fase E: a whole week of changes of day without leaving the page. Every day every tabella has a
+    // train; the trains in the depot start from the place they stood in; a train sent to ROD for a failure on Wednesday
+    // runs no tabella on Thursday and Friday and is back on Saturday
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state; window.__stay = 1;
+      try { localStorage.removeItem('mtl-maint'); } catch (e) {}
+      document.querySelector('.dayb[data-d="1"]').click(); await sleep(300);
+      const F_ = () => M.fleets.find(f => f.line === 'M3' && f.ag);
+      const days = [];
+      let broken = null;
+      for (let d = 0; d < 7; d++) {
+        st.playing = false; st.t = 26.95 * 3600; await sleep(2000);
+        let F = F_();
+        // the places of the trains in the depot tonight
+        const before = {}; F.trains.forEach((tr, k) => { const r = M.realTrain(F, tr, st.t), q = F.depot && F.depot.at[k]; if (r && r.units && q != null) before[r.units] = String(q); });
+        if (d === 2) {          // Wednesday: a train in service goes to ROD for a failure
+          const k = F.trains.findIndex(tr => { const r = M.realTrain(F, tr, st.t); return r && r.tab != null; });
+          broken = M.realTrain(F, F.trains[k], st.t).units; F.ag.S.faults.list.push({ id: 9999, kind: 'trazione', k, t0: st.t, done: st.t, maint: 2 });
+        }
+        const label0 = document.getElementById('day').textContent;
+        st.speed = 60; st.playing = true; const t0 = Date.now();
+        while (Date.now() - t0 < 40000 && !(st.t < 4 * 3600 && document.getElementById('day').textContent !== label0)) await sleep(200);
+        await sleep(800); st.playing = false;
+        F = F_();
+        const tabs = F.trains.filter(tr => tr.segs.some(s => s[1] === 'service')), noTrain = tabs.filter(tr => { const r = M.realTrain(F, tr, st.t); return !r || r.missing || r.none; }).length;
+        let same = 0, moved = 0; F.trains.forEach((tr, k) => { const r = M.realTrain(F, tr, st.t), q = F.depot && F.depot.at[k]; if (!r || !before[r.units] || q == null) return; if (String(q) === before[r.units]) same++; else moved++; });
+        const brokenTab = broken ? F.trains.some(tr => { const r = M.realTrain(F, tr, st.t); return r && r.units === broken && r.tab != null; }) : null;
+        let maintLeft = null; try { maintLeft = broken ? (JSON.parse(localStorage.getItem('mtl-maint') || '{}')[broken] || null) : null; } catch (e) {}
+        days.push({ label: document.getElementById('day').textContent.split(' · ')[1], tabs: tabs.length, noTrain, same, moved, brokenTab, maintLeft });
+      }
+      const ok = window.__stay === 1 && days.every(x => x.noTrain === 0) && days.every(x => x.same >= x.moved * 3)
+        && days[2].brokenTab === false && days[3].brokenTab === false && days[4].maintLeft == null && /lunedì/.test(days[6].label);
+      return { ok, stayed: window.__stay === 1, broken, days };
+    });
   },
 };
 

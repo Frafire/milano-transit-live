@@ -331,11 +331,13 @@
         else if (f.kind === 'porte_persone') { say(f, 'pc', tx('guasto.porte_persone.manda_agente', { stazione: name(f.st) })); say(f, 'ag', tx('guasto.porte_persone.libero_porte')); f.agent = S.t; }
         else if (f.kind === 'oggetto') { say(f, 'pc', tx('emergenza.oggetto.controllate', { stazione: name(f.st) })); say(f, 'ag', tx('emergenza.oggetto.vado_a_vedere')); f.ph = 'verify'; f.until = S.t + between(120, 300); f.found = rnd() < 1 / 3; }
       } else if (what === 'rback' || what === 'rfront') {
+        f.maint = 3;                   // (fase E: the train is out of service for the next service days: 2, 3-4 if serious)
         const rk = what === 'rback' ? L.rescue(f.k) : L.tow(f.k); if (rk == null) return { no: true };
         f.rk = rk; f.ph = 'coming';
         say(f, 'pc', what === 'rback' ? tx('soccorso.spinta') : tx('soccorso.traino'));
         say(f, 'dr', tx('soccorso.attendo'));
       } else if (what === 'badoni') {
+        f.maint = 4;
         const a = S.agents[f.k], leg = a && a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, dir = (leg && leg.dir) || (a && a.arr) || 'S';
         const far = a && a.at != null ? (dir === 'N' ? Math.min(L.last(), a.at + 1) : Math.max(1, a.at)) : 1, km = far * 0.9;
         // out of ROD 10 min, there at 25 km/h, coupling 5 min, back at 15 km/h
@@ -349,6 +351,7 @@
         else { f.ph = 'rescue'; f.until = S.t + between(1800, 3600); say(f, 'pc', tx('soccorso.badoni.nessun_treno')); }
       }
       else if (what === 'home' || what === 'homeEnd') {
+        f.maint = f.ph === 'udt' ? 3 : 2;
         if (!L.home) return { no: true };
         if (!L.home(f.k, what === 'homeEnd', f.turnX)) { if (what === 'homeEnd') { f.ph = 'homeWait'; say(f, 'pc', tx('guasto.rientro.fine_prossima_corsa')); say(f, 'dr', tx('guasto.ricevuto_passo')); return null; } return { no: true }; }
         f.ph = 'homing'; say(f, 'pc', what === 'homeEnd' ? tx('guasto.rientro.fine_corsa') : tx('guasto.rientro.prossima_stazione'));

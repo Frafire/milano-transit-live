@@ -2158,6 +2158,34 @@
     "Ricevuto DCT, marcia a {velocita} km/h {fino}. Passo.",
     "Copiato, {velocita} all'ora {fino}. Passo."
    ]
+  },
+  "dct.notte.verso_capolinea": {
+   "chi": "sistema",
+   "quando": "Cambio di giornata: a un capolinea serviva un treno in più; nella notte un treno è andato lì dal deposito",
+   "testi": [
+    "Notte: il treno {treno} è andato a vuoto dal deposito di Rogoredo a {capolinea}."
+   ]
+  },
+  "dct.notte.verso_deposito": {
+   "chi": "sistema",
+   "quando": "Cambio di giornata: a un capolinea c'era un treno più di quelli che servono il giorno dopo; nella notte è andato a vuoto al deposito di Rogoredo",
+   "testi": [
+    "Notte: il treno {treno} è andato a vuoto da {capolinea} al deposito di Rogoredo."
+   ]
+  },
+  "dct.turni.cambio": {
+   "chi": "sistema",
+   "quando": "Il DCT ha cambiato il treno di una tabella dal pannello Turni del giorno",
+   "testi": [
+    "Turni: la tabella {tabella} la fa il treno {treno}; il {treno2} prende il suo posto."
+   ]
+  },
+  "dct.turni.pronti": {
+   "chi": "sistema",
+   "quando": "Inizio della giornata di servizio: i treni sono stati dati alle tabelle",
+   "testi": [
+    "Turni di {giorno} assegnati: un treno per tabella. Si cambiano da Turni del giorno finché i treni sono fermi in deposito."
+   ]
   }
  }
 }
