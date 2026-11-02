@@ -9,14 +9,13 @@ Fatto: Orario ATM (GTFS), giornata di servizio 03:30–02:59; Satellite, ibrida,
 
 ## 1 M3 giocabile
 
-Fatto: Motore dal vivo nel browser: i treni sono agenti (accelerazione, frenata, ATO); Tutti i semafori M3, itinerari calcolati dal tracciato (138); Interlocking: itinerari della tabella, scambi, tempi, precedenze; Zona di uscita a Comasina binario 2 (comunicazione dei tronchetti libera); Pannello DCT provvisorio: scheda del semaforo, allarmi, emergenze; Chiusura di tratta: 27 tratte, binario unico, navette, riapertura; Treni contromano più lenti (30 km/h); Radio al treno, alla stazione, manutenzione di linea; Guasti D1–D5: treno, linea, persone, soccorso, sciopero, Prefettura; Riarmo: prima il macchinista da solo, poi il DCT; Arrivo diretto al binario 1 con cambio banco (radio); Flotta reale, numero del treno = tabella, matricola nella scheda; Hitachi "Galileo" 9201-9202 in prova, ammissione al servizio dall'admin; Sabato e domenica; continuità della linea tra un giorno e l'altro; Scheda treno, scheda stazione con interscambi, frontali dei treni.
+Fatto: Motore dal vivo nel browser: i treni sono agenti (accelerazione, frenata, ATO); Tutti i semafori M3, itinerari calcolati dal tracciato (138); Interlocking: itinerari della tabella, scambi, tempi, precedenze; Zona di uscita a Comasina binario 2 (comunicazione dei tronchetti libera); Pannello DCT provvisorio: scheda del semaforo, allarmi, emergenze; Chiusura di tratta: 27 tratte, binario unico, navette, riapertura; Treni contromano più lenti (30 km/h); Radio al treno, alla stazione, manutenzione di linea; Tutte le frasi della radio in un file a parte (foglio Radio dell'Excel, 306 frasi); Guasti D1–D5: treno, linea, persone, soccorso, sciopero, Prefettura; Riarmo: prima il macchinista da solo, poi il DCT; Arrivo diretto al binario 1 con cambio banco (radio); Flotta reale, numero del treno = tabella, matricola nella scheda; Hitachi "Galileo" 9201-9202 in prova, ammissione al servizio dall'admin; Sabato e domenica; continuità della linea tra un giorno e l'altro; Scheda treno, scheda stazione con interscambi, frontali dei treni.
 
 - **Prossimo** — Precedenza 8: treno dal deposito fermo al #A06 in orario passa prima dei treni dei tronchetti (Claude): Nell'Excel, non ancora nel codice
 - **Aspetta Giovanni** — Pannello DCT definitivo (Giovanni): Disegno di Giovanni
 - **Aspetta Giovanni** — Pannello di controllo del deposito (Giovanni): Bozza: pannello a parte o vista della mappa
 - **Pianificato** — Chiusura totale della linea (Claude)
 - **Pianificato** — Il DCT sceglie quale treno fa la navetta (Claude): Pannello PC riga 24
-- **In corso** — Tutte le frasi della radio in un file a parte (foglio Radio dell'Excel) (Claude)
 - **Pianificato** — Easter egg Leo583 in una chiamata rara (Claude): Dopo il file della radio
 - **Prossimo** — Testo del DCT sugli schermi (SERVIZIO LIMITATO, per disposizione della Prefettura) (Claude): Pannello PC riga 38
 - **Pianificato** — Annunci dell'agente in stazione ai passeggeri (Claude): Pannello PC riga 37

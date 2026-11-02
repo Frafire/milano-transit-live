@@ -43,7 +43,7 @@ R = [
     ('1 M3 giocabile', 'Chiusure', 'Il DCT sceglie quale treno fa la navetta', 'Pianificato', 'Claude', 'Pannello PC riga 24'),
     ('1 M3 giocabile', 'Chiusure', 'Treni contromano più lenti (30 km/h)', 'Fatto', 'Claude', ''),
     ('1 M3 giocabile', 'Radio', 'Radio al treno, alla stazione, manutenzione di linea', 'Fatto', 'Claude', ''),
-    ('1 M3 giocabile', 'Radio', 'Tutte le frasi della radio in un file a parte (foglio Radio dell\'Excel)', 'In corso', 'Claude', ''),
+    ('1 M3 giocabile', 'Radio', 'Tutte le frasi della radio in un file a parte (foglio Radio dell\'Excel, 306 frasi)', 'Fatto', 'Claude', 'tests/radio_check.js: nessun testo nel codice'),
     ('1 M3 giocabile', 'Radio', 'Easter egg Leo583 in una chiamata rara', 'Pianificato', 'Claude', 'Dopo il file della radio'),
     ('1 M3 giocabile', 'Stazioni', 'Testo del DCT sugli schermi (SERVIZIO LIMITATO, per disposizione della Prefettura)', 'Prossimo', 'Claude', 'Pannello PC riga 38'),
     ('1 M3 giocabile', 'Stazioni', 'Annunci dell\'agente in stazione ai passeggeri', 'Pianificato', 'Claude', 'Pannello PC riga 37'),
