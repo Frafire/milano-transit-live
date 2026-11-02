@@ -1632,6 +1632,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.trains.forEach((tr, k) => {
       const a = F.ag.agents()[k]; if (!a || a.hidden || a.status === 'parked' && a.mode !== 'plan') return;
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
+      // a train stuck by a failure, without power, at the red button or for a long time at a red signal: nobody knows
+      // when it comes; with no other train in the next half hour the screen shows only TRENI PER (Giovanni)
+      const T_ = F.ag.S.t, stuck = a.v < 0.1 && (['guasto', 'tensione', 'rosso', 'fermo', 'soccorso'].includes(a.why) || a.status === 'stopped' || a.pcHold
+        || (a.red && T_ - a.red.since > 300) || (F.ag.FX && F.ag.FX.list().some(f => f.k === k && ['call', 'rearm', 'help', 'coming', 'coupling', 'held', 'verify', 'udt', 'badoni', 'rescue'].includes(f.ph))));
+      if (stuck && a.stopAt !== X) return;                 // (standing at this platform: it is there)
       if (leg && leg.stops && leg.status === 'service' && leg.dir === dir) {
         if (a.stopAt === X && leg.stops[0] && leg.stops[0].st === X) { if (leg.stops.length > 1) out.push({ t: -1, here: true, pid: leg.pid }); return; }
         const z = leg.stops.find(z => z.st === X);
