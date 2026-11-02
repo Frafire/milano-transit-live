@@ -183,6 +183,17 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .scrbox .scrlab { color: var(--muted, #9aa); font: 600 12px var(--display); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
 .scr { display: block; width: 100%; max-width: 420px; border-radius: 5px; box-shadow: 0 2px 6px rgba(0,0,0,.45); }
 .stclock { display: block; height: 40px; margin: 12px auto 4px; border-radius: 3px; box-shadow: 0 0 0 2px #2b2b2b; }
+/* the station card (Giovanni's sketch, 2 Nov 2026): under the name a brushed yellow metal panel with the interchanges,
+   the two platform screens (binario pari above), the station radio right across, the clock and Chiudi at the bottom */
+.stinter { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 7px; padding: 7px 8px; margin: -2px 0 8px; border-radius: 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0) 40%, rgba(0,0,0,.08)), repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, rgba(0,0,0,.035) 1px 3px), linear-gradient(#e4bf3c, #c9a12a);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.25), 0 1px 3px rgba(0,0,0,.4); }
+.stinter img { height: 28px; width: auto; border-radius: 3px; box-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.stinter img.mx { height: 26px; }
+.stinter span { font: 600 13px/1.1 "Helvetica Neue", Helvetica, Arial, sans-serif; color: #1c1a12; letter-spacing: .02em; }
+.card .radiobtn.bar { display: block; width: 100%; margin-top: 10px; padding: 12px 10px; font-size: 23px !important; letter-spacing: .04em; }
+.stfoot { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-top: 10px; }
+.stfoot .stclock { margin: 0; } .stfoot button { justify-self: end; }
 /* the station name as on the M3 walls: a yellow band with a lighter trim, white lit letters, light panels each side */
 .stsign { display: flex; align-items: stretch; gap: 5px; padding: 5px; margin: -2px 0 6px; background: linear-gradient(#c9a336, #b38f27);
   border-top: 3px solid #e0c25a; border-bottom: 3px solid #8a6c1a; border-radius: 2px; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
@@ -623,6 +634,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   // the day just loaded after the end of the previous one (continuity): the state of the line to put back, the speed
   // the M3 mark on the train card (tools/assemble.py puts Giovanni's image here)
   const M3LOGO = '__M3LOGO__';
+  // the marks of the other lines and services (tools/assemble.py fills this from web/img/lines)
+  const LOGOS = (() => { try { return JSON.parse('__LINELOGOS__'); } catch (e) { return {}; } })();
+  // the interchanges of the M3 stations, on the yellow panel under the name (Giovanni, 2 Nov 2026): marks, or a second name
+  const INTERCHANGE = { 'ROGOREDO FS': ['S', 'R', 'TRENO'], 'LODI T.I.B.B.': ['S'], 'MISSORI': ['Università degli Studi', 'M4'], 'DUOMO': ['M1'],
+    'CENTRALE FS': ['TRENO', 'R', 'M2'], 'REPUBBLICA': ['S1', 'S2', 'S5', 'S6', 'S12', 'S13'], 'AFFORI FN': ['R', 'S2', 'S4'], 'ZARA': ['M5'] };
+  function interPanel(nm) {
+    const L_ = INTERCHANGE[nm] || INTERCHANGE[nm.replace(/\./g, '')] || INTERCHANGE[Object.keys(INTERCHANGE).find(k => k.replace(/\W/g, '') === nm.replace(/\W/g, ''))];
+    if (!L_) return '';
+    return `<div class="stinter">${L_.map(x => LOGOS[x] ? `<img src="${LOGOS[x]}" alt="${x === 'TRENO' ? 'Treni' : x}" class="${/^M\d$/.test(x) ? 'mx' : ''}">` : `<span>${x}</span>`).join('')}</div>`;
+  }
   // ---- the new trains (Hitachi "Galileo", Giovanni 2 Nov 2026): in test they stand alone and go round the test loop; the
   // admin admits them to service (kept in this browser): from the next service day (or the next time the page opens) each
   // one takes the duties of a traditional 1st-lot train, which stays in the depot in its place ----
@@ -1668,7 +1689,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const red = st.status === 'parked' || st.status === 'turnback' && still || (a && (a.hidden || a.mode === 'static' || a.waiting && still)) || (still && st.status !== 'service' && st.status !== 'stopped');
     // the car at the front: the first number of the units (8103-8104 + ...: 8103)
     const car = rt && rt.units ? (String(rt.units).match(/\d{4}/) || [''])[0] : '';
-    return { kind, dest: oos ? 'FUORI SERVIZIO' : dest, lights: red ? 'red' : 'white', no: oos || (rt && rt.tab == null) ? '' : rt && rt.n != null ? String(rt.n) : String(tr.n || ''), car };
+    return { kind, dest: oos ? 'FUORI SERVIZIO' : dest, lights: red ? 'red' : 'white', no: rt && rt.tab == null ? '' : rt && rt.n != null ? String(rt.n) : String(tr.n || ''), car };      // the tabella's number, also out of service (Giovanni)
   }
   const TACHO = { target: -135, cur: null, run: false, last: 0 };
   function tachoAnim(ts) {
@@ -1985,9 +2006,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const it = items(dCO || 'COMASINA');
       return ['2', '3'].map(pl => box('Binario ' + pl, platformScreen(t, it.filter(x => sdPlatOf(F, x.pid) === pl), 'COMASINA', false, stn))).join('');
     }
+    // binario pari (2) on top, dispari (1) below: as the tracks lie (Giovanni, 2 Nov 2026)
     if (/^COMASINA$/.test(name))
-      return box('Binario 1 · partenze', platformScreen(t, items(dSD || 'SAN DONATO'), 'SAN DONATO', false, stn)) + box('Binario 2 · arrivi', platformScreen(t, [], '', true, stn));
-    return box('Binario 1', platformScreen(t, items(dSD), 'SAN DONATO', false, stn)) + box('Binario 2', platformScreen(t, items(dCO), 'COMASINA', false, stn));
+      return box('Binario pari (2) · arrivi', platformScreen(t, [], '', true, stn)) + box('Binario dispari (1) · partenze', platformScreen(t, items(dSD || 'SAN DONATO'), 'SAN DONATO', false, stn));
+    return box('Binario pari (2)', platformScreen(t, items(dCO), 'COMASINA', false, stn)) + box('Binario dispari (1)', platformScreen(t, items(dSD), 'SAN DONATO', false, stn));
   }
   function renderBoard() {
     const [fi, bi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], b = F.boards[bi], t = state.t;
@@ -2022,8 +2044,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const nm = b.n.toUpperCase().replace(/\s+M\d$/, '').trim();
     card.innerHTML = F.line === 'M3'
       ? `<div class="stsign${nm.length > 11 ? ' long' : ''}" role="heading" aria-level="2"><span class="lb"></span><span class="lb"></span><b style="font-size:${nm.length > 13 ? 21 : nm.length > 11 ? 23 : nm.length > 9 ? 25 : 28}px">${nm}</b><span class="lb"></span><span class="lb"></span></div>
-      <div class="screens">${m3Screens(F, b, t)}</div>${platformDiagram(F, b, t)}${stationClock(t)}
-      <div class="row">${F.ag ? '<button class="radiobtn" id="stRadio">📻 Radio alla stazione</button>' : ''}<button id="closeBtn">Close</button></div>`
+      ${interPanel(nm)}<div class="screens">${m3Screens(F, b, t)}</div>
+      ${F.ag ? '<button class="radiobtn bar" id="stRadio">📻 RADIO DI STAZIONE</button>' : ''}
+      <div class="stfoot"><span></span>${stationClock(t)}<button id="closeBtn">Chiudi</button></div>`
       : `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
       <div><h2>${b.n}</h2><div class="sub">Prossimi treni</div></div></div>
       <div class="board">${rows}</div>${platformDiagram(F, b, t)}

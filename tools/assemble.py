@@ -24,6 +24,13 @@ live = base64.b64encode(gzip.compress(open('m3_live.json', 'rb').read(), 9)).dec
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 logo = os.path.join(web, 'img', 'm3_logo.png')        # the M3 mark on the train card (Giovanni's image)
 t = t.replace('__M3LOGO__', 'data:image/png;base64,' + base64.b64encode(open(logo, 'rb').read()).decode() if os.path.exists(logo) else '')
+# the marks of the other lines and services on the M3 station cards (Giovanni's images: S, R, trains, M1, M2, M4, M5...)
+ld = os.path.join(web, 'img', 'lines'); logos = {}
+if os.path.isdir(ld):
+    for fn in sorted(os.listdir(ld)):
+        nm, ext = os.path.splitext(fn); mt = {'.png': 'image/png', '.svg': 'image/svg+xml'}.get(ext)
+        if mt: logos[nm] = 'data:%s;base64,%s' % (mt, base64.b64encode(open(os.path.join(ld, fn), 'rb').read()).decode())
+t = t.replace('__LINELOGOS__', json.dumps(logos))
 t = t.replace('__DATA__', d).replace('__M3__', m).replace('__LIVE__', live)
 # Saturday and Sunday (their own builds next to this one: ../build_sat, ../build_sun); missing: '_' (the page uses the weekday)
 for suf, dn in (('6', 'build_sat'), ('7', 'build_sun')):
