@@ -1709,7 +1709,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const dt = document.getElementById('doorTile'), txt = open ? 'PORTE APERTE' : 'PORTE CHIUSE';
     if (dt.textContent !== txt) { dt.textContent = txt; dt.classList.toggle('open', open); }
     const dl = document.getElementById('delayTile'); if (!dl) return;
-    const d = trainDelay(F, tr, state.t), mm = s => Math.floor(Math.abs(s) / 60) + ':' + String(Math.round(Math.abs(s)) % 60).padStart(2, '0');
+    const d0 = trainDelay(F, tr, state.t), mm = s => Math.floor(Math.abs(s) / 60) + ':' + String(Math.round(Math.abs(s)) % 60).padStart(2, '0');
+    const d = d0 == null && dl.classList.contains('pill') && (st.trip >= 0 || st.agent && st.agent.status === 'service') ? 0 : d0;
     const dtx = d == null ? 'FUORI SERVIZIO' : d >= 60 ? 'RITARDO +' + mm(d) : d <= -60 ? 'ANTICIPO −' + mm(d) : 'IN ORARIO';
     if (dl.textContent !== dtx) { dl.textContent = dtx; dl.classList.toggle('late', d != null && d >= 120); dl.classList.toggle('early', d != null && d <= -180); }
   }
@@ -1756,7 +1757,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const logo = F.line === 'M3' && M3LOGO.startsWith('data:') ? `<img class="lnlogo" src="${M3LOGO}" alt="M3">` : `<span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>`;
     card.innerHTML = `<div class="hd">${logo}<div class="hdtx"><h2>${title}</h2>${what ? `<div class="what">${what}</div>` : ''}
         <div class="sub"><span>${no}</span>${stTxt}${F.bus ? '' : '<span class="pill" id="delayTile" hidden></span>'}</div></div></div>
-      ${info}${cab}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${testLoopBox(F, tr, st)}
+      ${info}${cab}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${trial && F.dm && tr.agentK != null && (F.dm.loopInfo(tr.agentK) || {}).onLoop ? '' : testLoopBox(F, tr, st)}
       <div class="foot"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Chiudi</button></div>`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
