@@ -1040,9 +1040,12 @@
         return;
       }
       if (a.status === 'stopped') return;
-      if (FX && FX.hold(a)) return;                      // a failure: it brakes to a stop and stands (web/faults.js)
+      // braking to a stand without its routes ahead (a failure, no power): the ATP stops it before a signal it has no
+      // route for (it never runs past one)
+      const noPass = d0 => { if (a.d <= d0) return; for (const c of RT.ahead(a.pid, d0 + half, a.d - d0)) if (c.d > d0 + half && c.d <= a.d + half && !RT.held(S.rt, a.k, a.pid, c.d)) { a.d = Math.max(d0, c.d - half - 0.5); a.v = 0; return; } };
+      { const d0 = a.d; if (FX && FX.hold(a)) { noPass(d0); return; } }    // a failure: it brakes to a stop and stands (web/faults.js)
       const zh = ZONES.length ? zoneHold(a) : null;         // no power, pulsante rosso, held by the PC: it stops and stands
-      if (zh) { if (a.v > 0) { a.v = Math.max(0, a.v - (zh.kind === 'red' ? FX.emBrake(a) : (a.brk || brk)) * DT); a.d += a.v * DT; } a.why = zh.kind === 'power' ? 'tensione' : zh.kind === 'red' ? 'rosso' : 'fermo'; return; }
+      if (zh) { const d0 = a.d; if (a.v > 0) { a.v = Math.max(0, a.v - (zh.kind === 'red' ? FX.emBrake(a) : (a.brk || brk)) * DT); a.d += a.v * DT; noPass(d0); } a.why = zh.kind === 'power' ? 'tensione' : zh.kind === 'red' ? 'rosso' : 'fermo'; return; }
       // held where it stands before this move of its day (test loop: waiting at #A94 for the loop, or for a depot place)
       if (a.mode === 'plan' && o.holdAt && o.holdAt(a.k, a.si, a)) { a.v = 0; a.why = 'anello'; return; }
       let leg = a.legs[0];
