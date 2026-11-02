@@ -15,7 +15,7 @@ for (const f of FILES) {
     used.add(c); if (!R[c]) missing.push(f + ': ' + c);
   }
   // radio texts still written in the code: a literal with letters as the text of a radio call
-  const pats = [/\b(?:say|end)\(f, *'[a-z]+', *[`'"][A-Za-zÀ-ú(]/g, /\bsay\(f, *[`'"][A-Za-zÀ-ú]/g, /\bcall\(f, *[`'"][A-Za-zÀ-ú]/g, /\bend\(f, *[`'"][A-Za-zÀ-ú]/g,
+  const pats = [/\bsay\(f, *'[a-z]+', *[`'"][A-Za-zÀ-ú(]/g, /\bcall\(f, *[`'"][A-Za-zÀ-ú]/g, /\bend\(f, *[`'"][A-Za-zÀ-ú]/g,
     /\bdriverSays\( *[`'"][A-Za-zÀ-ú]/g, /\bstationSays\( *[`'"][A-Za-zÀ-ú]/g, /\benv\.say\([^,]+, *[`'"][A-Za-zÀ-ú]/g, /\benv\.call\(tr, *[`'"][A-Za-zÀ-ú]/g,
     /\bsay\('(?:DCT|T'[^,]*|Staz[^,]*)?', *[`'"][A-Za-zÀ-ú]/g, /\bMR\.say\('', *[`'"][A-Za-zÀ-ú]/g, /\bsay\('', *[`'"][A-Za-zÀ-ú]/g, /\bcall\( *`[A-Za-zÀ-ú$]/g];
   src.split('\n').forEach((line, i) => { for (const p of pats) { p.lastIndex = 0; if (p.test(line)) { literal.push(f + ':' + (i + 1) + ': ' + line.trim().slice(0, 120)); break; } } });

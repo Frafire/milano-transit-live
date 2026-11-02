@@ -329,7 +329,7 @@
         const k = +ks, tr = F.trains[k], a = ag.agents()[k];
         if (!a || a.si !== w.si || loopRole(tr.segs[w.si]) !== w.r) { delete S.asked[k]; continue; }
         if (w.r === 'gate' && !w.said) {
-          w.said = true; const h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? env.tx('pezzo.buongiorno') : env.tx('pezzo.buonasera');
+          w.said = true; const h = Math.floor(t / 3600) % 24, hi = h >= 5 && h < 14 ? env.tx('pezzo.saluto.giorno') : env.tx('pezzo.saluto.sera');
           env.call(tr, env.tx('anello.chiamata', { saluto: hi, treno: no(k) }));
           if (IL().zoneAsk(il, zi, k)) grant(k, w.si, false);
           else { env.say('DCT', env.tx('anello.negativo', { treno: no(k), treno2: no(holder()) }), 'pc'); env.say('T' + no(k), env.tx('anello.resto_fermo'), 'dr'); }

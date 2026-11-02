@@ -1,0 +1,2163 @@
+{
+ "_about": "Le frasi della radio, dal foglio Radio di data/Regole_interlocking_M3.xlsx (tools/rules_from_excel.py). Non modificare a mano: si cambia il foglio e si rilancia lo script. {T} e {R}: i numeri del treno e del treno di soccorso.",
+ "frasi": {
+  "anello.autorizzato_attendi": {
+   "chi": "DCT",
+   "quando": "L'anello è libero quando il treno chiede, deposito in manuale: il #A94 lo apre il giocatore",
+   "testi": [
+    "Treno {treno}, autorizzato: l'anello di prova è tuo, attendi l'apertura del #A94. Passo."
+   ]
+  },
+  "anello.autorizzato_entra": {
+   "chi": "DCT",
+   "quando": "L'anello è libero quando il treno chiede, deposito in automatico: via libera al #A94",
+   "testi": [
+    "Treno {treno}, autorizzato: via libera al #A94, entra nell'anello di prova. Passo."
+   ]
+  },
+  "anello.chiamata": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo al #A94 e chiama il DCT per entrare nell'anello di prova",
+   "testi": [
+    "{saluto} DCT, qui treno {treno}, fermo al segnale #A94: chiedo l'autorizzazione per entrare nell'anello di prova. Passo."
+   ]
+  },
+  "anello.chiedi": {
+   "chi": "DCT",
+   "quando": "Il DCT manda un treno dal suo posto in deposito a fare dei giri sull'anello di prova",
+   "testi": [
+    "Treno {treno}, dal {posto} vai al segnale #A94 e chiedi l'anello di prova: {giri}. Passo."
+   ]
+  },
+  "anello.chiedi_ricevuto": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma l'ordine di andare sull'anello di prova",
+   "testi": [
+    "Ricevuto DCT, {giri} sull'anello di prova, vado al #A94. Passo."
+   ]
+  },
+  "anello.entro": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma che entra nell'anello di prova",
+   "testi": [
+    "Ricevuto, entro nell'anello. Passo."
+   ]
+  },
+  "anello.esci_a94": {
+   "chi": "DCT",
+   "quando": "Il treno ha finito i giri e va in un capannone ovest: torna indietro passando dal #A94",
+   "testi": [
+    "Ricevuto treno {treno}, vai in {posto}: esci dall'anello passando dal #A94. Passo."
+   ]
+  },
+  "anello.fuori": {
+   "chi": "macchinista",
+   "quando": "La coda del treno ha passato il #A94 o il #A95 uscendo: l'anello di prova è di nuovo libero",
+   "testi": [
+    "DCT, qui treno {treno}: sono fuori dall'anello, dopo il {segnale}. Anello di prova libero. Passo."
+   ]
+  },
+  "anello.giri_finiti": {
+   "chi": "macchinista",
+   "quando": "Il treno sta finendo l'ultimo giro e avvisa che esce dall'anello dal #A96",
+   "testi": [
+    "DCT, qui treno {treno}: giri finiti, esco dall'anello dal #A96. Passo."
+   ]
+  },
+  "anello.libero_attendi": {
+   "chi": "DCT",
+   "quando": "L'anello di prova si è liberato: il treno che aspettava al #A94 aspetta che il giocatore apra il segnale (deposito in manuale)",
+   "testi": [
+    "Treno {treno}, l'anello di prova è libero: attendi l'apertura del #A94 ed entra. Passo."
+   ]
+  },
+  "anello.libero_entra": {
+   "chi": "DCT",
+   "quando": "L'anello di prova si è liberato: il treno che aspettava al #A94 può entrare (deposito in automatico)",
+   "testi": [
+    "Treno {treno}, l'anello di prova è libero: via libera al #A94, entra. Passo."
+   ]
+  },
+  "anello.negativo": {
+   "chi": "DCT",
+   "quando": "Il treno chiede l'anello ma c'è dentro un altro treno",
+   "testi": [
+    "Negativo treno {treno}: l'anello di prova è occupato dal treno {treno2}. Resta fermo al #A94, ti richiamo io. Passo."
+   ]
+  },
+  "anello.nessun_posto": {
+   "chi": "DCT",
+   "quando": "Il treno ha finito i giri ma in deposito non c'è un posto libero per lui",
+   "testi": [
+    "Ricevuto treno {treno}: nessun posto libero, fermati dopo il #A95 e attendi. Passo."
+   ]
+  },
+  "anello.resto_fermo": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma che aspetta al #A94 che l'anello si liberi",
+   "testi": [
+    "Ricevuto, resto fermo al #A94. Passo."
+   ]
+  },
+  "anello.vado_a94": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma che va al suo posto tornando dal #A94",
+   "testi": [
+    "Vado in {posto} dal #A94. Passo."
+   ]
+  },
+  "anello.vado_posto": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma il posto in deposito dato dal DCT all'uscita dall'anello",
+   "testi": [
+    "Vado in {posto}. Passo."
+   ]
+  },
+  "anello.vai_posto": {
+   "chi": "DCT",
+   "quando": "Il treno ha finito i giri e va al suo posto dritto, senza cambiare banco",
+   "testi": [
+    "Ricevuto treno {treno}, vai in {posto}. Passo."
+   ]
+  },
+  "anello.vai_posto_attesa": {
+   "chi": "DCT",
+   "quando": "Il treno aspettava fermo dopo il #A95 senza posto: ora un posto si è liberato",
+   "testi": [
+    "Treno {treno}, vai in {posto}. Passo."
+   ]
+  },
+  "anello.vai_posto_cambia_banco": {
+   "chi": "DCT",
+   "quando": "Il treno ha finito i giri e per andare al suo posto deve fermarsi dopo il #A95 e cambiare banco",
+   "testi": [
+    "Ricevuto treno {treno}, vai in {posto}: fermati dopo il #A95 e cambia banco. Passo."
+   ]
+  },
+  "canale.aperto": {
+   "chi": "sistema",
+   "quando": "Il giocatore apre la radio per la prima volta",
+   "testi": [
+    "Canale aperto. Tu sei il Dirigente Centrale del Traffico (DCT)."
+   ]
+  },
+  "chiamata.binario2_occupato": {
+   "chi": "macchinista",
+   "quando": "San Donato: il treno sul tronchetto trova il binario 2 occupato da un treno in retrocessione",
+   "testi": [
+    "DCT, qui treno {treno}, sono sul tronchetto di San Donato: il binario 2 è occupato dal treno {treno2} in retrocessione. Resto fermo o mi mandate al binario 3? Chiedo istruzioni. Passo."
+   ]
+  },
+  "chiamata.deposito.anello_due_minuti": {
+   "chi": "macchinista",
+   "quando": "Anello di prova: il treno è fermo da 2 minuti al segnale rosso",
+   "testi": [
+    "{saluto} DCT, qui treno {treno}: sono fermo da 2 minuti al segnale {segnale}, richiesta apertura per {cosa}. Passo."
+   ]
+  },
+  "chiamata.deposito.anello_sette_minuti": {
+   "chi": "macchinista",
+   "quando": "Anello di prova: il treno è fermo da 7 minuti al segnale rosso",
+   "testi": [
+    "DCT, qui treno {treno}, sono fermo da 7 minuti al segnale {segnale}: attendo ancora l'apertura per {cosa}. Passo."
+   ]
+  },
+  "chiamata.deposito.richiesta": {
+   "chi": "macchinista",
+   "quando": "Deposito in manuale: il treno chiede l'apertura del segnale (davanti al segnale, 2 minuti prima di partire)",
+   "testi": [
+    "{saluto} DCT, qui treno {treno}: richiesta apertura segnale {segnale} per {cosa}. Passo."
+   ]
+  },
+  "chiamata.deposito.sollecito": {
+   "chi": "macchinista",
+   "quando": "Deposito in manuale: il segnale è ancora rosso un minuto dopo la richiesta",
+   "testi": [
+    "DCT, qui treno {treno}, sono ancora in attesa dell'apertura del segnale {segnale} per {cosa}. Passo."
+   ]
+  },
+  "chiamata.interruzione.fermo": {
+   "chi": "macchinista",
+   "quando": "Il treno si ferma perché la linea davanti è interrotta",
+   "testi": [
+    "DCT, qui treno {treno}, fermo a {stazione}: la linea davanti è interrotta. Attendo istruzioni. Passo."
+   ]
+  },
+  "chiamata.ritardo": {
+   "chi": "macchinista",
+   "quando": "Il treno ha più di 10 minuti di ritardo (al massimo una volta ogni 15 minuti)",
+   "testi": [
+    "DCT, qui treno {treno}, siamo in forte ritardo (+{ritardo} min). Chiedo istruzioni. Passo."
+   ]
+  },
+  "chiamata.rosso.cinque_minuti": {
+   "chi": "macchinista",
+   "quando": "Vecchio modello (non più in uso): il treno è fermo da 5 minuti allo stesso segnale rosso",
+   "testi": [
+    "DCT, qui treno {treno}, sono fermo al {segnale}, via impedita. Chiedo spiegazioni. Passo."
+   ]
+  },
+  "chiamata.rosso.dietro_treno": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo da 30 secondi dietro a un altro treno",
+   "testi": [
+    "DCT, qui treno {treno}, sono fermo dietro al treno {treno2}, via impedita. Chiedo spiegazioni. Passo."
+   ]
+  },
+  "chiamata.rosso.segnale": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo a un segnale rosso da 30 secondi (in linea o in stazione senza ordini)",
+   "testi": [
+    "DCT, qui treno {treno}, sono fermo al segnale {segnale}, via impedita. Chiedo spiegazioni. Passo."
+   ]
+  },
+  "chiamata.rosso.via_libera": {
+   "chi": "macchinista",
+   "quando": "Il treno che aveva chiamato per il rosso riparte",
+   "testi": [
+    "Qui {treno}, via libera. Ripartito, passo. Buona giornata."
+   ]
+  },
+  "chiamata.rosso.via_libera_segnale": {
+   "chi": "macchinista",
+   "quando": "Vecchio modello (non più in uso): il segnale rosso per cui aveva chiamato torna a via libera",
+   "testi": [
+    "Qui {treno}, {segnale} a via libera. Ripartito, passo. Buona giornata."
+   ]
+  },
+  "dct.itinerario_annullato": {
+   "chi": "DCT",
+   "quando": "Il giocatore annulla dal Pannello DCT l'itinerario che parte da un segnale",
+   "testi": [
+    "DCT: itinerario da {segnale} annullato."
+   ]
+  },
+  "dct.itinerario_preparato": {
+   "chi": "DCT",
+   "quando": "Il giocatore prepara a mano un itinerario da un segnale",
+   "testi": [
+    "DCT: itinerario {itinerario} preparato da {segnale}."
+   ]
+  },
+  "dct.risposta_non_valida": {
+   "chi": "sistema",
+   "quando": "Il giocatore risponde a una chiamata di guasto che nel frattempo non vale più",
+   "testi": [
+    "DCT: risposta non più valida."
+   ]
+  },
+  "dct.scambio_bloccato": {
+   "chi": "DCT",
+   "quando": "Il giocatore blocca uno scambio nella sua posizione",
+   "testi": [
+    "DCT: scambio {scambio} bloccato."
+   ]
+  },
+  "dct.scambio_posizione": {
+   "chi": "DCT",
+   "quando": "Il giocatore manovra uno scambio dal Pannello DCT",
+   "testi": [
+    "DCT: scambio {scambio} in posizione {posizione}."
+   ]
+  },
+  "dct.scambio_sbloccato": {
+   "chi": "DCT",
+   "quando": "Il giocatore sblocca uno scambio",
+   "testi": [
+    "DCT: scambio {scambio} sbloccato."
+   ]
+  },
+  "dct.segnale_restituito": {
+   "chi": "DCT",
+   "quando": "Il giocatore toglie il rosso fisso e ridà il segnale all'apparato",
+   "testi": [
+    "DCT: {segnale} restituito all'apparato."
+   ]
+  },
+  "dct.segnale_rosso": {
+   "chi": "DCT",
+   "quando": "Il giocatore mette un segnale a rosso fisso dal Pannello DCT",
+   "testi": [
+    "DCT: {segnale} rosso fisso."
+   ]
+  },
+  "dct.segnale_via_libera": {
+   "chi": "DCT",
+   "quando": "Il giocatore dà dal Pannello DCT via libera al prossimo treno a un segnale",
+   "testi": [
+    "DCT: {segnale} via libera al prossimo treno."
+   ]
+  },
+  "dct.tratta_chiusa": {
+   "chi": "sistema",
+   "quando": "Il giocatore chiude una tratta della linea; in coda le eventuali navette (pezzo.navetta_libera, pezzo.navetta_treno)",
+   "testi": [
+    "DCT: tratta {tratta} chiusa alle {ora}. I treni girano alle stazioni di fine tratta.{navette}"
+   ]
+  },
+  "dct.tratta_riaperta": {
+   "chi": "sistema",
+   "quando": "Il giocatore riapre la tratta chiusa",
+   "testi": [
+    "DCT: tratta {tratta} riaperta. 40 km/h sulla tratta per 20 minuti. Ogni treno prende la prima partenza scoperta (il DCT può assegnarne un'altra via radio)."
+   ]
+  },
+  "emergenza.dct.fermo_treni": {
+   "chi": "DCT",
+   "quando": "Il DCT ferma a mano i treni su una tratta (Emergenze)",
+   "testi": [
+    "Fermo i treni tra {tratta}."
+   ]
+  },
+  "emergenza.dct.pulsante_rosso": {
+   "chi": "DCT",
+   "quando": "Il DCT preme a mano il pulsante rosso su una tratta (Emergenze)",
+   "testi": [
+    "Pulsante rosso tra {tratta}: tutti i semafori a rosso, tutti i treni fermi!"
+   ]
+  },
+  "emergenza.dct.tolgo_tensione": {
+   "chi": "DCT",
+   "quando": "Il DCT toglie a mano la tensione su una tratta (Emergenze)",
+   "testi": [
+    "Tolgo tensione tra {tratta}."
+   ]
+  },
+  "emergenza.dct.tolto_fermo": {
+   "chi": "DCT",
+   "quando": "Il DCT toglie il fermo dei treni messo da lui",
+   "testi": [
+    "DCT: tolto il fermo dei treni tra {tratta}."
+   ]
+  },
+  "emergenza.dct.tolto_rosso": {
+   "chi": "DCT",
+   "quando": "Il DCT toglie il pulsante rosso messo da lui",
+   "testi": [
+    "DCT: tolto il pulsante rosso tra {tratta}."
+   ]
+  },
+  "emergenza.dct.tolto_tensione": {
+   "chi": "DCT",
+   "quando": "Il DCT toglie il taglio di tensione messo da lui",
+   "testi": [
+    "DCT: tolto il taglio di tensione tra {tratta}."
+   ]
+  },
+  "emergenza.incendio.allarme": {
+   "chi": "stazione",
+   "quando": "Incendio in stazione: l'agente avvisa il DCT",
+   "testi": [
+    "DCT, qui {stazione}: incendio in stazione, fumo e allarme antincendio!"
+   ]
+  },
+  "emergenza.incendio.chiudo": {
+   "chi": "DCT",
+   "quando": "Incendio: il DCT chiude la stazione e chiama i vigili del fuoco",
+   "testi": [
+    "Chiudo {stazione}: i treni non fermano. Chiamo i vigili del fuoco; agente, fai uscire i passeggeri."
+   ]
+  },
+  "emergenza.incendio.faccio_uscire": {
+   "chi": "stazione",
+   "quando": "Incendio: l'agente fa uscire i passeggeri",
+   "testi": [
+    "Ricevuto DCT, faccio uscire tutti."
+   ]
+  },
+  "emergenza.incendio.fumo": {
+   "chi": "stazione",
+   "quando": "Incendio: il fumo arriva in galleria",
+   "testi": [
+    "DCT, qui {stazione}: c'è fumo in galleria!"
+   ]
+  },
+  "emergenza.incendio.fumo_tensione_tolta": {
+   "chi": "DCT",
+   "quando": "Fumo in galleria: il DCT ferma i treni e toglie tensione",
+   "testi": [
+    "Fumo in galleria a {stazione}: treni fermi, tensione tolta."
+   ]
+  },
+  "emergenza.incendio.riaperta": {
+   "chi": "DCT",
+   "quando": "Incendio spento: il DCT riapre la stazione",
+   "testi": [
+    "DCT: {stazione} riaperta."
+   ]
+  },
+  "emergenza.incendio.spento": {
+   "chi": "vigili del fuoco",
+   "quando": "I vigili del fuoco hanno spento l'incendio",
+   "testi": [
+    "DCT, qui i vigili del fuoco: incendio a {stazione} spento e verificato. La stazione può riaprire."
+   ]
+  },
+  "emergenza.investimento.allarme": {
+   "chi": "stazione",
+   "quando": "Un treno ha investito una persona in banchina",
+   "testi": [
+    "DCT, qui {stazione}: investimento! Un treno ha investito una persona in banchina. Ho chiuso i segnali della stazione."
+   ]
+  },
+  "emergenza.investimento.chiamo_soccorsi": {
+   "chi": "DCT",
+   "quando": "Investimento: il DCT chiama polizia e soccorsi e chiude la stazione",
+   "testi": [
+    "Chiamo polizia e soccorsi. {stazione} chiusa: i treni non fermano. Valuta la chiusura della tratta."
+   ]
+  },
+  "emergenza.investimento.chiudi_tratta": {
+   "chi": "stazione",
+   "quando": "Dopo un investimento la stazione resta chiusa per ore: il DCT deve chiudere una tratta",
+   "testi": [
+    "{stazione} resterà chiusa per ore: chiudi la tratta."
+   ]
+  },
+  "emergenza.investimento.riapri_tratta": {
+   "chi": "stazione",
+   "quando": "Investimento finito con una tratta chiusa: la stazione è riaperta, va riaperta la tratta",
+   "testi": [
+    "{stazione} riaperta, tensione ridata. Riapri la tratta chiusa."
+   ]
+  },
+  "emergenza.investimento.rilievi_finiti": {
+   "chi": "stazione",
+   "quando": "Investimento: la polizia ha finito i rilievi",
+   "testi": [
+    "DCT, qui {stazione}: la polizia ha finito i rilievi. Si può ridare tensione; il treno va portato in deposito."
+   ]
+  },
+  "emergenza.investimento.tratta_chiusa": {
+   "chi": "DCT",
+   "quando": "Investimento: il DCT ha chiuso la tratta scelta",
+   "testi": [
+    "{chiusura}: i treni girano alle stazioni di fine tratta."
+   ]
+  },
+  "emergenza.investimento.tratta_riaperta": {
+   "chi": "DCT",
+   "quando": "Dopo l'investimento il DCT riapre la tratta chiusa",
+   "testi": [
+    "DCT: tratta riaperta."
+   ]
+  },
+  "emergenza.investimento.via_libera_riaperta": {
+   "chi": "DCT",
+   "quando": "Investimento finito: il DCT ridà tensione e riapre la stazione",
+   "testi": [
+    "DCT: ridata tensione e via libera, {stazione} riaperta."
+   ]
+  },
+  "emergenza.malore_stazione.ferma_treni": {
+   "chi": "stazione",
+   "quando": "Malore in stazione: l'agente chiede di fermare un momento i treni",
+   "testi": [
+    "DCT, qui {stazione}: fermate un momento i treni in stazione, i soccorritori lavorano in banchina."
+   ]
+  },
+  "emergenza.malore_stazione.fermo_treni": {
+   "chi": "DCT",
+   "quando": "Malore in stazione: il DCT ferma i treni come chiesto dall'agente",
+   "testi": [
+    "Ricevuto {stazione}, fermo i treni in stazione."
+   ]
+  },
+  "emergenza.malore_stazione.ricevuto": {
+   "chi": "DCT",
+   "quando": "Il DCT conferma il malore in stazione e rallenta i treni in entrata",
+   "testi": [
+    "Ricevuto {stazione}. Rallento i treni in entrata."
+   ]
+  },
+  "emergenza.malore_stazione.rientrata": {
+   "chi": "stazione",
+   "quando": "Malore in stazione: la persona è stata soccorsa",
+   "testi": [
+    "Qui {stazione}: la persona è stata soccorsa, emergenza rientrata."
+   ]
+  },
+  "emergenza.malore_stazione.ripartire": {
+   "chi": "stazione",
+   "quando": "Malore in stazione: i treni fermati possono ripartire",
+   "testi": [
+    "Qui {stazione}: i treni possono ripartire, grazie."
+   ]
+  },
+  "emergenza.malore_stazione.soccorsi": {
+   "chi": "stazione",
+   "quando": "Una persona si sente male in banchina: l'agente ha chiamato i soccorsi",
+   "testi": [
+    "DCT, qui {stazione}: una persona si sente male in banchina, ho chiamato i soccorsi."
+   ]
+  },
+  "emergenza.malore_treno.ricevuto": {
+   "chi": "DCT",
+   "quando": "Il DCT conferma il malore sul treno fermo in stazione",
+   "testi": [
+    "Ricevuto {stazione}, il treno {T} resta fermo: tenetemi informato."
+   ]
+  },
+  "emergenza.malore_treno.rientrata": {
+   "chi": "stazione",
+   "quando": "Il passeggero che si sentiva male sul treno è stato soccorso",
+   "testi": [
+    "Qui {stazione}: il passeggero è stato soccorso, emergenza rientrata. Il treno {T} può ripartire."
+   ]
+  },
+  "emergenza.malore_treno.soccorsi": {
+   "chi": "stazione",
+   "quando": "Un passeggero si sente male sul treno fermo in stazione",
+   "testi": [
+    "DCT, qui {stazione}: un passeggero si sente male sul treno {T}, ho chiamato i soccorsi. Il treno resta fermo in banchina."
+   ]
+  },
+  "emergenza.oggetto.controllate": {
+   "chi": "DCT",
+   "quando": "Oggetto sul binario: il DCT chiede alla stazione di controllare",
+   "testi": [
+    "{stazione}, controllate il binario."
+   ]
+  },
+  "emergenza.oggetto.niente": {
+   "chi": "stazione",
+   "quando": "Oggetto sul binario: l'agente ha controllato e non c'è niente",
+   "testi": [
+    "Qui {stazione}: ho controllato, sul binario non c'è niente."
+   ]
+  },
+  "emergenza.oggetto.recuperato": {
+   "chi": "stazione",
+   "quando": "L'oggetto sul binario è stato recuperato",
+   "testi": [
+    "DCT, qui {stazione}: oggetto recuperato, puoi ridare tensione."
+   ]
+  },
+  "emergenza.oggetto.segnalato": {
+   "chi": "stazione",
+   "quando": "Un passeggero dice all'agente che è caduto qualcosa sul binario",
+   "testi": [
+    "DCT, qui {stazione}: un passeggero dice che è caduto qualcosa sul binario."
+   ]
+  },
+  "emergenza.oggetto.tolgo_tensione": {
+   "chi": "DCT",
+   "quando": "Oggetto sul binario: il DCT toglie tensione in stazione per il recupero",
+   "testi": [
+    "Tolgo tensione in stazione a {stazione}: recuperate l'oggetto."
+   ]
+  },
+  "emergenza.oggetto.trovato": {
+   "chi": "stazione",
+   "quando": "Oggetto sul binario: c'è davvero, serve togliere tensione",
+   "testi": [
+    "DCT, qui {stazione}: c'è davvero un oggetto sul binario. Serve togliere tensione in stazione per recuperarlo."
+   ]
+  },
+  "emergenza.oggetto.vado_a_vedere": {
+   "chi": "stazione",
+   "quando": "Oggetto sul binario: l'agente va a vedere",
+   "testi": [
+    "Ricevuto DCT, vado a vedere."
+   ]
+  },
+  "emergenza.persona.binari": {
+   "chi": "stazione",
+   "quando": "L'agente di stazione vede una persona sui binari",
+   "testi": [
+    "DCT, qui {stazione}: c'è una persona sui binari! Ho chiuso i segnali di partenza e di protezione della stazione."
+   ]
+  },
+  "emergenza.persona.recuperata": {
+   "chi": "stazione",
+   "quando": "Persona sui binari: l'agente l'ha recuperata",
+   "testi": [
+    "DCT, qui {stazione}: la persona è stata recuperata, i binari sono liberi. Puoi ridare tensione e via libera."
+   ]
+  },
+  "emergenza.persona.risalita": {
+   "chi": "stazione",
+   "quando": "Persona sui binari: quando l'agente arriva la persona non c'è più",
+   "testi": [
+    "DCT, qui {stazione}: quando sono arrivato la persona non c'era più, è risalita. Puoi ridare tensione e via libera."
+   ]
+  },
+  "emergenza.persona.scendo": {
+   "chi": "stazione",
+   "quando": "Persona sui binari: l'agente scende a recuperarla",
+   "testi": [
+    "Ricevuto DCT, scendo a recuperare la persona."
+   ]
+  },
+  "emergenza.pulsante_rosso": {
+   "chi": "DCT",
+   "quando": "Il DCT preme il pulsante rosso e toglie tensione intorno all'emergenza",
+   "testi": [
+    "Pulsante rosso tra {da} e {a}: tutti i semafori a rosso, tolgo tensione. Tutti i treni della tratta fermi!"
+   ]
+  },
+  "emergenza.tunnel.allontanata": {
+   "chi": "polizia",
+   "quando": "La polizia ha allontanato la persona nel tunnel",
+   "testi": [
+    "DCT, qui la polizia: la persona nel tunnel tra {tratta} è stata allontanata."
+   ]
+  },
+  "emergenza.tunnel.chiamo_polizia": {
+   "chi": "DCT",
+   "quando": "Persona nel tunnel: il DCT chiama la polizia e avvisa le due stazioni",
+   "testi": [
+    "Chiamo la polizia. Stazioni di {da} e {a}: c'è una persona nel tunnel, la tratta è chiusa."
+   ]
+  },
+  "emergenza.tunnel.persona": {
+   "chi": "macchinista",
+   "quando": "Un macchinista vede una persona nel tunnel",
+   "testi": [
+    "DCT, qui un macchinista: c'è una persona nel tunnel tra {tratta}!"
+   ]
+  },
+  "emergenza.tunnel.ridata_tensione": {
+   "chi": "DCT",
+   "quando": "Persona nel tunnel allontanata: il DCT ridà tensione, primi treni in marcia a vista",
+   "testi": [
+    "DCT: ridata tensione tra {tratta}. I primi treni passano in marcia a vista."
+   ]
+  },
+  "emergenza.via_libera": {
+   "chi": "DCT",
+   "quando": "Emergenza finita: il DCT ridà tensione e via libera",
+   "testi": [
+    "DCT: ridata tensione e via libera."
+   ]
+  },
+  "energia.evacuare_chiesto": {
+   "chi": "macchinista",
+   "quando": "Senza tensione da 20 minuti: i macchinisti fermi in galleria chiedono se evacuare",
+   "testi": [
+    "DCT, qui i macchinisti tra {tratta}: siamo fermi in galleria da 20 minuti con i passeggeri. Evacuiamo?"
+   ]
+  },
+  "energia.evacuate": {
+   "chi": "DCT",
+   "quando": "Senza tensione: il DCT ordina l'evacuazione a piedi dei passeggeri",
+   "testi": [
+    "Evacuate: i macchinisti accompagnano i passeggeri a piedi alla stazione più vicina. La tensione resta tolta finché non sono tutti in stazione."
+   ]
+  },
+  "energia.mancanza": {
+   "chi": "energia",
+   "quando": "Manca la tensione su una tratta: Energia avvisa il DCT",
+   "testi": [
+    "DCT, qui Energia: mancanza di tensione tra {tratta}. I treni nella tratta sono fermi."
+   ]
+  },
+  "energia.ricevuto": {
+   "chi": "DCT",
+   "quando": "Il DCT conferma la mancanza di tensione e ferma i treni prima della tratta",
+   "testi": [
+    "Ricevuto Energia. Fermo i treni prima della tratta {tratta}."
+   ]
+  },
+  "energia.ridata": {
+   "chi": "DCT",
+   "quando": "Il DCT ridà tensione sulla tratta riparata",
+   "testi": [
+    "DCT: ridata tensione tra {tratta}. I treni ripartono."
+   ]
+  },
+  "energia.riparato": {
+   "chi": "energia",
+   "quando": "Energia ha riparato il guasto: si può ridare tensione",
+   "testi": [
+    "DCT, qui Energia: guasto riparato tra {tratta}, puoi ridare tensione."
+   ]
+  },
+  "guasto.admin.risolto": {
+   "chi": "sistema",
+   "quando": "L'admin chiude un guasto a mano",
+   "testi": [
+    "Guasto risolto (admin)."
+   ]
+  },
+  "guasto.allarme.agente_sale": {
+   "chi": "stazione",
+   "quando": "Allarme passeggero: l'agente sale sul treno",
+   "testi": [
+    "Ricevuto DCT, salgo sul treno {T}."
+   ]
+  },
+  "guasto.allarme.fermo": {
+   "chi": "macchinista",
+   "quando": "Allarme passeggero: il treno si è fermato in stazione e il macchinista chiede l'agente",
+   "testi": [
+    "DCT, treno {T}: allarme passeggero, mi sono fermato a {stazione}. Chiedo l'agente di stazione."
+   ]
+  },
+  "guasto.allarme.malore": {
+   "chi": "stazione",
+   "quando": "Allarme passeggero: l'agente trova un passeggero che si sente male",
+   "testi": [
+    "Qui {stazione}: un passeggero si sente male, chiamo i soccorsi."
+   ]
+  },
+  "guasto.allarme.manda_agente": {
+   "chi": "DCT",
+   "quando": "Allarme passeggero: il DCT manda l'agente sul treno",
+   "testi": [
+    "{stazione}, mandate l'agente sul treno {T}: allarme passeggero."
+   ]
+  },
+  "guasto.allarme.niente_di_grave": {
+   "chi": "stazione",
+   "quando": "Allarme passeggero: l'agente ha verificato, niente di grave",
+   "testi": [
+    "Qui {stazione}: verificato, niente di grave. Il treno {T} può ripartire."
+   ]
+  },
+  "guasto.ato.manuale": {
+   "chi": "macchinista",
+   "quando": "Guasto all'ATO: il macchinista avvisa il DCT che prosegue in guida manuale",
+   "testi": [
+    "DCT, treno {T}: guasto all'ATO, proseguo in guida manuale."
+   ]
+  },
+  "guasto.ato.ricevuto": {
+   "chi": "DCT",
+   "quando": "Il DCT conferma la guida manuale per il guasto ATO",
+   "testi": [
+    "Ricevuto treno {T}, prosegui in manuale."
+   ]
+  },
+  "guasto.atp.marcia_limitata": {
+   "chi": "macchinista",
+   "quando": "Guasto all'ATP: il macchinista avvisa il DCT che prosegue a 30 km/h",
+   "testi": [
+    "DCT, treno {T}: guasto all'ATP, proseguo in marcia limitata a 30 km/h."
+   ]
+  },
+  "guasto.chiede_riarmo.di_nuovo": {
+   "chi": "macchinista",
+   "quando": "Il treno ha chiesto di nuovo il riarmo: il macchinista ha riarmato da solo e avvisa il DCT",
+   "testi": [
+    "DCT, treno {T}: il treno mi ha chiesto di nuovo il riarmo{dove}. Ho riarmato e sono ripartito. Passo."
+   ]
+  },
+  "guasto.chiede_riarmo.manda_tecnico": {
+   "chi": "DCT",
+   "quando": "Il DCT chiede un tecnico per un treno che chiede continuamente il riarmo",
+   "testi": [
+    "Manutenzione di linea del deposito di Rogoredo, mandate un tecnico sul treno {T}: chiede continuamente il riarmo."
+   ]
+  },
+  "guasto.chiede_riarmo.riarmato": {
+   "chi": "macchinista",
+   "quando": "Il treno che chiede il riarmo è stato riarmato su ordine del DCT",
+   "testi": [
+    "Riarmato, riparto."
+   ]
+  },
+  "guasto.freno.non_si_allenta": {
+   "chi": "macchinista",
+   "quando": "Frenatura intempestiva e il primo riarmo da solo non allenta il freno: chiede istruzioni",
+   "testi": [
+    "DCT, treno {T}: frenatura di emergenza intempestiva{dove}, ho riarmato ma il freno non si allenta. Chiedo istruzioni."
+   ]
+  },
+  "guasto.freno.riarmato": {
+   "chi": "macchinista",
+   "quando": "Frenatura di emergenza intempestiva: il macchinista ha riarmato da solo ed è ripartito; avvisa il DCT",
+   "testi": [
+    "DCT, treno {T}: frenatura di emergenza intempestiva{dove}. Ho riarmato, il freno si è allentato e sono ripartito. Passo."
+   ]
+  },
+  "guasto.porta.esclusa": {
+   "chi": "macchinista",
+   "quando": "Una porta non si chiude: il macchinista la esclude",
+   "testi": [
+    "DCT, treno {T}: a {stazione} una porta non si chiude, la escludo e la chiudo a mano."
+   ]
+  },
+  "guasto.porta.riparto": {
+   "chi": "macchinista",
+   "quando": "Porta esclusa: il treno lascia la stazione",
+   "testi": [
+    "Porta esclusa fino al deposito, riparto."
+   ]
+  },
+  "guasto.porte_persone.chiede_agente": {
+   "chi": "macchinista",
+   "quando": "La gente blocca le porte: il macchinista chiede l'agente",
+   "testi": [
+    "DCT, treno {T}: a {stazione} la gente entra all'ultimo e non riesco a chiudere le porte. Chiedo l'agente."
+   ]
+  },
+  "guasto.porte_persone.libero_porte": {
+   "chi": "stazione",
+   "quando": "Persone bloccano le porte: l'agente va a liberarle",
+   "testi": [
+    "Ricevuto DCT, libero le porte."
+   ]
+  },
+  "guasto.porte_persone.manda_agente": {
+   "chi": "DCT",
+   "quando": "Persone bloccano le porte: il DCT manda l'agente in banchina",
+   "testi": [
+    "{stazione}, mandate l'agente in banchina al treno {T}: non chiude le porte."
+   ]
+  },
+  "guasto.riarmo.non_riuscito": {
+   "chi": "macchinista",
+   "quando": "Il riarmo ordinato dal DCT non è riuscito: chiede istruzioni",
+   "testi": [
+    "DCT, treno {T}: riarmo non riuscito ({tentativo}°). Chiedo istruzioni."
+   ]
+  },
+  "guasto.riarmo.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT dice al macchinista di riarmare",
+   "testi": [
+    "Treno {T}, riarma il treno."
+   ]
+  },
+  "guasto.riarmo.ricevuto": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma che riarma",
+   "testi": [
+    "Ricevuto DCT, riarmo."
+   ]
+  },
+  "guasto.riarmo.riuscito": {
+   "chi": "macchinista",
+   "quando": "Il riarmo ordinato dal DCT è riuscito",
+   "testi": [
+    "Riarmo riuscito, riparto."
+   ]
+  },
+  "guasto.ricevuto": {
+   "chi": "DCT",
+   "quando": "Il DCT conferma una chiamata senza altro da dire",
+   "testi": [
+    "Ricevuto."
+   ]
+  },
+  "guasto.ricevuto_passo": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma l'ordine di rientro",
+   "testi": [
+    "Ricevuto DCT. Passo."
+   ]
+  },
+  "guasto.ricoverato_comasina": {
+   "chi": "sistema",
+   "quando": "Il treno guasto è stato ricoverato in un tronchetto di Comasina",
+   "testi": [
+    "Treno {T} ricoverato in un tronchetto di Comasina."
+   ]
+  },
+  "guasto.rientrato_deposito": {
+   "chi": "sistema",
+   "quando": "Il treno guasto è arrivato al deposito di Rogoredo",
+   "testi": [
+    "Treno {T} rientrato al deposito di Rogoredo."
+   ]
+  },
+  "guasto.rientro.fine_corsa": {
+   "chi": "DCT",
+   "quando": "Il DCT fa finire la corsa e rientrare vuoto il treno a Rogoredo",
+   "testi": [
+    "Treno {T}, finisci la corsa, fai scendere i passeggeri al capolinea e rientra vuoto al deposito di Rogoredo."
+   ]
+  },
+  "guasto.rientro.fine_prossima_corsa": {
+   "chi": "DCT",
+   "quando": "Il DCT dice al treno di rientrare in deposito alla fine della prossima corsa",
+   "testi": [
+    "Treno {T}, a fine della prossima corsa rientri in deposito."
+   ]
+  },
+  "guasto.rientro.prossima_stazione": {
+   "chi": "DCT",
+   "quando": "Il DCT fa scendere i passeggeri alla prossima stazione e rientrare vuoto il treno",
+   "testi": [
+    "Treno {T}, fai scendere i passeggeri alla prossima stazione e rientra vuoto al deposito di Rogoredo."
+   ]
+  },
+  "guasto.risposta_automatica": {
+   "chi": "sistema",
+   "quando": "Nessuno ha risposto alla chiamata: risponde il DCT automatico",
+   "testi": [
+    "(nessuna risposta: risponde il DCT automatico)"
+   ]
+  },
+  "guasto.scambio.manda_squadra": {
+   "chi": "DCT",
+   "quando": "Il DCT manda la squadra allo scambio guasto",
+   "testi": [
+    "Squadra di manutenzione, andate allo scambio {scambio}: non va in posizione."
+   ]
+  },
+  "guasto.scambio.manovrato_a_mano": {
+   "chi": "manutenzione",
+   "quando": "La squadra ha manovrato a mano e bloccato lo scambio",
+   "testi": [
+    "Scambio {scambio} manovrato a mano e bloccato. I treni passano solo con la tua autorizzazione."
+   ]
+  },
+  "guasto.scambio.metti_in": {
+   "chi": "DCT",
+   "quando": "Il DCT dice alla squadra in che posizione mettere e bloccare lo scambio",
+   "testi": [
+    "Mettetelo in {posizione} e bloccatelo."
+   ]
+  },
+  "guasto.scambio.non_va": {
+   "chi": "sistema",
+   "quando": "Uno scambio si guasta e non va in posizione",
+   "testi": [
+    "Scambio {scambio} guasto: non va in posizione, gli itinerari che lo usano non si formano."
+   ]
+  },
+  "guasto.scambio.riparato": {
+   "chi": "manutenzione",
+   "quando": "Lo scambio manovrato a mano è stato riparato",
+   "testi": [
+    "Scambio {scambio} riparato: torna comandato dall'apparato."
+   ]
+  },
+  "guasto.scambio.squadra_arriva": {
+   "chi": "manutenzione",
+   "quando": "La squadra conferma che arriva allo scambio",
+   "testi": [
+    "Ricevuto DCT, arriviamo."
+   ]
+  },
+  "guasto.scambio.squadra_chiede_posizione": {
+   "chi": "manutenzione",
+   "quando": "La squadra è arrivata allo scambio guasto e chiede in che posizione metterlo",
+   "testi": [
+    "DCT, qui la squadra: siamo allo scambio {scambio}. In che posizione lo mettiamo?"
+   ]
+  },
+  "guasto.secondario.chiede_tecnico": {
+   "chi": "macchinista",
+   "quando": "Problema secondario: il treno marcia, il macchinista chiede un tecnico a bordo",
+   "testi": [
+    "DCT, treno {T}: {cosa}. Il treno marcia, chiedo un tecnico a bordo."
+   ]
+  },
+  "guasto.secondario.manda_tecnico": {
+   "chi": "DCT",
+   "quando": "Il DCT chiede un tecnico per un problema secondario",
+   "testi": [
+    "Manutenzione di linea del deposito di Rogoredo, mandate un tecnico sul treno {T}: ha un problema secondario."
+   ]
+  },
+  "guasto.secondario.problema": {
+   "chi": "macchinista",
+   "quando": "Il problema secondario che il macchinista descrive nella chiamata (uno a caso)",
+   "testi": [
+    "la climatizzazione di una cassa non funziona",
+    "un display interno per i passeggeri è spento",
+    "una luce di cabina non si accende",
+    "il pannello diagnostico segnala un'anomalia su un carrello",
+    "un annuncio automatico non parte"
+   ]
+  },
+  "guasto.segnale.riparato": {
+   "chi": "manutenzione",
+   "quando": "Il semaforo guasto è stato riparato",
+   "testi": [
+    "Semaforo {segnale} riparato."
+   ]
+  },
+  "guasto.segnale.rosso": {
+   "chi": "sistema",
+   "quando": "Un semaforo si guasta e resta rosso",
+   "testi": [
+    "Semaforo {segnale} guasto: resta rosso."
+   ]
+  },
+  "guasto.sezione.occupata": {
+   "chi": "sistema",
+   "quando": "La sezione dopo un semaforo risulta occupata senza nessun treno",
+   "testi": [
+    "La sezione dopo il {segnale} risulta occupata, ma non c'è nessun treno."
+   ]
+  },
+  "guasto.sezione.riparata": {
+   "chi": "manutenzione",
+   "quando": "La sezione occupata falsa è stata riparata",
+   "testi": [
+    "Sezione dopo il {segnale} riparata: torna libera."
+   ]
+  },
+  "guasto.tecnico.a_bordo": {
+   "chi": "tecnico",
+   "quando": "Il tecnico sale sul treno a San Donato",
+   "testi": [
+    "Tecnico a bordo del treno {T} a San Donato: verifico durante il cambio banco e fino a Rogoredo."
+   ]
+  },
+  "guasto.tecnico.in_servizio": {
+   "chi": "tecnico",
+   "quando": "Problema secondario non sistemato: il treno resta in servizio",
+   "testi": [
+    "Tecnico: non riesco a sistemarlo qui, ma il treno {T} può restare in servizio: lo vediamo in deposito a fine giornata. Scendo a Rogoredo."
+   ]
+  },
+  "guasto.tecnico.non_riesce": {
+   "chi": "tecnico",
+   "quando": "Il tecnico non riesce a sistemare il treno: rientro vuoto al deposito",
+   "testi": [
+    "DCT, qui il tecnico: non riesco a sistemare il treno {T}. Facciamo scendere i passeggeri qui a Rogoredo e torniamo vuoti al deposito."
+   ]
+  },
+  "guasto.tecnico.sale": {
+   "chi": "manutenzione",
+   "quando": "La manutenzione conferma: il tecnico sale a San Donato",
+   "testi": [
+    "Ricevuto DCT, il tecnico sale sul treno {T} a San Donato."
+   ]
+  },
+  "guasto.tecnico.sistemato": {
+   "chi": "tecnico",
+   "quando": "Il tecnico ha sistemato il treno e scende a Rogoredo",
+   "testi": [
+    "Tecnico: treno {T} sistemato. Scendo a Rogoredo e torno a San Donato con il treno dopo."
+   ]
+  },
+  "guasto.trazione.non_riparte": {
+   "chi": "macchinista",
+   "quando": "Il treno non riparte e il primo riarmo da solo non è riuscito: chiede istruzioni",
+   "testi": [
+    "DCT, treno {T}: il treno non riparte{dove}. Ho provato a riarmare ma non riparte. Chiedo istruzioni."
+   ]
+  },
+  "guasto.trazione.riarmato": {
+   "chi": "macchinista",
+   "quando": "Il treno non ripartiva: il macchinista ha riarmato da solo ed è ripartito; avvisa il DCT",
+   "testi": [
+    "DCT, treno {T}: il treno non ripartiva{dove}. Ho riarmato e sono ripartito. Passo."
+   ]
+  },
+  "guasto.udt.esclusa": {
+   "chi": "macchinista",
+   "quando": "Terzo riarmo non riuscito: il macchinista esclude l'unità guasta",
+   "testi": [
+    "DCT, treno {T}: terzo riarmo non riuscito. Escludo l'unità guasta, posso proseguire con l'altra."
+   ]
+  },
+  "guasto.vista.autorizzato": {
+   "chi": "DCT",
+   "quando": "Il DCT autorizza il treno a superare il semaforo in marcia a vista",
+   "testi": [
+    "Treno {T}, autorizzato a superare il {segnale} in marcia a vista fino al semaforo successivo."
+   ]
+  },
+  "guasto.vista.ricevuto": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma la marcia a vista",
+   "testi": [
+    "Ricevuto DCT, supero il {segnale} in marcia a vista."
+   ]
+  },
+  "guasto.vista.scambio": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo davanti a uno scambio manovrato a mano e chiede di passare",
+   "testi": [
+    "DCT, treno {T}: sono fermo al {segnale}, lo scambio {scambio} è manovrato a mano. Chiedo l'autorizzazione a passare."
+   ]
+  },
+  "guasto.vista.semaforo": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo a un semaforo guasto e chiede la marcia a vista",
+   "testi": [
+    "DCT, treno {T}: sono fermo al {segnale}, il semaforo non si apre. Chiedo di superarlo in marcia a vista."
+   ]
+  },
+  "guasto.vista.sezione": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo per una sezione occupata falsa e chiede la marcia a vista",
+   "testi": [
+    "DCT, treno {T}: sono fermo al {segnale}, la sezione dopo risulta occupata ma davanti non vedo treni. Chiedo la marcia a vista."
+   ]
+  },
+  "pezzo.annuncio.navetta": {
+   "chi": "DCT",
+   "quando": "Annuncio: navetta",
+   "testi": [
+    "su una parte della linea il servizio è svolto da una navetta"
+   ]
+  },
+  "pezzo.annuncio.ritardi": {
+   "chi": "DCT",
+   "quando": "Annuncio: ritardi sulla linea",
+   "testi": [
+    "il servizio è in ritardo, ci scusiamo per il disagio"
+   ]
+  },
+  "pezzo.annuncio.servizio_limitato": {
+   "chi": "DCT",
+   "quando": "Annuncio: servizio limitato",
+   "testi": [
+    "il servizio è limitato, i treni non proseguono oltre la stazione indicata"
+   ]
+  },
+  "pezzo.annuncio.servizio_regolare": {
+   "chi": "DCT",
+   "quando": "Annuncio: servizio regolare",
+   "testi": [
+    "la circolazione è tornata regolare"
+   ]
+  },
+  "pezzo.annuncio.tratta_interrotta": {
+   "chi": "DCT",
+   "quando": "Annuncio: tratta interrotta",
+   "testi": [
+    "la circolazione è interrotta su una parte della linea"
+   ]
+  },
+  "pezzo.annuncio.treni_non_fermano": {
+   "chi": "DCT",
+   "quando": "Annuncio: i treni non fermano",
+   "testi": [
+    "i treni non fermano in questa stazione"
+   ]
+  },
+  "pezzo.banchina.affollata": {
+   "chi": "stazione",
+   "quando": "Quanta gente c'è in banchina: molta",
+   "testi": [
+    "banchina affollata"
+   ]
+  },
+  "pezzo.banchina.molto_affollata": {
+   "chi": "stazione",
+   "quando": "Quanta gente c'è in banchina: troppa",
+   "testi": [
+    "banchina molto affollata, faccio defluire i passeggeri"
+   ]
+  },
+  "pezzo.banchina.poca_gente": {
+   "chi": "stazione",
+   "quando": "Quanta gente c'è in banchina: poca",
+   "testi": [
+    "poca gente in banchina"
+   ]
+  },
+  "pezzo.banchina.quasi_vuota": {
+   "chi": "stazione",
+   "quando": "Quanta gente c'è in banchina: quasi nessuno",
+   "testi": [
+    "banchina quasi vuota"
+   ]
+  },
+  "pezzo.binario2.fermo_li": {
+   "chi": "macchinista",
+   "quando": "Dopo il treno che occupa il binario 2 di San Donato",
+   "testi": [
+    "è fermo lì"
+   ]
+  },
+  "pezzo.binario2.non_libero": {
+   "chi": "macchinista",
+   "quando": "Perché il treno non può entrare al binario 2 di San Donato: è occupato",
+   "testi": [
+    "il binario 2 non è libero"
+   ]
+  },
+  "pezzo.binario2.non_posso_eseguire": {
+   "chi": "macchinista",
+   "quando": "Il treno non può entrare al binario 2 di San Donato, senza un perché",
+   "testi": [
+    "non posso eseguire"
+   ]
+  },
+  "pezzo.deposito.entrata_deposito": {
+   "chi": "macchinista",
+   "quando": "Movimento chiesto al segnale del deposito: dalla linea in deposito (#A04/#A05)",
+   "testi": [
+    "entrata in deposito"
+   ]
+  },
+  "pezzo.deposito.entrata_linea": {
+   "chi": "macchinista",
+   "quando": "Movimento chiesto al segnale del deposito: dal deposito in linea (#A02/#A03)",
+   "testi": [
+    "entrata in linea"
+   ]
+  },
+  "pezzo.deposito.manovra": {
+   "chi": "macchinista",
+   "quando": "Movimento chiesto al segnale del deposito: manovra in deposito",
+   "testi": [
+    "manovra in deposito"
+   ]
+  },
+  "pezzo.deposito.rientro_anello": {
+   "chi": "macchinista",
+   "quando": "Movimento chiesto al segnale del deposito: dall'anello di prova in deposito",
+   "testi": [
+    "rientro in deposito dall'anello di prova"
+   ]
+  },
+  "pezzo.deposito.uscita_anello": {
+   "chi": "macchinista",
+   "quando": "Movimento chiesto al segnale del deposito: verso l'anello di prova",
+   "testi": [
+    "uscita verso l'anello di prova"
+   ]
+  },
+  "pezzo.deposito.uscita_deposito": {
+   "chi": "macchinista",
+   "quando": "Movimento chiesto al segnale del deposito: uscita dal deposito",
+   "testi": [
+    "uscita dal deposito"
+   ]
+  },
+  "pezzo.dove.a": {
+   "chi": "macchinista",
+   "quando": "Pezzo di frase: dove si è fermato il treno, in stazione",
+   "testi": [
+    "a {stazione}"
+   ]
+  },
+  "pezzo.dove.dopo": {
+   "chi": "macchinista",
+   "quando": "Pezzo di frase: dove si è fermato il treno, in linea dopo una stazione",
+   "testi": [
+    "dopo {stazione}"
+   ]
+  },
+  "pezzo.giri": {
+   "chi": "DCT",
+   "quando": "Pezzo di frase: più giri sull'anello di prova (dentro anello.chiedi e anello.chiedi_ricevuto)",
+   "testi": [
+    "{numero} giri"
+   ]
+  },
+  "pezzo.motivo.guasto_avanti": {
+   "chi": "DCT",
+   "quando": "Motivo della sosta: un guasto più avanti",
+   "testi": [
+    "c’è un guasto più avanti"
+   ]
+  },
+  "pezzo.motivo.regolarizzare_intervallo": {
+   "chi": "DCT",
+   "quando": "Motivo della sosta: regolarizzare l'intervallo",
+   "testi": [
+    "devo regolarizzare l’intervallo"
+   ]
+  },
+  "pezzo.motivo.servizio": {
+   "chi": "DCT",
+   "quando": "Motivo della sosta: nessuno in particolare",
+   "testi": [
+    "per servizio"
+   ]
+  },
+  "pezzo.motivo.treno_davanti_ritardo": {
+   "chi": "DCT",
+   "quando": "Motivo della sosta: il treno davanti è in ritardo",
+   "testi": [
+    "il treno davanti a te è in ritardo"
+   ]
+  },
+  "pezzo.navetta_libera": {
+   "chi": "sistema",
+   "quando": "Pezzo di frase dentro dct.tratta_chiusa: una navetta senza treno ora sul suo binario",
+   "testi": [
+    "Navetta {da} – {a}: nessun treno ora sul binario, ci va il primo treno che arriva; gli altri treni in quel tratto vanno alla stazione più vicina e aspettano il DCT."
+   ]
+  },
+  "pezzo.navetta_treno": {
+   "chi": "sistema",
+   "quando": "Pezzo di frase dentro dct.tratta_chiusa: una navetta fatta da un treno già sul binario",
+   "testi": [
+    "Navetta {da} – {a}: treno {treno}; gli altri treni in quel tratto vanno alla stazione più vicina e aspettano il DCT."
+   ]
+  },
+  "pezzo.prossima_stazione": {
+   "chi": "DCT",
+   "quando": "Nell'ordine di proseguire, quando non si sa la stazione successiva",
+   "testi": [
+    "la prossima stazione"
+   ]
+  },
+  "pezzo.saluto.giorno": {
+   "chi": "macchinista",
+   "quando": "Saluto all'inizio di una chiamata, dalle 5 alle 14",
+   "testi": [
+    "Buongiorno"
+   ]
+  },
+  "pezzo.saluto.sera": {
+   "chi": "macchinista",
+   "quando": "Saluto all'inizio di una chiamata, dalle 14 alle 5",
+   "testi": [
+    "Buonasera"
+   ]
+  },
+  "pezzo.segnale.blocco": {
+   "chi": "macchinista",
+   "quando": "Nome del segnale nella chiamata per il rosso (vecchio modello, non più in uso): blocco tra due stazioni",
+   "testi": [
+    "segnale di blocco {dove}"
+   ]
+  },
+  "pezzo.segnale.partenza": {
+   "chi": "macchinista",
+   "quando": "Nome del segnale nella chiamata per il rosso (vecchio modello, non più in uso): partenza da una stazione",
+   "testi": [
+    "segnale di partenza di {dove}"
+   ]
+  },
+  "pezzo.segnale.protezione": {
+   "chi": "macchinista",
+   "quando": "Nome del segnale nella chiamata per il rosso (vecchio modello, non più in uso): protezione di una stazione",
+   "testi": [
+    "segnale di protezione di {dove}"
+   ]
+  },
+  "pezzo.segnale.protezione_sezione": {
+   "chi": "macchinista",
+   "quando": "Nome del segnale nella chiamata per il rosso (vecchio modello, non più in uso): protezione di una sezione",
+   "testi": [
+    "segnale di protezione ({dove})"
+   ]
+  },
+  "pezzo.sosta.altri": {
+   "chi": "DCT",
+   "quando": "Il DCT aggiunge un tempo diverso da un minuto a una sosta già ordinata",
+   "testi": [
+    "altri {durata}"
+   ]
+  },
+  "pezzo.sosta.altro_minuto": {
+   "chi": "DCT",
+   "quando": "Il DCT aggiunge un minuto a una sosta già ordinata",
+   "testi": [
+    "un altro minuto"
+   ]
+  },
+  "pezzo.un_giro": {
+   "chi": "DCT",
+   "quando": "Pezzo di frase: un solo giro sull'anello di prova (dentro anello.chiedi e anello.chiedi_ricevuto)",
+   "testi": [
+    "un giro"
+   ]
+  },
+  "pezzo.velocita.fino_nuovo_ordine": {
+   "chi": "DCT",
+   "quando": "Limitazione di velocità senza una stazione di fine",
+   "testi": [
+    "fino a nuovo ordine"
+   ]
+  },
+  "pezzo.velocita.fino_partenza": {
+   "chi": "DCT",
+   "quando": "Limitazione di velocità fino alla partenza da una stazione",
+   "testi": [
+    "fino alla partenza da {stazione}"
+   ]
+  },
+  "prefettura.accessi_chiusi": {
+   "chi": "stazione",
+   "quando": "La stazione chiusa dalla Prefettura è vuota: i treni transitano",
+   "testi": [
+    "Qui {stazione}: accessi chiusi, la stazione è vuota. I treni possono transitare."
+   ]
+  },
+  "prefettura.annuncio_vicina": {
+   "chi": "DCT",
+   "quando": "Il DCT avvisa l'unica stazione vicina (capolinea) della chiusura per la Prefettura",
+   "testi": [
+    "Annuncio a {vicina}: la stazione di {stazione} è chiusa per disposizione della Prefettura, i treni non fermano."
+   ]
+  },
+  "prefettura.annuncio_vicine": {
+   "chi": "DCT",
+   "quando": "Il DCT avvisa le due stazioni vicine della chiusura per la Prefettura",
+   "testi": [
+    "Annuncio a {vicina} e {vicina2}: la stazione di {stazione} è chiusa per disposizione della Prefettura, i treni non fermano."
+   ]
+  },
+  "prefettura.chiusura": {
+   "chi": "Prefettura",
+   "quando": "La Prefettura dispone la chiusura di una stazione per ordine pubblico",
+   "testi": [
+    "DCT, qui la Prefettura: per motivi di ordine pubblico oggi la stazione di {stazione} resta chiusa dalle {dalle} alle {alle}. I treni non fermano."
+   ]
+  },
+  "prefettura.preavviso": {
+   "chi": "stazione",
+   "quando": "5 minuti prima della chiusura disposta dalla Prefettura",
+   "testi": [
+    "Qui {stazione}: tra 5 minuti chiudo gli accessi come da disposizione della Prefettura, faccio gli annunci."
+   ]
+  },
+  "prefettura.revoca": {
+   "chi": "Prefettura",
+   "quando": "La Prefettura revoca la chiusura della stazione",
+   "testi": [
+    "DCT, qui la Prefettura: la disposizione è revocata, potete riaprire {stazione}."
+   ]
+  },
+  "prefettura.riaperta": {
+   "chi": "DCT",
+   "quando": "Il DCT riapre la stazione chiusa dalla Prefettura",
+   "testi": [
+    "DCT: {stazione} riaperta."
+   ]
+  },
+  "prefettura.ricevuto": {
+   "chi": "DCT",
+   "quando": "Il DCT conferma la disposizione della Prefettura",
+   "testi": [
+    "Ricevuto. Avviso la stazione di {stazione} e le stazioni vicine."
+   ]
+  },
+  "sciopero.adesione": {
+   "chi": "Ufficio Movimento",
+   "quando": "Inizio di una giornata di sciopero: l'Ufficio Movimento dà l'adesione e chiede come fare il servizio fuori fascia",
+   "testi": [
+    "DCT, qui Ufficio Movimento: oggi sciopero, adesione del {adesione}% ({treni} treni su {totale}). Fasce di garanzia: dall'inizio del servizio alle 8:45 e dalle 15:00 alle 18:00. Fuori dalle fasce come fai il servizio?"
+   ]
+  },
+  "sciopero.fine_fascia": {
+   "chi": "sistema",
+   "quando": "Fine di una fascia di garanzia (8:45 o 18:00)",
+   "testi": [
+    "Fine della fascia di garanzia ({quando}): i treni in sciopero rientrano."
+   ]
+  },
+  "sciopero.fine_giornata": {
+   "chi": "sistema",
+   "quando": "Fine della giornata di sciopero",
+   "testi": [
+    "Fine della giornata di sciopero."
+   ]
+  },
+  "sciopero.inizio_fascia": {
+   "chi": "sistema",
+   "quando": "Inizio della fascia di garanzia delle 15:00",
+   "testi": [
+    "Inizio della fascia di garanzia (15:00): i treni in sciopero tornano in servizio."
+   ]
+  },
+  "sciopero.rientro_chiesto": {
+   "chi": "macchinista",
+   "quando": "Finita la fascia di garanzia, il macchinista in sciopero chiede di rientrare",
+   "testi": [
+    "DCT, treno {T}: è finita la fascia di garanzia, sciopero. Chiedo di rientrare in deposito a fine corsa."
+   ]
+  },
+  "sciopero.scelta.frequenza": {
+   "chi": "DCT",
+   "quando": "Sciopero: il DCT sceglie la frequenza più bassa fuori fascia",
+   "testi": [
+    "Fuori dalle fasce i treni rimasti fanno le corse scoperte una dopo l'altra: frequenza più bassa."
+   ]
+  },
+  "sciopero.scelta.limitato": {
+   "chi": "DCT",
+   "quando": "Sciopero: il DCT sceglie il servizio limitato chiudendo una tratta",
+   "testi": [
+    "Fuori dalle fasce servizio limitato: chiudo io una tratta dal pannello."
+   ]
+  },
+  "sciopero.scelta.orario": {
+   "chi": "DCT",
+   "quando": "Sciopero: il DCT lascia l'orario con le corse scoperte",
+   "testi": [
+    "Fuori dalle fasce resta l'orario: le corse dei treni in sciopero restano scoperte."
+   ]
+  },
+  "soccorso.agganciato": {
+   "chi": "macchinista del soccorso",
+   "quando": "Il treno di soccorso ha agganciato e spinge il treno guasto",
+   "testi": [
+    "Qui treno {R}: agganciato, spingo il treno {T} a 15 km/h. I passeggeri scendono alla prossima stazione."
+   ]
+  },
+  "soccorso.aggancio": {
+   "chi": "macchinista del soccorso",
+   "quando": "Il treno di soccorso è arrivato al treno guasto e aggancia",
+   "testi": [
+    "Qui treno {R}: sono al treno {T}, aggancio."
+   ]
+  },
+  "soccorso.attendo": {
+   "chi": "macchinista",
+   "quando": "Il macchinista del treno guasto conferma che attende il soccorso",
+   "testi": [
+    "Ricevuto DCT, attendo il soccorso."
+   ]
+  },
+  "soccorso.badoni.evacuo": {
+   "chi": "macchinista",
+   "quando": "Badoni: il macchinista accompagna i passeggeri a piedi",
+   "testi": [
+    "Ricevuto DCT, accompagno i passeggeri a piedi."
+   ]
+  },
+  "soccorso.badoni.interruzione": {
+   "chi": "DCT",
+   "quando": "Il DCT interrompe la linea e fa uscire il Badoni da Rogoredo",
+   "testi": [
+    "Interruzione della linea tra San Donato e {stazione}: tensione tolta. Esce il Badoni da Rogoredo. Treno {T}, evacuate i passeggeri alla stazione più vicina."
+   ]
+  },
+  "soccorso.badoni.nessun_treno": {
+   "chi": "DCT",
+   "quando": "Nessun treno può soccorrere da dietro: serve il Badoni",
+   "testi": [
+    "Treno {T}: nessun treno può arrivare da dietro. Serve il Badoni da ROD, con l'interruzione della linea (non ancora simulato: il treno riparte dopo l'attesa)."
+   ]
+  },
+  "soccorso.badoni.portato_via": {
+   "chi": "sistema",
+   "quando": "Il Badoni ha portato il treno al deposito di Rogoredo",
+   "testi": [
+    "Il Badoni ha portato il treno {T} al deposito di Rogoredo. Tensione ridata."
+   ]
+  },
+  "soccorso.da_dietro": {
+   "chi": "DCT",
+   "quando": "Il DCT manda il treno dietro a soccorrere il treno guasto",
+   "testi": [
+    "Treno {R}, fai scendere i passeggeri alla prossima stazione e vai a soccorrere il treno {T} davanti a te, in marcia a vista."
+   ]
+  },
+  "soccorso.riparte": {
+   "chi": "sistema",
+   "quando": "Dopo l'attesa del soccorso il treno riparte (Badoni non simulato)",
+   "testi": [
+    "Il treno {T} riparte."
+   ]
+  },
+  "soccorso.serve": {
+   "chi": "macchinista",
+   "quando": "Tutte e due le unità sono ferme: serve il soccorso",
+   "testi": [
+    "DCT, treno {T}: tutte e due le unità sono ferme, il treno non si muove. Serve il soccorso."
+   ]
+  },
+  "soccorso.spinta": {
+   "chi": "DCT",
+   "quando": "Il DCT manda il treno dietro a soccorrere e spingere il treno guasto",
+   "testi": [
+    "Treno {R}, fai scendere i passeggeri alla prossima stazione e vai a soccorrere il treno {T} davanti a te, in marcia a vista: lo spingi a 15 km/h."
+   ]
+  },
+  "soccorso.traino": {
+   "chi": "DCT",
+   "quando": "Il DCT manda il treno davanti a tornare indietro e trainare il treno guasto",
+   "testi": [
+    "Treno {R}, fai scendere i passeggeri alla prossima stazione, cambia banco e torna indietro in marcia a vista fino al treno {T}: lo traini con l'accoppiamento pneumatico, 30 km/h."
+   ]
+  },
+  "stazione.annuncio.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT chiede all'agente un annuncio ai passeggeri",
+   "testi": [
+    "Stazione {stazione}, fai l'annuncio: {annuncio}. Passo."
+   ]
+  },
+  "stazione.annuncio.risposta": {
+   "chi": "stazione",
+   "quando": "L'agente ha fatto l'annuncio",
+   "testi": [
+    "Ricevuto, annuncio fatto. Passo."
+   ]
+  },
+  "stazione.assistenza.esito": {
+   "chi": "stazione",
+   "quando": "L'agente ha finito sul treno e dice cosa c'era",
+   "testi": [
+    "Treno {treno}: passeggero con un malore, assistito: ora sta bene ed è sceso. Il treno può ripartire. Passo.",
+    "Treno {treno}: porta bloccata, ripristinata. Il treno può ripartire. Passo.",
+    "Treno {treno}: oggetto incastrato in una porta, rimosso. Il treno può ripartire. Passo.",
+    "Treno {treno}: passeggero molesto, fatto scendere. Il treno può ripartire. Passo."
+   ]
+  },
+  "stazione.assistenza.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT manda l'agente di stazione su un treno fermo",
+   "testi": [
+    "Stazione {stazione}, manda l'agente sul treno {treno}: il treno resta fermo finché non mi riferisci. Passo."
+   ]
+  },
+  "stazione.assistenza.risposta": {
+   "chi": "stazione",
+   "quando": "L'agente sale sul treno",
+   "testi": [
+    "Ricevuto, salgo sul treno {treno}. Passo."
+   ]
+  },
+  "stazione.chiusura.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT chiude una stazione: i treni non fermano",
+   "testi": [
+    "Stazione {stazione}, chiudi gli ingressi: i treni non fermano finché non riapro. Passo."
+   ]
+  },
+  "stazione.chiusura.risposta": {
+   "chi": "stazione",
+   "quando": "L'agente chiude la stazione",
+   "testi": [
+    "Ricevuto, chiudo gli ingressi e faccio uscire i passeggeri. Passo."
+   ]
+  },
+  "stazione.riapertura.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT riapre una stazione chiusa",
+   "testi": [
+    "Stazione {stazione}, riapri gli ingressi, i treni tornano a fermare. Passo."
+   ]
+  },
+  "stazione.riapertura.risposta": {
+   "chi": "stazione",
+   "quando": "L'agente riapre la stazione",
+   "testi": [
+    "Ricevuto, ingressi aperti. Passo."
+   ]
+  },
+  "stazione.schermi.messaggio": {
+   "chi": "DCT",
+   "quando": "Il DCT mette un messaggio sugli schermi di banchina",
+   "testi": [
+    "Stazione {stazione}: sugli schermi di banchina \"{messaggio}\"."
+   ]
+  },
+  "stazione.schermi.normali": {
+   "chi": "DCT",
+   "quando": "Il DCT toglie il messaggio dagli schermi di banchina",
+   "testi": [
+    "Stazione {stazione}: schermi di banchina normali."
+   ]
+  },
+  "stazione.situazione.chiede": {
+   "chi": "DCT",
+   "quando": "Il DCT chiede all'agente di stazione com'è la situazione",
+   "testi": [
+    "Stazione {stazione}, com'è la situazione? Passo."
+   ]
+  },
+  "stazione.situazione.chiusa": {
+   "chi": "stazione",
+   "quando": "Situazione chiesta a una stazione chiusa al pubblico",
+   "testi": [
+    "Stazione chiusa al pubblico, ingressi chiusi, nessun problema. Passo."
+   ]
+  },
+  "stazione.situazione.risposta": {
+   "chi": "stazione",
+   "quando": "L'agente dice quanta gente c'è in banchina (folla)",
+   "testi": [
+    "{folla}, nessuna situazione di pericolo. Passo."
+   ]
+  },
+  "stazione.verifica.banchina": {
+   "chi": "stazione",
+   "quando": "Esito della verifica della situazione in banchina (folla)",
+   "testi": [
+    "{folla}. Passo."
+   ]
+  },
+  "stazione.verifica.nessun_oggetto": {
+   "chi": "stazione",
+   "quando": "Esito della verifica oggetto sui binari: niente (8 volte su 10)",
+   "testi": [
+    "Nessun oggetto sui binari. Passo."
+   ]
+  },
+  "stazione.verifica.nessuno_binari": {
+   "chi": "stazione",
+   "quando": "Esito della verifica persona sui binari: nessuno (8 volte su 10)",
+   "testi": [
+    "Nessuno sui binari, banchina regolare. Passo."
+   ]
+  },
+  "stazione.verifica.oggetto_binari": {
+   "chi": "stazione",
+   "quando": "Esito della verifica oggetto sui binari: c'è un oggetto (2 volte su 10)",
+   "testi": [
+    "C'è un oggetto sui binari lato banchina: non è d'ingombro, lo recuperiamo a fine servizio. Passo."
+   ]
+  },
+  "stazione.verifica.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT chiede all'agente una verifica in banchina (cosa: cosa verificare)",
+   "testi": [
+    "Stazione {stazione}, verifica in banchina: {cosa}. Passo."
+   ]
+  },
+  "stazione.verifica.persona_allontanata": {
+   "chi": "stazione",
+   "quando": "Esito della verifica persona sui binari: c'era qualcuno (2 volte su 10)",
+   "testi": [
+    "C'era una persona oltre la linea gialla, l'ho fatta allontanare. Passo."
+   ]
+  },
+  "stazione.verifica.porta_bloccata": {
+   "chi": "stazione",
+   "quando": "Esito della verifica delle porte: c'era un problema (2 volte su 10)",
+   "testi": [
+    "Una porta era bloccata da uno zaino, liberata. Passo."
+   ]
+  },
+  "stazione.verifica.porte_regolari": {
+   "chi": "stazione",
+   "quando": "Esito della verifica delle porte: tutto regolare (8 volte su 10)",
+   "testi": [
+    "Porte controllate, tutto regolare. Passo."
+   ]
+  },
+  "stazione.verifica.vado": {
+   "chi": "stazione",
+   "quando": "L'agente va a fare la verifica chiesta",
+   "testi": [
+    "Ricevuto, vado a vedere. Passo."
+   ]
+  },
+  "treno.binario2_occupato.attendi": {
+   "chi": "DCT",
+   "quando": "San Donato: il DCT fa attendere sul tronchetto il treno per il binario 2 occupato",
+   "testi": [
+    "Treno {treno}, resta fermo sul tronchetto e attendi che il binario 2 si liberi. Passo."
+   ]
+  },
+  "treno.binario2_occupato.attendi_risposta": {
+   "chi": "macchinista",
+   "quando": "San Donato: il treno attende sul tronchetto che il binario 2 si liberi",
+   "testi": [
+    "Ricevuto DCT, attendo il via libera per il binario 2. Passo."
+   ]
+  },
+  "treno.binario2_occupato.devia": {
+   "chi": "DCT",
+   "quando": "San Donato: il DCT devia al binario 3 il treno per il binario 2 occupato",
+   "testi": [
+    "Treno {treno}, ti devio al binario 3: ci aspettiamo di partire dal binario 3. Passo."
+   ]
+  },
+  "treno.binario2_occupato.devia_negativo": {
+   "chi": "macchinista",
+   "quando": "San Donato: il treno ha già passato lo scambio e non può andare al binario 3",
+   "testi": [
+    "Negativo DCT, ho già passato lo scambio. Resto in attesa per il binario 2. Passo."
+   ]
+  },
+  "treno.binario2_occupato.devia_risposta": {
+   "chi": "macchinista",
+   "quando": "San Donato: il treno va al binario 3 come ordinato",
+   "testi": [
+    "Ricevuto, vado sul binario 3 e parto da lì. Passo."
+   ]
+  },
+  "treno.binario_partenza.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT sceglie il binario di partenza da San Donato",
+   "testi": [
+    "Treno {treno}, a San Donato si aspetti di partire dal binario {binario}. Passo."
+   ]
+  },
+  "treno.binario_partenza.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno partirà da San Donato dal binario scelto dal DCT",
+   "testi": [
+    "Ricevuto, ci aspettiamo di partire dal binario {binario}. Passo."
+   ]
+  },
+  "treno.comasina_binario1.negativo": {
+   "chi": "macchinista",
+   "quando": "Comasina: il treno è già troppo vicino per entrare al binario 1",
+   "testi": [
+    "Negativo DCT, sono già troppo vicino a Comasina. Passo."
+   ]
+  },
+  "treno.comasina_binario1.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT fa entrare al binario 1 di Comasina un treno da San Donato, con cambio banco in stazione",
+   "testi": [
+    "Treno {treno}, a Comasina entra al binario 1 e cambia banco lì. Passo."
+   ]
+  },
+  "treno.comasina_binario1.risposta": {
+   "chi": "macchinista",
+   "quando": "Comasina: il treno entra al binario 1 e cambia banco in stazione",
+   "testi": [
+    "Ricevuto DCT, a Comasina entro al binario 1 e cambio banco in banchina. Passo.",
+    "Copiato, binario 1 con cambio banco in stazione. Passo e chiudo."
+   ]
+  },
+  "treno.deposito.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT manda un treno in deposito senza passeggeri",
+   "testi": [
+    "Treno {treno}, rientra in deposito senza passeggeri. Passo."
+   ]
+  },
+  "treno.deposito.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno rientra in deposito come ordinato",
+   "testi": [
+    "Ricevuto, rientro in deposito a vuoto. Passo."
+   ]
+  },
+  "treno.interruzione.risposta": {
+   "chi": "macchinista",
+   "quando": "Il macchinista ha sentito che la tratta è interrotta",
+   "testi": [
+    "Ricevuto DCT, avviso i passeggeri e attendo. Passo."
+   ]
+  },
+  "treno.interruzione.spiega": {
+   "chi": "DCT",
+   "quando": "Il DCT spiega a un treno fermo che la tratta è interrotta per un guasto",
+   "testi": [
+    "Treno {treno}, c'è un guasto alla linea: la tratta {tratta} è interrotta. Resta in attesa di istruzioni. Passo."
+   ]
+  },
+  "treno.istruzione.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT manda un treno fermo per l'interruzione da qualche parte (dove: la strada scelta)",
+   "testi": [
+    "Treno {treno}, {dove}. Senza passeggeri, marcia a vista sui segnali che ti do io. Passo."
+   ]
+  },
+  "treno.istruzione.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno può andare dove il DCT lo manda",
+   "testi": [
+    "Ricevuto DCT, eseguo. Passo."
+   ]
+  },
+  "treno.limita_corsa.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT limita la corsa di un treno in ritardo",
+   "testi": [
+    "Treno {treno}, limita la corsa alla prima stazione utile e inverti. Passo."
+   ]
+  },
+  "treno.limita_corsa.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno limita la corsa alla stazione indicata",
+   "testi": [
+    "Ricevuto, fine corsa a {stazione}, poi inverto. Passo."
+   ]
+  },
+  "treno.ordine.negativo": {
+   "chi": "macchinista",
+   "quando": "Il treno non può eseguire un ordine del DCT (interruzione, istruzione su dove andare)",
+   "testi": [
+    "Negativo DCT, da qui non posso. Passo."
+   ]
+  },
+  "treno.partenza.negativo": {
+   "chi": "macchinista",
+   "quando": "La partenza assegnata è già stata presa da un altro treno",
+   "testi": [
+    "Negativo DCT, quella partenza non è più libera. Passo."
+   ]
+  },
+  "treno.partenza.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT assegna a un treno fuori orario una partenza libera",
+   "testi": [
+    "Treno {treno}, ti assegno la partenza delle {ora} da {stazione}. Passo."
+   ]
+  },
+  "treno.partenza.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno prende la partenza assegnata",
+   "testi": [
+    "Ricevuto, parto alle {ora}. Passo."
+   ]
+  },
+  "treno.posto.negativo": {
+   "chi": "macchinista",
+   "quando": "Il treno ha già passato l'ingresso del deposito e non può cambiare posto",
+   "testi": [
+    "Negativo DCT, ho già passato l'ingresso del deposito. Passo."
+   ]
+  },
+  "treno.posto.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT cambia il posto in deposito a un treno che rientra",
+   "testi": [
+    "Treno {treno}, cambio posto in deposito: vai in {posto}. Passo."
+   ]
+  },
+  "treno.posto.ordine_tardi": {
+   "chi": "DCT",
+   "quando": "Il DCT cambia il posto in deposito a un treno che ha già passato l'ingresso",
+   "testi": [
+    "Treno {treno}, vai in {posto}. Passo."
+   ]
+  },
+  "treno.posto.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno va nel nuovo posto in deposito",
+   "testi": [
+    "Ricevuto DCT, vado in {posto}. Passo."
+   ]
+  },
+  "treno.prosegui.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT fa proseguire un treno senza passeggeri fino alla stazione successiva",
+   "testi": [
+    "Treno {treno}, prosegui senza passeggeri fino a {stazione}. Passo."
+   ]
+  },
+  "treno.prosegui.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno prosegue a vuoto come ordinato",
+   "testi": [
+    "Ricevuto, faccio scendere i passeggeri e proseguo vuoto. Passo.",
+    "Copiato DCT, proseguo a vuoto. Passo."
+   ]
+  },
+  "treno.riparti.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT fa ripartire un treno trattenuto (dal treno o dalla radio di stazione)",
+   "testi": [
+    "Treno {treno}, puoi ripartire, segui il segnale. Passo."
+   ]
+  },
+  "treno.riparti.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno trattenuto riparte",
+   "testi": [
+    "Ricevuto, chiudo le porte e riparto. Passo."
+   ]
+  },
+  "treno.ripartito": {
+   "chi": "macchinista",
+   "quando": "Il treno riparte dopo una sosta o un ordine del DCT: fine della conversazione",
+   "testi": [
+    "Ripartito, passo. Buona giornata."
+   ]
+  },
+  "treno.salta_fermate.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT autorizza un treno in ritardo a saltare le prossime fermate",
+   "testi": [
+    "Treno {treno}, autorizzato il salto delle prossime fermate. Passo."
+   ]
+  },
+  "treno.salta_fermate.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno salta le fermate come ordinato",
+   "testi": [
+    "Ricevuto, salto le fermate e annuncio ai passeggeri. Passo."
+   ]
+  },
+  "treno.sandonato_binario2.negativo": {
+   "chi": "macchinista",
+   "quando": "San Donato: il treno non può entrare al binario 2 (motivo: il perché)",
+   "testi": [
+    "Negativo DCT, {motivo} Passo."
+   ]
+  },
+  "treno.sandonato_binario2.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT fa entrare al binario 2 di San Donato un treno da Rogoredo, con inversione in stazione",
+   "testi": [
+    "Treno {treno}, a San Donato entra al binario 2 e cambia banco lì. Passo."
+   ]
+  },
+  "treno.sandonato_binario2.risposta": {
+   "chi": "macchinista",
+   "quando": "San Donato: il treno entra al binario 2 e inverte in stazione",
+   "testi": [
+    "Ricevuto DCT, entro al binario 2 e cambio banco in stazione. Passo.",
+    "Copiato, binario 2 con inversione sul posto. Passo e chiudo."
+   ]
+  },
+  "treno.segnale_deposito.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT apre a mano un segnale del deposito per un treno",
+   "testi": [
+    "Treno {treno}, apro il segnale {segnale}, via libera per {cosa}. Passo."
+   ]
+  },
+  "treno.segnale_deposito.risposta": {
+   "chi": "macchinista",
+   "quando": "Il DCT ha aperto il segnale del deposito",
+   "testi": [
+    "Ricevuto DCT, segnale aperto, procedo. Passo.",
+    "Copiato, vedo il bianco. Mi muovo. Passo."
+   ]
+  },
+  "treno.sosta.annulla": {
+   "chi": "DCT",
+   "quando": "Il DCT annulla le soste ordinate",
+   "testi": [
+    "Treno {treno}, annulla la sosta prolungata, servizio regolare. Passo."
+   ]
+  },
+  "treno.sosta.annulla_risposta": {
+   "chi": "macchinista",
+   "quando": "Il DCT ha annullato le soste ordinate",
+   "testi": [
+    "Ricevuto DCT, riprendo il servizio regolare. Passo."
+   ]
+  },
+  "treno.sosta.inizio": {
+   "chi": "macchinista",
+   "quando": "Il treno si ferma nella stazione della sosta ordinata",
+   "testi": [
+    "Fermo a {stazione}, porte aperte, attendo {durata}."
+   ]
+  },
+  "treno.sosta.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT ordina una sosta prolungata alla prossima stazione",
+   "testi": [
+    "Treno {treno}, {motivo}: fai una sosta di {durata} a {stazione}. Passo."
+   ]
+  },
+  "treno.sosta.ordine_aggiunta": {
+   "chi": "DCT",
+   "quando": "Il DCT allunga una sosta già ordinata",
+   "testi": [
+    "Treno {treno}, {motivo}: aggiungi {aggiunta} di sosta a {stazione}. Passo."
+   ]
+  },
+  "treno.sosta.risposta": {
+   "chi": "macchinista",
+   "quando": "Il DCT ha ordinato una sosta prolungata (caso normale)",
+   "testi": [
+    "Ricevuto DCT, sosta di {durata} a {stazione}. Avviso i passeggeri. Passo.",
+    "Copiato, DCT. A {stazione} tengo le porte aperte {durata}. Passo e chiudo.",
+    "Ricevuto. Fermata prolungata a {stazione}, {durata}. Passo."
+   ]
+  },
+  "treno.sosta.risposta_aggiunta": {
+   "chi": "macchinista",
+   "quando": "Il DCT ha allungato una sosta già ordinata",
+   "testi": [
+    "Ricevuto DCT, {aggiunta} a {stazione}: in tutto {totale} di sosta in più. Avviso i passeggeri. Passo."
+   ]
+  },
+  "treno.sosta.risposta_alba": {
+   "chi": "macchinista",
+   "quando": "Sosta con un motivo ordinata prima delle 6:15",
+   "testi": [
+    "Iniziamo bene la giornata! Ricevuto, sosta di {durata} a {stazione}. Passo."
+   ]
+  },
+  "treno.sosta.risposta_primo_treno": {
+   "chi": "macchinista",
+   "quando": "Sosta per il treno davanti in ritardo ordinata al primo treno della giornata",
+   "testi": [
+    "Ritardo il treno davanti? DCT, sono il primo della giornata: davanti a me ci sono solo i topi e il buio. Va bene, sosta di {durata} a {stazione}. Passo.",
+    "Davanti a me? DCT, ho aperto io la linea stamattina, davanti non c'è nessuno! Faccio comunque {durata} a {stazione}, magari il caffè è ancora caldo. Passo."
+   ]
+  },
+  "treno.sosta.risposta_ultimo_treno": {
+   "chi": "macchinista",
+   "quando": "Sosta di più di 30 secondi ordinata all'ultimo treno della sera",
+   "testi": [
+    "Ricevuto, sosta di {durata} a {stazione}. Il collega non ha voglia di tornare a casa? Passo."
+   ]
+  },
+  "treno.trattieni.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT trattiene un treno in stazione",
+   "testi": [
+    "Treno {treno}, resta fermo in stazione a porte aperte fino a nuovo ordine. Passo."
+   ]
+  },
+  "treno.trattieni.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno resta fermo in stazione come ordinato",
+   "testi": [
+    "Ricevuto DCT, resto fermo a {stazione} e avviso i passeggeri. Passo."
+   ]
+  },
+  "treno.tronchetto.negativo": {
+   "chi": "macchinista",
+   "quando": "Comasina: il tronchetto scelto resta occupato troppo a lungo",
+   "testi": [
+    "Negativo DCT, il tronchetto {tronchetto} resta occupato troppo a lungo. Resto sul programmato. Passo."
+   ]
+  },
+  "treno.tronchetto.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT sceglie il tronchetto di Comasina per un treno",
+   "testi": [
+    "Treno {treno}, a Comasina vai nel tronchetto {tronchetto}. Passo."
+   ]
+  },
+  "treno.tronchetto.risposta": {
+   "chi": "macchinista",
+   "quando": "Comasina: il treno va nel tronchetto scelto dal DCT",
+   "testi": [
+    "Ricevuto, a Comasina entro nel tronchetto {tronchetto}. Passo.",
+    "Copiato DCT, tronchetto {tronchetto}. Passo e chiudo."
+   ]
+  },
+  "treno.tronchetto.risposta_attendo": {
+   "chi": "macchinista",
+   "quando": "Comasina: il tronchetto scelto è ancora occupato da un treno che sta per lasciarlo",
+   "testi": [
+    "Ricevuto, tronchetto {tronchetto}. Attendo in banchina che il treno {treno2} lo liberi. Passo."
+   ]
+  },
+  "treno.tronchetto.risposta_cambia_altro": {
+   "chi": "macchinista",
+   "quando": "Comasina: il tronchetto scelto fa cambiare tronchetto a un altro treno",
+   "testi": [
+    "Ricevuto, a Comasina entro nel tronchetto {tronchetto}. Il treno {treno2} cambia tronchetto. Passo."
+   ]
+  },
+  "treno.tronchetto.risposta_cambiano_altri": {
+   "chi": "macchinista",
+   "quando": "Comasina: il tronchetto scelto fa cambiare tronchetto a più treni",
+   "testi": [
+    "Ricevuto, a Comasina entro nel tronchetto {tronchetto}. Cambiano tronchetto anche i treni {elenco}. Passo."
+   ]
+  },
+  "treno.velocita.annulla": {
+   "chi": "DCT",
+   "quando": "Il DCT annulla la limitazione di velocità",
+   "testi": [
+    "Treno {treno}, annulla la limitazione di velocità, riprendi la marcia normale. Passo."
+   ]
+  },
+  "treno.velocita.annulla_risposta": {
+   "chi": "macchinista",
+   "quando": "Il DCT ha annullato la limitazione di velocità",
+   "testi": [
+    "Ricevuto DCT, riprendo la velocità normale. Passo."
+   ]
+  },
+  "treno.velocita.fine_limitazione": {
+   "chi": "macchinista",
+   "quando": "Il treno lascia la stazione dove finiva la limitazione di velocità (con la radio aperta su di lui)",
+   "testi": [
+    "Qui {treno}, lasciata {stazione}: fine limitazione, riprendo la velocità normale. Passo."
+   ]
+  },
+  "treno.velocita.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT ordina una limitazione di velocità",
+   "testi": [
+    "Treno {treno}, limita la velocità a {velocita} km/h {fino}. Passo."
+   ]
+  },
+  "treno.velocita.risposta": {
+   "chi": "macchinista",
+   "quando": "Il DCT ha ordinato una limitazione di velocità",
+   "testi": [
+    "Ricevuto DCT, marcia a {velocita} km/h {fino}. Passo.",
+    "Copiato, {velocita} all'ora {fino}. Passo."
+   ]
+  }
+ }
+}

@@ -105,11 +105,11 @@
       begin(f, a); return f.id;
     }
     function begin(f, a) {
-      if (f.kind === 'ato') { f.ph = 'manual'; call(f, `DCT, treno {T}: guasto all'ATO, proseguo in guida manuale.`, ['ack']); }
-      else if (f.kind === 'atp') { f.ph = 'limited'; call(f, `DCT, treno {T}: guasto all'ATP, proseguo in marcia limitata a 30 km/h.`, ['homeEnd']); }
+      if (f.kind === 'ato') { f.ph = 'manual'; call(f, tx('guasto.ato.manuale'), ['ack']); }
+      else if (f.kind === 'atp') { f.ph = 'limited'; call(f, tx('guasto.atp.marcia_limitata'), ['homeEnd']); }
       else if (f.kind === 'riarmo') { f.ph = 'run'; f.next = S.t + between(120, 420); }
-      else if (f.kind === 'secondario') { f.ph = 'run'; const what = ['la climatizzazione di una cassa non funziona', 'un display interno per i passeggeri è spento', 'una luce di cabina non si accende', 'il pannello diagnostico segnala un\'anomalia su un carrello', 'un annuncio automatico non parte'];
-        call(f, `DCT, treno {T}: ${what[Math.floor(rnd() * what.length)]}. Il treno marcia, chiedo un tecnico a bordo.`, ['tech']); }
+      else if (f.kind === 'secondario') { f.ph = 'run';          // the problem: one of the variants, at random
+        call(f, tx('guasto.secondario.chiede_tecnico', { cosa: tx('guasto.secondario.problema') }), ['tech']); }
       else if (f.kind === 'trazione') f.ph = 'stopping';              // it stops where it is (at a station: when leaving)
       else if (f.kind === 'malore_treno' && a.stopAt != null) atStation(f, a);
     }
@@ -138,13 +138,13 @@
       const f = Object.assign({ id: ++F().seq, kind, k: null, target, t0: S.t, ph: 'on' }, extra || {}); f.target = target;
       const st = RT();
       if (kind === 'segnale') { st.sigFail = st.sigFail || {}; st.sigFail[target] = true; f.what = 'Semaforo ' + tag(target); f.until = S.t + between(1800, 5400);
-        say(f, 'sys', `Semaforo ${tag(target)} guasto: resta rosso.`); }
+        say(f, 'sys', tx('guasto.segnale.rosso', { segnale: tag(target) })); }
       else if (kind === 'sezione') { st.ghost = st.ghost || {}; f.edges = L.sigEdges(target); f.edges.forEach(ei => { st.ghost[ei] = f.id; }); f.what = 'Sezione dopo il ' + tag(target); f.until = S.t + between(1200, 3600);
-        say(f, 'sys', `La sezione dopo il ${tag(target)} risulta occupata, ma non c'è nessun treno.`); }
+        say(f, 'sys', tx('guasto.sezione.occupata', { segnale: tag(target) })); }
       else if (kind === 'scambio') { st.swFail = st.swFail || {}; st.swFail[target] = true; f.what = 'Scambio ' + target; f.ph = 'failed';
-        f.callWho = 'sys'; call(f, `Scambio ${target} guasto: non va in posizione, gli itinerari che lo usano non si formano.`, ['team']); }
+        f.callWho = 'sys'; call(f, tx('guasto.scambio.non_va', { scambio: target }), ['team']); }
       else if (kind === 'tensione') { f.zones = [L.zone('power', target, target + 1)]; f.what = name(target) + ' – ' + name(target + 1); f.until = S.t + between(300, 3600); f.ph = 'off';
-        f.callWho = 'en'; call(f, `DCT, qui Energia: mancanza di tensione tra ${f.what}. I treni nella tratta sono fermi.`, ['ack']); }
+        f.callWho = 'en'; call(f, tx('energia.mancanza', { tratta: f.what }), ['ack']); }
       // public order (Giovanni): the Prefettura orders a station closed, nearly always Duomo or Centrale, so that the people
       // leave through two stations instead of one. Announced at the start of the shift; once a day; 2 to 6 hours; the
       // trains go through without stopping
@@ -152,7 +152,7 @@
         F().prefDone = true; f.st = X; f.what = name(X); f.ph = 'announced'; f.callWho = 'pref';
         f.from = f.random ? Math.round((10 + 9 * rnd()) * 3600 / 300) * 300 : Math.ceil((S.t + 900) / 300) * 300; f.until = f.from + Math.round((2 + 4 * rnd()) * 3600 / 900) * 900;
         const hm = x => Math.floor(x / 3600) % 24 + ':' + String(Math.floor(x / 60) % 60).padStart(2, '0');
-        call(f, `DCT, qui la Prefettura: per motivi di ordine pubblico oggi la stazione di ${name(X)} resta chiusa dalle ${hm(f.from)} alle ${hm(f.until)}. I treni non fermano.`, ['ack']);
+        call(f, tx('prefettura.chiusura', { stazione: name(X), dalle: hm(f.from), alle: hm(f.until) }), ['ack']);
       }
       // the strike (D5): a percentage of the drivers; guaranteed service from the start to 8:45 and 15:00-18:00
       else if (kind === 'sciopero') {
@@ -160,23 +160,23 @@
         const all = S.agents.filter(a => !(a.mode === 'static' && a.hidden)), n = Math.round(all.length * f.pct / 100), pool = all.slice();
         f.strikers = []; while (f.strikers.length < n && pool.length) { const a = pool.splice(Math.floor(rnd() * pool.length), 1)[0]; a.strike = true; f.strikers.push(a.k); }
         f.marks = { out1: S.t >= G1 + 60, back: S.t >= G2a + 60, out2: S.t >= G2b + 60 };
-        call(f, `DCT, qui Ufficio Movimento: oggi sciopero, adesione del ${f.pct}% (${n} treni su ${all.length}). Fasce di garanzia: dall'inizio del servizio alle 8:45 e dalle 15:00 alle 18:00. Fuori dalle fasce come fai il servizio?`, ['freq', 'gaps', 'limit']);
+        call(f, tx('sciopero.adesione', { adesione: f.pct, treni: n, totale: all.length }), ['freq', 'gaps', 'limit']);
       }
       // people and emergencies (D3)
       else if (kind === 'persona') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.zones = [L.zone('stop', X, X)];
-        call(f, `DCT, qui ${name(X)}: c'è una persona sui binari! Ho chiuso i segnali di partenza e di protezione della stazione.`, ['red'], 30); }
+        call(f, tx('emergenza.persona.binari', { stazione: name(X) }), ['red'], 30); }
       else if (kind === 'oggetto') { f.st = X; f.what = name(X); f.ph = 'told'; f.callWho = 'ag';
-        call(f, `DCT, qui ${name(X)}: un passeggero dice che è caduto qualcosa sul binario.`, ['agent']); }
+        call(f, tx('emergenza.oggetto.segnalato', { stazione: name(X) }), ['agent']); }
       else if (kind === 'malore_stazione') { f.st = X; f.what = name(X); f.ph = 'help'; f.callWho = 'ag'; f.until = S.t + between(600, 1800); f.holdAt = S.t + between(120, 400);
-        call(f, `DCT, qui ${name(X)}: una persona si sente male in banchina, ho chiamato i soccorsi.`, ['ack']); }
+        call(f, tx('emergenza.malore_stazione.soccorsi', { stazione: name(X) }), ['ack']); }
       else if (kind === 'tunnel') { f.what = name(X) + ' – ' + name(X + 1); f.a = X; f.ph = 'alarm'; f.callWho = 'drx';
-        call(f, `DCT, qui un macchinista: c'è una persona nel tunnel tra ${f.what}!`, ['red'], 30); }
+        call(f, tx('emergenza.tunnel.persona', { tratta: f.what }), ['red'], 30); }
       else if (kind === 'investimento') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.zones = [L.zone('stop', X, X)];
         { const t0 = S.agents.find(a => !a.hidden && a.stopAt === X) || S.agents.filter(a => !a.hidden && a.status === 'service' && a.legs[0] && a.legs[0].stops && a.legs[0].stops[0] && a.legs[0].stops[0].st === X)[0]; f.tk = t0 ? t0.k : null; if (t0) t0.broken = true; }
-        call(f, `DCT, qui ${name(X)}: investimento! Un treno ha investito una persona in banchina. Ho chiuso i segnali della stazione.`, ['red'], 30); }
+        call(f, tx('emergenza.investimento.allarme', { stazione: name(X) }), ['red'], 30); }
       else if (kind === 'incendio') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.smoke = rnd() < 0.4 ? S.t + between(60, 300) : null;
         f.until = S.t + (rnd() < 0.15 ? between(5400, 18000) : between(1800, 5400));
-        call(f, `DCT, qui ${name(X)}: incendio in stazione, fumo e allarme antincendio!`, ['fire'], 30); }
+        call(f, tx('emergenza.incendio.allarme', { stazione: name(X) }), ['fire'], 30); }
       F().list.push(f); return f.id;
     }
     // the position of switch nd a waiting train needs (the squad puts it there), else the first one
@@ -186,65 +186,66 @@
     }
     function tickLine(f) {
       const st = RT();
-      if (f.kind === 'segnale' && S.t >= f.until) { delete st.sigFail[f.target]; end(f, `Semaforo ${tag(f.target)} riparato.`, 'man'); }
-      else if (f.kind === 'sezione' && S.t >= f.until) { for (const ei of f.edges) if (st.ghost[ei] === f.id) delete st.ghost[ei]; end(f, `Sezione dopo il ${tag(f.target)} riparata: torna libera.`, 'man'); }
+      if (f.kind === 'segnale' && S.t >= f.until) { delete st.sigFail[f.target]; end(f, tx('guasto.segnale.riparato', { segnale: tag(f.target) }), 'man'); }
+      else if (f.kind === 'sezione' && S.t >= f.until) { for (const ei of f.edges) if (st.ghost[ei] === f.id) delete st.ghost[ei]; end(f, tx('guasto.sezione.riparata', { segnale: tag(f.target) }), 'man'); }
       else if (f.kind === 'scambio') {
         if (f.ph === 'team' && S.t >= f.until) {
           const P = L.positions(f.target), want = posFor(f.target), order = P.slice().sort((x, y) => (y.pos === want) - (x.pos === want));
           f.ph = 'pos'; f.pos = order.map(p => p.pos); f.callWho = 'man';
           f.labels = Object.fromEntries(order.map((p, i) => ['p' + i, 'Posizione ' + p.ids.slice(0, 2).join(', ')]));
-          call(f, `DCT, qui la squadra: siamo allo scambio ${f.target}. In che posizione lo mettiamo?`, order.map((p, i) => 'p' + i));
+          call(f, tx('guasto.scambio.squadra_chiede_posizione', { scambio: f.target }), order.map((p, i) => 'p' + i));
         }
-        if (f.ph === 'hand' && S.t >= f.until) { delete st.swFail[f.target]; end(f, `Scambio ${f.target} riparato: torna comandato dall'apparato.`, 'man'); }
+        if (f.ph === 'hand' && S.t >= f.until) { delete st.swFail[f.target]; end(f, tx('guasto.scambio.riparato', { scambio: f.target }), 'man'); }
       }
-      else if (f.kind === 'persona' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; call(f, f.gone ? `DCT, qui ${name(f.st)}: quando sono arrivato la persona non c'era più, è risalita. Puoi ridare tensione e via libera.` : `DCT, qui ${name(f.st)}: la persona è stata recuperata, i binari sono liberi. Puoi ridare tensione e via libera.`, ['clear']); }
+      else if (f.kind === 'persona' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; call(f, tx(f.gone ? 'emergenza.persona.risalita' : 'emergenza.persona.recuperata', { stazione: name(f.st) }), ['clear']); }
       else if (f.kind === 'oggetto' && f.ph === 'verify' && S.t >= f.until) {
-        if (!f.found) end(f, `Qui ${name(f.st)}: ho controllato, sul binario non c'è niente.`, 'ag');
-        else { f.ph = 'found'; call(f, `DCT, qui ${name(f.st)}: c'è davvero un oggetto sul binario. Serve togliere tensione in stazione per recuperarlo.`, ['cut']); }
+        if (!f.found) end(f, tx('emergenza.oggetto.niente', { stazione: name(f.st) }), 'ag');
+        else { f.ph = 'found'; call(f, tx('emergenza.oggetto.trovato', { stazione: name(f.st) }), ['cut']); }
       }
-      else if (f.kind === 'oggetto' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; call(f, `DCT, qui ${name(f.st)}: oggetto recuperato, puoi ridare tensione.`, ['clear']); }
+      else if (f.kind === 'oggetto' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; call(f, tx('emergenza.oggetto.recuperato', { stazione: name(f.st) }), ['clear']); }
       else if (f.kind === 'malore_stazione') {
-        if (f.holdAt && S.t >= f.holdAt && f.ph === 'help' && !f.call) { f.holdAt = null; f.ph = 'ask'; call(f, `DCT, qui ${name(f.st)}: fermate un momento i treni in stazione, i soccorritori lavorano in banchina.`, ['hold']); }
-        if (f.ph === 'holding' && S.t >= f.holdUntil) { unzone(f, 'stop'); f.ph = 'help'; say(f, 'ag', `Qui ${name(f.st)}: i treni possono ripartire, grazie.`); }
-        if (f.ph === 'help' && !f.holdAt && S.t >= f.until) { unLine(f); end(f, `Qui ${name(f.st)}: la persona è stata soccorsa, emergenza rientrata.`, 'ag'); }
+        if (f.holdAt && S.t >= f.holdAt && f.ph === 'help' && !f.call) { f.holdAt = null; f.ph = 'ask'; call(f, tx('emergenza.malore_stazione.ferma_treni', { stazione: name(f.st) }), ['hold']); }
+        if (f.ph === 'holding' && S.t >= f.holdUntil) { unzone(f, 'stop'); f.ph = 'help'; say(f, 'ag', tx('emergenza.malore_stazione.ripartire', { stazione: name(f.st) })); }
+        if (f.ph === 'help' && !f.holdAt && S.t >= f.until) { unLine(f); end(f, tx('emergenza.malore_stazione.rientrata', { stazione: name(f.st) }), 'ag'); }
       }
-      else if (f.kind === 'tunnel' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; f.callWho = 'pol'; call(f, `DCT, qui la polizia: la persona nel tunnel tra ${f.what} è stata allontanata.`, ['clear']); }
+      else if (f.kind === 'tunnel' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; f.callWho = 'pol'; call(f, tx('emergenza.tunnel.allontanata', { tratta: f.what }), ['clear']); }
       else if (f.kind === 'prefettura') {
-        if (f.ph === 'announced' && S.t >= f.from - 300 && !f.warned) { f.warned = true; say(f, 'ag', `Qui ${name(f.st)}: tra 5 minuti chiudo gli accessi come da disposizione della Prefettura, faccio gli annunci.`); }
-        if (f.ph === 'announced' && S.t >= f.from) { f.ph = 'closed'; L.station(f.st, true); say(f, 'ag', `Qui ${name(f.st)}: accessi chiusi, la stazione è vuota. I treni possono transitare.`);
-          const near = [f.st - 1, f.st + 1].filter(i => i >= 0 && i <= L.last()).map(name).join(' e ');
-          say(f, 'pc', `Annuncio a ${near}: la stazione di ${name(f.st)} è chiusa per disposizione della Prefettura, i treni non fermano.`); }
-        if (f.ph === 'closed' && S.t >= f.until && !f.call) { f.ph = 'end'; call(f, `DCT, qui la Prefettura: la disposizione è revocata, potete riaprire ${name(f.st)}.`, ['reopenSt']); }
+        if (f.ph === 'announced' && S.t >= f.from - 300 && !f.warned) { f.warned = true; say(f, 'ag', tx('prefettura.preavviso', { stazione: name(f.st) })); }
+        if (f.ph === 'announced' && S.t >= f.from) { f.ph = 'closed'; L.station(f.st, true); say(f, 'ag', tx('prefettura.accessi_chiusi', { stazione: name(f.st) }));
+          const near = [f.st - 1, f.st + 1].filter(i => i >= 0 && i <= L.last()).map(name);
+          say(f, 'pc', near.length > 1 ? tx('prefettura.annuncio_vicine', { vicina: near[0], vicina2: near[1], stazione: name(f.st) })
+            : tx('prefettura.annuncio_vicina', { vicina: near[0] || '', stazione: name(f.st) })); }
+        if (f.ph === 'closed' && S.t >= f.until && !f.call) { f.ph = 'end'; call(f, tx('prefettura.revoca', { stazione: name(f.st) }), ['reopenSt']); }
       }
       else if (f.kind === 'sciopero') {
         // end of a guaranteed band: the drivers on strike ask to go back to the depot; at 15:00 they are back
         const out = when => { for (const k of f.strikers) { const a = S.agents[k]; if (!a || a.hidden || a.mode === 'static' || live().some(x => x.k === k && x.kind === 'rientro')) continue;
           if (L.keepIn && L.keepIn(k)) continue;                                   // still in the depot: it stays there
           const g = { id: ++F().seq, kind: 'rientro', k, t0: S.t, ph: 'call', st: null }; F().list.push(g);
-          call(g, `DCT, treno {T}: è finita la fascia di garanzia, sciopero. Chiedo di rientrare in deposito a fine corsa.`, ['homeEnd']); }
-          if (f.choice === 'freq' && L.hybrid) L.hybrid(); say(f, 'sys', `Fine della fascia di garanzia (${when}): i treni in sciopero rientrano.`); };
+          call(g, tx('sciopero.rientro_chiesto'), ['homeEnd']); }
+          if (f.choice === 'freq' && L.hybrid) L.hybrid(); say(f, 'sys', tx('sciopero.fine_fascia', { quando: when })); };
         if (!f.marks.out1 && S.t >= G1) { f.marks.out1 = true; out('8:45'); }
         // 15:00: back in service, one at a time out of the depot (every 4 minutes, when the way out is free)
-        if (!f.marks.back && S.t >= G2a) { f.marks.back = true; f.wakeQ = f.strikers.slice(); f.nextWake = S.t; say(f, 'sys', 'Inizio della fascia di garanzia (15:00): i treni in sciopero tornano in servizio.'); }
+        if (!f.marks.back && S.t >= G2a) { f.marks.back = true; f.wakeQ = f.strikers.slice(); f.nextWake = S.t; say(f, 'sys', tx('sciopero.inizio_fascia')); }
         if (f.wakeQ && f.wakeQ.length && S.t >= f.nextWake && S.t < G2b) { const k = f.wakeQ[0], a = S.agents[k];
           if (!a || !(a.hidden || a.mode === 'static')) f.wakeQ.shift(); else if (L.wake(k)) { f.wakeQ.shift(); f.nextWake = S.t + 240; } else f.nextWake = S.t + 30; }
         if (!f.marks.out2 && S.t >= G2b) { f.marks.out2 = true; out('18:00'); }
-        if (S.t >= 26 * 3600) end(f, 'Fine della giornata di sciopero.', 'sys');
+        if (S.t >= 26 * 3600) end(f, tx('sciopero.fine_giornata'), 'sys');
       }
       else if (f.kind === 'investimento' && f.ph === 'recover' && f.closeAsk === undefined && L.closures) {
         // the DCT must close a stretch around the station (he chooses which one)
         const cl = L.closures(f.st); f.closeAsk = cl.map(c => c.i);
-        if (cl.length) { f.labels = Object.assign({}, f.labels || {}, Object.fromEntries(cl.map((c, i) => ['cl' + i, 'Chiudi ' + c.label]))); call(f, `${name(f.st)} resterà chiusa per ore: chiudi la tratta.`, cl.map((c, i) => 'cl' + i)); }
+        if (cl.length) { f.labels = Object.assign({}, f.labels || {}, Object.fromEntries(cl.map((c, i) => ['cl' + i, 'Chiudi ' + c.label]))); call(f, tx('emergenza.investimento.chiudi_tratta', { stazione: name(f.st) }), cl.map((c, i) => 'cl' + i)); }
       }
-      else if (f.kind === 'investimento' && f.ph === 'recover' && S.t >= f.until && !f.call) { f.ph = 'done'; call(f, `DCT, qui ${name(f.st)}: la polizia ha finito i rilievi. Si può ridare tensione; il treno va portato in deposito.`, ['clear']); }
+      else if (f.kind === 'investimento' && f.ph === 'recover' && S.t >= f.until && !f.call) { f.ph = 'done'; call(f, tx('emergenza.investimento.rilievi_finiti', { stazione: name(f.st) }), ['clear']); }
       else if (f.kind === 'incendio') {
-        if (f.smoke && S.t >= f.smoke && f.ph === 'fire') { f.smoke = null; call(f, `DCT, qui ${name(f.st)}: c'è fumo in galleria!`, ['red'], 30); }
-        if (f.ph === 'fire' && !f.smoke && !f.call && S.t >= f.until) { f.ph = 'done'; f.callWho = 'vvf'; call(f, `DCT, qui i vigili del fuoco: incendio a ${name(f.st)} spento e verificato. La stazione può riaprire.`, ['clear']); }
+        if (f.smoke && S.t >= f.smoke && f.ph === 'fire') { f.smoke = null; call(f, tx('emergenza.incendio.fumo', { stazione: name(f.st) }), ['red'], 30); }
+        if (f.ph === 'fire' && !f.smoke && !f.call && S.t >= f.until) { f.ph = 'done'; f.callWho = 'vvf'; call(f, tx('emergenza.incendio.spento', { stazione: name(f.st) }), ['clear']); }
       }
       else if (f.kind === 'tensione' && f.ph === 'off' && !f.evacAsk && S.t - f.t0 >= 1200 && L.stuckIn && L.stuckIn().length) {
-        f.evacAsk = true; call(f, `DCT, qui i macchinisti tra ${f.what}: siamo fermi in galleria da 20 minuti con i passeggeri. Evacuiamo?`, ['evac', 'ack']);
+        f.evacAsk = true; call(f, tx('energia.evacuare_chiesto', { tratta: f.what }), ['evac', 'ack']);
       }
-      else if (f.kind === 'tensione' && f.ph === 'off' && S.t >= f.until && !f.call && !(f.evacUntil && S.t < f.evacUntil)) { f.ph = 'ready'; call(f, `DCT, qui Energia: guasto riparato tra ${f.what}, puoi ridare tensione.`, ['power']); }
+      else if (f.kind === 'tensione' && f.ph === 'off' && S.t >= f.until && !f.call && !(f.evacUntil && S.t < f.evacUntil)) { f.ph = 'ready'; call(f, tx('energia.riparato', { tratta: f.what }), ['power']); }
     }
     // trains stopped at a red by a failure of the line: they call the DCT and ask to go by in marcia a vista
     function lineCalls() {
@@ -256,108 +257,108 @@
         if (live().some(f => f.kind === 'vista' && f.k === a.k)) continue;
         const f = { id: ++F().seq, kind: 'vista', k: a.k, t0: S.t, ph: 'call', n: w.sig, st: null };
         F().list.push(f);
-        call(f, r.sigFail != null ? `DCT, treno {T}: sono fermo al ${tag(w.sig)}, il semaforo non si apre. Chiedo di superarlo in marcia a vista.`
-          : r.ghost != null ? `DCT, treno {T}: sono fermo al ${tag(w.sig)}, la sezione dopo risulta occupata ma davanti non vedo treni. Chiedo la marcia a vista.`
-          : `DCT, treno {T}: sono fermo al ${tag(w.sig)}, lo scambio ${r.swHand} è manovrato a mano. Chiedo l'autorizzazione a passare.`, ['vista']);
+        call(f, r.sigFail != null ? tx('guasto.vista.semaforo', { segnale: tag(w.sig) })
+          : r.ghost != null ? tx('guasto.vista.sezione', { segnale: tag(w.sig) })
+          : tx('guasto.vista.scambio', { segnale: tag(w.sig), scambio: r.swHand }), ['vista']);
       }
     }
     function giveVista(k, n) { const st = RT(); st.avista = st.avista || {}; st.avista[k] = n; }
     // the train has stopped at a station (or was there already)
     function atStation(f, a) {
       f.st = a.stopAt;
-      if (f.kind === 'porta') { f.ph = 'dwell'; f.extra = between(60, 180); say(f, 'dr', `DCT, treno {T}: a ${name(f.st)} una porta non si chiude, la escludo e la chiudo a mano.`); }
+      if (f.kind === 'porta') { f.ph = 'dwell'; f.extra = between(60, 180); say(f, 'dr', tx('guasto.porta.esclusa', { stazione: name(f.st) })); }
       else if (f.kind === 'porte_persone') { f.ph = 'dwell'; f.extra = between(30, 120); }
-      else if (f.kind === 'allarme') { f.ph = 'held'; call(f, `DCT, treno {T}: allarme passeggero, mi sono fermato a ${name(f.st)}. Chiedo l'agente di stazione.`, ['agent']); }
+      else if (f.kind === 'allarme') { f.ph = 'held'; call(f, tx('guasto.allarme.fermo', { stazione: name(f.st) }), ['agent']); }
       else if (f.kind === 'malore_treno') { f.ph = 'held'; f.until = S.t + between(1200, 3600); f.callWho = 'ag';
-        call(f, `DCT, qui ${name(f.st)}: un passeggero si sente male sul treno {T}, ho chiamato i soccorsi. Il treno resta fermo in banchina.`, ['ack']); }
+        call(f, tx('emergenza.malore_treno.soccorsi', { stazione: name(f.st) }), ['ack']); }
     }
 
     // the DCT answers (or the admin): null when done, else why not
     function answer(id, what) {
       const f = live().find(x => x.id === id); if (!f) return { gone: true };
       if (what === 'fix') { unLine(f); if (f.st != null && (f.kind === 'investimento' || f.kind === 'incendio')) L.station(f.st, false);
-        end(f, f.kind === 'pc' ? `DCT: tolto ${f.zone === 'red' ? 'il pulsante rosso' : f.zone === 'power' ? 'il taglio di tensione' : 'il fermo dei treni'} tra ${f.what}.` : 'Guasto risolto (admin).', f.kind === 'pc' ? 'pc' : 'sys'); return null; }
+        end(f, f.kind === 'pc' ? tx(f.zone === 'red' ? 'emergenza.dct.tolto_rosso' : f.zone === 'power' ? 'emergenza.dct.tolto_tensione' : 'emergenza.dct.tolto_fermo', { tratta: f.what }) : tx('guasto.admin.risolto'), f.kind === 'pc' ? 'pc' : 'sys'); return null; }
       if (what === 'tech') {
         if ((f.kind !== 'riarmo' && f.kind !== 'secondario') || f.tech) return { no: true };
-        f.tech = 'wait'; say(f, 'pc', f.kind === 'riarmo' ? 'Manutenzione di linea del deposito di Rogoredo, mandate un tecnico sul treno {T}: chiede continuamente il riarmo.' : 'Manutenzione di linea del deposito di Rogoredo, mandate un tecnico sul treno {T}: ha un problema secondario.');
-        say(f, 'man', 'Ricevuto DCT, il tecnico sale sul treno {T} a San Donato.');
+        f.tech = 'wait'; say(f, 'pc', f.kind === 'riarmo' ? tx('guasto.chiede_riarmo.manda_tecnico') : tx('guasto.secondario.manda_tecnico'));
+        say(f, 'man', tx('guasto.tecnico.sale'));
         if (f.call && f.call.opts.includes('tech')) { f.call.opts = f.call.opts.filter(x => x !== 'tech'); if (!f.call.opts.length) f.call = null; }
         return null;
       }
       if (!f.call || !f.call.opts.includes(what)) return { no: true };
       f.call = null;
-      if (what === 'vista') { giveVista(f.k, f.n); say(f, 'pc', `Treno {T}, autorizzato a superare il ${tag(f.n)} in marcia a vista fino al semaforo successivo.`); say(f, 'dr', `Ricevuto DCT, supero il ${tag(f.n)} in marcia a vista.`); f.ph = 'go'; return null; }
-      if (what === 'team') { say(f, 'pc', `Squadra di manutenzione, andate allo scambio ${f.target}: non va in posizione.`); say(f, 'man', 'Ricevuto DCT, arriviamo.'); f.ph = 'team'; f.until = S.t + between(600, 1800); return null; }
+      if (what === 'vista') { giveVista(f.k, f.n); say(f, 'pc', tx('guasto.vista.autorizzato', { segnale: tag(f.n) })); say(f, 'dr', tx('guasto.vista.ricevuto', { segnale: tag(f.n) })); f.ph = 'go'; return null; }
+      if (what === 'team') { say(f, 'pc', tx('guasto.scambio.manda_squadra', { scambio: f.target })); say(f, 'man', tx('guasto.scambio.squadra_arriva')); f.ph = 'team'; f.until = S.t + between(600, 1800); return null; }
       if (/^p\d$/.test(what) && f.kind === 'scambio') {
         const pos = f.pos[+what.slice(1)], st = RT(); st.swFail[f.target] = pos; st.sw[f.target] = pos;
-        say(f, 'pc', `Mettetelo in ${f.labels[what].toLowerCase()} e bloccatelo.`); say(f, 'man', `Scambio ${f.target} manovrato a mano e bloccato. I treni passano solo con la tua autorizzazione.`);
+        say(f, 'pc', tx('guasto.scambio.metti_in', { posizione: f.labels[what].toLowerCase() })); say(f, 'man', tx('guasto.scambio.manovrato_a_mano', { scambio: f.target }));
         f.ph = 'hand'; f.until = S.t + between(1800, 5400); return null;
       }
-      if (what === 'power') { unLine(f); end(f, `DCT: ridata tensione tra ${f.what}. I treni ripartono.`, 'pc'); return null; }
+      if (what === 'power') { unLine(f); end(f, tx('energia.ridata', { tratta: f.what }), 'pc'); return null; }
       if (what === 'red') {                    // pulsante rosso and no power: around the station, or the stretch of the tunnel
         const [a, b] = f.kind === 'tunnel' ? [f.a, f.a + 1] : f.around; f.zones = (f.zones || []).concat([L.zone('red', a, b), L.zone('power', a, b)]);
-        say(f, 'pc', `Pulsante rosso tra ${name(a)} e ${name(b)}: tutti i semafori a rosso, tolgo tensione. Tutti i treni della tratta fermi!`);
-        if (f.kind === 'persona') { f.ph = 'recover'; f.gone = rnd() < 0.1; f.until = S.t + (f.gone ? between(180, 300) : between(600, 1800)); say(f, 'ag', `Ricevuto DCT, scendo a recuperare la persona.`); }
-        if (f.kind === 'tunnel') { f.ph = 'recover'; f.until = S.t + between(900, 3600); say(f, 'pc', `Chiamo la polizia. Stazioni di ${name(a)} e ${name(b)}: c'è una persona nel tunnel, la tratta è chiusa.`); }
+        say(f, 'pc', tx('emergenza.pulsante_rosso', { da: name(a), a: name(b) }));
+        if (f.kind === 'persona') { f.ph = 'recover'; f.gone = rnd() < 0.1; f.until = S.t + (f.gone ? between(180, 300) : between(600, 1800)); say(f, 'ag', tx('emergenza.persona.scendo')); }
+        if (f.kind === 'tunnel') { f.ph = 'recover'; f.until = S.t + between(900, 3600); say(f, 'pc', tx('emergenza.tunnel.chiamo_polizia', { da: name(a), a: name(b) })); }
         if (f.kind === 'investimento') { f.ph = 'recover'; f.until = S.t + between(10800, 18000); L.station(f.st, true);
-          say(f, 'pc', `Chiamo polizia e soccorsi. ${name(f.st)} chiusa: i treni non fermano. Valuta la chiusura della tratta.`); }
-        if (f.kind === 'incendio') say(f, 'pc', `Fumo in galleria a ${name(f.st)}: treni fermi, tensione tolta.`);
+          say(f, 'pc', tx('emergenza.investimento.chiamo_soccorsi', { stazione: name(f.st) })); }
+        if (f.kind === 'incendio') say(f, 'pc', tx('emergenza.incendio.fumo_tensione_tolta', { stazione: name(f.st) }));
         return null;
       }
-      if (what === 'fire') { L.station(f.st, true); f.ph = 'fire'; say(f, 'pc', `Chiudo ${name(f.st)}: i treni non fermano. Chiamo i vigili del fuoco; agente, fai uscire i passeggeri.`); say(f, 'ag', 'Ricevuto DCT, faccio uscire tutti.'); return null; }
-      if (what === 'cut') { f.zones = (f.zones || []).concat([L.zone('power', f.st, f.st)]); f.ph = 'recover'; f.until = S.t + between(300, 900); say(f, 'pc', `Tolgo tensione in stazione a ${name(f.st)}: recuperate l'oggetto.`); return null; }
-      if (what === 'hold') { f.zones = (f.zones || []).concat([L.zone('stop', f.st, f.st)]); f.ph = 'holding'; f.holdUntil = S.t + between(120, 300); say(f, 'pc', `Ricevuto ${name(f.st)}, fermo i treni in stazione.`); return null; }
-      if (/^cl\d$/.test(what)) { const i = f.closeAsk[+what.slice(2)]; if (L.close(i)) { f.closed = true; say(f, 'pc', `${f.labels[what]}: i treni girano alle stazioni di fine tratta.`); } return null; }
-      if (what === 'reopenSt') { L.station(f.st, false); end(f, `DCT: ${name(f.st)} riaperta.`, 'pc'); return null; }
-      if (what === 'reopen') { L.reopen(); end(f, 'DCT: tratta riaperta.', 'pc'); return null; }
-      if (what === 'evac') { f.evacUntil = S.t + between(1200, 2700); say(f, 'pc', `Evacuate: i macchinisti accompagnano i passeggeri a piedi alla stazione più vicina. La tensione resta tolta finché non sono tutti in stazione.`); return null; }
+      if (what === 'fire') { L.station(f.st, true); f.ph = 'fire'; say(f, 'pc', tx('emergenza.incendio.chiudo', { stazione: name(f.st) })); say(f, 'ag', tx('emergenza.incendio.faccio_uscire')); return null; }
+      if (what === 'cut') { f.zones = (f.zones || []).concat([L.zone('power', f.st, f.st)]); f.ph = 'recover'; f.until = S.t + between(300, 900); say(f, 'pc', tx('emergenza.oggetto.tolgo_tensione', { stazione: name(f.st) })); return null; }
+      if (what === 'hold') { f.zones = (f.zones || []).concat([L.zone('stop', f.st, f.st)]); f.ph = 'holding'; f.holdUntil = S.t + between(120, 300); say(f, 'pc', tx('emergenza.malore_stazione.fermo_treni', { stazione: name(f.st) })); return null; }
+      if (/^cl\d$/.test(what)) { const i = f.closeAsk[+what.slice(2)]; if (L.close(i)) { f.closed = true; say(f, 'pc', tx('emergenza.investimento.tratta_chiusa', { chiusura: f.labels[what] })); } return null; }
+      if (what === 'reopenSt') { L.station(f.st, false); end(f, tx('prefettura.riaperta', { stazione: name(f.st) }), 'pc'); return null; }
+      if (what === 'reopen') { L.reopen(); end(f, tx('emergenza.investimento.tratta_riaperta'), 'pc'); return null; }
+      if (what === 'evac') { f.evacUntil = S.t + between(1200, 2700); say(f, 'pc', tx('energia.evacuate')); return null; }
       if (f.kind === 'sciopero' && ['freq', 'gaps', 'limit'].includes(what)) { f.choice = what;
-        say(f, 'pc', what === 'freq' ? 'Fuori dalle fasce i treni rimasti fanno le corse scoperte una dopo l\'altra: frequenza più bassa.' : what === 'gaps' ? 'Fuori dalle fasce resta l\'orario: le corse dei treni in sciopero restano scoperte.' : 'Fuori dalle fasce servizio limitato: chiudo io una tratta dal pannello.'); return null; }
+        say(f, 'pc', what === 'freq' ? tx('sciopero.scelta.frequenza') : what === 'gaps' ? tx('sciopero.scelta.orario') : tx('sciopero.scelta.limitato')); return null; }
       if (what === 'clear') {
         if (f.kind === 'investimento' && f.tk != null && L.home) L.home(f.tk, false);         // the train goes to the depot
         unLine(f);
-        if (f.kind === 'investimento' && f.closed) { L.station(f.st, false); f.ph = 'reopen'; call(f, `${name(f.st)} riaperta, tensione ridata. Riapri la tratta chiusa.`, ['reopen']); return null; }
+        if (f.kind === 'investimento' && f.closed) { L.station(f.st, false); f.ph = 'reopen'; call(f, tx('emergenza.investimento.riapri_tratta', { stazione: name(f.st) }), ['reopen']); return null; }
         if (f.kind === 'tunnel') f.zones = [L.zone('vista', f.a, f.a + 1)];          // the first train on each track: marcia a vista
         if (f.kind === 'investimento' || f.kind === 'incendio') L.station(f.st, false);
-        end(f, f.kind === 'tunnel' ? `DCT: ridata tensione tra ${f.what}. I primi treni passano in marcia a vista.` : f.kind === 'incendio' ? `DCT: ${name(f.st)} riaperta.` : `DCT: ridata tensione e via libera${f.kind === 'investimento' ? `, ${name(f.st)} riaperta` : ''}.`, 'pc');
+        end(f, f.kind === 'tunnel' ? tx('emergenza.tunnel.ridata_tensione', { tratta: f.what }) : f.kind === 'incendio' ? tx('emergenza.incendio.riaperta', { stazione: name(f.st) })
+          : f.kind === 'investimento' ? tx('emergenza.investimento.via_libera_riaperta', { stazione: name(f.st) }) : tx('emergenza.via_libera'), 'pc');
         if (f.kind === 'tunnel') f.zones = [];                                          // (it goes by itself)
         return null;
       }
-      if (what === 'rearm') { say(f, 'pc', 'Treno {T}, riarma il treno.'); say(f, 'dr', 'Ricevuto DCT, riarmo.'); f.ph = 'rearm'; f.until = S.t + between(90, 150); }
+      if (what === 'rearm') { say(f, 'pc', tx('guasto.riarmo.ordine')); say(f, 'dr', tx('guasto.riarmo.ricevuto')); f.ph = 'rearm'; f.until = S.t + between(90, 150); }
       else if (what === 'agent') {
-        if (f.kind === 'allarme') { say(f, 'pc', `${name(f.st)}, mandate l'agente sul treno {T}: allarme passeggero.`); say(f, 'ag', `Ricevuto DCT, salgo sul treno {T}.`); f.ph = 'verify'; f.until = S.t + between(60, 300); }
-        else if (f.kind === 'porte_persone') { say(f, 'pc', `${name(f.st)}, mandate l'agente in banchina al treno {T}: non chiude le porte.`); say(f, 'ag', 'Ricevuto DCT, libero le porte.'); f.agent = S.t; }
-        else if (f.kind === 'oggetto') { say(f, 'pc', `${name(f.st)}, controllate il binario.`); say(f, 'ag', 'Ricevuto DCT, vado a vedere.'); f.ph = 'verify'; f.until = S.t + between(120, 300); f.found = rnd() < 1 / 3; }
+        if (f.kind === 'allarme') { say(f, 'pc', tx('guasto.allarme.manda_agente', { stazione: name(f.st) })); say(f, 'ag', tx('guasto.allarme.agente_sale')); f.ph = 'verify'; f.until = S.t + between(60, 300); }
+        else if (f.kind === 'porte_persone') { say(f, 'pc', tx('guasto.porte_persone.manda_agente', { stazione: name(f.st) })); say(f, 'ag', tx('guasto.porte_persone.libero_porte')); f.agent = S.t; }
+        else if (f.kind === 'oggetto') { say(f, 'pc', tx('emergenza.oggetto.controllate', { stazione: name(f.st) })); say(f, 'ag', tx('emergenza.oggetto.vado_a_vedere')); f.ph = 'verify'; f.until = S.t + between(120, 300); f.found = rnd() < 1 / 3; }
       } else if (what === 'rback' || what === 'rfront') {
         const rk = what === 'rback' ? L.rescue(f.k) : L.tow(f.k); if (rk == null) return { no: true };
         f.rk = rk; f.ph = 'coming';
-        say(f, 'pc', what === 'rback' ? 'Treno {R}, fai scendere i passeggeri alla prossima stazione e vai a soccorrere il treno {T} davanti a te, in marcia a vista: lo spingi a 15 km/h.'
-          : 'Treno {R}, fai scendere i passeggeri alla prossima stazione, cambia banco e torna indietro in marcia a vista fino al treno {T}: lo traini con l\'accoppiamento pneumatico, 30 km/h.');
-        say(f, 'dr', 'Ricevuto DCT, attendo il soccorso.');
+        say(f, 'pc', what === 'rback' ? tx('soccorso.spinta') : tx('soccorso.traino'));
+        say(f, 'dr', tx('soccorso.attendo'));
       } else if (what === 'badoni') {
         const a = S.agents[f.k], leg = a && a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, dir = (leg && leg.dir) || (a && a.arr) || 'S';
         const far = a && a.at != null ? (dir === 'N' ? Math.min(L.last(), a.at + 1) : Math.max(1, a.at)) : 1, km = far * 0.9;
         // out of ROD 10 min, there at 25 km/h, coupling 5 min, back at 15 km/h
         f.zones = (f.zones || []).concat([L.zone('power', 0, far)]); f.ph = 'badoni'; f.until = S.t + 600 + Math.round(km / 25 * 3600) + 300 + Math.round(km / 15 * 3600);
         f.evacUntil = S.t + between(1200, 2700);
-        say(f, 'pc', `Interruzione della linea tra San Donato e ${name(far)}: tensione tolta. Esce il Badoni da Rogoredo. Treno {T}, evacuate i passeggeri alla stazione più vicina.`);
-        say(f, 'dr', 'Ricevuto DCT, accompagno i passeggeri a piedi.');
+        say(f, 'pc', tx('soccorso.badoni.interruzione', { stazione: name(far) }));
+        say(f, 'dr', tx('soccorso.badoni.evacuo'));
       } else if (what === 'rescue') {
         const rk = L.rescue ? L.rescue(f.k) : null;
-        if (rk != null) { f.rk = rk; f.ph = 'coming'; say(f, 'pc', 'Treno {R}, fai scendere i passeggeri alla prossima stazione e vai a soccorrere il treno {T} davanti a te, in marcia a vista.'); say(f, 'dr', 'Ricevuto DCT, attendo il soccorso.'); }
-        else { f.ph = 'rescue'; f.until = S.t + between(1800, 3600); say(f, 'pc', 'Treno {T}: nessun treno può arrivare da dietro. Serve il Badoni da ROD, con l\'interruzione della linea (non ancora simulato: il treno riparte dopo l\'attesa).'); }
+        if (rk != null) { f.rk = rk; f.ph = 'coming'; say(f, 'pc', tx('soccorso.da_dietro')); say(f, 'dr', tx('soccorso.attendo')); }
+        else { f.ph = 'rescue'; f.until = S.t + between(1800, 3600); say(f, 'pc', tx('soccorso.badoni.nessun_treno')); }
       }
       else if (what === 'home' || what === 'homeEnd') {
         if (!L.home) return { no: true };
-        if (!L.home(f.k, what === 'homeEnd', f.turnX)) { if (what === 'homeEnd') { f.ph = 'homeWait'; say(f, 'pc', 'Treno {T}, a fine della prossima corsa rientri in deposito.'); say(f, 'dr', 'Ricevuto DCT. Passo.'); return null; } return { no: true }; }
-        f.ph = 'homing'; say(f, 'pc', what === 'homeEnd' ? 'Treno {T}, finisci la corsa, fai scendere i passeggeri al capolinea e rientra vuoto al deposito di Rogoredo.' : 'Treno {T}, fai scendere i passeggeri alla prossima stazione e rientra vuoto al deposito di Rogoredo.');
-        say(f, 'dr', 'Ricevuto DCT. Passo.');
+        if (!L.home(f.k, what === 'homeEnd', f.turnX)) { if (what === 'homeEnd') { f.ph = 'homeWait'; say(f, 'pc', tx('guasto.rientro.fine_prossima_corsa')); say(f, 'dr', tx('guasto.ricevuto_passo')); return null; } return { no: true }; }
+        f.ph = 'homing'; say(f, 'pc', what === 'homeEnd' ? tx('guasto.rientro.fine_corsa') : tx('guasto.rientro.prossima_stazione'));
+        say(f, 'dr', tx('guasto.ricevuto_passo'));
       }
       else if (what === 'ack') {
-        say(f, 'pc', f.kind === 'ato' ? 'Ricevuto treno {T}, prosegui in manuale.' : f.kind === 'malore_treno' ? `Ricevuto ${name(f.st)}, il treno {T} resta fermo: tenetemi informato.`
-          : f.kind === 'tensione' ? `Ricevuto Energia. Fermo i treni prima della tratta ${f.what}.`
-          : f.kind === 'malore_stazione' ? `Ricevuto ${name(f.st)}. Rallento i treni in entrata.`
-          : f.kind === 'prefettura' ? `Ricevuto. Avviso la stazione di ${name(f.st)} e le stazioni vicine.` : 'Ricevuto.');
+        say(f, 'pc', f.kind === 'ato' ? tx('guasto.ato.ricevuto') : f.kind === 'malore_treno' ? tx('emergenza.malore_treno.ricevuto', { stazione: name(f.st) })
+          : f.kind === 'tensione' ? tx('energia.ricevuto', { tratta: f.what })
+          : f.kind === 'malore_stazione' ? tx('emergenza.malore_stazione.ricevuto', { stazione: name(f.st) })
+          : f.kind === 'prefettura' ? tx('prefettura.ricevuto', { stazione: name(f.st) }) : tx('guasto.ricevuto'));
         if (f.kind === 'malore_stazione') f.zones = (f.zones || []).concat([L.zone('slow', f.st, f.st, { kmh: 15 })]);
       }
       return null;
@@ -377,15 +378,15 @@
       const fs = F();
       lineCalls();
       for (const f of live()) {
-        if (f.call && S.t - f.call.t >= (f.call.auto || AUTO) && f.k == null) { say(f, 'sys', '(nessuna risposta: risponde il DCT automatico)'); answer(f.id, f.call.opts[0]); }
+        if (f.call && S.t - f.call.t >= (f.call.auto || AUTO) && f.k == null) { say(f, 'sys', tx('guasto.risposta_automatica')); answer(f.id, f.call.opts[0]); }
         if (f.kind === 'pc') continue;                       // the DCT's own zones: until it takes them away (answer 'fix')
         if (f.k == null) { tickLine(f); continue; }
         const a = S.agents[f.k];
         if (!a || a.hidden || a.status === 'parked') {                           // out of service: the failure goes with it
-          end(f, ['homing', 'towed'].includes(f.ph) ? (a && a.hidden ? 'Treno {T} rientrato al deposito di Rogoredo.' : 'Treno {T} ricoverato in un tronchetto di Comasina.') : null, 'sys'); continue; }
+          end(f, ['homing', 'towed'].includes(f.ph) ? (a && a.hidden ? tx('guasto.rientrato_deposito') : tx('guasto.ricoverato_comasina')) : null, 'sys'); continue; }
         if (f.call && S.t - f.call.t >= (f.call.auto || AUTO)) {
           // (the automatic DCT also calls the line maintenance for a train that keeps asking to be re-armed)
-          say(f, 'sys', '(nessuna risposta: risponde il DCT automatico)');
+          say(f, 'sys', tx('guasto.risposta_automatica'));
           if (f.call.opts.includes('tech')) answer(f.id, 'tech');
           if (f.call) answer(f.id, f.call.opts[0]);
         }
@@ -396,11 +397,11 @@
         }
         if ((f.kind === 'porta' || f.kind === 'porte_persone' || f.kind === 'allarme' || f.kind === 'malore_treno') && f.ph === 'armed' && a.stopAt != null && a.v === 0) atStation(f, a);
         if (f.ph === 'dwell' && a.stopAt == null) {           // the train left the station: the doors are done
-          end(f, f.kind === 'porta' ? 'Porta esclusa fino al deposito, riparto.' : null);
+          end(f, f.kind === 'porta' ? tx('guasto.porta.riparto') : null);
           continue;
         }
         if (f.kind === 'porte_persone' && f.ph === 'dwell' && !f.called && f.extra > 40 && S.t - (a.arriveT || f.t0) > (a.dwBase || 20) + 30) {
-          f.called = true; call(f, `DCT, treno {T}: a ${name(f.st)} la gente entra all'ultimo e non riesco a chiudere le porte. Chiedo l'agente.`, ['agent']);
+          f.called = true; call(f, tx('guasto.porte_persone.chiede_agente', { stazione: name(f.st) }), ['agent']);
         }
         if (f.kind === 'freno' && f.ph === 'armed' && a.v > 5) f.ph = 'stopping';     // in the line, running
         // the driver re-arms by himself first (it is his job, Giovanni's colleague 2 Nov 2026): it works, he goes and then
@@ -411,56 +412,56 @@
         if (f.ph === 'rearm' && S.t >= f.until) {
           if (f.kind === 'riarmo') {
             f.ph = 'run'; f.next = S.t + between(300, 900);
-            if (f.self) { f.self = false; call(f, `DCT, treno {T}: il treno mi ha chiesto di nuovo il riarmo${f.where || ''}. Ho riarmato e sono ripartito. Passo.`, f.tech ? ['ack'] : ['ack', 'tech']); }
-            else say(f, 'dr', 'Riarmato, riparto.');
+            if (f.self) { f.self = false; call(f, tx('guasto.chiede_riarmo.di_nuovo', { dove: f.where || '' }), f.tech ? ['ack'] : ['ack', 'tech']); }
+            else say(f, 'dr', tx('guasto.chiede_riarmo.riarmato'));
             continue;
           }
           const ok = !f.force && rnd() < (f.kind === 'freno' ? [0.8, 0.6, 0.4] : [0.7, 0.5, 0.3])[Math.min(f.tries, 2)];
-          if (ok) { end(f, f.self ? (f.kind === 'trazione' ? `DCT, treno {T}: il treno non ripartiva${f.where || ''}. Ho riarmato e sono ripartito. Passo.`
-            : `DCT, treno {T}: frenatura di emergenza intempestiva${f.where || ''}. Ho riarmato, il freno si è allentato e sono ripartito. Passo.`) : 'Riarmo riuscito, riparto.'); continue; }
+          if (ok) { end(f, f.self ? (f.kind === 'trazione' ? tx('guasto.trazione.riarmato', { dove: f.where || '' })
+            : tx('guasto.freno.riarmato', { dove: f.where || '' })) : tx('guasto.riarmo.riuscito')); continue; }
           if (f.self && f.tries === 0) { f.self = false; f.tries = 1; f.ph = 'call';
-            call(f, f.kind === 'trazione' ? `DCT, treno {T}: il treno non riparte${f.where || ''}. Ho provato a riarmare ma non riparte. Chiedo istruzioni.`
-              : `DCT, treno {T}: frenatura di emergenza intempestiva${f.where || ''}, ho riarmato ma il freno non si allenta. Chiedo istruzioni.`, ['rearm']); continue; }
+            call(f, f.kind === 'trazione' ? tx('guasto.trazione.non_riparte', { dove: f.where || '' })
+              : tx('guasto.freno.non_si_allenta', { dove: f.where || '' }), ['rearm']); continue; }
           f.self = false;
           f.tries++;
           // the third time: the broken unit is cut out and the train goes with the other one; both dead: the rescue
-          if (f.tries >= 3 && f.force !== 'soccorso' && (f.force === 'udt' || rnd() < 0.97)) { f.ph = 'udt'; call(f, 'DCT, treno {T}: terzo riarmo non riuscito. Escludo l\'unità guasta, posso proseguire con l\'altra.', ['home']); }
+          if (f.tries >= 3 && f.force !== 'soccorso' && (f.force === 'udt' || rnd() < 0.97)) { f.ph = 'udt'; call(f, tx('guasto.udt.esclusa'), ['home']); }
           else if (f.tries >= 3) { f.ph = 'help'; const w = L.rescuers ? L.rescuers(f.k) : {};
-            call(f, 'DCT, treno {T}: tutte e due le unità sono ferme, il treno non si muove. Serve il soccorso.', [w.back != null ? 'rback' : null, w.front != null ? 'rfront' : null, 'badoni'].filter(Boolean)); }
-          else { f.ph = 'call'; call(f, `DCT, treno {T}: riarmo non riuscito (${f.tries}°). Chiedo istruzioni.`, ['rearm']); }
+            call(f, tx('soccorso.serve'), [w.back != null ? 'rback' : null, w.front != null ? 'rfront' : null, 'badoni'].filter(Boolean)); }
+          else { f.ph = 'call'; call(f, tx('guasto.riarmo.non_riuscito', { tentativo: f.tries }), ['rearm']); }
         }
-        if (f.ph === 'rescue' && S.t >= f.until) end(f, 'Il treno {T} riparte.', 'sys');
+        if (f.ph === 'rescue' && S.t >= f.until) end(f, tx('soccorso.riparte'), 'sys');
         if (f.ph === 'homeWait' && L.home(f.k, true)) f.ph = 'homing';
-        if (f.ph === 'badoni' && S.t >= f.until) { unLine(f); L.takeAway(f.k); end(f, 'Il Badoni ha portato il treno {T} al deposito di Rogoredo. Tensione ridata.', 'sys'); continue; }
+        if (f.ph === 'badoni' && S.t >= f.until) { unLine(f); L.takeAway(f.k); end(f, tx('soccorso.badoni.portato_via'), 'sys'); continue; }
         // the rescue by the train behind: it arrives, couples, pushes
-        if (a.rescue && a.rescue.stage === 'coupling' && f.ph === 'coming') { f.ph = 'coupling'; say(f, 'drr', 'Qui treno {R}: sono al treno {T}, aggancio.'); }
-        if (a.rescue && a.rescue.stage === 'towed' && f.ph === 'coupling') { f.ph = 'towed'; say(f, 'drr', 'Qui treno {R}: agganciato, spingo il treno {T} a 15 km/h. I passeggeri scendono alla prossima stazione.'); }
+        if (a.rescue && a.rescue.stage === 'coupling' && f.ph === 'coming') { f.ph = 'coupling'; say(f, 'drr', tx('soccorso.aggancio')); }
+        if (a.rescue && a.rescue.stage === 'towed' && f.ph === 'coupling') { f.ph = 'towed'; say(f, 'drr', tx('soccorso.agganciato')); }
         if (f.kind === 'allarme' && f.ph === 'verify' && S.t >= f.until) {
           if (rnd() < 0.15) {                               // a passenger taken ill (row 21)
-            end(f, `Qui ${name(f.st)}: un passeggero si sente male, chiamo i soccorsi.`, 'ag');
+            end(f, tx('guasto.allarme.malore', { stazione: name(f.st) }), 'ag');
             const id = add('malore_treno', f.k); const g = live().find(x => x.id === id); if (g && a.stopAt != null) atStation(g, a);
-          } else end(f, `Qui ${name(f.st)}: verificato, niente di grave. Il treno {T} può ripartire.`, 'ag');
+          } else end(f, tx('guasto.allarme.niente_di_grave', { stazione: name(f.st) }), 'ag');
         }
-        if (f.kind === 'malore_treno' && f.ph === 'held' && S.t >= f.until) end(f, `Qui ${name(f.st)}: il passeggero è stato soccorso, emergenza rientrata. Il treno {T} può ripartire.`, 'ag');
+        if (f.kind === 'malore_treno' && f.ph === 'held' && S.t >= f.until) end(f, tx('emergenza.malore_treno.rientrata', { stazione: name(f.st) }), 'ag');
         if (f.kind === 'riarmo' || f.kind === 'secondario') {
           if (f.kind === 'riarmo' && f.ph === 'run' && !f.tech0 && S.t >= f.next && a.v > 3 && a.stopAt == null) { f.ph = 'stopping'; }
           if (f.ph === 'stopping' && a.v === 0) { f.ph = 'rearm'; f.self = true; f.where = where(a); f.until = S.t + between(40, 90); }
           // the technician: on at San Donato, he checks during the change of cab and on to Rogoredo. There: fixed, he gets off
           // (back with the next train); not fixed: passengers off, the train turns over the crossover of Rogoredo and goes
           // back empty to ROD with him (Giovanni)
-          if (f.tech === 'wait' && a.at === SD && a.v === 0) { f.tech = 'board'; f.tech0 = S.t; say(f, 'man', 'Tecnico a bordo del treno {T} a San Donato: verifico durante il cambio banco e fino a Rogoredo.'); }
+          if (f.tech === 'wait' && a.at === SD && a.v === 0) { f.tech = 'board'; f.tech0 = S.t; say(f, 'man', tx('guasto.tecnico.a_bordo')); }
           if (f.tech === 'board' && a.stopAt === 1 && a.v === 0 && !f.call) {
-            if (rnd() < (f.fixP != null ? f.fixP : f.kind === 'secondario' ? 0.9 : 0.8)) { end(f, 'Tecnico: treno {T} sistemato. Scendo a Rogoredo e torno a San Donato con il treno dopo.', 'man'); continue; }
-            if (f.kind === 'secondario') { end(f, 'Tecnico: non riesco a sistemarlo qui, ma il treno {T} può restare in servizio: lo vediamo in deposito a fine giornata. Scendo a Rogoredo.', 'man'); continue; }
+            if (rnd() < (f.fixP != null ? f.fixP : f.kind === 'secondario' ? 0.9 : 0.8)) { end(f, tx('guasto.tecnico.sistemato'), 'man'); continue; }
+            if (f.kind === 'secondario') { end(f, tx('guasto.tecnico.in_servizio'), 'man'); continue; }
             f.tech = null; f.tech0 = null; f.ph = 'udt'; f.turnX = 1;
-            f.callWho = 'man'; call(f, 'DCT, qui il tecnico: non riesco a sistemare il treno {T}. Facciamo scendere i passeggeri qui a Rogoredo e torniamo vuoti al deposito.', ['home']);
+            f.callWho = 'man'; call(f, tx('guasto.tecnico.non_riesce'), ['home']);
           }
         }
       }
       // random failures, once a minute
       if (fs.on && Math.floor(S.t / 60) !== Math.floor((S.t - DT) / 60)) roll();
     }
-    function where(a) { return a.stopAt != null ? ' a ' + name(a.stopAt) : a.at != null ? ' dopo ' + name(a.at) : ''; }
+    function where(a) { return a.stopAt != null ? ' ' + tx('pezzo.dove.a', { stazione: name(a.stopAt) }) : a.at != null ? ' ' + tx('pezzo.dove.dopo', { stazione: name(a.at) }) : ''; }
     function roll() {
       // a strike is decided for the day (mostly Monday or Friday: Giovanni), at 4:30
       if (Math.floor(S.t / 60) === 270) { const sc = (c.catalog || []).find(x => x.id === 'sciopero'), wd = c.weekday ? c.weekday() : 1;
@@ -510,14 +511,14 @@
       if (e.what === 'pczone') {            // the DCT by hand (Emergenze): red button, power off, hold the trains, on a stretch
         const a = Math.min(e.a, e.b), b = Math.max(e.a, e.b), id = L.zone(e.zone, a, b);
         const f = { id: ++F().seq, kind: 'pc', k: null, t0: S.t, ph: 'on', what: a === b ? name(a) : name(a) + ' – ' + name(b), zones: [id], zone: e.zone }; F().list.push(f);
-        say(f, 'pc', e.zone === 'red' ? `Pulsante rosso tra ${f.what}: tutti i semafori a rosso, tutti i treni fermi!` : e.zone === 'power' ? `Tolgo tensione tra ${f.what}.` : `Fermo i treni tra ${f.what}.`);
+        say(f, 'pc', e.zone === 'red' ? tx('emergenza.dct.pulsante_rosso', { tratta: f.what }) : e.zone === 'power' ? tx('emergenza.dct.tolgo_tensione', { tratta: f.what }) : tx('emergenza.dct.fermo_treni', { tratta: f.what }));
         return f.id;
       }
       if (e.what === 'avista') {            // the DCT, from the card of signal n: the train standing at it goes by in marcia a vista
         const a = S.agents.find(x => !x.hidden && x.v === 0 && x.red && ((x.red.now || x.red.why) || {}).sig === e.n); if (!a) return { noTrain: true };
         giveVista(a.k, e.n); for (const f of live()) if (f.kind === 'vista' && f.k === a.k) end(f);
         const f = { id: ++F().seq, kind: 'vista', k: a.k, t0: S.t, ph: 'go', n: e.n }; F().list.push(f);
-        say(f, 'pc', `Treno {T}, autorizzato a superare il ${tag(e.n)} in marcia a vista fino al semaforo successivo.`); say(f, 'dr', `Ricevuto DCT, supero il ${tag(e.n)} in marcia a vista.`);
+        say(f, 'pc', tx('guasto.vista.autorizzato', { segnale: tag(e.n) })); say(f, 'dr', tx('guasto.vista.ricevuto', { segnale: tag(e.n) }));
         return a.k;
       }
       if (e.what === 'new') { if (e.k == null) { const a = S.agents.find(x => !x.hidden && x.status === 'service' && x.mode !== 'static'); if (!a) return null; e.k = a.k; } return add(e.fault, e.k, e.opts ? { fixP: e.opts.fixP } : undefined); }
