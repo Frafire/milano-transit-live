@@ -1949,6 +1949,9 @@ NET['route_rules'] = {'times': {'blade': _tval('Ago dello scambio'), 'signal': _
                       'exitZones': {k: v['nodes'] for k, v in (_rules_.get('exit_zones') or {}).items() if not k.startswith('_')}}
 print('route rules:', NET['route_rules'])
 NET['variants'] = {str(k): v for k, v in VARIANTS.items()}
+# the radio phrases (Radio sheet of the rules Excel -> data/radio_m3.json): code -> { chi, quando, testi }
+NET['radio'] = json.load(open('radio_%s.json' % LINE.lower())).get('frasi', {}) if os.path.exists('radio_%s.json' % LINE.lower()) else {}
+print('radio phrases:', len(NET['radio']))
 # closures (foglio Chiusure): how trains turn at the station where the closed stretch ends, and which closures there are
 NET['closure_turns'] = {k: v for k, v in _rules_.get('closure_turns', {}).items() if not k.startswith('_')}
 NET['closure_one_track'] = {k: v for k, v in _rules_.get('closure_one_track', {}).items() if not k.startswith('_')}

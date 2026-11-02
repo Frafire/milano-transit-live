@@ -82,6 +82,9 @@
     // seeded random numbers (mulberry32), the seed in the state
     function rnd() { const f = F(); let t = (f.rng = (f.rng + 0x6D2B79F5) | 0); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
     const between = (a, b) => Math.round(a + (b - a) * rnd());
+    // the radio phrases (data/radio_m3.json): tx('code', { values }); a variant chosen with the seeded random numbers
+    const FR = (typeof module !== 'undefined' && module.exports ? require('./frasi.js') : root.MTLFrasi).create(c.radio || {}, rnd);
+    const tx = (code, v) => FR.t(code, v);
     const name = st => st != null && G ? G.names[st].replace(/\s+M\d$/, '').toLowerCase().replace(/\b\w/g, x => x.toUpperCase()).replace(/\b(Fs|Fn)\b/g, x => x.toUpperCase()) : '';
     // what is said on the radio: who (dr: the driver of train k, pc, ag: the agent of station st, man: line maintenance)
     function say(f, who, text) { const Q = F().feed; Q.push({ t: S.t, id: f.id, k: f.k, r: f.rk, who, st: f.st, text }); if (Q.length > 200) Q.splice(0, Q.length - 200); }

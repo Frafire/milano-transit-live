@@ -557,6 +557,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 <script src="engine.js"></script>
 <script src="interlocking.js"></script>
 <script src="routes.js"></script>
+<script src="frasi.js"></script>
 <script src="faults.js"></script>
 <script src="agents.js"></script>
 <script src="DepotM3.js"></script>
@@ -641,6 +642,9 @@ window.MTL_PACKS = __PACKS__;
   // the day just loaded after the end of the previous one (continuity): the state of the line to put back, the speed
   // the M3 mark on the train card (tools/assemble.py puts Giovanni's image here)
   const M3LOGO = '__M3LOGO__';
+  // the radio phrases (web/frasi.js, data/radio_m3.json in the network of the M3): tx('code', { values })
+  let FRASI = null;
+  const tx = (code, v) => (FRASI || (FRASI = MTLFrasi.create(((fleets.find(f => f.line === 'M3' && f.engine) || {}).engine || { net: {} }).net.radio || {}))).t(code, v);
   // the marks of the other lines and services (tools/assemble.py fills this from web/img/lines)
   const LOGOS = (() => { try { return JSON.parse('__LINELOGOS__'); } catch (e) { return {}; } })();
   // the interchanges of the M3 stations, on the yellow panel under the name (Giovanni, 2 Nov 2026): marks, or a second name
@@ -2753,7 +2757,7 @@ window.MTL_PACKS = __PACKS__;
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); tr.carr10 = tr.carr1 && JSON.parse(JSON.stringify(tr.carr1)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino|hitachi/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
@@ -2771,7 +2775,7 @@ window.MTL_PACKS = __PACKS__;
   // ================= DEPOT (web/DepotM3.js: places and test loop) =================
   function depotOf(F) {
     if (!F.depotPaths || !F.ag) return null;
-    if (!F.dm) F.dm = MTLDepotM3.create(F, { say, fmt: t => fmt(t), trainNo: tr => trainNo(F, tr),
+    if (!F.dm) F.dm = MTLDepotM3.create(F, { say, tx: (...a) => tx(...a), fmt: t => fmt(t), trainNo: tr => trainNo(F, tr),
       trial: k => { const r = realTrain(F, F.trains[k], F.ag.S.t); return !!(r && r.trial && !admitted(r.units)); },
       call: (tr, text) => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + trainNo(F, tr), text, 'call'); } });
     return F.dm;
@@ -2907,7 +2911,7 @@ window.MTL_PACKS = __PACKS__;
     const bb = L.latLngBounds(segs.flatMap(([pid, d0, d1]) => [trackAt(F, pid, d0), trackAt(F, pid, d1)]));
     if (!map.getBounds().contains(bb)) map.fitBounds(bb.pad(0.6), { maxZoom: 16 });
   }
-  const MR = MTLRadio.create({ D, trips, state, P2WAY, fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
+  const MR = MTLRadio.create({ tx: (...a) => tx(...a), D, trips, state, P2WAY, fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
     get p2Msg() { return p2Msg; }, set p2Msg(v) { p2Msg = v; },
     resetSigs: () => { if (SIGS) SIGS.forEach(x => { x.a = null; }); },
     trackAt: (...a) => trackAt(...a),
