@@ -496,5 +496,34 @@
    "Nel programma oggi",
    "Note"
   ]
+ },
+ {
+  "N.": 26,
+  "Tipo": "stazione",
+  "Guasto": "Chiusura della stazione per disposizione della Prefettura",
+  "Come si presenta (cosa vedono macchinista e PC)": "La Prefettura comunica al DCT a inizio turno la chiusura di una stazione per ordine pubblico (proteste, eventi): quasi sempre Duomo o Centrale",
+  "Cosa fa il macchinista (e quanto ci mette)": "Non ferma nella stazione chiusa (transito in manuale, piano)",
+  "Cosa fa il PC": "Avvisa la stazione e le stazioni vicine; all'ora stabilita l'agente chiude gli accessi; alla revoca riapre",
+  "Quando diventa soccorso": "-",
+  "Come si risolve / soccorso": "Le persone defluiscono da due stazioni invece che da una; alla revoca della Prefettura la stazione riapre",
+  "Tempi (min - max)": "2 - 6 ore",
+  "Quanto spesso / come si attiva": "programmata a inizio turno, raramente, una sola volta al giorno",
+  "Volte al giorno (stima)": 0.05,
+  "Nel programma oggi": "sì",
+  "Note": "Giovanni, 2 nov 2026",
+  "_mine": [
+   "Tipo",
+   "Guasto",
+   "Come si presenta (cosa vedono macchinista e PC)",
+   "Cosa fa il macchinista (e quanto ci mette)",
+   "Cosa fa il PC",
+   "Quando diventa soccorso",
+   "Come si risolve / soccorso",
+   "Tempi (min - max)",
+   "Quanto spesso / come si attiva",
+   "Volte al giorno (stima)",
+   "Nel programma oggi",
+   "Note"
+  ]
  }
 ]

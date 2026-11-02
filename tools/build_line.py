@@ -1910,7 +1910,7 @@ _FK = [('trazione', r'non riparte'), ('porta', r'porta non si chiude'), ('freno'
        ('allarme', r'allarme passeggero'), ('porte_persone', r'bloccano la chiusura'), ('malore_treno', r'male sul treno'), ('riarmo', r'continuamente di essere riarmato'), ('secondario', r'problema secondario'),
        ('scambio', r'scambio guasto'), ('segnale', r'segnale guasto'), ('sezione', r'sezione occupata'), ('tensione', r'mancanza di tensione'),
        ('persona', r'persona sui binari'), ('oggetto', r'oggetto caduto'), ('malore_stazione', r'male in stazione'), ('tunnel', r'persona nel tunnel'),
-       ('investimento', r'investimento'), ('incendio', r'incendio')]
+       ('investimento', r'investimento'), ('incendio', r'incendio'), ('prefettura', r'prefettura')]
 NET['faults'] = []
 for _g in _RG.get('guasti', []):
     _nm = (_g.get('Guasto') or '').lower()

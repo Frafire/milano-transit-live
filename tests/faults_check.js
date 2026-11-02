@@ -110,7 +110,7 @@ for (const kind of PEOPLE) {
   const rt = ag.rt(), f = ag.S.faults.list.find(x => x.id === id);
   const stuck = ag.agents().filter(x => { const m = moved.get(x.k); return !x.hidden && x.status !== 'parked' && x.mode !== 'static' && m && t - m.t > 1500 && !(ag.S.t < x.wait); }).length;
   const want = { persona: zonesSeen.has('red') && zonesSeen.has('power') && !movingRed, tunnel: zonesSeen.has('red') && zonesSeen.has('vista') && vistaMax <= 15.5 && !movingRed,
-                 investimento: zonesSeen.has('red') && closedSeen && !(ag.S.stn[X] && ag.S.stn[X].closed) && clSeen && !ag.S.cl, incendio: closedSeen && !(ag.S.stn[X] && ag.S.stn[X].closed),
+                 investimento: zonesSeen.has('red') && closedSeen && !(ag.S.stn[X] && ag.S.stn[X].closed) && clSeen && !ag.S.cl, incendio: closedSeen && !(ag.S.stn[X] && ag.S.stn[X].closed), prefettura: closedSeen && !(ag.S.stn[X] && ag.S.stn[X].closed),
                  malore_stazione: zonesSeen.has('slow') && slowMax <= 15.5, oggetto: true }[kind];
   const bad = !id || ov || rt.viol || rt.swViol || !want || endT == null || stuck || ag.zones().some(z => z.kind !== 'vista');
   console.log(`${bad ? 'FAIL' : 'ok  '} ${kind} ${f.what}: phases ${[...phases].join(' > ')} | over at ${endT ? new Date(endT * 1000).toISOString().slice(11, 16) : 'never'} | zones ${[...zonesSeen].join(', ') || '-'} | moving after the red button: ${movingRed} | ${kind === 'malore_stazione' ? 'fastest at the station ' + slowMax.toFixed(1) + ' km/h | ' : ''}${kind === 'tunnel' ? 'marcia a vista ' + vistaMax.toFixed(1) + ' km/h | ' : ''}station closed: ${closedSeen} | stuck 25+ min at the end: ${stuck} | overlaps ${ov} | without route: signals ${rt.viol || 0}, switches ${rt.swViol || 0} | ${Date.now() - t0} ms`);

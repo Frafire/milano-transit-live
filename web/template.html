@@ -2959,7 +2959,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
                   on: 'in attesa della riparazione', failed: 'da manovrare a mano', team: 'squadra in arrivo', pos: 'squadra allo scambio', hand: 'manovrato a mano, treni con autorizzazione',
                   off: 'senza tensione', ready: 'riparato: ridare tensione', go: 'marcia a vista',
                   alarm: 'allarme', recover: 'tratta ferma, recupero in corso', told: 'da verificare', found: 'oggetto sul binario', ask: 'chiede di fermare i treni',
-                  holding: 'treni fermi in stazione', day: 'giornata di sciopero', homeWait: 'rientro a fine della prossima corsa', badoni: 'Badoni in arrivo, linea senza tensione', reopen: 'da riaprire la tratta', fire: 'stazione chiusa, vigili del fuoco', limited: 'marcia limitata 30 km/h',
+                  holding: 'treni fermi in stazione', day: 'giornata di sciopero', announced: 'chiusura programmata', closed: 'stazione chiusa', end: 'da riaprire', homeWait: 'rientro a fine della prossima corsa', badoni: 'Badoni in arrivo, linea senza tensione', reopen: 'da riaprire la tratta', fire: 'stazione chiusa, vigili del fuoco', limited: 'marcia limitata 30 km/h',
                   udt: 'una unità esclusa', homing: 'rientro al deposito di Rogoredo', coming: 'arriva il treno di soccorso', coupling: 'aggancio del soccorso', towed: 'spinto dal treno di soccorso' };
   const fxPhase = f => (f.tech === 'wait' ? 'tecnico in attesa a San Donato' : f.tech === 'board' ? 'tecnico a bordo' : FX_PH[f.ph] || f.ph);
   function fxAnswer(F, id, what) {
@@ -2984,7 +2984,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     for (const m of F.ag.FX.feed()) {
       const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
       const txt = m.text.replace(/\{T\}/g, no(m.k)).replace(/\{R\}/g, no(m.r));
-      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : '';
+      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : m.who === 'pref' ? 'Prefettura' : '';
       MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
     }
   }

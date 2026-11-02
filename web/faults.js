@@ -60,6 +60,7 @@
     tunnel: { label: 'Persona nel tunnel', on: 'stretch' },
     investimento: { label: 'Investimento', on: 'station' },
     incendio: { label: 'Incendio in stazione', on: 'station' },
+    prefettura: { label: 'Chiusura per disposizione della Prefettura', on: 'station' },
     vista: { label: 'Richiesta di marcia a vista', on: 'none' },
     pc: { label: 'Comando del DCT', on: 'none' },
     rientro: { label: 'Rientro per sciopero', on: 'none' },
@@ -72,7 +73,7 @@
                     team: 'Manda la squadra', power: 'Ridai tensione', red: 'Pulsante rosso e togli tensione', clear: 'Ridai tensione e via libera',
                     cut: 'Togli tensione', rback: 'Soccorso con il treno dietro (spinta 15 km/h)', rfront: 'Soccorso con il treno davanti (traino 30 km/h)',
                     badoni: 'Badoni da ROD (serve l\'interruzione)', evac: 'Evacuazione dei passeggeri', reopen: 'Riapri la tratta',
-                    gaps: 'Lascia l\'orario (corse scoperte)', freq: 'Frequenza più bassa (orario ibrido)', limit: 'Servizio limitato (chiudi tu una tratta)', home: 'Scarica e rientra a ROD', homeEnd: 'A fine corsa rientra a ROD', hold: 'Ferma i treni', fire: 'Chiudi la stazione, chiama i vigili del fuoco', police: 'Chiama polizia e soccorsi' };
+                    reopenSt: 'Riapri la stazione', gaps: 'Lascia l\'orario (corse scoperte)', freq: 'Frequenza più bassa (orario ibrido)', limit: 'Servizio limitato (chiudi tu una tratta)', home: 'Scarica e rientra a ROD', homeEnd: 'A fine corsa rientra a ROD', hold: 'Ferma i treni', fire: 'Chiudi la stazione, chiama i vigili del fuoco', police: 'Chiama polizia e soccorsi' };
 
   function create(c) {
     // c: { S, G, DT, emBrake(a) m/s2, loadAt(t), catalog: [{ id, perDay }] }
@@ -127,6 +128,8 @@
       if ((!T.some(x => x.v === target) && kind !== 'sciopero') || lineOf().some(f => f.kind === kind && f.target === target)) return null;
       if (kind === 'tensione' && lineOf().some(f => f.kind === 'tensione')) return null;          // one stretch at a time
       if (kind === 'sciopero' && lineOf().some(x => x.kind === 'sciopero')) return null;
+      if (kind === 'prefettura' && (lineOf().some(x => x.kind === 'prefettura') || F().prefDone)) return null;     // once a day
+      if (kind === 'prefettura' && target == null) target = G.names.findIndex(n => rnd() < 0.5 ? /DUOMO/.test(n) : /CENTRALE/.test(n));
       if (kind === 'sciopero' && target == null) target = 5 + 5 * Math.floor(rnd() * 8);
       const X = target, around = [Math.max(0, X - 1), Math.min(L.last(), X + 1)];
       const f = Object.assign({ id: ++F().seq, kind, k: null, target, t0: S.t, ph: 'on' }, extra || {}); f.target = target;
@@ -139,6 +142,15 @@
         f.callWho = 'sys'; call(f, `Scambio ${target} guasto: non va in posizione, gli itinerari che lo usano non si formano.`, ['team']); }
       else if (kind === 'tensione') { f.zones = [L.zone('power', target, target + 1)]; f.what = name(target) + ' – ' + name(target + 1); f.until = S.t + between(300, 3600); f.ph = 'off';
         f.callWho = 'en'; call(f, `DCT, qui Energia: mancanza di tensione tra ${f.what}. I treni nella tratta sono fermi.`, ['ack']); }
+      // public order (Giovanni): the Prefettura orders a station closed, nearly always Duomo or Centrale, so that the people
+      // leave through two stations instead of one. Announced at the start of the shift; once a day; 2 to 6 hours; the
+      // trains go through without stopping
+      else if (kind === 'prefettura') {
+        F().prefDone = true; f.st = X; f.what = name(X); f.ph = 'announced'; f.callWho = 'pref';
+        f.from = f.random ? Math.round((10 + 9 * rnd()) * 3600 / 300) * 300 : Math.ceil((S.t + 900) / 300) * 300; f.until = f.from + Math.round((2 + 4 * rnd()) * 3600 / 900) * 900;
+        const hm = x => Math.floor(x / 3600) % 24 + ':' + String(Math.floor(x / 60) % 60).padStart(2, '0');
+        call(f, `DCT, qui la Prefettura: per motivi di ordine pubblico oggi la stazione di ${name(X)} resta chiusa dalle ${hm(f.from)} alle ${hm(f.until)}. I treni non fermano.`, ['ack']);
+      }
       // the strike (D5): a percentage of the drivers; guaranteed service from the start to 8:45 and 15:00-18:00
       else if (kind === 'sciopero') {
         f.pct = target; f.what = 'adesione ' + f.pct + '%'; f.ph = 'day'; f.callWho = 'uff';
@@ -194,6 +206,13 @@
         if (f.ph === 'help' && !f.holdAt && S.t >= f.until) { unLine(f); end(f, `Qui ${name(f.st)}: la persona è stata soccorsa, emergenza rientrata.`, 'ag'); }
       }
       else if (f.kind === 'tunnel' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; f.callWho = 'pol'; call(f, `DCT, qui la polizia: la persona nel tunnel tra ${f.what} è stata allontanata.`, ['clear']); }
+      else if (f.kind === 'prefettura') {
+        if (f.ph === 'announced' && S.t >= f.from - 300 && !f.warned) { f.warned = true; say(f, 'ag', `Qui ${name(f.st)}: tra 5 minuti chiudo gli accessi come da disposizione della Prefettura, faccio gli annunci.`); }
+        if (f.ph === 'announced' && S.t >= f.from) { f.ph = 'closed'; L.station(f.st, true); say(f, 'ag', `Qui ${name(f.st)}: accessi chiusi, la stazione è vuota. I treni possono transitare.`);
+          const near = [f.st - 1, f.st + 1].filter(i => i >= 0 && i <= L.last()).map(name).join(' e ');
+          say(f, 'pc', `Annuncio a ${near}: la stazione di ${name(f.st)} è chiusa per disposizione della Prefettura, i treni non fermano.`); }
+        if (f.ph === 'closed' && S.t >= f.until && !f.call) { f.ph = 'end'; call(f, `DCT, qui la Prefettura: la disposizione è revocata, potete riaprire ${name(f.st)}.`, ['reopenSt']); }
+      }
       else if (f.kind === 'sciopero') {
         // end of a guaranteed band: the drivers on strike ask to go back to the depot; at 15:00 they are back
         const out = when => { for (const k of f.strikers) { const a = S.agents[k]; if (!a || a.hidden || a.mode === 'static' || live().some(x => x.k === k && x.kind === 'rientro')) continue;
@@ -286,6 +305,7 @@
       if (what === 'cut') { f.zones = (f.zones || []).concat([L.zone('power', f.st, f.st)]); f.ph = 'recover'; f.until = S.t + between(300, 900); say(f, 'pc', `Tolgo tensione in stazione a ${name(f.st)}: recuperate l'oggetto.`); return null; }
       if (what === 'hold') { f.zones = (f.zones || []).concat([L.zone('stop', f.st, f.st)]); f.ph = 'holding'; f.holdUntil = S.t + between(120, 300); say(f, 'pc', `Ricevuto ${name(f.st)}, fermo i treni in stazione.`); return null; }
       if (/^cl\d$/.test(what)) { const i = f.closeAsk[+what.slice(2)]; if (L.close(i)) { f.closed = true; say(f, 'pc', `${f.labels[what]}: i treni girano alle stazioni di fine tratta.`); } return null; }
+      if (what === 'reopenSt') { L.station(f.st, false); end(f, `DCT: ${name(f.st)} riaperta.`, 'pc'); return null; }
       if (what === 'reopen') { L.reopen(); end(f, 'DCT: tratta riaperta.', 'pc'); return null; }
       if (what === 'evac') { f.evacUntil = S.t + between(1200, 2700); say(f, 'pc', `Evacuate: i macchinisti accompagnano i passeggeri a piedi alla stazione più vicina. La tensione resta tolta finché non sono tutti in stazione.`); return null; }
       if (f.kind === 'sciopero' && ['freq', 'gaps', 'limit'].includes(what)) { f.choice = what;
@@ -333,7 +353,8 @@
       else if (what === 'ack') {
         say(f, 'pc', f.kind === 'ato' ? 'Ricevuto treno {T}, prosegui in manuale.' : f.kind === 'malore_treno' ? `Ricevuto ${name(f.st)}, il treno {T} resta fermo: tenetemi informato.`
           : f.kind === 'tensione' ? `Ricevuto Energia. Fermo i treni prima della tratta ${f.what}.`
-          : f.kind === 'malore_stazione' ? `Ricevuto ${name(f.st)}. Rallento i treni in entrata.` : 'Ricevuto.');
+          : f.kind === 'malore_stazione' ? `Ricevuto ${name(f.st)}. Rallento i treni in entrata.`
+          : f.kind === 'prefettura' ? `Ricevuto. Avviso la stazione di ${name(f.st)} e le stazioni vicine.` : 'Ricevuto.');
         if (f.kind === 'malore_stazione') f.zones = (f.zones || []).concat([L.zone('slow', f.st, f.st, { kmh: 15 })]);
       }
       return null;
@@ -428,14 +449,15 @@
     function roll() {
       // a strike is decided for the day (mostly Monday or Friday: Giovanni), at 4:30
       if (Math.floor(S.t / 60) === 270) { const sc = (c.catalog || []).find(x => x.id === 'sciopero'), wd = c.weekday ? c.weekday() : 1;
-        if (sc && sc.perDay > 0 && (wd === 1 || wd === 5) && rnd() < sc.perDay * 2.5) add('sciopero', null, { random: true }); }
+        if (sc && sc.perDay > 0 && (wd === 1 || wd === 5) && rnd() < sc.perDay * 2.5) add('sciopero', null, { random: true });
+        const pf = (c.catalog || []).find(x => x.id === 'prefettura'); if (pf && pf.perDay > 0 && rnd() < pf.perDay) add('prefettura', null, { random: true }); }
       const cand = S.agents.filter(a => !a.hidden && a.status === 'service' && a.mode !== 'static' && !of(a).length);
       for (const { id, perDay } of c.catalog || []) {
         if (!KINDS[id] || !(perDay > 0)) continue;
         const w = id === 'porte_persone' ? (c.loadAt ? c.loadAt(S.t) / 0.6 : 1) : 1;      // more in the peak hours
         const r = rnd();
         if (r >= perDay * 60 / DAYS * w) continue;
-        if (id === 'sciopero') continue;
+        if (id === 'sciopero' || id === 'prefettura') continue;
         if (KINDS[id].on) { add(id, null, { random: true }); continue; }
         if (!cand.length) continue;
         const a = cand.splice(Math.floor(rnd() * cand.length), 1)[0];
