@@ -62,12 +62,17 @@
     incendio: { label: 'Incendio in stazione', on: 'station' },
     vista: { label: 'Richiesta di marcia a vista', on: 'none' },
     pc: { label: 'Comando del DCT', on: 'none' },
+    rientro: { label: 'Rientro per sciopero', on: 'none' },
+    sciopero: { label: 'Sciopero', on: 'day' },
   };
   const tag = n => '#A' + String(n).padStart(2, '0');
+  const G1 = 8.75 * 3600, G2a = 15 * 3600, G2b = 18 * 3600;             // the guaranteed service of a strike day
   const AUTO = 180, DAYS = 19 * 3600;                 // the DCT answers by itself after 3 minutes; ~19 hours of service a day
   const ANSWERS = { rearm: 'Riarma', agent: "Manda l'agente", tech: 'Tecnico a bordo', rescue: 'Manda il soccorso', ack: 'Ricevuto', vista: 'Marcia a vista',
                     team: 'Manda la squadra', power: 'Ridai tensione', red: 'Pulsante rosso e togli tensione', clear: 'Ridai tensione e via libera',
-                    cut: 'Togli tensione', home: 'Scarica e rientra a ROD', homeEnd: 'A fine corsa rientra a ROD', hold: 'Ferma i treni', fire: 'Chiudi la stazione, chiama i vigili del fuoco', police: 'Chiama polizia e soccorsi' };
+                    cut: 'Togli tensione', rback: 'Soccorso con il treno dietro (spinta 15 km/h)', rfront: 'Soccorso con il treno davanti (traino 30 km/h)',
+                    badoni: 'Badoni da ROD (serve l\'interruzione)', evac: 'Evacuazione dei passeggeri', reopen: 'Riapri la tratta',
+                    gaps: 'Lascia l\'orario (corse scoperte)', freq: 'Frequenza più bassa (orario ibrido)', limit: 'Servizio limitato (chiudi tu una tratta)', home: 'Scarica e rientra a ROD', homeEnd: 'A fine corsa rientra a ROD', hold: 'Ferma i treni', fire: 'Chiudi la stazione, chiama i vigili del fuoco', police: 'Chiama polizia e soccorsi' };
 
   function create(c) {
     // c: { S, G, DT, emBrake(a) m/s2, loadAt(t), catalog: [{ id, perDay }] }
@@ -111,15 +116,18 @@
       const on = KINDS[kind] && KINDS[kind].on;
       if (on === 'signal') return (L.sigs ? L.sigs() : []).map(n => ({ v: n, label: 'Semaforo ' + tag(n) }));
       if (on === 'switch') return (L.switches ? L.switches() : []).map(nd => ({ v: nd, label: 'Scambio ' + nd }));
+      if (on === 'day') return [5, 10, 15, 20, 25, 30, 35, 40].map(p => ({ v: p, label: 'Adesione ' + p + '%' }));
       if (on === 'station') return G.names.map((x, i) => ({ v: i, label: name(i) }));
       if (on === 'stretch') { const out = []; for (let i = 0; i < (L.last ? L.last() : 0); i++) out.push({ v: i, label: name(i) + ' – ' + name(i + 1) }); return out; }
       return [];
     }
     function addLine(kind, target, extra) {
       const T = targets(kind); if (!T.length) return null;
-      if (target == null) target = T[Math.floor(rnd() * T.length)].v;
-      if (!T.some(x => x.v === target) || lineOf().some(f => f.kind === kind && f.target === target)) return null;
+      if (target == null && kind !== 'sciopero') target = T[Math.floor(rnd() * T.length)].v;
+      if ((!T.some(x => x.v === target) && kind !== 'sciopero') || lineOf().some(f => f.kind === kind && f.target === target)) return null;
       if (kind === 'tensione' && lineOf().some(f => f.kind === 'tensione')) return null;          // one stretch at a time
+      if (kind === 'sciopero' && lineOf().some(x => x.kind === 'sciopero')) return null;
+      if (kind === 'sciopero' && target == null) target = 5 + 5 * Math.floor(rnd() * 8);
       const X = target, around = [Math.max(0, X - 1), Math.min(L.last(), X + 1)];
       const f = Object.assign({ id: ++F().seq, kind, k: null, target, t0: S.t, ph: 'on' }, extra || {}); f.target = target;
       const st = RT();
@@ -131,6 +139,14 @@
         f.callWho = 'sys'; call(f, `Scambio ${target} guasto: non va in posizione, gli itinerari che lo usano non si formano.`, ['team']); }
       else if (kind === 'tensione') { f.zones = [L.zone('power', target, target + 1)]; f.what = name(target) + ' – ' + name(target + 1); f.until = S.t + between(300, 3600); f.ph = 'off';
         f.callWho = 'en'; call(f, `DCT, qui Energia: mancanza di tensione tra ${f.what}. I treni nella tratta sono fermi.`, ['ack']); }
+      // the strike (D5): a percentage of the drivers; guaranteed service from the start to 8:45 and 15:00-18:00
+      else if (kind === 'sciopero') {
+        f.pct = target; f.what = 'adesione ' + f.pct + '%'; f.ph = 'day'; f.callWho = 'uff';
+        const all = S.agents.filter(a => !(a.mode === 'static' && a.hidden)), n = Math.round(all.length * f.pct / 100), pool = all.slice();
+        f.strikers = []; while (f.strikers.length < n && pool.length) { const a = pool.splice(Math.floor(rnd() * pool.length), 1)[0]; a.strike = true; f.strikers.push(a.k); }
+        f.marks = { out1: S.t >= G1 + 60, back: S.t >= G2a + 60, out2: S.t >= G2b + 60 };
+        call(f, `DCT, qui Ufficio Movimento: oggi sciopero, adesione del ${f.pct}% (${n} treni su ${all.length}). Fasce di garanzia: dall'inizio del servizio alle 8:45 e dalle 15:00 alle 18:00. Fuori dalle fasce come fai il servizio?`, ['freq', 'gaps', 'limit']);
+      }
       // people and emergencies (D3)
       else if (kind === 'persona') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.zones = [L.zone('stop', X, X)];
         call(f, `DCT, qui ${name(X)}: c'è una persona sui binari! Ho chiuso i segnali di partenza e di protezione della stazione.`, ['red'], 30); }
@@ -141,6 +157,7 @@
       else if (kind === 'tunnel') { f.what = name(X) + ' – ' + name(X + 1); f.a = X; f.ph = 'alarm'; f.callWho = 'drx';
         call(f, `DCT, qui un macchinista: c'è una persona nel tunnel tra ${f.what}!`, ['red'], 30); }
       else if (kind === 'investimento') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.zones = [L.zone('stop', X, X)];
+        { const t0 = S.agents.find(a => !a.hidden && a.stopAt === X) || S.agents.filter(a => !a.hidden && a.status === 'service' && a.legs[0] && a.legs[0].stops && a.legs[0].stops[0] && a.legs[0].stops[0].st === X)[0]; f.tk = t0 ? t0.k : null; if (t0) t0.broken = true; }
         call(f, `DCT, qui ${name(X)}: investimento! Un treno ha investito una persona in banchina. Ho chiuso i segnali della stazione.`, ['red'], 30); }
       else if (kind === 'incendio') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.smoke = rnd() < 0.4 ? S.t + between(60, 300) : null;
         f.until = S.t + (rnd() < 0.15 ? between(5400, 18000) : between(1800, 5400));
@@ -177,12 +194,35 @@
         if (f.ph === 'help' && !f.holdAt && S.t >= f.until) { unLine(f); end(f, `Qui ${name(f.st)}: la persona è stata soccorsa, emergenza rientrata.`, 'ag'); }
       }
       else if (f.kind === 'tunnel' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; f.callWho = 'pol'; call(f, `DCT, qui la polizia: la persona nel tunnel tra ${f.what} è stata allontanata.`, ['clear']); }
-      else if (f.kind === 'investimento' && f.ph === 'recover' && S.t >= f.until) { f.ph = 'done'; call(f, `DCT, qui ${name(f.st)}: la polizia ha finito i rilievi. Si può ridare tensione; il treno va portato in deposito.`, ['clear']); }
+      else if (f.kind === 'sciopero') {
+        // end of a guaranteed band: the drivers on strike ask to go back to the depot; at 15:00 they are back
+        const out = when => { for (const k of f.strikers) { const a = S.agents[k]; if (!a || a.hidden || a.mode === 'static' || live().some(x => x.k === k && x.kind === 'rientro')) continue;
+          if (L.keepIn && L.keepIn(k)) continue;                                   // still in the depot: it stays there
+          const g = { id: ++F().seq, kind: 'rientro', k, t0: S.t, ph: 'call', st: null }; F().list.push(g);
+          call(g, `DCT, treno {T}: è finita la fascia di garanzia, sciopero. Chiedo di rientrare in deposito a fine corsa.`, ['homeEnd']); }
+          if (f.choice === 'freq' && L.hybrid) L.hybrid(); say(f, 'sys', `Fine della fascia di garanzia (${when}): i treni in sciopero rientrano.`); };
+        if (!f.marks.out1 && S.t >= G1) { f.marks.out1 = true; out('8:45'); }
+        // 15:00: back in service, one at a time out of the depot (every 4 minutes, when the way out is free)
+        if (!f.marks.back && S.t >= G2a) { f.marks.back = true; f.wakeQ = f.strikers.slice(); f.nextWake = S.t; say(f, 'sys', 'Inizio della fascia di garanzia (15:00): i treni in sciopero tornano in servizio.'); }
+        if (f.wakeQ && f.wakeQ.length && S.t >= f.nextWake && S.t < G2b) { const k = f.wakeQ[0], a = S.agents[k];
+          if (!a || !(a.hidden || a.mode === 'static')) f.wakeQ.shift(); else if (L.wake(k)) { f.wakeQ.shift(); f.nextWake = S.t + 240; } else f.nextWake = S.t + 30; }
+        if (!f.marks.out2 && S.t >= G2b) { f.marks.out2 = true; out('18:00'); }
+        if (S.t >= 26 * 3600) end(f, 'Fine della giornata di sciopero.', 'sys');
+      }
+      else if (f.kind === 'investimento' && f.ph === 'recover' && f.closeAsk === undefined && L.closures) {
+        // the DCT must close a stretch around the station (he chooses which one)
+        const cl = L.closures(f.st); f.closeAsk = cl.map(c => c.i);
+        if (cl.length) { f.labels = Object.assign({}, f.labels || {}, Object.fromEntries(cl.map((c, i) => ['cl' + i, 'Chiudi ' + c.label]))); call(f, `${name(f.st)} resterà chiusa per ore: chiudi la tratta.`, cl.map((c, i) => 'cl' + i)); }
+      }
+      else if (f.kind === 'investimento' && f.ph === 'recover' && S.t >= f.until && !f.call) { f.ph = 'done'; call(f, `DCT, qui ${name(f.st)}: la polizia ha finito i rilievi. Si può ridare tensione; il treno va portato in deposito.`, ['clear']); }
       else if (f.kind === 'incendio') {
         if (f.smoke && S.t >= f.smoke && f.ph === 'fire') { f.smoke = null; call(f, `DCT, qui ${name(f.st)}: c'è fumo in galleria!`, ['red'], 30); }
         if (f.ph === 'fire' && !f.smoke && !f.call && S.t >= f.until) { f.ph = 'done'; f.callWho = 'vvf'; call(f, `DCT, qui i vigili del fuoco: incendio a ${name(f.st)} spento e verificato. La stazione può riaprire.`, ['clear']); }
       }
-      else if (f.kind === 'tensione' && f.ph === 'off' && S.t >= f.until) { f.ph = 'ready'; call(f, `DCT, qui Energia: guasto riparato tra ${f.what}, puoi ridare tensione.`, ['power']); }
+      else if (f.kind === 'tensione' && f.ph === 'off' && !f.evacAsk && S.t - f.t0 >= 1200 && L.stuckIn && L.stuckIn().length) {
+        f.evacAsk = true; call(f, `DCT, qui i macchinisti tra ${f.what}: siamo fermi in galleria da 20 minuti con i passeggeri. Evacuiamo?`, ['evac', 'ack']);
+      }
+      else if (f.kind === 'tensione' && f.ph === 'off' && S.t >= f.until && !f.call && !(f.evacUntil && S.t < f.evacUntil)) { f.ph = 'ready'; call(f, `DCT, qui Energia: guasto riparato tra ${f.what}, puoi ridare tensione.`, ['power']); }
     }
     // trains stopped at a red by a failure of the line: they call the DCT and ask to go by in marcia a vista
     function lineCalls() {
@@ -245,8 +285,15 @@
       if (what === 'fire') { L.station(f.st, true); f.ph = 'fire'; say(f, 'pc', `Chiudo ${name(f.st)}: i treni non fermano. Chiamo i vigili del fuoco; agente, fai uscire i passeggeri.`); say(f, 'ag', 'Ricevuto DCT, faccio uscire tutti.'); return null; }
       if (what === 'cut') { f.zones = (f.zones || []).concat([L.zone('power', f.st, f.st)]); f.ph = 'recover'; f.until = S.t + between(300, 900); say(f, 'pc', `Tolgo tensione in stazione a ${name(f.st)}: recuperate l'oggetto.`); return null; }
       if (what === 'hold') { f.zones = (f.zones || []).concat([L.zone('stop', f.st, f.st)]); f.ph = 'holding'; f.holdUntil = S.t + between(120, 300); say(f, 'pc', `Ricevuto ${name(f.st)}, fermo i treni in stazione.`); return null; }
+      if (/^cl\d$/.test(what)) { const i = f.closeAsk[+what.slice(2)]; if (L.close(i)) { f.closed = true; say(f, 'pc', `${f.labels[what]}: i treni girano alle stazioni di fine tratta.`); } return null; }
+      if (what === 'reopen') { L.reopen(); end(f, 'DCT: tratta riaperta.', 'pc'); return null; }
+      if (what === 'evac') { f.evacUntil = S.t + between(1200, 2700); say(f, 'pc', `Evacuate: i macchinisti accompagnano i passeggeri a piedi alla stazione più vicina. La tensione resta tolta finché non sono tutti in stazione.`); return null; }
+      if (f.kind === 'sciopero' && ['freq', 'gaps', 'limit'].includes(what)) { f.choice = what;
+        say(f, 'pc', what === 'freq' ? 'Fuori dalle fasce i treni rimasti fanno le corse scoperte una dopo l\'altra: frequenza più bassa.' : what === 'gaps' ? 'Fuori dalle fasce resta l\'orario: le corse dei treni in sciopero restano scoperte.' : 'Fuori dalle fasce servizio limitato: chiudo io una tratta dal pannello.'); return null; }
       if (what === 'clear') {
+        if (f.kind === 'investimento' && f.tk != null && L.home) L.home(f.tk, false);         // the train goes to the depot
         unLine(f);
+        if (f.kind === 'investimento' && f.closed) { L.station(f.st, false); f.ph = 'reopen'; call(f, `${name(f.st)} riaperta, tensione ridata. Riapri la tratta chiusa.`, ['reopen']); return null; }
         if (f.kind === 'tunnel') f.zones = [L.zone('vista', f.a, f.a + 1)];          // the first train on each track: marcia a vista
         if (f.kind === 'investimento' || f.kind === 'incendio') L.station(f.st, false);
         end(f, f.kind === 'tunnel' ? `DCT: ridata tensione tra ${f.what}. I primi treni passano in marcia a vista.` : f.kind === 'incendio' ? `DCT: ${name(f.st)} riaperta.` : `DCT: ridata tensione e via libera${f.kind === 'investimento' ? `, ${name(f.st)} riaperta` : ''}.`, 'pc');
@@ -258,13 +305,28 @@
         if (f.kind === 'allarme') { say(f, 'pc', `${name(f.st)}, mandate l'agente sul treno {T}: allarme passeggero.`); say(f, 'ag', `Ricevuto DCT, salgo sul treno {T}.`); f.ph = 'verify'; f.until = S.t + between(60, 300); }
         else if (f.kind === 'porte_persone') { say(f, 'pc', `${name(f.st)}, mandate l'agente in banchina al treno {T}: non chiude le porte.`); say(f, 'ag', 'Ricevuto DCT, libero le porte.'); f.agent = S.t; }
         else if (f.kind === 'oggetto') { say(f, 'pc', `${name(f.st)}, controllate il binario.`); say(f, 'ag', 'Ricevuto DCT, vado a vedere.'); f.ph = 'verify'; f.until = S.t + between(120, 300); f.found = rnd() < 1 / 3; }
+      } else if (what === 'rback' || what === 'rfront') {
+        const rk = what === 'rback' ? L.rescue(f.k) : L.tow(f.k); if (rk == null) return { no: true };
+        f.rk = rk; f.ph = 'coming';
+        say(f, 'pc', what === 'rback' ? 'Treno {R}, fai scendere i passeggeri alla prossima stazione e vai a soccorrere il treno {T} davanti a te, in marcia a vista: lo spingi a 15 km/h.'
+          : 'Treno {R}, fai scendere i passeggeri alla prossima stazione, cambia banco e torna indietro in marcia a vista fino al treno {T}: lo traini con l\'accoppiamento pneumatico, 30 km/h.');
+        say(f, 'dr', 'Ricevuto DCT, attendo il soccorso.');
+      } else if (what === 'badoni') {
+        const a = S.agents[f.k], leg = a && a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, dir = (leg && leg.dir) || (a && a.arr) || 'S';
+        const far = a && a.at != null ? (dir === 'N' ? Math.min(L.last(), a.at + 1) : Math.max(1, a.at)) : 1, km = far * 0.9;
+        // out of ROD 10 min, there at 25 km/h, coupling 5 min, back at 15 km/h
+        f.zones = (f.zones || []).concat([L.zone('power', 0, far)]); f.ph = 'badoni'; f.until = S.t + 600 + Math.round(km / 25 * 3600) + 300 + Math.round(km / 15 * 3600);
+        f.evacUntil = S.t + between(1200, 2700);
+        say(f, 'pc', `Interruzione della linea tra San Donato e ${name(far)}: tensione tolta. Esce il Badoni da Rogoredo. Treno {T}, evacuate i passeggeri alla stazione più vicina.`);
+        say(f, 'dr', 'Ricevuto DCT, accompagno i passeggeri a piedi.');
       } else if (what === 'rescue') {
         const rk = L.rescue ? L.rescue(f.k) : null;
         if (rk != null) { f.rk = rk; f.ph = 'coming'; say(f, 'pc', 'Treno {R}, fai scendere i passeggeri alla prossima stazione e vai a soccorrere il treno {T} davanti a te, in marcia a vista.'); say(f, 'dr', 'Ricevuto DCT, attendo il soccorso.'); }
         else { f.ph = 'rescue'; f.until = S.t + between(1800, 3600); say(f, 'pc', 'Treno {T}: nessun treno può arrivare da dietro. Serve il Badoni da ROD, con l\'interruzione della linea (non ancora simulato: il treno riparte dopo l\'attesa).'); }
       }
       else if (what === 'home' || what === 'homeEnd') {
-        if (!L.home || !L.home(f.k, what === 'homeEnd', f.turnX)) return { no: true };
+        if (!L.home) return { no: true };
+        if (!L.home(f.k, what === 'homeEnd', f.turnX)) { if (what === 'homeEnd') { f.ph = 'homeWait'; say(f, 'pc', 'Treno {T}, a fine della prossima corsa rientri in deposito.'); say(f, 'dr', 'Ricevuto DCT. Passo.'); return null; } return { no: true }; }
         f.ph = 'homing'; say(f, 'pc', what === 'homeEnd' ? 'Treno {T}, finisci la corsa, fai scendere i passeggeri al capolinea e rientra vuoto al deposito di Rogoredo.' : 'Treno {T}, fai scendere i passeggeri alla prossima stazione e rientra vuoto al deposito di Rogoredo.');
         say(f, 'dr', 'Ricevuto DCT. Passo.');
       }
@@ -327,10 +389,13 @@
           f.tries++;
           // the third time: the broken unit is cut out and the train goes with the other one; both dead: the rescue
           if (f.tries >= 3 && f.force !== 'soccorso' && (f.force === 'udt' || rnd() < 0.97)) { f.ph = 'udt'; call(f, 'DCT, treno {T}: terzo riarmo non riuscito. Escludo l\'unità guasta, posso proseguire con l\'altra.', ['home']); }
-          else if (f.tries >= 3) { f.ph = 'help'; call(f, 'DCT, treno {T}: tutte e due le unità sono ferme, il treno non si muove. Serve il soccorso.', ['rescue']); }
+          else if (f.tries >= 3) { f.ph = 'help'; const w = L.rescuers ? L.rescuers(f.k) : {};
+            call(f, 'DCT, treno {T}: tutte e due le unità sono ferme, il treno non si muove. Serve il soccorso.', [w.back != null ? 'rback' : null, w.front != null ? 'rfront' : null, 'badoni'].filter(Boolean)); }
           else { f.ph = 'call'; call(f, `DCT, treno {T}: riarmo non riuscito (${f.tries}°). Chiedo istruzioni.`, ['rearm']); }
         }
-        if (f.ph === 'rescue' && S.t >= f.until) end(f, 'Il treno {T} riparte (il soccorso con il Badoni non è ancora simulato).', 'sys');
+        if (f.ph === 'rescue' && S.t >= f.until) end(f, 'Il treno {T} riparte.', 'sys');
+        if (f.ph === 'homeWait' && L.home(f.k, true)) f.ph = 'homing';
+        if (f.ph === 'badoni' && S.t >= f.until) { unLine(f); L.takeAway(f.k); end(f, 'Il Badoni ha portato il treno {T} al deposito di Rogoredo. Tensione ridata.', 'sys'); continue; }
         // the rescue by the train behind: it arrives, couples, pushes
         if (a.rescue && a.rescue.stage === 'coupling' && f.ph === 'coming') { f.ph = 'coupling'; say(f, 'drr', 'Qui treno {R}: sono al treno {T}, aggancio.'); }
         if (a.rescue && a.rescue.stage === 'towed' && f.ph === 'coupling') { f.ph = 'towed'; say(f, 'drr', 'Qui treno {R}: agganciato, spingo il treno {T} a 15 km/h. I passeggeri scendono alla prossima stazione.'); }
@@ -361,12 +426,16 @@
     }
     function where(a) { return a.stopAt != null ? ' a ' + name(a.stopAt) : a.at != null ? ' dopo ' + name(a.at) : ''; }
     function roll() {
+      // a strike is decided for the day (mostly Monday or Friday: Giovanni), at 4:30
+      if (Math.floor(S.t / 60) === 270) { const sc = (c.catalog || []).find(x => x.id === 'sciopero'), wd = c.weekday ? c.weekday() : 1;
+        if (sc && sc.perDay > 0 && (wd === 1 || wd === 5) && rnd() < sc.perDay * 2.5) add('sciopero', null, { random: true }); }
       const cand = S.agents.filter(a => !a.hidden && a.status === 'service' && a.mode !== 'static' && !of(a).length);
       for (const { id, perDay } of c.catalog || []) {
         if (!KINDS[id] || !(perDay > 0)) continue;
         const w = id === 'porte_persone' ? (c.loadAt ? c.loadAt(S.t) / 0.6 : 1) : 1;      // more in the peak hours
         const r = rnd();
         if (r >= perDay * 60 / DAYS * w) continue;
+        if (id === 'sciopero') continue;
         if (KINDS[id].on) { add(id, null, { random: true }); continue; }
         if (!cand.length) continue;
         const a = cand.splice(Math.floor(rnd() * cand.length), 1)[0];

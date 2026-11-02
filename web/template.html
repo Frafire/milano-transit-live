@@ -2461,7 +2461,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
@@ -2498,9 +2498,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   // the closure that applies now, from the events of the time line
   function closureNow(F) {
     if (!F || !F.ag) return null;
-    const ev = F.ag.TL.events.filter(e => e.done && (e.kind === 'close' || e.kind === 'normal')).pop();
-    if (!ev || ev.kind !== 'close') return null;
-    return { label: ev.label, t0: ev.t, cl: ev.cl, reopened: F.ag.S.reopened != null, ag: F.ag };
+    const c = F.ag.S.clLast; if (!c) return null;          // (also a closure the DCT decided from an alarm: investimento)
+    return { label: c.label, t0: c.t0, cl: c.cl, reopened: F.ag.S.reopened != null, ag: F.ag };
   }
   const CL_LIST = () => { const F = m3fleet(); return F && F.engine.net.closures ? F.engine.net.closures : []; };
   const capS = n => n.toLowerCase().replace(/(^|[\s.(–-])\S/g, m => m.toUpperCase());
@@ -2846,7 +2845,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
                   on: 'in attesa della riparazione', failed: 'da manovrare a mano', team: 'squadra in arrivo', pos: 'squadra allo scambio', hand: 'manovrato a mano, treni con autorizzazione',
                   off: 'senza tensione', ready: 'riparato: ridare tensione', go: 'marcia a vista',
                   alarm: 'allarme', recover: 'tratta ferma, recupero in corso', told: 'da verificare', found: 'oggetto sul binario', ask: 'chiede di fermare i treni',
-                  holding: 'treni fermi in stazione', fire: 'stazione chiusa, vigili del fuoco', limited: 'marcia limitata 30 km/h',
+                  holding: 'treni fermi in stazione', day: 'giornata di sciopero', homeWait: 'rientro a fine della prossima corsa', badoni: 'Badoni in arrivo, linea senza tensione', reopen: 'da riaprire la tratta', fire: 'stazione chiusa, vigili del fuoco', limited: 'marcia limitata 30 km/h',
                   udt: 'una unità esclusa', homing: 'rientro al deposito di Rogoredo', coming: 'arriva il treno di soccorso', coupling: 'aggancio del soccorso', towed: 'spinto dal treno di soccorso' };
   const fxPhase = f => (f.tech === 'wait' ? 'tecnico in attesa a San Donato' : f.tech === 'board' ? 'tecnico a bordo' : FX_PH[f.ph] || f.ph);
   function fxAnswer(F, id, what) {
@@ -2871,7 +2870,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     for (const m of F.ag.FX.feed()) {
       const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
       const txt = m.text.replace(/\{T\}/g, no(m.k)).replace(/\{R\}/g, no(m.r));
-      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : '';
+      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : '';
       MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
     }
   }

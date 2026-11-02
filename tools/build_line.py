@@ -1914,7 +1914,7 @@ _FK = [('trazione', r'non riparte'), ('porta', r'porta non si chiude'), ('freno'
 NET['faults'] = []
 for _g in _RG.get('guasti', []):
     _nm = (_g.get('Guasto') or '').lower()
-    _id = next((i for i, rx in _FK if _re.search(rx, _nm)), None)
+    _id = 'sciopero' if (_g.get('Tipo') or '').strip().lower() == 'sciopero' else next((i for i, rx in _FK if _re.search(rx, _nm)), None)
     if not _id: continue
     _f = next((v for k, v in _g.items() if k.startswith('Volte al giorno')), None)
     NET['faults'].append({'id': _id, 'n': _g.get('N.'), 'name': _g.get('Guasto'), 'perDay': _f if isinstance(_f, (int, float)) else 0})

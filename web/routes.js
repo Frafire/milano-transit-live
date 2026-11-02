@@ -168,7 +168,8 @@
         }
       }
       // the PC's signals and the movements that are not for the normal service: only with the PC's authorisation
-      const needPc = (n != null && PC_SIG.has(n) ? 'n:' + n : null) || (it && WHEN[it.id] && !NORMAL.has(WHEN[it.id]) && !(st.allow || []).includes(WHEN[it.id]) ? 'id:' + it.id : null);
+      // (a rescue: the DCT has authorised the whole movement)
+      const needPc = st.rescue && st.rescue[k] != null ? null : (n != null && PC_SIG.has(n) ? 'n:' + n : null) || (it && WHEN[it.id] && !NORMAL.has(WHEN[it.id]) && !(st.allow || []).includes(WHEN[it.id]) ? 'id:' + it.id : null);
       if (needPc && !(st.pc[needPc] > 0)) { if (!dry) st.lastNo = { pc: needPc }; else st.dryNo = { pc: needPc }; return false; }
       // precedence (Giovanni's priorities, Itinerari: alta / media / bassa): a train waiting for a movement of higher
       // priority that needs the same pieces or switches goes first; this one waits for it

@@ -200,9 +200,10 @@
   "Quanto spesso / come si attiva": "casuale (radio di stazione)",
   "Volte al giorno (stima)": 0.005,
   "Nel programma oggi": "sì (fase D3)",
-  "Note": null,
+  "Note": "Nel programma il DCT deve chiudere una tratta attorno alla stazione (sceglie lui quale); alla fine riapre la tratta e il treno va in deposito",
   "_mine": [
-   "Nel programma oggi"
+   "Nel programma oggi",
+   "Note"
   ]
  },
  {
@@ -256,8 +257,8 @@
   "Tempi (min - max)": "aggancio 5 min, preparazione 10 min",
   "Quanto spesso / come si attiva": "-",
   "Volte al giorno (stima)": "conseguenza",
-  "Nel programma oggi": "no",
-  "Note": "Traino con accoppiamento pneumatico: 30 km/h. Non ancora nel programma (c'è la spinta)",
+  "Nel programma oggi": "sì (fase D5)",
+  "Note": "Nel programma: il treno davanti fa scendere i passeggeri, cambia banco, torna indietro in marcia a vista, aggancia con l'accoppiamento pneumatico (5 min) e traina a 30 km/h; il convoglio si ferma alla prossima stazione per far scendere i passeggeri del treno guasto",
   "_mine": [
    "Note",
    "Tempi (min - max)"
@@ -275,8 +276,8 @@
   "Tempi (min - max)": "uscita 10 min, aggancio 5 min",
   "Quanto spesso / come si attiva": "-",
   "Volte al giorno (stima)": "conseguenza",
-  "Nel programma oggi": "no",
-  "Note": "Il Badoni sta nel deposito di Rogoredo (ROD); per mandarlo in linea serve l'interruzione: rarissimo, non simulato",
+  "Nel programma oggi": "sì (semplificato)",
+  "Note": "Il Badoni sta nel deposito di Rogoredo (ROD); per mandarlo in linea serve l'interruzione: nel programma tensione tolta da San Donato fino al treno guasto per tutto il soccorso (uscita 10 min, 25 km/h, aggancio 5 min, ritorno 15 km/h), il Badoni non si vede sulla mappa",
   "_mine": [
    "Note",
    "Tempi (min - max)"
@@ -294,8 +295,8 @@
   "Tempi (min - max)": "20 - 45 min",
   "Quanto spesso / come si attiva": "-",
   "Volte al giorno (stima)": "conseguenza",
-  "Nel programma oggi": "no",
-  "Note": "Il treno resta fermo finché i passeggeri non sono in stazione",
+  "Nel programma oggi": "sì (fase D5)",
+  "Note": "Nel programma: con il Badoni, e quando una tratta resta senza tensione per 20 minuti con treni in galleria (il DCT decide); la tensione resta tolta finché i passeggeri non sono in stazione",
   "_mine": [
    "Note",
    "Tempi (min - max)"
@@ -313,12 +314,13 @@
   "Tempi (min - max)": "tutta la giornata",
   "Quanto spesso / come si attiva": "giornata di sciopero dal menu admin (adesione in % casuale)",
   "Volte al giorno (stima)": 0.03,
-  "Nel programma oggi": "no",
-  "Note": null,
+  "Nel programma oggi": "sì (fase D5)",
+  "Note": "Soprattutto il lunedì o il venerdì; adesione dal 5% (lieve) al 40% (pesante). Nel programma: a fine fascia i treni in sciopero chiedono di rientrare (a fine corsa); alle 15:00 tornano uno alla volta; il DCT sceglie frequenza più bassa (orario ibrido), corse scoperte o servizio limitato",
   "_mine": [
    "Come si risolve / soccorso",
    "Cosa fa il PC",
    "Nel programma oggi",
+   "Note",
    "Quando diventa soccorso",
    "Quanto spesso / come si attiva",
    "Tempi (min - max)"
