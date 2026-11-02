@@ -13,6 +13,8 @@
 // - linea: admin menu Guasti, a signal in front of a running train stays red: the driver asks, the PC gives the marcia a vista
 // - emergenza: Emergenze PC, pulsante rosso on the stretch of a running train: it stops; Togli from the alarms: it goes again
 // - giorno: Friday 02:58 with a signal failed: at 02:59 Saturday's timetable is loaded, at 03:30, the failure still there
+// - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
+//   admitted from the admin menu at night, from the next day it runs a traditional train's duties, out of its own place
 // - guasto: admin menu Guasti, a train in service does not start again: the call among the PC alarms, the PC answers Riarma
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
 // Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea|emergenza|giorno ...]   (no argument: all of them). Exit code 1 if one fails.
@@ -266,6 +268,40 @@ const SCENARIOS = {
       st.playing = true; st.speed = 10; await sleep(4000); st.playing = false; await sleep(200);
       return { ok: stopped && Math.abs(a.d - d0) > 5 && !F.ag.zones().length, train: a.k, stretch: [A, B], stopped, movedAfter: Math.round(Math.abs(a.d - d0)) };
     });
+  },
+  async nuovo(p) {     // the new train in test: test laps by itself; admitted: the duties of a traditional train the next day
+    const a = await p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      try { localStorage.removeItem('mtl-admit'); } catch (e) {}
+      st.playing = false; st.t = 9.6 * 3600; await sleep(2500);
+      const k = F.trains.findIndex(tr => { const r = M.realTrain(F, tr, st.t); return r && r.trial; });
+      if (k < 0) return { ok: false, why: 'no train in test' };
+      st.playing = true; st.speed = 30; const t0 = Date.now();
+      while (Date.now() - t0 < 30000 && !(F.dm && (F.dm.loopInfo(k) || {}).onLoop)) await sleep(250);
+      st.playing = false; await sleep(200);
+      st.sel = 'f' + M.fleets.indexOf(F) + ':' + k; M.renderCard(); await sleep(200);
+      const card = document.getElementById('card'), front = document.getElementById('trainFront');
+      return { ok: !!(F.dm.loopInfo(k) || {}).onLoop && /in prova/.test(card.innerText) && !!front && front.dataset.k.startsWith('hitachi') && !!card.querySelector('.lnlogo'),
+        k, onLoop: !!(F.dm.loopInfo(k) || {}).onLoop, t: Math.round(st.t), card: card.innerText.split('\n').slice(0, 4) };
+    });
+    if (!a.ok) return a;
+    const b = await p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      st.playing = false; st.t = 26.95 * 3600; await sleep(2500);
+      const box = document.querySelector('#newTrains [data-adm="9201-9202"]'); if (!box) return { ok: false, why: 'no admission switch' };
+      box.click(); await sleep(200); const note = document.getElementById('admNote').textContent;
+      st.speed = 60; st.playing = true; const t0 = Date.now();
+      while (Date.now() - t0 < 30000 && st.t > 4 * 3600) await sleep(250);
+      st.playing = false; await sleep(500);
+      const k1 = F.trains.findIndex(tr => { const r = M.realTrain(F, tr, st.t); return r && r.units === '9201-9202'; });
+      const tr = F.trains[k1], service = !!tr && tr.segs.some(s => s[1] === 'service');
+      const place = F.depot && F.depot.at[k1];
+      try { localStorage.removeItem('mtl-admit'); } catch (e) {}
+      return { ok: service && String(place) === '77', note, k1, service, place, t: Math.round(st.t) };
+    });
+    return { ok: a.ok && b.ok, inTest: a, admitted: b };
   },
   async giorno(p) {    // continuity (Giovanni): Friday night into Saturday, the failures of the line carried
     const before = await p.evaluate(async () => {

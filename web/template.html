@@ -255,8 +255,31 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .pclist li span { display: flex; flex-direction: column; min-width: 0; } .pclist small { color: var(--muted); font-size: 11px; }
 .pclist .pcsw { flex-direction: row; gap: 4px; flex-wrap: wrap; justify-content: flex-end; } .pclist em { color: #ffcf3f; font-style: normal; font-size: 12px; }
 .cab { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 10px; }
+/* the train card (Giovanni's sketch, 2 Nov 2026): 10% bigger; line mark and what the train does on top, the facts of the
+   train, front and speedometer side by side, the doors, the radio, the next service, Follow and Chiudi at the bottom */
+.card.trcard { width: 320px; padding: 15px; }
+.trcard .hd { align-items: flex-start; }
+.trcard .lnlogo { width: 54px; height: auto; flex: 0 0 auto; border-radius: 6px; }
+.trcard .hdtx { flex: 1; min-width: 0; }
+.trcard h2 { font-size: 20px; }
+.trcard .what { color: var(--fg); font-size: 13px; margin-top: 3px; }
+.trcard .sub { font-size: 13px; margin-top: 3px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.trcard .st { font-weight: 600; } .trcard .st.on { color: #7ee08f; } .trcard .st.off { color: var(--muted); } .trcard .st.trial { color: #ffcf3f; }
+.trcard .pill { font: 700 11px/1 var(--display); letter-spacing: .05em; padding: 4px 7px; border-radius: 4px; background: #07090b; border: 1px solid var(--line); color: #cfd6dc; white-space: nowrap; }
+.trcard .pill.late { background: #e5383b; border-color: #e5383b; color: #fff; } .trcard .pill.early { background: #1f7a3a; border-color: #1f7a3a; color: #fff; }
+.trcard .info { color: var(--muted); font-size: 12.5px; line-height: 1.4; margin: 9px 0 0; padding-top: 8px; border-top: 1px solid var(--line); }
+.trcard .cab { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; justify-items: center; }
+.trcard .cab .tfront, .trcard .cab .tfront[data-k] { width: 100%; }
+.trcard .cab .tacho { width: 92%; height: auto; aspect-ratio: 1; }
+.trcard .tile.door.wide { margin-top: 10px; padding: 9px 10px; font-size: 16px; }
+.trcard .radiobtn.bar { display: block; width: 100%; margin-top: 10px; padding: 12px 10px; font-size: 23px !important; letter-spacing: .04em; }
+.trcard .next { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.trcard .next .nh { font: 600 12px var(--display); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.trcard .next .nh::before { content: '▲ '; color: var(--signal); }
+.trcard .next p { margin: 5px 0 0; font-size: 13.5px; }
+.trcard .foot { position: sticky; bottom: -15px; margin: 12px -15px -15px; padding: 10px 15px 12px; background: var(--panel-solid); border-top: 1px solid var(--line); display: flex; justify-content: space-between; }
 .cab .tfront { width: 140px; height: auto; image-rendering: pixelated; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
-.cab .tfront[data-k^="meneghino"] { image-rendering: auto; width: 150px; }
+.cab .tfront[data-k^="meneghino"], .cab .tfront[data-k^="hitachi"] { image-rendering: auto; width: 150px; }
 .cab .tacho { width: 120px; height: 120px; flex: 0 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
 .tile.delay.late { background: #e5383b; border-color: #e5383b; color: #fff; }
 .tile.delay.early { background: #1f7a3a; border-color: #1f7a3a; color: #fff; }
@@ -401,6 +424,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="row"><button id="sigDelBtn" aria-pressed="false" title="Clic su un semaforo per toglierlo (finisce nell'export MTL-EDIT)">Togli semafori</button><button id="sigUndoBtn" title="Rimette tutti i semafori tolti">Rimetti tutti</button></div>
     <p class="note" id="sigDelNote" hidden></p>
     <p class="note">On: trains drive with acceleration and braking. Off: they follow the plan exactly.</p>
+  </div>
+  <div class="admin-only" hidden>
+    <div class="label" style="margin-bottom:6px">Treni nuovi (in prova)</div>
+    <div id="newTrains"></div>
   </div>
   <div class="admin-only">
     <div class="label" style="margin-bottom:6px">Platforms, tracks and signals</div>
@@ -594,6 +621,50 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const tripOrder = trips.map((_, i) => i).filter(i => (SURFACE && !ONLY_LINE) || (routes[trips[i].r].t === 1 && lineOn(trips[i].r))).sort((a, b) => trips[a].start - trips[b].start);
   const DAYS = ['', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
   // the day just loaded after the end of the previous one (continuity): the state of the line to put back, the speed
+  // the M3 mark on the train card (tools/assemble.py puts Giovanni's image here)
+  const M3LOGO = '__M3LOGO__';
+  // ---- the new trains (Hitachi "Galileo", Giovanni 2 Nov 2026): in test they stand alone and go round the test loop; the
+  // admin admits them to service (kept in this browser): from the next service day (or the next time the page opens) each
+  // one takes the duties of a traditional 1st-lot train, which stays in the depot in its place ----
+  let ADMIT = new Set(); try { ADMIT = new Set(JSON.parse(localStorage.getItem('mtl-admit') || '[]')); } catch (e) {}
+  const APPLIED = new Set();                     // the ones admitted on the day running now
+  const admitted = units => APPLIED.has(String(units));
+  function admitPairs(F) {
+    const st = F.stock || [], used = new Set(); F.trains.forEach(tr => (tr.duties0 || tr.duties || []).forEach(d => { if (d[2] >= 0) used.add(d[2]); }));
+    const old = st.map((_, u) => u).filter(u => /1° lotto/.test(st[u].type || '') && used.has(u));
+    return st.map((_, u) => u).filter(u => st[u].trial && ADMIT.has(String(st[u].units))).map((h, n) => [h, old[n]]).filter(p => p[1] != null);
+  }
+  // the duties with the admitted trains swapped in; returns the timelines whose places swap ([before, after] of each new train)
+  function applyAdmissions(F) {
+    if (F.line !== 'M3' || !F.stock || !F.stock.some(x => x.trial)) return [];
+    F.trains.forEach(tr => { if (!tr.duties0) tr.duties0 = JSON.parse(JSON.stringify(tr.duties || [])); });
+    const where = () => { F._um = null; const o = {}; unitMap(F, DAY_START).forEach((u, tr) => { o[u] = F.trains.indexOf(tr); }); return o; };
+    const w0 = where(), sw = new Map(), pairs = admitPairs(F);
+    pairs.forEach(([h, r]) => { sw.set(h, r); sw.set(r, h); });
+    F.trains.forEach(tr => { tr.duties = tr.duties0.map(d => [d[0], d[1], sw.has(d[2]) ? sw.get(d[2]) : d[2]]); });
+    const w1 = where(); F._um = null;
+    APPLIED.clear(); pairs.forEach(([h]) => APPLIED.add(String(F.stock[h].units)));
+    const moves = []; F.stock.forEach((x, u) => { if (x.trial && w0[u] != null && w1[u] != null && w0[u] !== w1[u]) moves.push([w0[u], w1[u]]); });
+    return moves;
+  }
+  function fillNewTrains(F) {
+    const el = document.getElementById('newTrains'); if (!el || !F.stock) return;
+    const T = F.stock.map((x, u) => [x, u]).filter(([x]) => x.trial);
+    el.closest('.admin-only').hidden = !T.length;
+    const note = () => { const pairs = admitPairs(F), lines = [];
+      T.forEach(([x, u]) => { const p = pairs.find(q => q[0] === u), on = APPLIED.has(String(x.units));
+        if (p && !on) lines.push(`Dal prossimo giorno di servizio il treno ${u + 1} (${x.units}) prende i turni del treno ${p[1] + 1} (${F.stock[p[1]].units}), che resta in deposito.`);
+        else if (p) lines.push(`Il treno ${u + 1} (${x.units}) è in servizio con i turni del treno ${p[1] + 1}.`);
+        else if (on) lines.push(`Il treno ${u + 1} (${x.units}) torna in prova dal prossimo giorno di servizio.`);
+        else lines.push(`Il treno ${u + 1} (${x.units}) è in prova: giri sull'anello di prova fuori dalle ore di punta.`); });
+      return lines.join(' '); };
+    el.innerHTML = T.map(([x]) => `<label><input type="checkbox" data-adm="${x.units}" ${ADMIT.has(String(x.units)) ? 'checked' : ''}> ${x.units} ${x.type}: ammesso al servizio</label>`).join('') + `<p class="note" id="admNote">${note()}</p>`;
+    el.querySelectorAll('[data-adm]').forEach(c => c.onchange = () => {
+      if (c.checked) ADMIT.add(c.dataset.adm); else ADMIT.delete(c.dataset.adm);
+      try { localStorage.setItem('mtl-admit', JSON.stringify([...ADMIT])); } catch (e) {}
+      document.getElementById('admNote').textContent = note(); if (state.sel) renderCard();
+    });
+  }
   let PENDING_CARRY = null, CARRIED = null;
   try { const c = sessionStorage.getItem('mtl-carry'); if (c) { sessionStorage.removeItem('mtl-carry'); CARRIED = JSON.parse(c); if (CARRIED && CARRIED.carry) PENDING_CARRY = CARRIED; } } catch (e) {}
   const syncDay = () => {
@@ -1124,6 +1195,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const card = document.getElementById('card');
   function renderCard() {
     card.classList.toggle('stcard', typeof state.sel === 'string' && state.sel[0] === 'b');
+    card.classList.toggle('trcard', typeof state.sel === 'string' && state.sel[0] === 'f');
     if (state.sel == null) { card.hidden = true; return; }
     if (typeof state.sel === 'string' && state.sel[0] === 'b') return renderBoard();
     if (typeof state.sel === 'string' && state.sel[0] === 's') return renderStop();
@@ -1204,6 +1276,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const d = trainDelay(F, tr, state.t), mm = s => Math.floor(Math.abs(s) / 60) + ':' + String(Math.round(Math.abs(s)) % 60).padStart(2, '0');
     const dtx = d == null ? 'FUORI SERVIZIO' : d >= 60 ? 'RITARDO +' + mm(d) : d <= -60 ? 'ANTICIPO −' + mm(d) : 'IN ORARIO';
     if (dl.textContent !== dtx) { dl.textContent = dtx; dl.classList.toggle('late', d != null && d >= 120); dl.classList.toggle('early', d != null && d <= -180); }
+    if (dl.classList.contains('pill')) dl.hidden = d == null;
   }
   // lateness of a train for its card: the trains of the one engine know it from their last departure
   function trainDelay(F, tr, t) {
@@ -1307,6 +1380,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const FRONT = { W: 56, H: 62, cache: new Map() };
   function trainFront(kind, dest, lights, no, car) {
     const key = kind + '|' + dest + '|' + lights + '|' + (no || '') + '|' + (car || ''); if (FRONT.cache.has(key)) return FRONT.cache.get(key);
+    if (kind === 'hitachi') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(hitachiSVG(dest, lights, no)); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url; }
     if (kind === 'meneghino') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(meneghinoSVG(dest, lights, no)); FRONT.cache.set(key, url); return url; }
     if (kind === 'lotto1' || kind === 'lotto2') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(tradSVG(kind === 'lotto2', dest, lights, no, car)); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url; }
     const S = 5, W = FRONT.W, H = FRONT.H, c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
@@ -1438,6 +1512,73 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <path d="M114 256 q-3 11 8 15 M146 256 q4 10 -5 15" fill="none" stroke="#b5221c" stroke-width="2"/><path d="M122 258 q4 9 16 10" fill="none" stroke="#2a1514" stroke-width="2"/>
     </svg>`;
   }
+  // the Hitachi Rail STS "Galileo" (M3, 2026), drawn from the photos of the first one and the renders: an octagonal frame
+  // round the whole front (yellow for the M3), inside it one black glass face: the sign on top (number blue, destination
+  // orange: Giovanni's guess, nobody has seen it lit yet), the windscreen, below it the two light units (a slanted strip of
+  // LEDs, white running, red standing); under the frame the black skirt with the two grilles and the coupler
+  function hitachiSVG(dest, lights, no) {
+    const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
+    const V = { x: 58, y: 17, w: 145, h: 19 };
+    const ledText = (t, x0, p, fill) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;
+      for (const ch of t) { const g = F57[ch] || F57[' '];
+        for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .43).toFixed(2)}"/>`;
+        x += (g[0].length + 1) * p; }
+      return `<g fill="${fill}" filter="url(#led)">${out}</g>`; };
+    const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
+    let sign = ''; const numEnd = num ? V.x + 5 + colsOf(num) * 2.1 + 6 : V.x + 4;
+    if (num) sign += ledText(num, V.x + 5, 2.1, '#4fb4ff');
+    if (txt) { const cols = colsOf(txt), p = Math.min(2.2, (V.x + V.w - 4 - numEnd) / cols, (V.h - 4) / 7); sign += ledText(txt, Math.max(numEnd, V.x + (V.w - cols * p) / 2), p, '#ff9a1f'); }
+    const red = lights === 'red', on = red ? '#ff3a26' : '#f4fbff', glow = red ? 'url(#glr)' : 'url(#glw)';
+    // one light unit: the housing (a slanted box with cut corners) and the LED strip inside it, an L lying down
+    const unit = m => { const X = x => m ? 261 - x : x;
+      const box = [[34, 146], [80, 146], [76, 170], [46, 170]].map(([x, y]) => X(x) + ',' + y).join(' ');
+      const strip = `M${X(40)} 150 L${X(48)} 164 L${X(73)} 164`, strip2 = `M${X(46)} 150 L${X(52)} 160 L${X(74)} 160`;
+      return `<polygon points="${box}" fill="#07080a" stroke="#9aa2aa" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="${strip}" fill="none" stroke="${on}" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" filter="${glow}"/>
+        <path d="${strip2}" fill="none" stroke="${red ? '#5a1e18' : '#c9d3dc'}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".8"/>`; };
+    // the frame: the octagon (wide on top, the lower corners cut long), the glass face inside it
+    const oct = (i) => `M${36 + i} ${4 + i} H${225 - i} L${252 - i} ${30 + i * .4} V${148 - i * .4} L${222 - i * .6} ${190 - i} H${39 + i * .6} L${9 + i} ${148 - i * .4} V${30 + i * .4} Z`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-17 -3 296 279">
+      <defs>
+        <linearGradient id="rf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c0d0e"/><stop offset="1" stop-color="#1a1c1f"/></linearGradient>
+        <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26292d"/><stop offset=".6" stop-color="#1b1d20"/><stop offset="1" stop-color="#111214"/></linearGradient>
+        <linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".08"/><stop offset=".1" stop-color="#fff" stop-opacity="0"/><stop offset=".9" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".08"/></linearGradient>
+        <linearGradient id="yl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7c814"/><stop offset=".5" stop-color="#ffd52e"/><stop offset="1" stop-color="#d9a70d"/></linearGradient>
+        <linearGradient id="fc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101214"/><stop offset=".65" stop-color="#0b0c0e"/><stop offset="1" stop-color="#060708"/></linearGradient>
+        <linearGradient id="gl" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#46505a"/><stop offset=".35" stop-color="#1f262d"/><stop offset="1" stop-color="#0b0f13"/></linearGradient>
+        <linearGradient id="bp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2d31"/><stop offset=".3" stop-color="#1b1d20"/><stop offset="1" stop-color="#0e0f11"/></linearGradient>
+        <filter id="glw" x="-.5" y="-1" width="2" height="3"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glr" x="-.5" y="-1" width="2" height="3"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="led" x="-.1" y="-.6" width="1.2" height="2.2"><feGaussianBlur stdDeviation=".8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <!-- the roof, the black body round the frame -->
+      <path d="M5 34 Q9 -9 66 -8 H195 Q252 -9 256 34 Z" fill="url(#rf)"/>
+      <path d="M3 38 Q4 3 44 1 H217 Q257 3 258 38 V203 H3 Z" fill="url(#bd)"/><path d="M3 38 Q4 3 44 1 H217 Q257 3 258 38 V203 H3 Z" fill="url(#sd)"/>
+      <!-- the frame and the glass face -->
+      <path d="${oct(0)}" fill="url(#yl)"/>
+      <path d="${oct(7)}" fill="url(#fc)"/>
+      <!-- the sign, the line under it, the windscreen -->
+      <rect x="${V.x - 1.5}" y="${V.y - 1.5}" width="${V.w + 3}" height="${V.h + 3}" rx="2" fill="#1d2024"/><rect x="${V.x}" y="${V.y}" width="${V.w}" height="${V.h}" rx="1" fill="#030304"/>
+      ${sign}
+      <path d="M40 43 H221" stroke="#d7dde2" stroke-opacity=".55" stroke-width="1.4"/>
+      <path d="M24 49 H237 V128 Q237 133 232 133 H29 Q24 133 24 128 Z" fill="url(#gl)" opacity=".85"/>
+      <path d="M40 128 L70 52 L80 52 L50 128 Z M170 128 L198 52 L206 52 L178 128 Z" fill="#fff" opacity=".05"/>
+      <path d="M32 53 h28 M190 53 h30" stroke="#c7d1da" stroke-opacity=".3" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M60 128 L118 116" stroke="#2a2f34" stroke-width="2.2" stroke-linecap="round"/>
+      <!-- the lower part of the face: the light units, a small plate in the middle -->
+      <path d="M24 138 H237" stroke="#000" stroke-opacity=".6" stroke-width="1"/>
+      ${unit(false)}${unit(true)}
+      <rect x="103" y="146" width="55" height="20" rx="2" fill="#0d0f11" stroke="#22262a"/>
+      <!-- under the frame: the black skirt, two grilles and the coupler -->
+      <path d="M3 196 H258 V206 H3 Z" fill="#0f1012"/>
+      <rect x="16" y="200" width="70" height="34" rx="3" fill="url(#bp)" stroke="#2c3034"/><rect x="175" y="200" width="70" height="34" rx="3" fill="url(#bp)" stroke="#2c3034"/>
+      <path d="M22 206 V228 M28 206 V228 M34 206 V228 M40 206 V228 M46 206 V228 M181 206 V228 M187 206 V228 M193 206 V228 M199 206 V228 M205 206 V228" stroke="#3a3f44" stroke-width="2"/>
+      <path d="M14 236 H247 V256 Q247 266 237 266 H24 Q14 266 14 256 Z" fill="url(#bp)"/>
+      <rect x="98" y="204" width="65" height="34" rx="3" fill="#1a1c1f" stroke="#33373b"/>
+      <rect x="110" y="216" width="41" height="30" rx="2" fill="#c9cdd1" stroke="#7d848a"/><circle cx="122" cy="231" r="6.5" fill="#2a2c2f"/><circle cx="139" cy="231" r="6.5" fill="#2a2c2f"/>
+      <path d="M114 246 q-3 10 7 15 M147 246 q4 9 -5 15" fill="none" stroke="#b5221c" stroke-width="2"/>
+    </svg>`;
+  }
   // the traditional trains (1st and 2nd lot: the same shape, Giovanni's photos of 8001-8065 and 8103-8109). Flat front:
   // a dark panel framed by the white body, the sign on top (number and destination in one colour: white LEDs on the
   // revised 1st lot, yellow on the 2nd), the windscreen in two, then
@@ -1507,7 +1648,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <path d="M118 248 q-2 10 6 14 M144 248 q3 9 -4 14" fill="none" stroke="#b5221c" stroke-width="2"/>
     </svg>`;
   }
-  const frontKind = rt => !rt || !rt.type ? null : /meneghino/i.test(rt.type) ? 'meneghino' : /2°/.test(rt.type) ? 'lotto2' : 'lotto1';
+  const frontKind = rt => !rt || !rt.type ? null : /hitachi/i.test(rt.type) ? 'hitachi' : /meneghino/i.test(rt.type) ? 'meneghino' : /2°/.test(rt.type) ? 'lotto2' : 'lotto1';
   // what the sign shows and which lights: the run's destination; red lights standing in the depot or a tail
   function frontOf(F, tr, st) {
     const rt = realTrain(F, tr, state.t), kind = frontKind(rt); if (!kind) return null;
@@ -1581,29 +1722,42 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function renderTrainCard() {
     const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F.trains[i], st = trainState(F, tr, state.t);
-    let body = '', title = st.label;
-    if (st.trip >= 0) { const tp = trips[st.trip]; title = '→ <span class="cap">' + tp.h + '</span>';
-      body = `<ol class="stops">${state.fullTT ? stopList(tp, state.t) : stopListShort(tp, state.t)}</ol>
-        <div class="row"><button id="ttBtn" aria-pressed="${!!state.fullTT}">${state.fullTT ? 'Orario ridotto' : 'Orario completo'}</button></div>`; }
-    // next activity for trains not in service
-    if (st.trip < 0) {
-      const nxt = tr.segs.find(sg => sg[1] === 'service' && sg[3][sg[3].length - 1] > state.t);
-      body = nxt ? `<p class="sub" style="margin-top:10px">Next service: departs ${fmt(nxt[3][1])} towards <span class="cap">${trips[nxt[2]].h}</span></p>`
-                 : `<p class="sub" style="margin-top:10px">No more passenger trips today.</p>`;
-    }
-    const rt = realTrain(F, tr, state.t);
-    const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>'
-      : `<p class="sub" style="margin-top:8px">${(rt.built ? [rt.units, rt.type, rt.built, rt.note] : [rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note]).filter(Boolean).join(rt.built ? ' - ' : ' · ')}</p>`) : '';
-    const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
-    // rail: the front of the train (M3, by type) and the cab speedometer; then doors and lateness
+    const rt = realTrain(F, tr, state.t), a = st.agent, inServ = st.trip >= 0 || !!(a && a.status === 'service');
+    const trial = !!(rt && rt.trial && !admitted(rt.units));
+    // on top: what the train does
+    let title = st.label, what = '';
+    if (st.trip >= 0) { title = '→ <span class="cap">' + trips[st.trip].h + '</span>'; what = st.label; }
+    else if (a && a.mode !== 'plan' && a.status === 'service' && a.to != null) { title = '→ <span class="cap">' + cap(F.engine.G.names[a.to]) + '</span>'; what = cardSub(st); }
+    const no = F.bus ? 'Bus ' + (rt ? rt.n : tr.n) : 'Treno ' + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n);
+    const stTxt = F.trips ? '<span class="st on">in servizio</span>' : trial ? '<span class="st trial">in prova</span>' : inServ ? '<span class="st on">in servizio</span>' : '<span class="st off">fuori servizio</span>';
+    // the facts of the train
+    const info = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>' : rt.none ? ''
+      : `<p class="info">${(rt.built ? [rt.units, rt.type, rt.built, rt.note] : [rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note]).filter(Boolean).join(rt.built ? ' · ' : ' · ')}</p>`)
+      : F.bus ? `<p class="info">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
+    // front and speedometer side by side, the doors right across, the radio
     const fr = F.bus ? null : frontOf(F, tr, st);
-    const tiles = (F.bus ? '' : `<div class="cab">${fr ? `<img class="tfront" id="trainFront" alt="Frontale del treno" src="${trainFront(fr.kind, fr.dest, fr.lights, fr.no, fr.car)}" data-k="${fr.kind + fr.dest + fr.lights + fr.no}">` : ''}${tachoSVG()}</div>
-      <div class="tiles"><div class="tile door" id="doorTile">PORTE CHIUSE</div><div class="tile delay" id="delayTile">IN ORARIO</div></div>`)
-      + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
-    body = tiles + faultBox(F, i) + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
-    card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
-      <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + cardSub(st)}</div></div></div>
-      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Close</button></div>${body}`;
+    const cab = F.bus ? '' : `<div class="cab">${fr ? `<img class="tfront" id="trainFront" alt="Frontale del treno" src="${trainFront(fr.kind, fr.dest, fr.lights, fr.no, fr.car)}" data-k="${fr.kind + fr.dest + fr.lights + fr.no}">` : ''}${tachoSVG()}</div>
+      <div class="tile door wide" id="doorTile">PORTE CHIUSE</div>`;
+    const radio = F.engine && F.line === 'M3' ? `<button class="radiobtn bar" id="radioOpen">📻 RADIO AL TRENO</button>` : '';
+    // the next service: the stops of the run it is on, or what it does next
+    let next = '';
+    if (st.trip >= 0) { const tp = trips[st.trip];
+      next = `<div class="next"><div class="nh">Fermate</div><ol class="stops">${state.fullTT ? stopList(tp, state.t) : stopListShort(tp, state.t)}</ol>
+        <div class="row"><button id="ttBtn" aria-pressed="${!!state.fullTT}">${state.fullTT ? 'Orario ridotto' : 'Orario completo'}</button></div></div>`; }
+    else if (a && a.mode !== 'plan') next = a.status === 'service' && a.to != null ? `<div class="next"><div class="nh">Servizio</div><p>Servizio passeggeri ridotto: ferma in tutte le stazioni fino a <span class="cap">${cap(F.engine.G.names[a.to])}</span>.</p></div>` : '';
+    else if (trial) {
+      const L_ = F.dm && tr.agentK != null ? F.dm.loopInfo(tr.agentK) : null, na = F.dm && F.dm.nextAuto ? F.dm.nextAuto(state.t) : null;
+      next = `<div class="next"><div class="nh">Prossimo servizio</div><p>${L_ && L_.onLoop ? 'Anello di prova: ' + (L_.note || 'in giro') : 'Anello di prova' + (na != null ? ', prossimi giri verso le ' + fmt(na) : ': per oggi i giri di prova sono finiti')}</p>
+        <p class="sub">Treno nuovo in prova: non prende corse finché non è ammesso al servizio.</p></div>`;
+    } else {
+      const nxt = tr.segs.find(sg => sg[1] === 'service' && sg[3][sg[3].length - 1] > state.t);
+      next = `<div class="next"><div class="nh">Prossimo servizio</div><p>${nxt ? `Parte alle ${fmt(nxt[3][1])} per <span class="cap">${trips[nxt[2]].h}</span>` : 'Nessun\'altra corsa oggi.'}</p></div>`;
+    }
+    const logo = F.line === 'M3' && M3LOGO.startsWith('data:') ? `<img class="lnlogo" src="${M3LOGO}" alt="M3">` : `<span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>`;
+    card.innerHTML = `<div class="hd">${logo}<div class="hdtx"><h2>${title}</h2>${what ? `<div class="what">${what}</div>` : ''}
+        <div class="sub"><span>${no}</span>${stTxt}${F.bus ? '' : '<span class="pill" id="delayTile" hidden></span>'}</div></div></div>
+      ${info}${cab}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${testLoopBox(F, tr, st)}
+      <div class="foot"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="closeBtn">Chiudi</button></div>`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
     document.getElementById('closeBtn').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
@@ -2557,11 +2711,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   }
   function makeAgents(F) {
     const E_ = F.engine, G = E_.G;
+    F._moves = applyAdmissions(F); fillNewTrains(F);
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
       planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
-      const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
+      const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino|hitachi/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
@@ -2579,6 +2734,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   function depotOf(F) {
     if (!F.depotPaths || !F.ag) return null;
     if (!F.dm) F.dm = MTLDepotM3.create(F, { say, fmt: t => fmt(t), trainNo: tr => trainNo(F, tr),
+      trial: k => { const r = realTrain(F, F.trains[k], F.ag.S.t); return !!(r && r.trial && !admitted(r.units)); },
       call: (tr, text) => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + trainNo(F, tr), text, 'call'); } });
     return F.dm;
   }
@@ -2606,6 +2762,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     F.trains.forEach(tr => { tr.segs = JSON.parse(JSON.stringify(tr.segs0)); tr.starts = tr.segs.map(x => x[3][0]); tr.live = null;
       if (tr.alts0) tr.alts = JSON.parse(JSON.stringify(tr.alts0)); if (tr.arr20) tr.arr2 = JSON.parse(JSON.stringify(tr.arr20)); if (tr.calts0) tr.calts = JSON.parse(JSON.stringify(tr.calts0)); });
     F.depot = null; F.loop = null; F.dm = null; makeAgents(F);
+    // a new train admitted (or back in test): it starts the day from the place it stood in, the other train from its own
+    if (keep) (F._moves || []).forEach(([a, b]) => { const x = keep[a], y = keep[b]; delete keep[a]; delete keep[b]; if (y != null) keep[a] = y; if (x != null) keep[b] = x; });
     if (keep && F.depotPaths) { depotOf(F).newDay(keep); F.ag.start(DAY_START, bookedPositions(F, DAY_START)); F.ag.snapshot(); }
     if (carry && F.ag.carryIn) F.ag.carryIn(carry, DAY_START - carry.t);
   }
@@ -3115,7 +3273,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
     requestAnimationFrame(frame);
   }
-  window.mtl = { map, state, fleets, renderCard, scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
+  window.mtl = { map, state, fleets, renderCard, realTrain, scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
 </script>

@@ -13,6 +13,7 @@ MENEGHINO_NEW = [('941-942', 2009, ''), ('943-944', 2009, ''), ('947-948', 2009,
 BUILDER1 = lambda u: 'Stanga' if int(u[:4]) <= 8028 else 'Fiat' if int(u[:4]) <= 8054 else 'Breda'
 def built(units, year):
     us = [u.strip() for u in units.split('+')]
+    if int(us[0].split('-')[0]) >= 9000: return f'costruito nel {year} da Hitachi Rail STS'
     if int(us[0].split('-')[0]) < 8000: return f'costruito nel {year} da AnsaldoBreda e Firema'
     if int(us[0][:4]) >= 8100: return f'costruito da AnsaldoBreda con inverter ABB nel {year}'
     b = [BUILDER1(u) for u in us]
@@ -22,6 +23,13 @@ YEAR1 = lambda u: 1989 if int(u[:4]) <= 8040 else 1990
 # 8105-8106: stopped, alone, on the depot track after shunting signal #A76 (OSM way 32, dead end node 73)
 SOLO = [{'units': '8105-8106', 'type': 'Tradizionale 2° lotto', 'year': '2003', 'display': 'LED',
          'note': 'fermo, da solo (senza accoppiamento): 3 casse, unico nel suo genere; solo giri di prova', 'cars': 3, 'node': 73}]
+# the new Hitachi Rail STS trains (Giovanni, 2 Nov 2026): 6 cars, 106.5 m, yellow edges for the M3, called "Galileo". The
+# first one (9201-9202) does only test laps on the loop; enough of them come in the next couple of years to replace all
+# the traditional trains. Each one stands alone in its own depot place ('node') in test ('trial'): the page admits it
+# to service from the admin menu, and then it takes the duties of a traditional train. Add the next ones here.
+HITACHI = [('9201-9202', 2026, 77)]          # (units, year, depot place: 77 = A77; the next ones on 74 = A78, ...)
+SOLO += [{'units': u, 'type': 'Hitachi Galileo', 'year': str(y), 'display': 'LED', 'note': '6 carrozze, 106,5 m', 'trial': True, 'node': n}
+         for u, y, n in HITACHI]
 
 def trains():
     out = []

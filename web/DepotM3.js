@@ -116,14 +116,32 @@
         if (F.depot.target[k] != null && (a.si > g || a.si === g && a.v === 0 && Math.abs(a.d - s[4][s[4].length - 1]) < 3)) {
           F.depot.at[k] = F.depot.target[k]; delete F.depot.target[k]; F.depot.done[k] = g; }
       });
-      loopTick();
+      loopTick(); autoLoop();
     }
+    // the new trains in test (Giovanni, 2 Nov 2026): out of the peaks they go round the test loop by themselves, a few laps
+    // at a time, and never take a passenger run until they are admitted to service (env.trial)
+    const AUTO = [[9 * 3600 + 40 * 60, 3], [12 * 3600 + 10 * 60, 5], [19 * 3600 + 20 * 60, 4], [22 * 3600, 2]];
+    function autoLoop() {
+      if (!env.trial || !F.test || !F.test.trip) return;
+      const t = F.ag.S.t; D.auto = D.auto || {};
+      F.ag.agents().forEach((a, k) => {
+        if (!a || a.hidden || F.depot.at[k] == null || loopAhead(k) || !env.trial(k)) return;
+        const i = AUTO.findIndex(([t0]) => t >= t0 && t < t0 + 1800); if (i < 0 || D.auto[k + ':' + i]) return;
+        const msg = D.loopMsg;
+        if (sendToLoop(k, AUTO[i][1])) D.auto[k + ':' + i] = true; else D.loopMsg = msg;     // (busy: tries again)
+      });
+    }
+    // the next test trip of a train in test (for its card)
+    const nextAuto = t => { const x = AUTO.find(([t0]) => t0 + 1800 > t); return x ? x[0] : null; };
     // a new service day: each train out of the place it stood in last night (keep: train -> place)
     function newDay(keep) {
       F.depot = { at: {}, target: {}, seg: {}, done: {}, pending: {} }; F.loop = null; const used = new Set();
       F.trains.forEach((tr, k) => { const p = keep[k], s = tr.segs[0]; if (p == null || !placeOf(s) || used.has(p)) return;
         if (placeOf(s) !== p && (s[1] === 'from_depot' || s[1] === 'empty')) rewriteOut(tr, 0, p);
-        else if (s[1] === 'to_depot' && placeOf(s) !== p) return;           // reserve trains keep their own places
+        else if (s[1] === 'to_depot' && placeOf(s) !== p) {                 // a reserve train in another place (after a test trip, or a new
+          const P = F.depotPaths[p]; if (!P || s[3][0] < RESERVE_T) return;  // train admitted to service): it stays where it is
+          tr.segs[0] = [P.in, 'to_depot', -1, s[3].slice(), [P.in_end, P.in_end], +p]; restamp(tr);
+        }
         F.depot.at[k] = p; used.add(p); });
       F.trains.forEach((tr, k) => { const s = tr.segs[0]; if (F.depot.at[k] != null || !placeOf(s) || s[1] === 'service') return;
         let p = placeOf(s);
@@ -328,7 +346,7 @@
       }
     }
 
-    Object.assign(D, { init, tick, newDay, assign, pick, pastEntrance, rewriteOut, taken, name, placeOf, loopRole, loopInfo, sendToLoop, holdAt, standsAt, isOut });
+    Object.assign(D, { nextAuto, init, tick, newDay, assign, pick, pastEntrance, rewriteOut, taken, name, placeOf, loopRole, loopInfo, sendToLoop, holdAt, standsAt, isOut });
     return D;
   }
 
