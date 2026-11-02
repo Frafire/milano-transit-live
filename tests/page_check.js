@@ -12,9 +12,10 @@
 // - segnale: the PC holds #A13 at red from its card: no route from it
 // - linea: admin menu Guasti, a signal in front of a running train stays red: the driver asks, the PC gives the marcia a vista
 // - emergenza: Emergenze PC, pulsante rosso on the stretch of a running train: it stops; Togli from the alarms: it goes again
+// - giorno: Friday 02:58 with a signal failed: at 02:59 Saturday's timetable is loaded, at 03:30, the failure still there
 // - guasto: admin menu Guasti, a train in service does not start again: the call among the PC alarms, the PC answers Riarma
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
-// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea|emergenza ...]   (no argument: all of them). Exit code 1 if one fails.
+// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea|emergenza|giorno ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/index.html') + '?day=' + (process.env.DAY || 1);      // (the weekday timetable unless DAY=6/7)
@@ -265,6 +266,25 @@ const SCENARIOS = {
       st.playing = true; st.speed = 10; await sleep(4000); st.playing = false; await sleep(200);
       return { ok: stopped && Math.abs(a.d - d0) > 5 && !F.ag.zones().length, train: a.k, stretch: [A, B], stopped, movedAfter: Math.round(Math.abs(a.d - d0)) };
     });
+  },
+  async giorno(p) {    // continuity (Giovanni): Friday night into Saturday, the failures of the line carried
+    const before = await p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      document.querySelector('.dayb[data-d="5"]').click(); await sleep(300);
+      st.playing = false; st.t = 26.9 * 3600; await sleep(2500);
+      F.ag.event({ kind: 'fault', what: 'new', fault: 'segnale', target: 232 });
+      const pressed = document.querySelector('.dayb[aria-pressed="true"]').dataset.d;
+      st.speed = 60; st.playing = true; return { pressed, label: document.getElementById('day').textContent };
+    });
+    await p.waitForTimeout(4000); await p.waitForLoadState('load'); await p.waitForTimeout(7000);
+    const after = await p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl; for (let i = 0; i < 40 && !(M.fleets.find(f => f.line === 'M3' && f.ag)); i++) await sleep(250);
+      const F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      return { label: document.getElementById('day').textContent, t: M.state.t, failed: !!(F && F.ag.rt().sigFail && F.ag.rt().sigFail[232]), list: F ? F.ag.FX.list().map(f => f.kind) : null };
+    });
+    return { ok: before.pressed === '6' && /sabato/.test(after.label) && after.t < 4 * 3600 && after.failed, before, after };
   },
 };
 

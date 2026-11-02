@@ -1362,7 +1362,28 @@
         if (a.stopAt != null && fresh.stops.length && Math.abs(fresh.stops[0].d - a.d) > 1) a.stopAt = null; a.legs = [fresh]; a.red = null; }
       return true;
     }
-    return { S, TL, IL, RT, FX, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
+    // ---------- from one service day to the next (Giovanni: the line goes on, 02:59 -> 03:30 of the next day) ----------
+    // what stays: the failures of the line (signals, switches, sections, power, people, the DCT's emergencies), the zones,
+    // the stations closed, the closure in force; times moved by dt (the next day starts again from 0). The failures of the
+    // trains stay behind: the night in the depot fixes them.
+    const TIMES = ['t0', 'until', 'holdAt', 'holdUntil', 'evacUntil', 'next', 'techUntil', 'nextWake', 'done'];
+    function carryOut() {
+      const f = S.faults || {}, rt = S.rt || {};
+      return JSON.parse(JSON.stringify({ t: S.t, faults: { on: !!f.on, rng: f.rng, seq: f.seq || 0, list: (f.list || []).filter(x => !x.done && x.k == null && x.kind !== 'sciopero') },
+        zones: S.zones || [], zoneSeq: S.zoneSeq || 0, stn: S.stn || {}, clLast: S.cl ? S.clLast : null,
+        rt: { sigFail: rt.sigFail, ghost: rt.ghost, swFail: rt.swFail, swLock: rt.swLock, redFix: rt.redFix } }));
+    }
+    function carryIn(c, dt) {
+      if (!c) return;
+      const sh = x => { for (const k of TIMES) if (typeof x[k] === 'number') x[k] += dt; if (x.call && typeof x.call.t === 'number') x.call.t += dt; return x; };
+      const f = S.faults || (S.faults = { on: false, rng: 20261101, seq: 0, list: [], feed: [], roll: 0 });
+      f.on = c.faults.on; if (c.faults.rng != null) f.rng = c.faults.rng; f.seq = Math.max(f.seq || 0, c.faults.seq); f.list = c.faults.list.map(sh);
+      S.zones = c.zones; S.zoneSeq = c.zoneSeq; setZones(); S.stn = c.stn || {};
+      for (const [k, v] of Object.entries(c.rt || {})) if (v) S.rt[k] = v;
+      if (c.clLast && c.clLast.cl) { close(c.clLast.cl); S.clLast = Object.assign({}, c.clLast, { t0: S.t }); }
+      snapshot();
+    }
+    return { S, TL, IL, RT, FX, carryOut, carryIn, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei) };
   }
 
   const api = { create, DT, HEADWAY };

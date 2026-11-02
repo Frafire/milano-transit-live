@@ -593,9 +593,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   try { SURFACE = localStorage.getItem('mtl-surface') === '1'; } catch (e) {}
   const tripOrder = trips.map((_, i) => i).filter(i => (SURFACE && !ONLY_LINE) || (routes[trips[i].r].t === 1 && lineOn(trips[i].r))).sort((a, b) => trips[a].start - trips[b].start);
   const DAYS = ['', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
+  // the day just loaded after the end of the previous one (continuity): the state of the line to put back, the speed
+  let PENDING_CARRY = null, CARRIED = null;
+  try { const c = sessionStorage.getItem('mtl-carry'); if (c) { sessionStorage.removeItem('mtl-carry'); CARRIED = JSON.parse(c); if (CARRIED && CARRIED.carry) PENDING_CARRY = CARRIED; } } catch (e) {}
   const syncDay = () => {
-    document.querySelectorAll('.dayb').forEach(b => b.setAttribute('aria-pressed', +b.dataset.d === dayPick));
     let after = false; try { after = state.t >= 24 * 3600; } catch (e) {}           // before the clock exists: the day itself
+    // after midnight the selector shows the calendar day (Friday night: Saturday), the timetable stays the day's own
+    document.querySelectorAll('.dayb').forEach(b => b.setAttribute('aria-pressed', +b.dataset.d === (after ? (dayPick % 7) + 1 : dayPick)));
     const cal = after ? (dayPick % 7) + 1 : dayPick;
     document.getElementById('day').textContent = (SUF === '6' ? 'Orario del sabato · ' : SUF === '7' ? 'Orario festivo · ' : 'Orario feriale · ') + DAYS[cal] + (after ? ' (notte, orario di ' + DAYS[dayPick] + ')' : '') + ' · giornata 03:30–02:59';
   };
@@ -876,6 +880,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const DAY_START = 3 * 3600 + 30 * 60;     // Giovanni: the day always starts at 03:30
   const state = { t: DAY_START, speed: 60, playing: true, modes: { 0: true, 1: true, 3: true },
                   metro: { M1: true, M2: true, M3: true, M4: true, M5: true }, line: '', sel: null, follow: false, engine: true };
+  if (CARRIED) { state.speed = CARRIED.speed || state.speed; state.playing = true;
+    setTimeout(() => document.querySelectorAll('.spd').forEach(b => b.setAttribute('aria-pressed', +b.dataset.s === state.speed)), 0); }
 
   const metroBox = document.getElementById('metros');
   routes.filter((r, ri) => r.t === 1 && lineOn(ri)).forEach(r => {
@@ -2554,6 +2560,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
+    if (PENDING_CARRY && F.ag.carryIn) { const pc = PENDING_CARRY; PENDING_CARRY = null; F.ag.carryIn(pc.carry, F.ag.S.t - pc.carry.t); }
   }
   // depot signals: automatic, or worked by the player (a click on the signal clears it for one train)
   document.getElementById('depotAuto').onclick = () => {
@@ -2574,14 +2581,28 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   const depotTaken = F => F.dm.taken(), depotName = (F, q) => F.dm.name(q), pastEntrance = (F, k) => F.dm.pastEntrance(k), depotAssign = (F, k, q) => F.dm.assign(k, q);
   const loopRole = s => s && typeof s[6] === 'string' && s[6].startsWith('loop:') ? s[6].slice(5) : null;
   // a new service day: the trains start from the places they stand in (Friday stays Friday until the weekend timetables)
+  // the next service day (Giovanni, 2 Nov 2026: continuity). Monday to Thursday the next day has the same timetable: the
+  // trains start again from their places and the state of the line goes on. Friday -> Saturday, Saturday -> Sunday,
+  // Sunday -> Monday: the page loads the timetable of the next day and puts the state of the line back (failures of the
+  // line, zones, stations closed, the closure), the time 03:30, the speed. A train still moving at 02:59 starts the new
+  // day where that day's timetable has it at 03:30 (in the depot or a tail).
+  let DAY_SWITCHING = false;
   function newServiceDay() {
-    if (dayPick < 5) { dayPick++; try { localStorage.setItem('mtl-day', dayPick); } catch (e) {} } syncDay();
+    const Fc = fleets.find(f => f.ag), carry = Fc && Fc.ag.carryOut ? Fc.ag.carryOut() : null, next = (dayPick % 7) + 1;
+    if (dayType(next) !== SUF) {
+      DAY_SWITCHING = true; state.playing = false;
+      try { localStorage.setItem('mtl-day', next); sessionStorage.setItem('mtl-carry', JSON.stringify({ carry, dt: DAY_START - (carry ? carry.t : DAY_START), speed: state.speed, playing: true, admin: !document.body.classList.contains('player') })); } catch (e) {}
+      const ov = document.createElement('div'); ov.className = 'loading'; ov.textContent = 'Cambio giornata: carico l\'orario di ' + DAYS[next] + '…'; document.body.appendChild(ov);
+      const u = new URL(location.href); u.searchParams.delete('day'); setTimeout(() => { location.href = u.toString(); }, 50); return;
+    }
+    dayPick = next; try { localStorage.setItem('mtl-day', dayPick); } catch (e) {} syncDay();
     const F = fleets.find(f => f.ag); if (!F) return;
     const keep = F.depot ? Object.assign({}, F.depot.at, F.depot.target) : null;
     F.trains.forEach(tr => { tr.segs = JSON.parse(JSON.stringify(tr.segs0)); tr.starts = tr.segs.map(x => x[3][0]); tr.live = null;
       if (tr.alts0) tr.alts = JSON.parse(JSON.stringify(tr.alts0)); if (tr.arr20) tr.arr2 = JSON.parse(JSON.stringify(tr.arr20)); if (tr.calts0) tr.calts = JSON.parse(JSON.stringify(tr.calts0)); });
     F.depot = null; F.loop = null; F.dm = null; makeAgents(F);
     if (keep && F.depotPaths) { depotOf(F).newDay(keep); F.ag.start(DAY_START, bookedPositions(F, DAY_START)); F.ag.snapshot(); }
+    if (carry && F.ag.carryIn) F.ag.carryIn(carry, DAY_START - carry.t);
   }
   // the closure that applies now, from the events of the time line
   function closureNow(F) {
@@ -3066,7 +3087,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const dt = Math.min(0.25, (now - last) / 1000); last = now;
     if (state.playing) {
       state.t += dt * state.speed;
-      if (state.t > +slider.max) { state.t = DAY_START; newServiceDay(); }
+      if (state.t > +slider.max) { state.t = DAY_START; newServiceDay(); if (DAY_SWITCHING) return; }
       slider.value = state.t;
     }
     { const FE = m3fleet(); if (FE && FE.engine && state.engine) {
