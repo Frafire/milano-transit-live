@@ -219,7 +219,7 @@ const SCENARIOS = {
       st.playing = false; st.t = 9 * 3600; await sleep(2500); st.playing = true; st.speed = 1; await sleep(1200); st.playing = false; await sleep(300);
       const bi = F.boards.findIndex(x => /corvetto/i.test(x.n)); st.sel = 'b' + fi + ':' + bi; M.renderCard(); await sleep(300);
       const btn = document.getElementById('stRadio'); if (!btn) return { ok: false, why: 'no station radio button' };
-      btn.click(); await sleep(300);
+      btn.click(); for (let i = 0; i < 50 && !document.querySelector('[data-st="sit"]'); i++) await sleep(200);     // (the OS answers the telephone)
       const sit = document.querySelector('[data-st="sit"]'); sit.click(); await sleep(2500);
       document.querySelector('[data-acc="close"]').click(); await sleep(300);
       const X = F.engine.G.names.findIndex(n => /CORVETTO/.test(n)), stopsBefore = F.ag.agents().filter(a => a.stopAt === X).length;
@@ -228,7 +228,7 @@ const SCENARIOS = {
       while (Date.now() - t0 < 15000) { await sleep(200); F.ag.agents().forEach(a => { if (a.stopAt === X && a.v === 0) stopped.add(a.k); }); }
       st.playing = false; await sleep(200);
       M.renderCard(); await sleep(200);
-      const scr = [...document.querySelectorAll('#card img.scr')].map(i => i.alt).join(' | '), log = document.getElementById('radioLog').innerText;
+      const scr = [...document.querySelectorAll('#card img.scr')].map(i => i.alt).join(' | '), log = document.getElementById('phoneLog').innerText;
       return { ok: /(Operatore di stazione|OS) Corvetto/.test(log) && stopped.size <= stopsBefore && /STAZIONE CHIUSA/.test(scr), stopsBefore, stoppedAfter: stopped.size, scr, log: log.split('\n').slice(-4) };
     });
   },
@@ -334,27 +334,33 @@ const SCENARIOS = {
     return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
       const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), X = F.engine.G.names.findIndex(n => /CORVETTO/.test(n)), H = M.osHours(F)[X];
-      const log = () => document.getElementById('radioLog').innerText, ask = async () => { const n0 = log().split('\n').length; document.querySelector('[data-st="sit"]').click(); await sleep(2500);
-        const L = log().split('\n').slice(n0 - 1); return { err: L.some(x => /ERRORE: stazione chiusa/.test(x)), ans: L.some(x => /(Operatore di stazione|OS) Corvetto: (?!DCT)/.test(x)) }; };
-      st.playing = false; st.t = H.open - 1800; await sleep(2500); M.openStationRadio(F, X); await sleep(400);
-      const opened0 = M.osOpen(F, X), l0 = await ask(), err0 = l0.err && !l0.ans;
+      // a call: the OS answers after 1-8 s; closed: the error at once and nobody answers. Open: "Chiedi la situazione"
+      const log = () => document.getElementById('phoneLog').innerText, waits = [];
+      const ask = async () => { const n0 = log().split('\n').length, t0 = Date.now(); M.openStationRadio(F, X); let up = null;
+        while (Date.now() - t0 < 9500) { await sleep(100); if (document.querySelector('[data-st="sit"]')) { up = Date.now() - t0; break; } }
+        if (up != null) { waits.push(up); document.querySelector('[data-st="sit"]').click(); await sleep(2500); }
+        const L = log().split('\n').slice(n0 - 1); return { err: L.some(x => /ERRORE: stazione chiusa/.test(x)), ans: L.some(x => /(Operatore di stazione|OS) Corvetto: (?!DCT)/.test(x)), up }; };
+      st.playing = false; st.t = H.open - 1800; await sleep(2500);
+      const opened0 = M.osOpen(F, X), l0 = await ask(), err0 = l0.err && !l0.ans && l0.up == null;
       st.t = H.open - 40; await sleep(2500); st.playing = true; st.speed = 10; await sleep(7000); st.playing = false; await sleep(300);
       const saidOpen = /(Operatore di stazione|OS) Corvetto: DCT, stazione aperta/.test(log()), l1 = await ask(), ans1 = l1.ans && !l1.err;
+      const l1b = await ask(), l1c = await ask();
       st.t = H.last + 30; await sleep(3000); st.playing = true; st.speed = 60; const t0 = Date.now();
       while (Date.now() - t0 < 40000 && !/(Operatore di stazione|OS) Corvetto: DCT, stazione chiusa alle/.test(log())) await sleep(300);
       st.playing = false; await sleep(300);
-      const saidClose = /(Operatore di stazione|OS) Corvetto: DCT, stazione chiusa alle/.test(log()), l2 = await ask(), err2 = l2.err && !l2.ans;
-      return { ok: !opened0 && err0 && saidOpen && ans1 && saidClose && err2, open: H.open, first: H.first, last: H.last, opened0, err0, saidOpen, ans1, saidClose, err2, tail: log().split('\n').slice(-3) };
+      const saidClose = /(Operatore di stazione|OS) Corvetto: DCT, stazione chiusa alle/.test(log()), l2 = await ask(), err2 = l2.err && !l2.ans && l2.up == null;
+      const waitOk = waits.length >= 3 && waits.every(w => w >= 900 && w <= 8600);
+      return { ok: !opened0 && err0 && saidOpen && ans1 && saidClose && err2 && waitOk, waits, open: H.open, first: H.first, last: H.last, opened0, err0, saidOpen, ans1, saidClose, err2, tail: log().split('\n').slice(-3) };
     });
   },
   async osnome(p) {    // how the OS introduces himself (Giovanni 3 Nov 2026): both ways, and the same again on a new page (seeded)
     const run = async q => q.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
       const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), X = F.engine.G.names.findIndex(n => /CORVETTO/.test(n));
-      st.playing = false; st.t = 10 * 3600; await sleep(2500); M.openStationRadio(F, X); await sleep(300);
+      st.playing = false; st.t = 10 * 3600; await sleep(2500); M.openStationRadio(F, X); for (let i = 0; i < 50 && !document.querySelector('[data-st="sit"]'); i++) await sleep(200);
       for (let i = 0; i < 12; i++) { document.querySelector('[data-st="sit"]').click(); await sleep(150); }
       await sleep(2500);
-      return document.getElementById('radioLog').innerText.split('\n').map(l => (l.match(/^\d\d:\d\d:\d\d(Operatore di stazione Corvetto|OS Corvetto):/) || [])[1]).filter(Boolean);
+      return document.getElementById('phoneLog').innerText.split('\n').map(l => (l.match(/^\d\d:\d\d:\d\d(Operatore di stazione Corvetto|OS Corvetto):/) || [])[1]).filter(Boolean);
     });
     const a = await run(p), q = await p.context().browser().newPage(); await q.goto(p.url()); await q.waitForTimeout(6000); const b = await run(q); await q.close();
     const full = a.filter(x => x.startsWith('Operatore')).length, os = a.filter(x => x.startsWith('OS ')).length;
@@ -364,10 +370,10 @@ const SCENARIOS = {
     return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
       const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), X = F.engine.G.names.findIndex(n => /CORVETTO/.test(n));
-      st.playing = false; st.t = 10 * 3600; await sleep(2500); M.openStationRadio(F, X); await sleep(300);
-      const n0 = document.getElementById('radioLog').innerText.split('\n').length;
+      st.playing = false; st.t = 10 * 3600; await sleep(2500); M.openStationRadio(F, X); for (let i = 0; i < 50 && !document.querySelector('[data-scr]'); i++) await sleep(200);
+      const n0 = document.getElementById('phoneLog').innerText.split('\n').length;
       for (const k of ['SERVIZIO LIMITATO', 'TRATTA INTERROTTA', '']) { document.querySelector(`[data-scr="${k}"]`).click(); await sleep(1800); }
-      const L = document.getElementById('radioLog').innerText.split('\n').slice(n0 - 1), acks = L.filter(l => /Corvetto: Ricevuto, eseguo/.test(l)).length;
+      const L = document.getElementById('phoneLog').innerText.split('\n').slice(n0 - 1), acks = L.filter(l => /Corvetto: Ricevuto, eseguo/.test(l)).length;
       return { ok: acks === 3 && !(F.ag.S.stn[X] || {}).msg, acks, log: L.slice(-4) };
     });
   },

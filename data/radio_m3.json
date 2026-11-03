@@ -2317,6 +2317,21 @@
    "testi": [
     "Ricevuto, eseguo. Passo."
    ]
+  },
+  "stazione.telefono.chiamata": {
+   "chi": "sistema",
+   "quando": "Il DCT chiama al telefono una stazione (squilla)",
+   "testi": [
+    "Chiamata alla stazione {stazione}…"
+   ]
+  },
+  "stazione.telefono.risponde": {
+   "chi": "stazione",
+   "quando": "L'OS risponde al telefono, dopo un'attesa da 1 a 8 secondi",
+   "testi": [
+    "Pronto, dica pure.",
+    "Pronto DCT, dica."
+   ]
   }
  }
 }

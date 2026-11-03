@@ -151,6 +151,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .cmds button.send:hover { background: #ffe57a; }
 .radio.calling .rhd { animation: blink .5s steps(2) 6; background: #4a1a1a; }
 .radio .log .dr { color: #8dff9e; }
+.radio.phone { left: auto; right: 16px; transform: none; width: min(420px, calc(100vw - 32px)); } .radio.phone .rhd { background: #14213a; border-bottom-color: #2a3550; } .radio.phone.calling .rhd { animation: blink .5s steps(2) 6; background: #4a1a1a; }
 .radio .log .sys { color: #6f8f77; }
 .radio .log time { color: #6f8f77; margin-right: 6px; }
 .radio .cmds { border-top: 3px solid #2a3a2e; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
@@ -470,9 +471,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 <aside class="card" id="card" hidden aria-live="polite"></aside>
 
 <section class="radio" id="radio" hidden aria-label="Radio terra-treno">
-  <div class="rhd"><span class="tx" id="radioTx"></span><span>Radio terra-treno · <b id="radioWho">M3</b></span><button class="rx" id="radioClose" aria-label="Chiudi la radio">X</button></div>
+  <div class="rhd"><span class="tx" id="radioTx"></span><span>Radio - Treno · <b id="radioWho">M3</b></span><button class="rx" id="radioClose" aria-label="Chiudi la radio">X</button></div>
   <div class="log" id="radioLog" aria-live="polite"></div>
   <div class="cmds" id="radioCmds"></div>
+</section>
+<section class="radio phone" id="phone" hidden aria-label="Telefono con le stazioni">
+  <div class="rhd"><span class="tx" id="phoneTx"></span><span>Telefono: <b id="phoneWho">—</b></span><button class="rx" id="phoneClose" aria-label="Riaggancia">X</button></div>
+  <div class="log" id="phoneLog" aria-live="polite"></div>
+  <div class="cmds" id="phoneCmds"></div>
 </section>
 <aside class="drawer" id="drawer" hidden aria-label="Track editor">
   <h2>Track editor</h2>
@@ -2145,7 +2151,7 @@ window.MTL_PACKS = __PACKS__;
     card.innerHTML = F.line === 'M3'
       ? `<div class="stsign${nm.length > 11 ? ' long' : ''}" role="heading" aria-level="2"><span class="lb"></span><span class="lb"></span><b style="font-size:${nm.length > 13 ? 21 : nm.length > 11 ? 23 : nm.length > 9 ? 25 : 28}px">${nm}</b><span class="lb"></span><span class="lb"></span></div>
       ${interPanel(nm)}<div class="screens">${m3Screens(F, b, t)}</div>
-      ${F.ag ? '<button class="radiobtn bar" id="stRadio">📻 RADIO DI STAZIONE</button>' : ''}
+      ${F.ag ? '<button class="radiobtn bar" id="stRadio">☎ TELEFONO DELLA STAZIONE</button>' : ''}
       <div class="stfoot"><span></span>${stationClock(t)}<button id="cardClose">Chiudi</button></div>`
       : `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.line}</span>
       <div><h2>${b.n}</h2><div class="sub">Prossimi treni</div></div></div>
@@ -3552,6 +3558,7 @@ window.MTL_PACKS = __PACKS__;
       const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
       const txt = m.text.replace(/\{T\}/g, no(m.k)).replace(/\{R\}/g, no(m.r));
       const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? MR.osName(F, m.st) : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : m.who === 'pref' ? 'Prefettura' : m.who === 'bd' ? 'Badoni' : '';
+      if (m.who === 'ag') { MR.sayPhone(who, txt, 'dr'); continue; }          // (the station's OS: on the telephone)
       MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
     }
   }

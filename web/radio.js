@@ -45,7 +45,6 @@
       setTimeout(() => { radioTx.classList.remove('on'); say('T' + radioTrain.no, text, 'dr'); drawRadioCmds(); }, delayMs);
     }
     function openRadio(F, tr) {
-      radioStation = null;
       radioTrain = { F, tr, no: trainNo(F, tr) };
       radioWho.textContent = 'Treno ' + radioTrain.no; radioCmdHtml = '';
       radioEl.hidden = false;
@@ -139,15 +138,38 @@
     // ================= RADIO ALLA STAZIONE (every station has an agent: Giovanni, 1 Nov 2026) =================
     let radioStation = null; const stPending = [];
     const BIG = /^(SAN DONATO|ROGOREDO FS|LODI T\.I\.B\.B\.|PORTA ROMANA|DUOMO M3|MONTENAPOLEONE|REPUBBLICA|CENTRALE FS|ZARA|COMASINA)$/;
+    // ================= TELEFONO (Giovanni 3 Nov 2026): the DCT calls the station's OS; the radio stays for the trains =================
+    const phoneEl = document.getElementById('phone'), phoneLog = document.getElementById('phoneLog'), phoneCmds = document.getElementById('phoneCmds');
+    const phoneWho = document.getElementById('phoneWho'), phoneTx = document.getElementById('phoneTx'), phoneMsgs = [];
+    let phoneCmdHtml = '';
+    function sayPhone(who, text, cls) {
+      phoneMsgs.push({ t: state.t, who, text, cls }); if (phoneMsgs.length > 80) phoneMsgs.shift(); drawPhoneLog();
+    }
+    function drawPhoneLog() {
+      if (phoneEl.hidden) return;
+      phoneLog.innerHTML = phoneMsgs.map(m => `<div class="m ${m.cls}"><time>${fmt(m.t, true).join('')}</time>${m.who ? m.who + ': ' : ''}${m.text}</div>`).join('');
+      phoneLog.scrollTop = phoneLog.scrollHeight;
+    }
+    // a call to the station: it rings, the OS answers after a while (1-8 s, seeded); closed: the error, nobody answers
+    let phoneSeq = 0;
     function openStationRadio(F, X) {
-      const G = F.engine.G; radioTrain = null; radioStation = { F, X, name: cap(G.names[X]) };
-      radioWho.textContent = 'Stazione ' + radioStation.name; radioCmdHtml = ''; radioEl.hidden = false;
-      if (!radioMsgs.length) say('', tx('canale.aperto'), 'sys');
-      drawRadioLog(); drawRadioCmds();
+      const G = F.engine.G; radioStation = { F, X, name: cap(G.names[X]), line: false, seq: ++phoneSeq };
+      phoneWho.textContent = radioStation.name; phoneCmdHtml = ''; phoneEl.hidden = false; drawPhoneLog();
+      sayPhone('', tx('stazione.telefono.chiamata', { stazione: radioStation.name }), 'sys');
+      if (stClosed(F, X)) { sayPhone('', tx('stazione.errore_chiusa'), 'err'); drawPhoneCmds(); return; }
+      const me = radioStation, wait = 1000 + Math.round(rand() * 7000); phoneTx.classList.add('on'); drawPhoneCmds();
+      setTimeout(() => { if (radioStation !== me) return; phoneTx.classList.remove('on'); me.line = true;
+        sayPhone(osName(F, X), tx('stazione.telefono.risponde'), 'dr'); phoneCmdHtml = ''; drawPhoneCmds(); }, wait);
+    }
+    document.getElementById('phoneClose').onclick = () => { phoneEl.hidden = true; radioStation = null; phoneTx.classList.remove('on'); };
+    function drawPhoneCmds() {
+      if (phoneEl.hidden || !radioStation) return;
+      const h = radioStation.line ? stationCmds() : `<div class="lbl">${stClosed(radioStation.F, radioStation.X) ? '' : '☎ …'}</div>`;
+      if (h === phoneCmdHtml) return; phoneCmdHtml = h; phoneCmds.innerHTML = h; bindPhoneSecs(); if (radioStation.line) bindStation();
     }
     function stationSays(text, delayMs = 1800) {
-      const who = radioStation; radioTx.classList.add('on');
-      setTimeout(() => { radioTx.classList.remove('on'); say(osName(who.F, who.X), text, 'dr'); radioCmdHtml = ''; drawRadioCmds(); }, delayMs);
+      const who = radioStation; phoneTx.classList.add('on');
+      setTimeout(() => { phoneTx.classList.remove('on'); sayPhone(osName(who.F, who.X), text, 'dr'); phoneCmdHtml = ''; drawPhoneCmds(); }, delayMs);
     }
     // how full the station is: for now made up (peak hours, the big stations, a closure, the trains late)
     function crowd(F, X) {
@@ -170,7 +192,7 @@
       'Situazione in banchina': null };
     function trainsHere(F, X) { return F.ag.agents().filter(a => !a.hidden && a.v === 0 && (a.stopAt === X || (a.status === 'stopped' && a.at === X))); }
     // the OS calls the DCT (the opening and closing of the station): no answer expected
-    function osCall(F, X, text) { say(osName(F, X), text, 'call'); }
+    function osCall(F, X, text) { sayPhone(osName(F, X), text, 'call'); }
     // how the OS introduces himself: "Operatore di stazione" or "OS", then the station (Radio sheet: the variants and their weights)
     function osName(F, X) { return tx('stazione.os.chi', { stazione: cap(F.engine.G.names[X] || '').replace(/\s+M\d$/i, '') }); }
     const stClosed = (F, X) => osOpen && !osOpen(F, X);
@@ -193,56 +215,61 @@
     function bindStation() {
       const { F, X, name } = radioStation, G = F.engine.G;
       // closed (night): every order gives the error, nobody answers, nothing happens
-      radioCmds.querySelectorAll('button').forEach(b => b.addEventListener('click', e => { if (!stClosed(F, X)) return;
-        e.stopImmediatePropagation(); e.preventDefault(); say('', tx('stazione.errore_chiusa'), 'err'); }, true));
-      radioCmds.querySelectorAll('[data-st="sit"]').forEach(b => b.onclick = () => {
-        say('DCT', tx('stazione.situazione.chiede', { stazione: name }), 'pc');
+      phoneCmds.querySelectorAll('button').forEach(b => b.addEventListener('click', e => { if (!stClosed(F, X)) return;
+        e.stopImmediatePropagation(); e.preventDefault(); sayPhone('', tx('stazione.errore_chiusa'), 'err'); }, true));
+      phoneCmds.querySelectorAll('[data-st="sit"]').forEach(b => b.onclick = () => {
+        sayPhone('DCT', tx('stazione.situazione.chiede', { stazione: name }), 'pc');
         const c = crowd(F, X), cl = (F.ag.S.stn[X] || {}).closed;
         stationSays(cl ? tx('stazione.situazione.chiusa') : tx('stazione.situazione.risposta', { folla: crowdTxt(c) }));
       });
-      radioCmds.querySelectorAll('[data-ann]').forEach(b => b.onclick = () => {
-        const k = b.dataset.ann; say('DCT', tx('stazione.annuncio.ordine', { stazione: name, annuncio: tx(ANN[k]) }), 'pc'); stationSays(tx('stazione.annuncio.risposta'));
+      phoneCmds.querySelectorAll('[data-ann]').forEach(b => b.onclick = () => {
+        const k = b.dataset.ann; sayPhone('DCT', tx('stazione.annuncio.ordine', { stazione: name, annuncio: tx(ANN[k]) }), 'pc'); stationSays(tx('stazione.annuncio.risposta'));
       });
-      radioCmds.querySelectorAll('[data-scr]').forEach(b => b.onclick = () => {
+      phoneCmds.querySelectorAll('[data-scr]').forEach(b => b.onclick = () => {
         const k = b.dataset.scr; F.ag.event({ kind: 'station', st: X, what: 'msg', text: k || null });
-        say('DCT', k ? tx('stazione.schermi.messaggio', { stazione: name, messaggio: k }) : tx('stazione.schermi.normali', { stazione: name }), 'pc');
-        stationSays(tx('stazione.schermi.risposta'), 1200); radioCmdHtml = ''; drawRadioCmds();       // (the OS: every change of the screens, Giovanni 3 Nov 2026)
+        sayPhone('DCT', k ? tx('stazione.schermi.messaggio', { stazione: name, messaggio: k }) : tx('stazione.schermi.normali', { stazione: name }), 'pc');
+        stationSays(tx('stazione.schermi.risposta'), 1200); phoneCmdHtml = ''; drawPhoneCmds();       // (the OS: every change of the screens, Giovanni 3 Nov 2026)
       });
-      radioCmds.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => {
-        const k = b.dataset.chk; say('DCT', tx('stazione.verifica.ordine', { stazione: name, cosa: k.toLowerCase() }), 'pc');
+      phoneCmds.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => {
+        const k = b.dataset.chk; sayPhone('DCT', tx('stazione.verifica.ordine', { stazione: name, cosa: k.toLowerCase() }), 'pc');
         const ans = CHECK[k] ? tx(rand() < 0.8 ? CHECK[k][0] : CHECK[k][1]) : tx('stazione.verifica.banchina', { folla: crowdTxt(crowd(F, X)) });
         stationSays(tx('stazione.verifica.vado'), 1200);
         stPending.push({ F, X, kind: 'check', at: state.t + 60 + rand() * 90, text: ans });
       });
-      radioCmds.querySelectorAll('[data-ass]').forEach(b => b.onclick = () => {
+      phoneCmds.querySelectorAll('[data-ass]').forEach(b => b.onclick = () => {
         const k = +b.dataset.ass, no = trainNo(F, F.trains[k]);
-        say('DCT', tx('stazione.assistenza.ordine', { stazione: name, treno: no }), 'pc');
+        sayPhone('DCT', tx('stazione.assistenza.ordine', { stazione: name, treno: no }), 'pc');
         F.ag.event({ kind: 'order', k, what: 'hold' });
         stationSays(tx('stazione.assistenza.risposta', { treno: no }), 1200);
         stPending.push({ F, X, k, kind: 'assist', at: state.t + 120 + rand() * 240, text: tx('stazione.assistenza.esito', { treno: no }) });
-        radioCmdHtml = ''; drawRadioCmds();
+        phoneCmdHtml = ''; drawPhoneCmds();
       });
-      radioCmds.querySelectorAll('[data-rel]').forEach(b => b.onclick = () => {
+      phoneCmds.querySelectorAll('[data-rel]').forEach(b => b.onclick = () => {
         const k = +b.dataset.rel, no = trainNo(F, F.trains[k]); F.ag.event({ kind: 'order', k, what: 'release' });
-        say('DCT', tx('treno.riparti.ordine', { treno: no }), 'pc'); radioCmdHtml = ''; drawRadioCmds();
+        sayPhone('DCT', tx('treno.riparti.ordine', { treno: no }), 'pc'); phoneCmdHtml = ''; drawPhoneCmds();
       });
-      radioCmds.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => {
+      phoneCmds.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => {
         const close = b.dataset.acc === 'close'; F.ag.event({ kind: 'station', st: X, what: close ? 'close' : 'open' });
-        say('DCT', close ? tx('stazione.chiusura.ordine', { stazione: name }) : tx('stazione.riapertura.ordine', { stazione: name }), 'pc');
-        stationSays(close ? tx('stazione.chiusura.risposta') : tx('stazione.riapertura.risposta')); radioCmdHtml = ''; drawRadioCmds();
+        sayPhone('DCT', close ? tx('stazione.chiusura.ordine', { stazione: name }) : tx('stazione.riapertura.ordine', { stazione: name }), 'pc');
+        stationSays(close ? tx('stazione.chiusura.risposta') : tx('stazione.riapertura.risposta')); phoneCmdHtml = ''; drawPhoneCmds();
       });
     }
     // the answers that take time (the agent goes to see, gets on the train), in game time
     function stationTick() {
       for (let i = stPending.length - 1; i >= 0; i--) { const p = stPending[i]; if (state.t < p.at) continue;
-        stPending.splice(i, 1); say(osName(p.F, p.X), p.text, 'call');
-        if (radioEl.hidden) { radioEl.hidden = false; drawRadioLog(); } radioCmdHtml = ''; }
+        stPending.splice(i, 1); sayPhone(osName(p.F, p.X), p.text, 'call');
+        if (phoneEl.hidden) { phoneEl.hidden = false; drawPhoneLog(); } phoneCmdHtml = ''; drawPhoneCmds(); }
     }
     // the radio commands in folding sections (they stay open or closed as the player left them)
     const radioOpen = new Set();
     function radioSec(id, title, body, tag, openFirst) {
       if (openFirst && !radioOpen.has('seen:' + id)) { radioOpen.add('seen:' + id); radioOpen.add(id); }
       return `<details data-sec="${id}" ${radioOpen.has(id) ? 'open' : ''}><summary>${title}${tag ? `<span class="tag">${tag}</span>` : ''}</summary><div class="in">${body}</div></details>`;
+    }
+    function bindPhoneSecs() {
+      phoneCmds.querySelectorAll('details[data-sec]').forEach(d => d.addEventListener('toggle', () => {
+        if (d.open) radioOpen.add(d.dataset.sec); else radioOpen.delete(d.dataset.sec);
+        phoneCmdHtml = phoneCmdHtml.replace(new RegExp(`data-sec="${d.dataset.sec}" (open)?`), `data-sec="${d.dataset.sec}" ${d.open ? 'open' : ''}`); }));
     }
     function bindRadioSecs() {
       radioCmds.querySelectorAll('details[data-sec]').forEach(d => d.addEventListener('toggle', () => {
@@ -283,7 +310,6 @@
       };
     }
     function drawRadioCmds() {
-      if (!radioEl.hidden && radioStation) { const h = stationCmds(); if (h === radioCmdHtml) return; radioCmdHtml = h; radioCmds.innerHTML = h; bindRadioSecs(); bindStation(); return; }
       if (radioEl.hidden || !radioTrain) return;
       if (radioTrain.F.ag && radioTrain.tr.agentK != null && radioTrain.F.ag.agents()[radioTrain.tr.agentK] && radioTrain.F.ag.agents()[radioTrain.tr.agentK].mode !== 'plan') {
         const h = emergencyCmds(radioTrain.F, radioTrain.tr) + depSec(radioTrain.F, radioTrain.tr) + speedSec(radioTrain.F, radioTrain.tr);
@@ -632,7 +658,7 @@
     }
     // the driver reports when the ordered stop starts and ends
     function radioTick() {
-      stationTick();
+      stationTick(); drawPhoneCmds();
       for (let i = radioWatch.length - 1; i >= 0; i--) {
         const w = radioWatch[i], st = trainState(w.F, w.tr, state.t), here = st.v === 0 && w.tr.segs[st.seg] && (st.seg + ':' ) && stationAt(w.F, st.pid, st.d) === w.name;
         if (w.said === 0 && here) { w.said = 1; if (radioTrain && radioTrain.tr === w.tr) { say('T' + radioTrain.no, tx('treno.sosta.inizio', { stazione: cap(w.name), durata: durTxt(w.dur) }), 'dr'); } }
@@ -642,7 +668,7 @@
     }
 
 
-    return { say, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
+    return { say, sayPhone, drawPhoneCmds, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
              radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain };
   }
   const api = { create };
