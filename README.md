@@ -27,6 +27,21 @@ Needs Python 3.10+ (no extra packages), Node.js (for the engine test) and bash.
 2. The menu is written to `docs/index.html`, the game to `docs/gioca.html`, and its data to `docs/dati/` (one file per line and kind of day: `m3_1.js` weekday, `m3_6.js` Saturday, `m3_7.js` Sunday; the game loads only the line chosen in the menu). The build also runs the checks in `tests/`: tails and depot tracks never hold two trains, block sections, the normal day driven by the agents, one line closure with reopening, timetable and spacing.
 3. For a newer timetable: download the full GTFS zip from the Comune di Milano open data portal (dataset "Orari del trasporto pubblico locale nel Comune di Milano in formato GTFS", about 470 MB unzipped), unzip it into `gtfs/` (ignored by git), then run `python3 tools/extract_gtfs.py gtfs data/gtfs_m3` and `./build.sh`. For all lines (M1, M4, buses): `ALL_LINES=1 ./build.sh gtfs`.
 
+## M2 (in test, tappa 1)
+
+The menu opens the M2 marked "In test": the trains follow the weekday, Saturday or Sunday timetable along the GTFS
+shapes, with no tracks, depots or signals yet. Everything M2 is in its own files, so the M3 build does not change:
+
+- `data/gtfs_m2/`: the M2 extract of the same ATM/AMAT feed as `data/gtfs_m3/` (version 423).
+- `tools/turni_m2.py` links the runs into trains (turni): a run arriving at a terminus takes the next run leaving
+  the same terminus if it leaves within `turni_link_max_min` minutes (and not before `turni_link_min_min`) of
+  `data/operations_m2.json`; otherwise the train goes to the depot. Branch choices and two trains for one departure
+  are listed as ambiguous, not solved. A proposal, to be checked against how the M2 really runs.
+- `tests/m2_check.py`: every run in one turno, links at the right terminus and within the limits.
+- `tools/assemble_m2.py`: the M2 data files `docs/dati/m2_1.js`, `m2_6.js`, `m2_7.js`, called by `tools/assemble.py`.
+- `tools/osm_to_txt.py`: turns an Overpass export of the metro tracks into `data/osm_m2.txt` (the query is in the
+  file). The M2 tracks are not in the project yet.
+
 ## Layout
 
 | Folder | What is in it |
