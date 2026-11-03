@@ -7356,13 +7356,13 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
   // on a white sheet, the trains in it, the test loop round them (so the depot need not be read on the main map)
   const ROD_TOWER = [45.431475, 9.256625];      // (the tower on the satellite map, where Giovanni put it)
   setTimeout(() => { if (!fleets.some(f => f.line === 'M3' && f.depotPaths)) return;
-    // (like a station: a circle of the same size on the screen at every zoom, its name always under it)
+    // (like a station: a circle of the same size on the screen at every zoom, its name under it as the stations' names)
     const open = () => { state.sel = 'depot'; state.follow = false; renderCard(); };
     L.circleMarker(ROD_TOWER, { radius: 18, stroke: false, fillOpacity: 0, bubblingMouseEvents: false }).on('click', open).addTo(map);
     L.circleMarker(ROD_TOWER, { radius: 7, color: '#ffcf3f', weight: 3, fillColor: '#1f3a5f', fillOpacity: 1, bubblingMouseEvents: false })
       .bindTooltip('Deposito Rogoredo (ROD)', { className: 'st', direction: 'top', offset: [0, -8] }).on('click', open).addTo(map);
     L.marker(ROD_TOWER, { icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<button class="stname rodname" style="--c:#ffcf3f">ROD</button>' }), zIndexOffset: 900 })
-      .on('click', open).addTo(map); }, 0);
+      .on('click', open).addTo(nameLayer); }, 0);          // (its name: with the stations' names, shown from zoom 15)
   const depotGroups = F => {      // the places by track: west end (A76-A90) and east end (A48-A65) of the same shed track; the west sheds
     const P = F.engine.net.depot || [], num = x => parseInt(String(x.name).replace(/\D/g, ''), 10) || 0, byWay = {};
     P.forEach(x => { (byWay[x.way + ':' + (num(x) >= 69 && num(x) <= 75 ? 'o' : 'r')] = byWay[x.way + ':' + (num(x) >= 69 && num(x) <= 75 ? 'o' : 'r')] || []).push(x); });
