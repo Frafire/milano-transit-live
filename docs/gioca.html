@@ -935,6 +935,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 #depotPlan .loop { fill: none; stroke: #111; stroke-width: 3; } #depotPlan .tk { stroke: #111; stroke-width: 2; }
 #depotPlan text { font: 12px var(--display); fill: #111; text-anchor: middle; } #depotPlan .pl { font-size: 11px; font-weight: 600; fill: #333; paint-order: stroke; stroke: #fff; stroke-width: 5px; } #depotPlan .grp { font-weight: 700; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; } #depotPlan .lab { font-size: 13px; }
 #depotPlan .tr rect { fill: #ffcf3f; stroke: #111; stroke-width: 1.5; } #depotPlan .tr.coming rect { fill: #fff; stroke-dasharray: 4 3; } #depotPlan .tr { cursor: pointer; } #depotPlan .tr text { font-weight: 700; font-size: 11px; }
+.bdlabel { position: absolute; transform: translate(-50%, -26px); white-space: nowrap; font: 700 10px/1 var(--display); letter-spacing: .06em; color: #111; background: #ffb400; border-radius: 3px; padding: 2px 5px; box-shadow: 0 1px 4px rgba(0,0,0,.6); }
 .m3panel button.redbtn { background: #d62828; border-color: #ff5252; color: #fff; font-weight: 700; } .m3panel button.redbtn:hover { background: #ef3b3b; }
 .pclist li .rgr { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto; } .pclist .rg { font-size: 12px; color: var(--muted); } .pclist .rg.ok { color: #7ee08f; }
 .pclist .rg.off { font: 700 11px/1 var(--display); letter-spacing: .05em; padding: 4px 6px; border-radius: 4px; background: #e5383b; color: #fff; } .pclist li.scoperta b { color: #ffb4b4; }
@@ -2050,7 +2051,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 // work the driver cuts out the broken unit and the train goes on with the other (half the traction): passengers off
 // at the next station, then empty to the depot of Rogoredo (ROD) or to a tail at Comasina. ATP failed: limited speed,
 // back to ROD at the end of the run. Only when both units are dead (very rare) the train behind rescues it (pushes it
-// at 15 km/h; web/agents.js). The Badoni tractor needs the line cut off: not simulated.
+// at 15 km/h; web/agents.js). The Badoni tractor from ROD (the line cut off, no power): it leaves San Donato on the
+// broken train's track, couples and brings it back (Tempi sheet: its speeds and times; f.bd, drawn by the page).
 (function (root) {
   // the kinds, with the words of the Excel (the row of foglio Guasti is matched by these at build time)
   const KINDS = {
@@ -2103,6 +2105,20 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     const tx = (code, v) => FR.t(code, v);
     const name = st => st != null && G ? G.names[st].replace(/\s+M\d$/, '').toLowerCase().replace(/\b\w/g, x => x.toUpperCase()).replace(/\b(Fs|Fn)\b/g, x => x.toUpperCase()) : '';
     // what is said on the radio: who (dr: the driver of train k, pc, ag: the agent of station st, man: line maintenance)
+    // the Badoni (Tempi sheet; the values not there yet are proposals): out of ROD, to the train at its top speed, the last
+    // metres at the coupling speed, the coupling, back to San Donato towing the train
+    const TM = c.tempi || {}, tval = (pre, dflt) => { const v = Object.entries(TM).find(([n]) => n.startsWith(pre)); return v && v[1][0] != null ? +v[1][0] : dflt; };
+    const BD = { prep: tval('Badoni: uscita da ROD', 600), v: tval('Trattorino di soccorso: velocità massima', 25) / 3.6, vc: tval('Accostamento al treno', 2) / 3.6,
+      couple: tval('Badoni: aggancio', 300), vt: tval('Badoni: velocità con il treno', 15) / 3.6, half: 5 };
+    function badoniStep(f) {
+      const b = f.bd, dt = Math.max(0, S.t - b.last); b.last = S.t;
+      if (b.st === 'prep') { if (S.t >= b.t) { b.st = 'coming'; say(f, 'bd', tx('soccorso.badoni.uscito')); } return; }
+      if (b.st === 'coming') { const left = Math.abs(b.to - b.d), v = left < 20 ? BD.vc : BD.v; b.d += Math.sign(b.to - b.d) * Math.min(left, v * dt);
+        if (Math.abs(b.to - b.d) < 0.05) { b.d = b.to; b.st = 'coupling'; b.t = S.t + BD.couple; say(f, 'bd', tx('soccorso.badoni.aggancio')); } return; }
+      if (b.st === 'coupling') { if (S.t >= b.t) { b.st = 'tow'; say(f, 'bd', tx('soccorso.badoni.agganciato')); } return; }
+      if (b.st === 'tow') { const left = Math.abs(b.home - b.d); b.d += Math.sign(b.home - b.d) * Math.min(left, BD.vt * dt);
+        L.place(f.k, b.pid, b.d - b.s * (b.half + 3 + BD.half)); if (left < 0.05) b.st = 'home'; }
+    }
     function say(f, who, text) { const Q = F().feed; Q.push({ t: S.t, id: f.id, k: f.k, r: f.rk, who, st: f.st, text }); if (Q.length > 200) Q.splice(0, Q.length - 200); }
     function call(f, text, opts, auto) { f.call = { t: S.t, text, opts, auto: auto || AUTO }; say(f, f.callWho || 'dr', text); }
     function end(f, text, who) { if (text) say(f, who || 'dr', text); f.done = S.t; f.call = null; }
@@ -2358,6 +2374,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         const far = a && a.at != null ? (dir === 'N' ? Math.min(L.last(), a.at + 1) : Math.max(1, a.at)) : 1, km = far * 0.9;
         // out of ROD 10 min, there at 25 km/h, coupling 5 min, back at 15 km/h
         f.zones = (f.zones || []).concat([L.zone('power', 0, far)]); f.ph = 'badoni'; f.until = S.t + 600 + Math.round(km / 25 * 3600) + 300 + Math.round(km / 15 * 3600);
+        // the Badoni on the map: out of San Donato on the train's track, up to it (when nobody stands in between)
+        const w = L.badoniWay ? L.badoniWay(f.k) : null;
+        if (w && !w.blocked) { f.bd = { pid: w.pid, d: w.e0, to: w.x + w.s * (w.half + 3 + BD.half), home: w.e0, s: w.s, half: w.half, st: 'prep', t: S.t + BD.prep, last: S.t }; f.until = Infinity; }
         f.evacUntil = S.t + between(1200, 2700);
         say(f, 'pc', tx('soccorso.badoni.interruzione', { stazione: name(far) }));
         say(f, 'dr', tx('soccorso.badoni.evacuo'));
@@ -2451,7 +2470,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         }
         if (f.ph === 'rescue' && S.t >= f.until) end(f, tx('soccorso.riparte'), 'sys');
         if (f.ph === 'homeWait' && L.home(f.k, true)) f.ph = 'homing';
-        if (f.ph === 'badoni' && S.t >= f.until) { unLine(f); L.takeAway(f.k); end(f, tx('soccorso.badoni.portato_via'), 'sys'); continue; }
+        if (f.ph === 'badoni' && f.bd) { badoniStep(f); if (f.bd.st === 'home') { unLine(f); L.takeAway(f.k); f.bd = null; end(f, tx('soccorso.badoni.portato_via'), 'sys'); continue; } }
+        else if (f.ph === 'badoni' && S.t >= f.until) { unLine(f); L.takeAway(f.k); end(f, tx('soccorso.badoni.portato_via'), 'sys'); continue; }
         // the rescue by the train behind: it arrives, couples, pushes
         if (a.rescue && a.rescue.stage === 'coupling' && f.ph === 'coming') { f.ph = 'coupling'; say(f, 'drr', tx('soccorso.aggancio')); }
         if (a.rescue && a.rescue.stage === 'towed' && f.ph === 'coupling') { f.ph = 'towed'; say(f, 'drr', tx('soccorso.agganciato')); }
@@ -2638,7 +2658,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // text on its platform screens
     const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null, zones: [] };
     // failures (web/faults.js, foglio Guasti): emergency brake of each kind of train
-    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
+    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, tempi: o.tempi, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
       line: {
         // the signals and switches of the main tracks (where the line failures happen), the route behind a signal
         sigs: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => (o.sigall && o.sigall[pid] || []).map(x => x[1])))].filter(n => !RT.isPcSignal(n)).sort((x, y) => x - y),
@@ -2649,6 +2669,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         home: (k, endOfRun, turnX) => goHome(S.agents[k], endOfRun, turnX), rescue: k => startRescue(k), tow: k => startTow(k), rescuers: k => rescuers(k),
         // the Badoni from ROD (the line cut off): the broken train is taken away; the DCT: closures, back to the hybrid timetable
         takeAway: k => { const a = S.agents[k]; if (!a) return; a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.v = 0; delete S.rt.routes[a.k]; },
+        badoniWay: k => badoniWay(k), place: (k, pid, d) => { const a = S.agents[k]; if (!a) return; a.pid = pid; a.d = d; a.v = 0; a.stopAt = null; },
         closures: X => (o.closures || []).map((c, i) => Object.assign({ i }, c)).filter(c => c.a <= X - 1 && c.b >= X + 1 && (c.often === 'sì' || c.often === 'raramente' || c.often == null)).sort((p, q) => (p.b - p.a) - (q.b - q.a)).slice(0, 3),
         close: i => { const c = (o.closures || [])[i]; if (!c) return false; close({ a: c.a, b: c.b, ends: {} }); S.clLast = { label: c.label, t0: S.t, cl: { a: c.a, b: c.b, ends: {} } }; return true; },
         reopen: () => { if (S.cl) reopen(S.t); },
@@ -3008,6 +3029,17 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // train: S.rt.rescue), couples (5 minutes) and pushes it at 15 km/h; the broken train lets its passengers off at
     // the next station; the two go to the depot (southbound) or to the tails of Comasina
     // which trains could rescue train fk: the one behind (spinta) and the one in front (traino), same track
+    // the Badoni from ROD (Giovanni 3 Nov 2026): out of San Donato on the broken train's track, up to it, coupled, back
+    // to San Donato with it. Its way: the track from the end of the San Donato platform to the train (s: the way to San
+    // Donato on the path); blocked when another train stands on it (that one is the rescuer)
+    function badoniWay(fk) {
+      const f = S.agents[fk]; if (!f || f.hidden) return null;
+      const leg = f.legs[0] && !f.legs[0].kind ? f.legs[0] : null, dir = (leg && leg.dir) || f.arr || 'S', main = dir === 'N' ? G.N : G.S;
+      const x = mapTo(f.pid, f.d, main.pid); if (x == null) return null;
+      const sd = stopOf(dir, 0), s = sd < x ? -1 : 1, e0 = sd - s * (half + 5), lo = Math.min(e0, x), hi = Math.max(e0, x);
+      const blocked = S.agents.some(r => { if (r.k === fk || r.hidden) return false; const xr = mapTo(r.pid, r.d, main.pid); return xr != null && xr > lo - half && xr < hi; });
+      return { pid: main.pid, x, sd, e0, s, half, blocked };
+    }
     function rescuers(fk) {
       const f = S.agents[fk]; if (!f || f.hidden) return {};
       const leg = f.legs[0] && !f.legs[0].kind ? f.legs[0] : null, dir = (leg && leg.dir) || f.arr || 'S', main = dir === 'N' ? G.N : G.S;
@@ -7244,7 +7276,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); tr.carr10 = tr.carr1 && JSON.parse(JSON.stringify(tr.carr1)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      planOf: k => F.trains[k].segs, count: F.trains.length, tempi: (E_.net.rules || {}).tempi, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino|hitachi/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
@@ -7891,7 +7923,8 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
                   alarm: 'allarme', recover: 'tratta ferma, recupero in corso', told: 'da verificare', found: 'oggetto sul binario', ask: 'chiede di fermare i treni',
                   holding: 'treni fermi in stazione', day: 'giornata di sciopero', announced: 'chiusura programmata', closed: 'stazione chiusa', end: 'da riaprire', homeWait: 'rientro a fine della prossima corsa', badoni: 'Badoni in arrivo, linea senza tensione', reopen: 'da riaprire la tratta', fire: 'stazione chiusa, vigili del fuoco', limited: 'marcia limitata 30 km/h',
                   udt: 'una unità esclusa', homing: 'rientro al deposito di Rogoredo', coming: 'arriva il treno di soccorso', coupling: 'aggancio del soccorso', towed: 'spinto dal treno di soccorso' };
-  const fxPhase = f => (f.tech === 'wait' ? 'tecnico in attesa a San Donato' : f.tech === 'board' ? 'tecnico a bordo' : FX_PH[f.ph] || f.ph);
+  const BD_PH = { prep: 'Badoni in preparazione a ROD, linea senza tensione', coming: 'Badoni in arrivo, linea senza tensione', coupling: 'aggancio del Badoni', tow: 'trainato dal Badoni verso San Donato' };
+  const fxPhase = f => (f.ph === 'badoni' && f.bd ? BD_PH[f.bd.st] || 'Badoni' : f.tech === 'wait' ? 'tecnico in attesa a San Donato' : f.tech === 'board' ? 'tecnico a bordo' : FX_PH[f.ph] || f.ph);
   function fxAnswer(F, id, what) {
     if (!F || !F.ag) return;
     const r = F.ag.event({ kind: 'fault', what: 'answer', id, answer: what });
@@ -7914,7 +7947,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     for (const m of F.ag.FX.feed()) {
       const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
       const txt = m.text.replace(/\{T\}/g, no(m.k)).replace(/\{R\}/g, no(m.r));
-      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : m.who === 'pref' ? 'Prefettura' : '';
+      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : m.who === 'pref' ? 'Prefettura' : m.who === 'bd' ? 'Badoni' : '';
       MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
     }
   }
@@ -7950,6 +7983,15 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     fxFeed(F); renderAlarms(); };
   // the zones on the map (no power, red button, held, slow, marcia a vista): a coloured band over the two tracks
   const zoneLayer = L.layerGroup().addTo(map), ZCOL = { red: '#ff2a2a', power: '#ff8a00', stop: '#c84dff', slow: '#ffd400', vista: '#3db7ff' };
+  // the Badoni (soccorso da ROD): a small yellow tractor on the track, with its name; coupled, the broken train behind it
+  const badoniLayer = L.layerGroup().addTo(map);
+  function drawBadoni(F) {
+    const B = F.ag.FX.list().filter(f => f.ph === 'badoni' && f.bd && f.bd.st !== 'prep'), h = JSON.stringify(B.map(f => [f.id, Math.round(f.bd.d), f.bd.st]));
+    if (badoniLayer._h === h) return; badoniLayer._h = h; badoniLayer.clearLayers();
+    for (const f of B) { const b = f.bd, pts = [trackAt(F, b.pid, b.d - 5), trackAt(F, b.pid, b.d + 5)].filter(Boolean); if (pts.length < 2) continue;
+      L.polyline(pts, { color: '#ffb400', weight: 11, opacity: 1, interactive: false }).addTo(badoniLayer);
+      L.marker(pts[0], { icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<div class="bdlabel">BADONI</div>' }), interactive: false }).addTo(badoniLayer); }
+  }
   function drawZones(F) {
     const Z = F.ag.zones(), h = JSON.stringify(Z.map(z => [z.id, z.kind, z.a, z.b, z.done])); if (zoneLayer._h === h) return; zoneLayer._h = h; zoneLayer.clearLayers();
     const G = F.engine.G, half = F.engine.half, last = G.names.length - 1, stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
@@ -7974,7 +8016,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
       if (a.atoWarn) out.push({ k: a.k, cls: 'late', t: `Treno ${tno(a.k)} troppo vicino al treno davanti, ATO al minimo: valuta un blocco in stazione` });
     });
     // failures: the calls waiting for the DCT first, with their answers
-    if (F.ag.FX) { fxFeed(F); fxPanel(F); emFill(F); drawZones(F);
+    if (F.ag.FX) { fxFeed(F); fxPanel(F); emFill(F); drawZones(F); drawBadoni(F);
       const fl = F.ag.FX.list();
       fl.filter(f => !f.call && f.kind !== 'vista').forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, g: f.kind === 'segnale' || f.kind === 'sezione' ? f.target : undefined, cls: 'fx', t: f.k != null ? `⚠ Treno ${tno(f.k)}: ${f.label} · ${fxPhase(f)}`
         : f.kind === 'pc' ? `⛔ DCT: ${f.zone === 'red' ? 'pulsante rosso' : f.zone === 'power' ? 'tensione tolta' : 'treni fermi'} · ${f.what}` : `⚠ ${f.label}: ${f.what} · ${fxPhase(f)}`, fx: f }));

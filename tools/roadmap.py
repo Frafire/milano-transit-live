@@ -50,7 +50,7 @@ R = [
     ('1 M3 giocabile', 'Stazioni', 'Annunci dell\'agente in stazione ai passeggeri', 'Pianificato', 'Claude', 'Pannello PC riga 37'),
     ('1 M3 giocabile', 'Guasti', 'Guasti D1–D5: treno, linea, persone, soccorso, sciopero, Prefettura', 'Fatto', 'Entrambi', '26 righe del foglio Guasti'),
     ('1 M3 giocabile', 'Guasti', 'Riarmo: prima il macchinista da solo, poi il DCT', 'Fatto', 'Claude', ''),
-    ('1 M3 giocabile', 'Guasti', 'Badoni visibile sulla mappa durante il soccorso', 'Prossimo', 'Claude', ''),
+    ('1 M3 giocabile', 'Guasti', 'Badoni visibile sulla mappa durante il soccorso', 'Fatto', 'Claude', 'Esce da San Donato sul binario del treno, 25 km/h, aggancio, lo riporta a 15 km/h; tempi di uscita, aggancio e traino: proposte nel foglio Tempi'),
     ('1 M3 giocabile', 'Comasina', 'Scambio del tronchetto di Comasina modificabile in gioco', 'Fatto', 'Claude', 'Già nel gioco: radio del treno, sezione Tronchetto a Comasina (si sceglie il tronchetto finché il treno non ci è arrivato)'),
     ('1 M3 giocabile', 'Comasina', 'Arrivo diretto al binario 1 con cambio banco (radio)', 'Fatto', 'Claude', 'Come San Donato binario 2'),
     ('1 M3 giocabile', 'Flotta', 'Flotta reale, numero del treno = tabella, matricola nella scheda', 'Fatto', 'Entrambi', ''),

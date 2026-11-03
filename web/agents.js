@@ -83,7 +83,7 @@
     // text on its platform screens
     const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null, zones: [] };
     // failures (web/faults.js, foglio Guasti): emergency brake of each kind of train
-    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
+    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, tempi: o.tempi, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
       line: {
         // the signals and switches of the main tracks (where the line failures happen), the route behind a signal
         sigs: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => (o.sigall && o.sigall[pid] || []).map(x => x[1])))].filter(n => !RT.isPcSignal(n)).sort((x, y) => x - y),
@@ -94,6 +94,7 @@
         home: (k, endOfRun, turnX) => goHome(S.agents[k], endOfRun, turnX), rescue: k => startRescue(k), tow: k => startTow(k), rescuers: k => rescuers(k),
         // the Badoni from ROD (the line cut off): the broken train is taken away; the DCT: closures, back to the hybrid timetable
         takeAway: k => { const a = S.agents[k]; if (!a) return; a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.v = 0; delete S.rt.routes[a.k]; },
+        badoniWay: k => badoniWay(k), place: (k, pid, d) => { const a = S.agents[k]; if (!a) return; a.pid = pid; a.d = d; a.v = 0; a.stopAt = null; },
         closures: X => (o.closures || []).map((c, i) => Object.assign({ i }, c)).filter(c => c.a <= X - 1 && c.b >= X + 1 && (c.often === 'sì' || c.often === 'raramente' || c.often == null)).sort((p, q) => (p.b - p.a) - (q.b - q.a)).slice(0, 3),
         close: i => { const c = (o.closures || [])[i]; if (!c) return false; close({ a: c.a, b: c.b, ends: {} }); S.clLast = { label: c.label, t0: S.t, cl: { a: c.a, b: c.b, ends: {} } }; return true; },
         reopen: () => { if (S.cl) reopen(S.t); },
@@ -453,6 +454,17 @@
     // train: S.rt.rescue), couples (5 minutes) and pushes it at 15 km/h; the broken train lets its passengers off at
     // the next station; the two go to the depot (southbound) or to the tails of Comasina
     // which trains could rescue train fk: the one behind (spinta) and the one in front (traino), same track
+    // the Badoni from ROD (Giovanni 3 Nov 2026): out of San Donato on the broken train's track, up to it, coupled, back
+    // to San Donato with it. Its way: the track from the end of the San Donato platform to the train (s: the way to San
+    // Donato on the path); blocked when another train stands on it (that one is the rescuer)
+    function badoniWay(fk) {
+      const f = S.agents[fk]; if (!f || f.hidden) return null;
+      const leg = f.legs[0] && !f.legs[0].kind ? f.legs[0] : null, dir = (leg && leg.dir) || f.arr || 'S', main = dir === 'N' ? G.N : G.S;
+      const x = mapTo(f.pid, f.d, main.pid); if (x == null) return null;
+      const sd = stopOf(dir, 0), s = sd < x ? -1 : 1, e0 = sd - s * (half + 5), lo = Math.min(e0, x), hi = Math.max(e0, x);
+      const blocked = S.agents.some(r => { if (r.k === fk || r.hidden) return false; const xr = mapTo(r.pid, r.d, main.pid); return xr != null && xr > lo - half && xr < hi; });
+      return { pid: main.pid, x, sd, e0, s, half, blocked };
+    }
     function rescuers(fk) {
       const f = S.agents[fk]; if (!f || f.hidden) return {};
       const leg = f.legs[0] && !f.legs[0].kind ? f.legs[0] : null, dir = (leg && leg.dir) || f.arr || 'S', main = dir === 'N' ? G.N : G.S;

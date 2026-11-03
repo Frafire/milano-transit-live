@@ -34,7 +34,8 @@
 // work the driver cuts out the broken unit and the train goes on with the other (half the traction): passengers off
 // at the next station, then empty to the depot of Rogoredo (ROD) or to a tail at Comasina. ATP failed: limited speed,
 // back to ROD at the end of the run. Only when both units are dead (very rare) the train behind rescues it (pushes it
-// at 15 km/h; web/agents.js). The Badoni tractor needs the line cut off: not simulated.
+// at 15 km/h; web/agents.js). The Badoni tractor from ROD (the line cut off, no power): it leaves San Donato on the
+// broken train's track, couples and brings it back (Tempi sheet: its speeds and times; f.bd, drawn by the page).
 (function (root) {
   // the kinds, with the words of the Excel (the row of foglio Guasti is matched by these at build time)
   const KINDS = {
@@ -87,6 +88,20 @@
     const tx = (code, v) => FR.t(code, v);
     const name = st => st != null && G ? G.names[st].replace(/\s+M\d$/, '').toLowerCase().replace(/\b\w/g, x => x.toUpperCase()).replace(/\b(Fs|Fn)\b/g, x => x.toUpperCase()) : '';
     // what is said on the radio: who (dr: the driver of train k, pc, ag: the agent of station st, man: line maintenance)
+    // the Badoni (Tempi sheet; the values not there yet are proposals): out of ROD, to the train at its top speed, the last
+    // metres at the coupling speed, the coupling, back to San Donato towing the train
+    const TM = c.tempi || {}, tval = (pre, dflt) => { const v = Object.entries(TM).find(([n]) => n.startsWith(pre)); return v && v[1][0] != null ? +v[1][0] : dflt; };
+    const BD = { prep: tval('Badoni: uscita da ROD', 600), v: tval('Trattorino di soccorso: velocità massima', 25) / 3.6, vc: tval('Accostamento al treno', 2) / 3.6,
+      couple: tval('Badoni: aggancio', 300), vt: tval('Badoni: velocità con il treno', 15) / 3.6, half: 5 };
+    function badoniStep(f) {
+      const b = f.bd, dt = Math.max(0, S.t - b.last); b.last = S.t;
+      if (b.st === 'prep') { if (S.t >= b.t) { b.st = 'coming'; say(f, 'bd', tx('soccorso.badoni.uscito')); } return; }
+      if (b.st === 'coming') { const left = Math.abs(b.to - b.d), v = left < 20 ? BD.vc : BD.v; b.d += Math.sign(b.to - b.d) * Math.min(left, v * dt);
+        if (Math.abs(b.to - b.d) < 0.05) { b.d = b.to; b.st = 'coupling'; b.t = S.t + BD.couple; say(f, 'bd', tx('soccorso.badoni.aggancio')); } return; }
+      if (b.st === 'coupling') { if (S.t >= b.t) { b.st = 'tow'; say(f, 'bd', tx('soccorso.badoni.agganciato')); } return; }
+      if (b.st === 'tow') { const left = Math.abs(b.home - b.d); b.d += Math.sign(b.home - b.d) * Math.min(left, BD.vt * dt);
+        L.place(f.k, b.pid, b.d - b.s * (b.half + 3 + BD.half)); if (left < 0.05) b.st = 'home'; }
+    }
     function say(f, who, text) { const Q = F().feed; Q.push({ t: S.t, id: f.id, k: f.k, r: f.rk, who, st: f.st, text }); if (Q.length > 200) Q.splice(0, Q.length - 200); }
     function call(f, text, opts, auto) { f.call = { t: S.t, text, opts, auto: auto || AUTO }; say(f, f.callWho || 'dr', text); }
     function end(f, text, who) { if (text) say(f, who || 'dr', text); f.done = S.t; f.call = null; }
@@ -342,6 +357,9 @@
         const far = a && a.at != null ? (dir === 'N' ? Math.min(L.last(), a.at + 1) : Math.max(1, a.at)) : 1, km = far * 0.9;
         // out of ROD 10 min, there at 25 km/h, coupling 5 min, back at 15 km/h
         f.zones = (f.zones || []).concat([L.zone('power', 0, far)]); f.ph = 'badoni'; f.until = S.t + 600 + Math.round(km / 25 * 3600) + 300 + Math.round(km / 15 * 3600);
+        // the Badoni on the map: out of San Donato on the train's track, up to it (when nobody stands in between)
+        const w = L.badoniWay ? L.badoniWay(f.k) : null;
+        if (w && !w.blocked) { f.bd = { pid: w.pid, d: w.e0, to: w.x + w.s * (w.half + 3 + BD.half), home: w.e0, s: w.s, half: w.half, st: 'prep', t: S.t + BD.prep, last: S.t }; f.until = Infinity; }
         f.evacUntil = S.t + between(1200, 2700);
         say(f, 'pc', tx('soccorso.badoni.interruzione', { stazione: name(far) }));
         say(f, 'dr', tx('soccorso.badoni.evacuo'));
@@ -435,7 +453,8 @@
         }
         if (f.ph === 'rescue' && S.t >= f.until) end(f, tx('soccorso.riparte'), 'sys');
         if (f.ph === 'homeWait' && L.home(f.k, true)) f.ph = 'homing';
-        if (f.ph === 'badoni' && S.t >= f.until) { unLine(f); L.takeAway(f.k); end(f, tx('soccorso.badoni.portato_via'), 'sys'); continue; }
+        if (f.ph === 'badoni' && f.bd) { badoniStep(f); if (f.bd.st === 'home') { unLine(f); L.takeAway(f.k); f.bd = null; end(f, tx('soccorso.badoni.portato_via'), 'sys'); continue; } }
+        else if (f.ph === 'badoni' && S.t >= f.until) { unLine(f); L.takeAway(f.k); end(f, tx('soccorso.badoni.portato_via'), 'sys'); continue; }
         // the rescue by the train behind: it arrives, couples, pushes
         if (a.rescue && a.rescue.stage === 'coupling' && f.ph === 'coming') { f.ph = 'coupling'; say(f, 'drr', tx('soccorso.aggancio')); }
         if (a.rescue && a.rescue.stage === 'towed' && f.ph === 'coupling') { f.ph = 'towed'; say(f, 'drr', tx('soccorso.agganciato')); }

@@ -2256,6 +2256,27 @@
    "testi": [
     "San Donato – Comasina (tutta la linea)"
    ]
+  },
+  "soccorso.badoni.agganciato": {
+   "chi": "Badoni",
+   "quando": "Il Badoni ha agganciato il treno e lo porta a San Donato",
+   "testi": [
+    "DCT, qui Badoni: agganciato, porto il treno {T} a San Donato. Passo."
+   ]
+  },
+  "soccorso.badoni.aggancio": {
+   "chi": "Badoni",
+   "quando": "Il Badoni è arrivato al treno guasto e aggancia",
+   "testi": [
+    "DCT, qui Badoni: sono al treno {T}, aggancio. Passo."
+   ]
+  },
+  "soccorso.badoni.uscito": {
+   "chi": "Badoni",
+   "quando": "Il Badoni esce da San Donato verso il treno guasto, sul suo binario",
+   "testi": [
+    "DCT, qui Badoni: uscito da San Donato, vado verso il treno {T}. Passo."
+   ]
   }
  }
 }

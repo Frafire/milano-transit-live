@@ -70,6 +70,21 @@
    600,
    900,
    "Proposta Claude 02/11/2026: da verificare (Giovanni)"
+  ],
+  "Badoni: uscita da ROD (preparazione, fino a San Donato)": [
+   600,
+   600,
+   "Proposta (valore già nel codice), da verificare (Giovanni)"
+  ],
+  "Badoni: aggancio al treno guasto": [
+   300,
+   300,
+   "Proposta (come il soccorso con un treno), da verificare (Giovanni)"
+  ],
+  "Badoni: velocità con il treno al traino (km/h, non secondi)": [
+   15,
+   15,
+   "Proposta (valore già nel codice), da verificare (Giovanni)"
   ]
  },
  "semafori": {
