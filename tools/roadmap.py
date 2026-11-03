@@ -51,7 +51,7 @@ R = [
     ('1 M3 giocabile', 'Guasti', 'Guasti D1–D5: treno, linea, persone, soccorso, sciopero, Prefettura', 'Fatto', 'Entrambi', '26 righe del foglio Guasti'),
     ('1 M3 giocabile', 'Guasti', 'Riarmo: prima il macchinista da solo, poi il DCT', 'Fatto', 'Claude', ''),
     ('1 M3 giocabile', 'Guasti', 'Badoni visibile sulla mappa durante il soccorso', 'Prossimo', 'Claude', ''),
-    ('1 M3 giocabile', 'Comasina', 'Scambio del tronchetto di Comasina modificabile in gioco', 'Prossimo', 'Claude', ''),
+    ('1 M3 giocabile', 'Comasina', 'Scambio del tronchetto di Comasina modificabile in gioco', 'Fatto', 'Claude', 'Già nel gioco: radio del treno, sezione Tronchetto a Comasina (si sceglie il tronchetto finché il treno non ci è arrivato)'),
     ('1 M3 giocabile', 'Comasina', 'Arrivo diretto al binario 1 con cambio banco (radio)', 'Fatto', 'Claude', 'Come San Donato binario 2'),
     ('1 M3 giocabile', 'Flotta', 'Flotta reale, numero del treno = tabella, matricola nella scheda', 'Fatto', 'Entrambi', ''),
     ('1 M3 giocabile', 'Flotta', 'Hitachi "Galileo" 9201-9202 in prova, ammissione al servizio dall\'admin', 'Fatto', 'Claude', 'I prossimi: una riga in tools/fleet_m3.py'),
