@@ -34,15 +34,20 @@ def closest_on_edge(ei, px, py):
         acc += L
     return math.sqrt(best[0]), best[1], best[2], best[3]
 
+# how far a station's GTFS point may be from its track (PICK_MAX_M, 90 m for the M1), and how closely the track must
+# point towards the next station (PICK_DOT, cosine, 0.6 for the M1). The M2 needs less: at Garibaldi the line curves
+# and the next station (Gioia) is off to the side of the track
+PICK_MAX = float(os.environ.get('PICK_MAX_M', 90))
+PICK_DOT = float(os.environ.get('PICK_DOT', 0.6))
 def pick_track(lat, lon, v):
     """edge + direction on the right-hand track at a stop travelling along v."""
     px, py = xy(lat, lon); cands = []
     for ei, e in enumerate(edges):
         if not keep_edge[ei] or not MAIN(ei): continue
         d, along, tan, q = closest_on_edge(ei, px, py)
-        if d > 90: continue
+        if d > PICK_MAX: continue
         dot = tan[0] * v[0] + tan[1] * v[1]
-        if abs(dot) < 0.6: continue
+        if abs(dot) < PICK_DOT: continue
         cross = v[0] * (q[1] - py) - v[1] * (q[0] - px)   # >0 left of travel, <0 right
         cands.append((d, cross, ei, 1 if dot > 0 else -1, along))
     if not cands: return None

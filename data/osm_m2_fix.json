@@ -67,8 +67,20 @@
   "290998633": {
     "w": 199,
     "svc": "siding",
-    "name": "Garibaldi 3° binario (raccordo M2-M5)",
-    "note": "Garibaldi: terzo binario in stazione, per la sosta di materiale rotabile ATM o tronchetto per i treni guasti; in OSM è il raccordo M2-M5"
+    "name": "Raccordo M2-M5",
+    "tun": "T",
+    "split": {
+      "at": [
+        45.4837872,
+        9.1879396
+      ],
+      "rest": {
+        "svc": "siding",
+        "name": "Garibaldi 3° binario",
+        "tun": "T"
+      }
+    },
+    "note": "Garibaldi: dallo scambio con w201 verso la M5 è il raccordo M2-M5; dallo scambio alla fine (98 m) è il terzo binario in stazione: sosta di materiale rotabile ATM o tronchetto per i treni guasti. Il pezzo del tronchetto è il nuovo binario in fondo al file."
   },
   "136412209": {
     "w": 34,
@@ -179,5 +191,19 @@
     "w": 289,
     "tun": "",
     "note": "Cologno Nord: deposito non in galleria (in OSM galleria)"
+  },
+  "352776785": {
+    "w": 258,
+    "svc": "yard",
+    "note": "deposito (in OSM siding)"
+  },
+  "369294030": {
+    "w": 260,
+    "svc": "yard",
+    "note": "deposito (in OSM siding)"
+  },
+  "175727785": {
+    "w": 145,
+    "note": "da verificare (Giovanni chiede); per ora come in OSM"
   }
 }

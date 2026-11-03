@@ -63,6 +63,7 @@ for wid in sorted(keep):
     w = ways[wid]; t = w.get('tags', {})
     svc = t.get('service', '')
     name = t.get('name', '') if svc else 'Linea ' + line
+    if svc and name.startswith('Linea'): name = ''      # a depot or service track named after the line in OSM: not the line
     tun = 'T' if t.get('tunnel', 'no') not in ('no', '') else ''
     v, a, b = [], 0, 0
     for n in w['nodes']:

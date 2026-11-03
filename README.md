@@ -29,8 +29,10 @@ Needs Python 3.10+ (no extra packages), Node.js (for the engine test) and bash.
 
 ## M2 (in test, tappa 1)
 
-The menu opens the M2 marked "In test": the trains follow the weekday, Saturday or Sunday timetable along the GTFS
-shapes, with no tracks, depots or signals yet. Everything M2 is in its own files, so the M3 build does not change:
+The menu opens the M2 marked "In test": every run of the weekday, Saturday or Sunday timetable moves on the real
+tracks (as the M1, `tools/build_trips.py`), and the track editor works on the M2 tracks (Admin → Track editor: mark
+use and direction, place signals, draw missing tracks, export). No depots, turns or signals in the running yet.
+Everything M2 is in its own files, so the M3 build does not change:
 
 - `data/gtfs_m2/`: the M2 extract of the same ATM/AMAT feed as `data/gtfs_m3/` (version 423).
 - `tools/turni_m2.py` links the runs into trains (turni): a run arriving at a terminus takes the next run leaving
@@ -41,7 +43,7 @@ shapes, with no tracks, depots or signals yet. Everything M2 is in its own files
 - `tools/assemble_m2.py`: the M2 data files `docs/dati/m2_1.js`, `m2_6.js`, `m2_7.js`, called by `tools/assemble.py`.
 - `data/osm_m2.txt`: the M2 tracks from OpenStreetMap (Overpass export of 3 Nov 2026, 401 ways: line, the four
   branches, Cascina Gobba, the depots of Gorgonzola, Cologno Nord and Famagosta, the links to M1, M3 and M5), made
-  by `tools/osm_to_txt.py` (the query is in that file). Not used by the build yet: being checked by Giovanni.
+  by `tools/osm_to_txt.py` (the query is in that file), checked by Giovanni.
 - `data/osm_m2_fix.json`: Giovanni's corrections to the OSM tracks (kind of track, tunnel / surface / covered
   station), by OSM way id, so a new export keeps them. `tools/osm_to_txt.py` applies them after every conversion;
   `python3 tools/osm_fix.py data/osm_m2.txt data/osm_m2_fix.json` applies them to the file as it is.

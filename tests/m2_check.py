@@ -1,4 +1,4 @@
-"""M2, tappa 1 (timetable and turni, no tracks yet). Run from an M2 build folder (build_m2/<day>).
+"""M2, tappa 1 (timetable, turni, runs on the real tracks). Run from an M2 build folder (build_m2/<day>).
 - every M2 run of the day is in exactly one turno
 - a link turns at the same terminus, within the limits of data/operations_m2.json
 - a turno's runs follow one another in time
@@ -15,4 +15,10 @@ links = [(a, b) for t in T['turni'] for a, b in zip(t['runs'], t['runs'][1:])]
 check(all(R[a]['to'] == R[b]['from'] for a, b in links), 'M2 %s: every link turns at the terminus where the run ends (%d links)' % (T['day'], len(links)))
 check(all(lo <= R[b]['dep'] - R[a]['arr'] < hi for a, b in links), 'M2 %s: every link within %d-%d min' % (T['day'], T['link_min_min'], T['link_max_min']))
 check(all(R[i]['dep'] <= R[i]['arr'] for i in range(len(R))), 'M2 %s: no run arrives before it leaves' % T['day'])
+import os
+if os.path.exists('m2.json'):
+    F = json.load(open('m2.json'))
+    check(len(F['trains']) == len(R), 'M2 %s: every run on the real tracks (%d of %d)' % (T['day'], len(F['trains']), len(R)))
+    P = F['paths']; drawn = {t['w'] for t in F['tracks']}
+    check(len(drawn) == len(F['tracks']), 'M2 %s: %d tracks drawn for the editor, each once' % (T['day'], len(F['tracks'])))
 sys.exit(1 if bad else 0)
