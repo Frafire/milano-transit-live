@@ -553,7 +553,7 @@ const SCENARIOS = {
   const which = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(SCENARIOS);
   const b = await chromium.launch(); let fail = 0;
   for (const name of which) {
-    const p = await b.newPage(), errs = []; p.on('pageerror', e => errs.push(e.message));
+    const p = await b.newPage(), errs = []; p.on('pageerror', e => errs.push(process.env.STACK ? e.stack : e.message));
     await p.goto(PAGE); await p.waitForTimeout(6000);
     const r = await SCENARIOS[name](p); if (errs.length) { r.ok = false; r.errors = errs.slice(0, 3); }
     console.log(`page ${name}: ${r.ok ? 'ok' : 'FAILED'}`, JSON.stringify(r)); if (!r.ok) fail++;

@@ -7310,7 +7310,8 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     return seg => {
       let st = null;
       if (seg[6] && seg[6].st) st = seg[6].st;
-      else if (seg[1] === 'service' && seg[2] >= 0) { st = trips[seg[2]].st.filter(x => x >= 0).map(x => idx[D.stops[x][0]]); if (st.some(x => x == null)) return []; }
+      else if (seg[1] === 'service' && seg[2] >= 0) { if (!trips[seg[2]]) return [];      // (a run of another kind of day, while the day changes)
+        st = trips[seg[2]].st.filter(x => x >= 0).map(x => idx[D.stops[x][0]]); if (st.some(x => x == null)) return []; }
       else return [];
       const ds = seg[4], pts = [];
       for (let i = 0; i < ds.length; i++) if (i === 0 || ds[i] !== ds[i - 1]) pts.push({ d: ds[i], j: i });
