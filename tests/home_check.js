@@ -1,6 +1,7 @@
 // The menu (docs/index.html) in a headless browser:
 // - Gioca! opens the choice of the vehicle, Metro opens the choice of the line
-// - what data/linee.json says is "in arrivo" is shown grey and does not open anything; what is "giocabile" does
+// - what data/linee.json says is "in arrivo" is shown grey and does not open anything; what is "giocabile" or
+//   "in test" (a line being built, opened to try it) does
 // - choosing a line opens gioca.html?linee=<line>, which loads only that line's data file (dati/<line>_<day>.js)
 // - gioca.html without lines that can be played says so and does not load any data
 // Needs Playwright with Chromium. Usage: node tests/home_check.js. Exit code 1 if one fails.
@@ -10,7 +11,8 @@ const fs = require('fs');
 const DOCS = process.env.DOCS || path.resolve(__dirname, '../docs');
 const HOME = 'file://' + path.join(DOCS, 'index.html');
 const LINEE = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../data/linee.json'), 'utf8'));
-const playable = ['M1', 'M2', 'M3', 'M4', 'M5'].filter(l => LINEE[l] === 'giocabile');
+const OPEN = v => v === 'giocabile' || v === 'in test';
+const playable = ['M1', 'M2', 'M3', 'M4', 'M5'].filter(l => OPEN(LINEE[l]));
 
 (async () => {
   const b = await chromium.launch(); let bad = 0;
@@ -31,8 +33,8 @@ const playable = ['M1', 'M2', 'M3', 'M4', 'M5'].filter(l => LINEE[l] === 'giocab
   await p.click('#mezzo [data-k="metro"]');
   check(await shown(p, '#metro'), 'Metro opens the choice of the line');
   for (const k of ['M1', 'M2', 'M3', 'M4,M5', 'M1+M2+M3', 'metro-tutte']) {
-    const yes = k.split(',').some(x => LINEE[x] === 'giocabile');
-    check((await p.getAttribute(`#metro [data-k="${k}"]`, 'aria-disabled')) === (yes ? null : 'true'), `${k}: ${yes ? 'giocabile' : 'in arrivo'}`);
+    const yes = k.split(',').some(x => OPEN(LINEE[x]));
+    check((await p.getAttribute(`#metro [data-k="${k}"]`, 'aria-disabled')) === (yes ? null : 'true'), `${k}: ${yes ? k.split(',').map(x => LINEE[x]).find(OPEN) : 'in arrivo'}`);
   }
   for (const v of ['avvio', 'mezzo', 'metro']) {      // nothing wider than a phone
     const q = await b.newPage({ viewport: { width: 400, height: 860 } }); await q.goto(HOME + '#' + v);
@@ -49,7 +51,8 @@ const playable = ['M1', 'M2', 'M3', 'M4', 'M5'].filter(l => LINEE[l] === 'giocab
     const url = g.url(), fleets = await g.evaluate(() => window.mtl.fleets.map(f => f.line));
     check(url.endsWith('gioca.html?linee=' + line), `${line}: opens ${url.split('/').pop()}`);
     check(asked.length === 1 && asked[0].startsWith(line.toLowerCase() + '_'), `${line}: only its data file is loaded (${asked.join(', ')})`);
-    check(fleets.length && fleets.every(f => f === line), `${line}: the game has only ${line} trains (${[...new Set(fleets)].join(', ')})`);
+    // a line in test may have no fleet yet (only its timetable): then it must not show another line's trains
+    check((fleets.length || LINEE[line] === 'in test') && fleets.every(f => f === line), `${line}: the game has only ${line} trains (${[...new Set(fleets)].join(', ') || 'timetable only'})`);
     await g.close();
   }
   // a line that cannot be played

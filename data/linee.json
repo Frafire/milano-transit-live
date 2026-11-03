@@ -1,7 +1,7 @@
 {
-  "_nota": "Cosa si può giocare dal menu (docs/index.html). Valori: \"giocabile\" o \"in arrivo\" (grigio, non cliccabile). Una linea giocabile deve avere i suoi dati (dati/<linea>_1.js), altrimenti la build si ferma. Dopo una modifica: ./build.sh",
+  "_nota": "Cosa si può giocare dal menu (docs/index.html). Valori: \"giocabile\", \"in test\" (si apre per provarla mentre si costruisce) o \"in arrivo\" (grigio, non cliccabile). Una linea giocabile deve avere i suoi dati (dati/<linea>_1.js), altrimenti la build si ferma. Dopo una modifica: ./build.sh",
   "M1": "in arrivo",
-  "M2": "in arrivo",
+  "M2": "in test",
   "M3": "giocabile",
   "M4": "in arrivo",
   "M5": "in arrivo",
