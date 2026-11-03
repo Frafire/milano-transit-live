@@ -21,6 +21,7 @@
 //   so; it closes after its last departure and says so
 // - osnome: the OS introduces himself as "Operatore di stazione" or "OS" (both, the Radio sheet's weights), the same on a new
 //   page (seeded random numbers)
+// - schermi: every change of the platform screens ordered by the DCT, the OS answers "Ricevuto, eseguo"
 // - rossototale: Rosso totale: every train on the line stops (stations too); taken away from the alarms, they go again
 // - settimana: seven changes of day in a row; every tabella has a train; depot trains start from their places; maintenance
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
@@ -358,6 +359,17 @@ const SCENARIOS = {
     const a = await run(p), q = await p.context().browser().newPage(); await q.goto(p.url()); await q.waitForTimeout(6000); const b = await run(q); await q.close();
     const full = a.filter(x => x.startsWith('Operatore')).length, os = a.filter(x => x.startsWith('OS ')).length;
     return { ok: a.length >= 12 && full >= 2 && os >= 2 && JSON.stringify(a) === JSON.stringify(b), n: a.length, full, os, same: JSON.stringify(a) === JSON.stringify(b) };
+  },
+  async schermi(p) {   // the DCT changes the platform screens of a station (twice, then back to normal): the OS answers each time
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), X = F.engine.G.names.findIndex(n => /CORVETTO/.test(n));
+      st.playing = false; st.t = 10 * 3600; await sleep(2500); M.openStationRadio(F, X); await sleep(300);
+      const n0 = document.getElementById('radioLog').innerText.split('\n').length;
+      for (const k of ['SERVIZIO LIMITATO', 'TRATTA INTERROTTA', '']) { document.querySelector(`[data-scr="${k}"]`).click(); await sleep(1800); }
+      const L = document.getElementById('radioLog').innerText.split('\n').slice(n0 - 1), acks = L.filter(l => /Corvetto: Ricevuto, eseguo/.test(l)).length;
+      return { ok: acks === 3 && !(F.ag.S.stn[X] || {}).msg, acks, log: L.slice(-4) };
+    });
   },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again
     return p.evaluate(async () => {

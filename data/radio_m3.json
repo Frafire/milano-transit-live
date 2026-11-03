@@ -2310,6 +2310,13 @@
     50.0,
     50.0
    ]
+  },
+  "stazione.schermi.risposta": {
+   "chi": "stazione",
+   "quando": "L'OS risponde a ogni cambio degli schermi di banchina ordinato dal DCT",
+   "testi": [
+    "Ricevuto, eseguo. Passo."
+   ]
   }
  }
 }

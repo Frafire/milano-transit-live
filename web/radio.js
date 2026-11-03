@@ -205,7 +205,8 @@
       });
       radioCmds.querySelectorAll('[data-scr]').forEach(b => b.onclick = () => {
         const k = b.dataset.scr; F.ag.event({ kind: 'station', st: X, what: 'msg', text: k || null });
-        say('DCT', k ? tx('stazione.schermi.messaggio', { stazione: name, messaggio: k }) : tx('stazione.schermi.normali', { stazione: name }), 'pc'); radioCmdHtml = ''; drawRadioCmds();
+        say('DCT', k ? tx('stazione.schermi.messaggio', { stazione: name, messaggio: k }) : tx('stazione.schermi.normali', { stazione: name }), 'pc');
+        stationSays(tx('stazione.schermi.risposta'), 1200); radioCmdHtml = ''; drawRadioCmds();       // (the OS: every change of the screens, Giovanni 3 Nov 2026)
       });
       radioCmds.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => {
         const k = b.dataset.chk; say('DCT', tx('stazione.verifica.ordine', { stazione: name, cosa: k.toLowerCase() }), 'pc');
