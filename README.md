@@ -41,7 +41,10 @@ shapes, with no tracks, depots or signals yet. Everything M2 is in its own files
 - `tools/assemble_m2.py`: the M2 data files `docs/dati/m2_1.js`, `m2_6.js`, `m2_7.js`, called by `tools/assemble.py`.
 - `data/osm_m2.txt`: the M2 tracks from OpenStreetMap (Overpass export of 3 Nov 2026, 401 ways: line, the four
   branches, Cascina Gobba, the depots of Gorgonzola, Cologno Nord and Famagosta, the links to M1, M3 and M5), made
-  by `tools/osm_to_txt.py` (the query is in that file). Not used by the build yet: to be checked by Giovanni.
+  by `tools/osm_to_txt.py` (the query is in that file). Not used by the build yet: being checked by Giovanni.
+- `data/osm_m2_fix.json`: Giovanni's corrections to the OSM tracks (kind of track, tunnel / surface / covered
+  station), by OSM way id, so a new export keeps them. `tools/osm_to_txt.py` applies them after every conversion;
+  `python3 tools/osm_fix.py data/osm_m2.txt data/osm_m2_fix.json` applies them to the file as it is.
 
 ## Layout
 

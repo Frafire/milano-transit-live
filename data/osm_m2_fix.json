@@ -1,0 +1,15 @@
+{
+  "_nota": "Correzioni di Giovanni ai binari M2 presi da OpenStreetMap, per id OSM della way (il numero w dell'editor è solo un promemoria: può cambiare con un nuovo export). svc: '' linea, yard deposito, siding tronchetto/binario di servizio, crossover comunicazione. tun: T galleria, '' superficie, C superficie sotto una stazione coperta (fa vedere quanto è lunga la banchina). Applicate da tools/osm_to_txt.py dopo ogni export e da tools/osm_fix.py data/osm_m2.txt data/osm_m2_fix.json",
+  "284197953": {"w": 182, "svc": "siding", "note": "Gessate: tronchetto (in OSM yard)"},
+  "284202716": {"w": 186, "svc": "siding", "note": "Gessate: tronchetto (in OSM yard)"},
+  "284197891": {"w": 180, "svc": "crossover", "note": "Gessate: comunicazione dei tronchetti, per l'instradamento del treno (in OSM yard)"},
+  "284197892": {"w": 181, "svc": "crossover", "note": "Gessate: comunicazione dei tronchetti, per l'instradamento del treno (in OSM yard)"},
+  "1078172371": {"w": 351, "tun": "C", "note": "Gessate: superficie, fermata completamente coperta (in OSM galleria)"},
+  "1078172374": {"w": 354, "tun": "C", "note": "Gessate: superficie, fermata completamente coperta (in OSM galleria)"},
+  "284202713": {"w": 183, "tun": "C", "note": "Cascina Antonietta: superficie, fermata coperta (in OSM galleria)"},
+  "1077979336": {"w": 346, "tun": "C", "note": "Cascina Antonietta: superficie, fermata coperta (in OSM galleria)"},
+  "140399006": {"w": 105, "tun": "", "note": "Cernusco sul Naviglio: piccola galleria, per i segnali superficie"},
+  "140399016": {"w": 107, "tun": "", "note": "Cernusco sul Naviglio: piccola galleria, per i segnali superficie"},
+  "1076597681": {"w": 337, "tun": "", "note": "Cernusco sul Naviglio: piccola galleria, per i segnali superficie"},
+  "1076597680": {"w": 336, "tun": "", "note": "Cernusco sul Naviglio: piccola galleria, per i segnali superficie"}
+}

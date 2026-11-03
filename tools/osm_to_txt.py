@@ -15,7 +15,8 @@ Which tracks are kept: the ways of the line's route relations (ref, e.g. 2), and
 sidings, crossovers, tails), but not the ways of another line's route relations: a link track to another line is
 kept, that line is not. Nothing is made up: every point is an OSM node.
 
-Output, one way per line: service|name|T if in a tunnel|OSM way id#lat,lon,node deltas x1e6 (see osmparse.py).
+Output, one way per line: service|name|T if in a tunnel (C: covered station, surface)|OSM way id#lat,lon,node deltas
+x1e6 (see osmparse.py).
 service is OSM's service tag (yard, siding, crossover, spur...) or empty for the running line; the running line is
 named "Linea <line>". node is 0 for a plain point, else a number shared by every way through that point (ends and
 junctions). Ways are sorted by OSM id, so the order (and the way numbers the track editor uses) stays the same when
@@ -68,7 +69,17 @@ for wid in sorted(keep):
         la, lo = round(nodes[n][0] * 1e6), round(nodes[n][1] * 1e6)
         v += [la - a, lo - b, num.get(n, 0)]; a, b = la, lo
     out.append('%s|%s|%s|%d#%s' % (svc, name.replace('|', ' ').replace('#', ' '), tun, wid, ','.join(map(str, v))))
-    kinds[(svc or 'linea') + (' galleria' if tun else ' superficie')] += 1
+# Giovanni's corrections (data/osm_<line>_fix.json, by OSM way id): see tools/osm_fix.py
+import os
+fx = os.path.join(os.path.dirname(os.path.abspath(dst)), 'osm_%s_fix.json' % line.lower())
+if os.path.exists(fx):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import osm_fix
+    out, done, missing = osm_fix.apply(out, osm_fix.load_fixes(fx))
+    print('corrections from %s: %d applied%s' % (fx, len(done), ('; not in the export (OSM changed?): ' + ', '.join(missing)) if missing else ''))
 open(dst, 'w').write('\n'.join(out) + '\n')
+for ln in out:
+    svc, _, tun, _ = ln.split('#')[0].split('|')
+    kinds[(svc or 'linea') + {'T': ' galleria', 'C': ' coperta'}.get(tun, ' superficie')] += 1
 print('%s: %d ways (%s), %d junction/end nodes, %d ways of other lines left out' % (
     dst, len(out), ', '.join('%s %d' % kv for kv in sorted(kinds.items())), len(num), len(other & set(ways))))
