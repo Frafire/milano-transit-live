@@ -63,5 +63,121 @@
   "175727746": {
     "w": 135,
     "note": "Gorgonzola: binario di deposito in galleria, passa sotto la linea (w345): nessuno scambio, giusto così (confermato da Giovanni)"
+  },
+  "290998633": {
+    "w": 199,
+    "svc": "siding",
+    "name": "Garibaldi 3° binario (raccordo M2-M5)",
+    "note": "Garibaldi: terzo binario in stazione, per la sosta di materiale rotabile ATM o tronchetto per i treni guasti; in OSM è il raccordo M2-M5"
+  },
+  "136412209": {
+    "w": 34,
+    "svc": "siding",
+    "note": "Cascina Gobba: tronchetto (in OSM yard)"
+  },
+  "136411568": {
+    "w": 33,
+    "svc": "siding",
+    "note": "Cascina Gobba (corto): tronchetto (in OSM yard)"
+  },
+  "173303519": {
+    "w": 114,
+    "svc": "siding",
+    "note": "Assago Milanofiori Forum: tronchetto (in OSM yard)"
+  },
+  "136632643": {
+    "w": 83,
+    "svc": "siding",
+    "note": "Assago Milanofiori Forum: tronchetto (in OSM yard)"
+  },
+  "173303517": {
+    "w": 112,
+    "svc": "siding",
+    "note": "Assago Milanofiori Forum: tronchetto (in OSM yard)"
+  },
+  "299469068": {
+    "w": 236,
+    "svc": "siding",
+    "note": "Assago Milanofiori Forum: tronchetto (in OSM yard)"
+  },
+  "173303518": {
+    "w": 113,
+    "svc": "siding",
+    "note": "Assago Milanofiori Forum: tronchetto (in OSM yard)"
+  },
+  "1081802452": {
+    "w": 391,
+    "svc": "siding",
+    "note": "Abbiategrasso: tronchetto (in OSM yard)"
+  },
+  "291374360": {
+    "w": 216,
+    "svc": "siding",
+    "note": "Abbiategrasso: tronchetto (in OSM yard)"
+  },
+  "299298517": {
+    "w": 228,
+    "svc": "siding",
+    "note": "Abbiategrasso: tronchetto (in OSM yard)"
+  },
+  "291530727": {
+    "w": 225,
+    "svc": "siding",
+    "note": "Abbiategrasso: tronchetto (in OSM yard)"
+  },
+  "291530724": {
+    "w": 224,
+    "svc": "siding",
+    "note": "Abbiategrasso: tronchetto (in OSM yard)"
+  },
+  "291530722": {
+    "w": 223,
+    "svc": "siding",
+    "note": "Abbiategrasso: tronchetto (in OSM yard)"
+  },
+  "291358097": {
+    "w": 210,
+    "svc": "siding",
+    "note": "Romolo: tronchetto (in OSM yard)"
+  },
+  "291358080": {
+    "w": 208,
+    "svc": "siding",
+    "note": "Romolo: tronchetto (in OSM yard)"
+  },
+  "1079488561": {
+    "w": 376,
+    "tun": "",
+    "note": "Assago Milanofiori Forum: stazione in superficie (in OSM galleria)"
+  },
+  "1079488562": {
+    "w": 377,
+    "tun": "",
+    "note": "Assago Milanofiori Forum: stazione in superficie (in OSM galleria)"
+  },
+  "196319102": {
+    "w": 161,
+    "tun": "",
+    "note": "Assago Milanofiori Nord: stazione in superficie (in OSM galleria)"
+  },
+  "192227098": {
+    "w": 158,
+    "tun": "",
+    "note": "Assago Milanofiori Nord: stazione in superficie (in OSM galleria)"
+  },
+  "136625920": {
+    "w": 63,
+    "tun": "",
+    "note": "Cologno Sud: stazione in superficie (in OSM galleria)"
+  },
+  "136625921": {
+    "w": 64,
+    "tun": "",
+    "note": "Cologno Sud: stazione in superficie (in OSM galleria)"
+  },
+  "860710157": {
+    "w": 289,
+    "tun": "",
+    "note": "Cologno Nord: deposito non in galleria (in OSM galleria)"
   }
 }
