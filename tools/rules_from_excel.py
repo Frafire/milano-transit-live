@@ -65,6 +65,13 @@ if 'Radio' in wb.sheetnames:
         testi = [r.get(h) for h in ('Testo', 'Variante 2', 'Variante 3', 'Variante 4', 'Variante 5')]
         testi = [str(x) for x in testi if x not in (None, '')]
         if testi: frasi[c] = {'chi': r.get('Chi parla'), 'quando': r.get('Quando si dice'), 'testi': testi}
+        # (Pesi (%): how often each variant comes out, in the order of the variants, e.g. "50, 50"; empty: all the same)
+        pw = r.get('Pesi (%)')
+        if testi and pw not in (None, ''):
+            try:
+                pesi = [float(x) for x in str(pw).replace(';', ',').split(',') if x.strip()]
+                if len(pesi) == len(testi) and sum(pesi) > 0: frasi[c]['pesi'] = pesi
+            except ValueError: pass
     RADIO = os.path.join(os.path.dirname(OUT), 'radio_m3.json')
     json.dump({'_about': 'Le frasi della radio, dal foglio Radio di data/Regole_interlocking_M3.xlsx (tools/rules_from_excel.py). Non modificare a mano: si cambia il foglio e si rilancia lo script. {T} e {R}: i numeri del treno e del treno di soccorso.', 'frasi': frasi},
               open(RADIO, 'w'), ensure_ascii=False, indent=1)

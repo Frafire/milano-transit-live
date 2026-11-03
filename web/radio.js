@@ -4,7 +4,7 @@
 //   const R = MTLRadio.create(env); R.say(...), R.openRadio(F, tr), R.radioTick(), R.dcoTick(), R.closingTick() ...
 (function (root) {
   function create(env) {
-    const { tx, D, trips, state, fmt, osOpen, osHours, showRoute, P2WAY, trackAt, realTrain, trainState, trainOnPlatform, relive, reliveFleet, setPlat, orderP2, closureNow, depotAssign, depotName, depotTaken, pastEntrance, loopRole, m3eng, sigNo } = env;
+    const { tx, D, trips, state, fmt, osOpen, osHours, rand, showRoute, P2WAY, trackAt, realTrain, trainState, trainOnPlatform, relive, reliveFleet, setPlat, orderP2, closureNow, depotAssign, depotName, depotTaken, pastEntrance, loopRole, m3eng, sigNo } = env;
     // ================= RADIO TERRA-TRENO (M3) =================
     // The player is the Dirigente Centrale del Traffico (DCT). Orders: a longer stop at the next station, the departure platform at
     // San Donato, platform 2 and reversal there coming from Rogoredo. The driver answers in Italian.
@@ -147,14 +147,14 @@
     }
     function stationSays(text, delayMs = 1800) {
       const who = radioStation; radioTx.classList.add('on');
-      setTimeout(() => { radioTx.classList.remove('on'); say('Staz. ' + who.name, text, 'dr'); radioCmdHtml = ''; drawRadioCmds(); }, delayMs);
+      setTimeout(() => { radioTx.classList.remove('on'); say(osName(who.F, who.X), text, 'dr'); radioCmdHtml = ''; drawRadioCmds(); }, delayMs);
     }
     // how full the station is: for now made up (peak hours, the big stations, a closure, the trains late)
     function crowd(F, X) {
       const h = ((state.t / 3600) % 24), peak = (h >= 7.25 && h <= 9.5) || (h >= 17 && h <= 19.5) ? 1.3 : h >= 6.5 && h <= 21 ? 0.6 : 0.2;
       const G = F.engine.G, big = BIG.test(G.names[X]) ? 0.6 : 0, cl = F.ag.S.cl ? 0.7 : 0;
       const late = F.ag.agents().filter(a => !a.hidden && a.late != null && a.late > 180).length * 0.08;
-      return Math.max(0, Math.min(3, Math.round(peak + big + cl + late + (Math.random() - 0.5))));
+      return Math.max(0, Math.min(3, Math.round(peak + big + cl + late + (rand() - 0.5))));
     }
     const CROWD = ['pezzo.banchina.quasi_vuota', 'pezzo.banchina.poca_gente', 'pezzo.banchina.affollata', 'pezzo.banchina.molto_affollata'];
     const crowdTxt = c => { const s = tx(CROWD[c]); return s.charAt(0).toUpperCase() + s.slice(1); };
@@ -170,7 +170,9 @@
       'Situazione in banchina': null };
     function trainsHere(F, X) { return F.ag.agents().filter(a => !a.hidden && a.v === 0 && (a.stopAt === X || (a.status === 'stopped' && a.at === X))); }
     // the OS calls the DCT (the opening and closing of the station): no answer expected
-    function osCall(F, X, text) { say('Staz. ' + cap(F.engine.G.names[X]), text, 'call'); }
+    function osCall(F, X, text) { say(osName(F, X), text, 'call'); }
+    // how the OS introduces himself: "Operatore di stazione" or "OS", then the station (Radio sheet: the variants and their weights)
+    function osName(F, X) { return tx('stazione.os.chi', { stazione: cap(F.engine.G.names[X] || '').replace(/\s+M\d$/i, '') }); }
     const stClosed = (F, X) => osOpen && !osOpen(F, X);
     function stationCmds() {
       const { F, X } = radioStation, G = F.engine.G, st = F.ag.S.stn[X] || {}, here = trainsHere(F, X), tn = a => trainNo(F, F.trains[a.k]);
@@ -207,16 +209,16 @@
       });
       radioCmds.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => {
         const k = b.dataset.chk; say('DCT', tx('stazione.verifica.ordine', { stazione: name, cosa: k.toLowerCase() }), 'pc');
-        const ans = CHECK[k] ? tx(Math.random() < 0.8 ? CHECK[k][0] : CHECK[k][1]) : tx('stazione.verifica.banchina', { folla: crowdTxt(crowd(F, X)) });
+        const ans = CHECK[k] ? tx(rand() < 0.8 ? CHECK[k][0] : CHECK[k][1]) : tx('stazione.verifica.banchina', { folla: crowdTxt(crowd(F, X)) });
         stationSays(tx('stazione.verifica.vado'), 1200);
-        stPending.push({ F, X, kind: 'check', at: state.t + 60 + Math.random() * 90, text: ans });
+        stPending.push({ F, X, kind: 'check', at: state.t + 60 + rand() * 90, text: ans });
       });
       radioCmds.querySelectorAll('[data-ass]').forEach(b => b.onclick = () => {
         const k = +b.dataset.ass, no = trainNo(F, F.trains[k]);
         say('DCT', tx('stazione.assistenza.ordine', { stazione: name, treno: no }), 'pc');
         F.ag.event({ kind: 'order', k, what: 'hold' });
         stationSays(tx('stazione.assistenza.risposta', { treno: no }), 1200);
-        stPending.push({ F, X, k, kind: 'assist', at: state.t + 120 + Math.random() * 240, text: tx('stazione.assistenza.esito', { treno: no }) });
+        stPending.push({ F, X, k, kind: 'assist', at: state.t + 120 + rand() * 240, text: tx('stazione.assistenza.esito', { treno: no }) });
         radioCmdHtml = ''; drawRadioCmds();
       });
       radioCmds.querySelectorAll('[data-rel]').forEach(b => b.onclick = () => {
@@ -232,7 +234,7 @@
     // the answers that take time (the agent goes to see, gets on the train), in game time
     function stationTick() {
       for (let i = stPending.length - 1; i >= 0; i--) { const p = stPending[i]; if (state.t < p.at) continue;
-        stPending.splice(i, 1); say('Staz. ' + cap(p.F.engine.G.names[p.X]), p.text, 'call');
+        stPending.splice(i, 1); say(osName(p.F, p.X), p.text, 'call');
         if (radioEl.hidden) { radioEl.hidden = false; drawRadioLog(); } radioCmdHtml = ''; }
     }
     // the radio commands in folding sections (they stay open or closed as the player left them)
@@ -639,7 +641,7 @@
     }
 
 
-    return { say, cap, trainNo, openRadio, openStationRadio, osCall, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
+    return { say, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
              radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain };
   }
   const api = { create };

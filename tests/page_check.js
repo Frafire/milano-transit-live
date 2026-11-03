@@ -19,6 +19,8 @@
 // - totale: Chiusura totale: the DCT calls all the trains, they stop at a station and wait; reopened, they go again
 // - orari: the hours of a station (OS): closed at night, any order gives ERRORE; it opens before its first train and says
 //   so; it closes after its last departure and says so
+// - osnome: the OS introduces himself as "Operatore di stazione" or "OS" (both, the Radio sheet's weights), the same on a new
+//   page (seeded random numbers)
 // - rossototale: Rosso totale: every train on the line stops (stations too); taken away from the alarms, they go again
 // - settimana: seven changes of day in a row; every tabella has a train; depot trains start from their places; maintenance
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
@@ -226,7 +228,7 @@ const SCENARIOS = {
       st.playing = false; await sleep(200);
       M.renderCard(); await sleep(200);
       const scr = [...document.querySelectorAll('#card img.scr')].map(i => i.alt).join(' | '), log = document.getElementById('radioLog').innerText;
-      return { ok: /Staz\. Corvetto/.test(log) && stopped.size <= stopsBefore && /STAZIONE CHIUSA/.test(scr), stopsBefore, stoppedAfter: stopped.size, scr, log: log.split('\n').slice(-4) };
+      return { ok: /(Operatore di stazione|OS) Corvetto/.test(log) && stopped.size <= stopsBefore && /STAZIONE CHIUSA/.test(scr), stopsBefore, stoppedAfter: stopped.size, scr, log: log.split('\n').slice(-4) };
     });
   },
   async segnale(p) {   // the PC on a signal: #A13 held at red, its card says so and the map shows it red
@@ -332,17 +334,30 @@ const SCENARIOS = {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
       const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), X = F.engine.G.names.findIndex(n => /CORVETTO/.test(n)), H = M.osHours(F)[X];
       const log = () => document.getElementById('radioLog').innerText, ask = async () => { const n0 = log().split('\n').length; document.querySelector('[data-st="sit"]').click(); await sleep(2500);
-        const L = log().split('\n').slice(n0 - 1); return { err: L.some(x => /ERRORE: stazione chiusa/.test(x)), ans: L.some(x => /Staz\. Corvetto: (?!DCT)/.test(x)) }; };
+        const L = log().split('\n').slice(n0 - 1); return { err: L.some(x => /ERRORE: stazione chiusa/.test(x)), ans: L.some(x => /(Operatore di stazione|OS) Corvetto: (?!DCT)/.test(x)) }; };
       st.playing = false; st.t = H.open - 1800; await sleep(2500); M.openStationRadio(F, X); await sleep(400);
       const opened0 = M.osOpen(F, X), l0 = await ask(), err0 = l0.err && !l0.ans;
       st.t = H.open - 40; await sleep(2500); st.playing = true; st.speed = 10; await sleep(7000); st.playing = false; await sleep(300);
-      const saidOpen = /Corvetto: DCT, stazione aperta/.test(log()), l1 = await ask(), ans1 = l1.ans && !l1.err;
+      const saidOpen = /(Operatore di stazione|OS) Corvetto: DCT, stazione aperta/.test(log()), l1 = await ask(), ans1 = l1.ans && !l1.err;
       st.t = H.last + 30; await sleep(3000); st.playing = true; st.speed = 60; const t0 = Date.now();
-      while (Date.now() - t0 < 40000 && !/Corvetto: DCT, stazione chiusa alle/.test(log())) await sleep(300);
+      while (Date.now() - t0 < 40000 && !/(Operatore di stazione|OS) Corvetto: DCT, stazione chiusa alle/.test(log())) await sleep(300);
       st.playing = false; await sleep(300);
-      const saidClose = /Corvetto: DCT, stazione chiusa alle/.test(log()), l2 = await ask(), err2 = l2.err && !l2.ans;
+      const saidClose = /(Operatore di stazione|OS) Corvetto: DCT, stazione chiusa alle/.test(log()), l2 = await ask(), err2 = l2.err && !l2.ans;
       return { ok: !opened0 && err0 && saidOpen && ans1 && saidClose && err2, open: H.open, first: H.first, last: H.last, opened0, err0, saidOpen, ans1, saidClose, err2, tail: log().split('\n').slice(-3) };
     });
+  },
+  async osnome(p) {    // how the OS introduces himself (Giovanni 3 Nov 2026): both ways, and the same again on a new page (seeded)
+    const run = async q => q.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), X = F.engine.G.names.findIndex(n => /CORVETTO/.test(n));
+      st.playing = false; st.t = 10 * 3600; await sleep(2500); M.openStationRadio(F, X); await sleep(300);
+      for (let i = 0; i < 12; i++) { document.querySelector('[data-st="sit"]').click(); await sleep(150); }
+      await sleep(2500);
+      return document.getElementById('radioLog').innerText.split('\n').map(l => (l.match(/^\d\d:\d\d:\d\d(Operatore di stazione Corvetto|OS Corvetto):/) || [])[1]).filter(Boolean);
+    });
+    const a = await run(p), q = await p.context().browser().newPage(); await q.goto(p.url()); await q.waitForTimeout(6000); const b = await run(q); await q.close();
+    const full = a.filter(x => x.startsWith('Operatore')).length, os = a.filter(x => x.startsWith('OS ')).length;
+    return { ok: a.length >= 12 && full >= 2 && os >= 2 && JSON.stringify(a) === JSON.stringify(b), n: a.length, full, os, same: JSON.stringify(a) === JSON.stringify(b) };
   },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again
     return p.evaluate(async () => {

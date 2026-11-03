@@ -667,7 +667,11 @@ window.MTL_PACKS = __PACKS__;
   const M3LOGO = '__M3LOGO__';
   // the radio phrases (web/frasi.js, data/radio_m3.json in the network of the M3): tx('code', { values })
   let FRASI = null;
-  const tx = (code, v) => (FRASI || (FRASI = MTLFrasi.create(((fleets.find(f => f.line === 'M3' && f.engine) || {}).engine || { net: {} }).net.radio || {}))).t(code, v);
+  // seeded random numbers for the radio and the stations (mulberry32, like the failures): the same orders on the same day give
+  // the same answers (the tests are repeatable); the seed: the day of the week, again with each new set of phrases
+  let PR_S = 20261103;
+  const prand = () => { let t = (PR_S = (PR_S + 0x6D2B79F5) | 0); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const tx = (code, v) => (FRASI || (PR_S = 20261103 + (typeof dayPick === 'number' ? dayPick : 0), FRASI = MTLFrasi.create(((fleets.find(f => f.line === 'M3' && f.engine) || {}).engine || { net: {} }).net.radio || {}, prand))).t(code, v);
   // the marks of the other lines and services (tools/assemble.py fills this from web/img/lines)
   const LOGOS = (() => { try { return JSON.parse('__LINELOGOS__'); } catch (e) { return {}; } })();
   // the interchanges of the M3 stations, on the yellow panel under the name (Giovanni, 2 Nov 2026): marks, or a second name
@@ -3273,7 +3277,7 @@ window.MTL_PACKS = __PACKS__;
     const bb = L.latLngBounds(segs.flatMap(([pid, d0, d1]) => [trackAt(F, pid, d0), trackAt(F, pid, d1)]));
     if (!map.getBounds().contains(bb)) map.fitBounds(bb.pad(0.6), { maxZoom: 16 });
   }
-  const MR = MTLRadio.create({ tx: (...a) => tx(...a), D, trips, state, P2WAY, osOpen: (F, X, t) => osOpen(F, X, t), osHours: F => osHoursOf(F), fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
+  const MR = MTLRadio.create({ tx: (...a) => tx(...a), rand: () => prand(), D, trips, state, P2WAY, osOpen: (F, X, t) => osOpen(F, X, t), osHours: F => osHoursOf(F), fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
     get p2Msg() { return p2Msg; }, set p2Msg(v) { p2Msg = v; },
     resetSigs: () => { if (SIGS) SIGS.forEach(x => { x.a = null; }); },
     trackAt: (...a) => trackAt(...a),
@@ -3547,7 +3551,7 @@ window.MTL_PACKS = __PACKS__;
     for (const m of F.ag.FX.feed()) {
       const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
       const txt = m.text.replace(/\{T\}/g, no(m.k)).replace(/\{R\}/g, no(m.r));
-      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? 'Staz. ' + cap(G.names[m.st] || '') : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : m.who === 'pref' ? 'Prefettura' : m.who === 'bd' ? 'Badoni' : '';
+      const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? MR.osName(F, m.st) : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : m.who === 'pref' ? 'Prefettura' : m.who === 'bd' ? 'Badoni' : '';
       MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
     }
   }

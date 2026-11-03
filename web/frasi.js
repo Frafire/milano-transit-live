@@ -16,7 +16,11 @@
         if (api.strict) throw new Error('frase radio mancante: ' + code);
         return '[' + code + ']';
       }
-      const L = e.testi, s = L.length > 1 ? L[Math.floor((r || rng || Math.random)() * L.length)] : L[0];
+      // (pesi: how often each variant comes out, from the Radio sheet, column Pesi (%))
+      const L = e.testi, R = (r || rng || Math.random)(), W = e.pesi && e.pesi.length === L.length ? e.pesi : null;
+      let s = L[0];
+      if (L.length > 1 && W) { const tot = W.reduce((a, b) => a + b, 0); let x = R * tot; s = L[L.length - 1]; for (let i = 0; i < L.length; i++) { x -= W[i]; if (x < 0) { s = L[i]; break; } } }
+      else if (L.length > 1) s = L[Math.floor(R * L.length)];
       return s.replace(/\{(\w+)\}/g, (m, k) => {
         if (vars && vars[k] != null) return String(vars[k]);
         if (!LATER.has(k) && api.strict) throw new Error('frase radio ' + code + ': manca il valore di {' + k + '}');

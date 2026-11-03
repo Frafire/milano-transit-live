@@ -2298,6 +2298,18 @@
    "testi": [
     "DCT, stazione chiusa alle {ora}. Buonanotte. Passo."
    ]
+  },
+  "stazione.os.chi": {
+   "chi": "stazione",
+   "quando": "Come si presenta l'operatore di stazione (OS) in radio e al telefono: davanti a ogni sua frase. Quante volte esce ogni variante: colonna Pesi (%)",
+   "testi": [
+    "Operatore di stazione {stazione}",
+    "OS {stazione}"
+   ],
+   "pesi": [
+    50.0,
+    50.0
+   ]
   }
  }
 }
