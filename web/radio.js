@@ -552,7 +552,8 @@
         } else if (!dq) c.depKey = null;
         if (a.status === 'stopped' && !c.stopped) {
           c.stopped = true; const at = a.inside ? G.names[a.inside.stops[a.inside.q].st] : '';
-          call(tx('chiamata.interruzione.fermo', { treno: no, stazione: cap(at) }));
+          // (the whole line closed: the DCT has told everybody; the driver says where he waits)
+          call(ag.S.cl && ag.S.cl.all ? tx('chiamata.chiusura_totale.fermo', { treno: no, stazione: cap(at) }) : tx('chiamata.interruzione.fermo', { treno: no, stazione: cap(at) }));
         }
         if (a.status !== 'stopped') c.stopped = false;
         // stopped at a red signal: the driver calls the DCT after 30 seconds (M3 rule), in the line and at a station

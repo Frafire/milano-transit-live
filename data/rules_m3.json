@@ -4319,9 +4319,11 @@
    2,
    3,
    4,
-   5
+   5,
+   98,
+   99
   ],
-  "_manual_about": "#A02 (from the depot towards the line, up to #A06) and #A04 (from the line into the depot): legal direction. #A03 and #A05: wrong direction. All red until the player clears them, unless the depot is on automatic.",
+  "_manual_about": "#A02 (from the depot towards the line, up to #A06) and #A04 (from the line into the depot): legal direction. #A03 and #A05: wrong direction. All red until the player clears them, unless the depot is on automatic. #A98 and #A99 (into the depot from w71/w72): like #A02/#A03, on automatic or worked by the player (Giovanni, 3 Nov 2026).",
   "depot_sides": {
    "_about": "Shunting signals east and west of this longitude: one movement at a time on each side",
    "lon": 9.2552
@@ -5171,6 +5173,15 @@
  ],
  "exit_zones": {
   "_about": "Zona di uscita degli itinerari (il collega di Giovanni, 2 nov 2026): negli apparati ACEI della M3 un itinerario si forma e resta attivo solo con libero il circuito di binario a valle del suo segnale di fine. A Comasina quel circuito comprende la comunicazione a forbice dei tronchetti: un treno non arriva sul binario 2 mentre un altro manovra tra tronchetti e banchine (deviatoi liberi e bloccati). A San Donato c'e un circuito in mezzo (Giovanni): niente zona. Chiave: numero del segnale di fine; nodes: gli scambi della zona (nodi della rete).",
-  "11": {"nodes": [181, 182, 191, 180, 124], "name": "Comasina binario 2 (arrivi): comunicazione dei tronchetti"}
+  "11": {
+   "nodes": [
+    181,
+    182,
+    191,
+    180,
+    124
+   ],
+   "name": "Comasina binario 2 (arrivi): comunicazione dei tronchetti"
+  }
  }
 }

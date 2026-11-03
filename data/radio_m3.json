@@ -2228,6 +2228,34 @@
    "testi": [
     "Ricevuto DCT, a fine corsa scarico e rientro. Passo."
    ]
+  },
+  "chiamata.chiusura_totale.fermo": {
+   "chi": "macchinista",
+   "quando": "Linea chiusa tutta: il treno è fermo alla stazione e lo dice al DCT",
+   "testi": [
+    "DCT, qui treno {treno}: fermo a {stazione}, attendo disposizioni. Passo."
+   ]
+  },
+  "dct.chiusura_totale": {
+   "chi": "DCT",
+   "quando": "Il DCT chiude tutta la linea (Chiusura totale): avviso generale via radio a tutti i treni",
+   "testi": [
+    "A tutti i treni, qui DCT: alle {ora} la linea è chiusa da San Donato a Comasina. Fermatevi alla prossima stazione e attendete disposizioni. Passo."
+   ]
+  },
+  "emergenza.dct.pulsante_rosso_totale": {
+   "chi": "DCT",
+   "quando": "Il DCT preme il pulsante rosso su tutta la linea (Emergenze, Rosso totale)",
+   "testi": [
+    "Pulsante rosso su tutta la linea: tutti i semafori a rosso, tutti i treni fermi!"
+   ]
+  },
+  "pezzo.tutta_la_linea": {
+   "chi": "sistema",
+   "quando": "Nome della chiusura totale (pannello, radio)",
+   "testi": [
+    "San Donato – Comasina (tutta la linea)"
+   ]
   }
  }
 }

@@ -179,17 +179,20 @@
       const add = (pid, d0, d1, kind, role, v, place) => { const dur = Math.max(2, Math.abs(d1 - d0) / v);
         segs.push([pid, kind, -1, [Math.round(t), Math.round(t + dur)], [Math.round(d0 * 10) / 10, Math.round(d1 * 10) / 10], place, 'loop:' + role]); t += dur; };
       const addT = (pid, d0, d1, role, dur) => { segs.push([pid, 'training', -1, [Math.round(t), Math.round(t + dur)], [Math.round(d0 * 10) / 10, Math.round(d1 * 10) / 10], null, 'loop:' + role]); t += dur; };
+      // (lap0: the way in goes on round the loop to the first test stop, at the loop's speed from where the loop begins)
+      const L0 = R.lap0 || 0, more = L0 ? runTime(L0) - L0 / V : 0;
       R.legs.forEach((l, i) => {
         const place = i === 0 ? +p : null, last = i === R.legs.length - 1;
         if (last && R.gate != null && R.gate > l[1] + 2) { add(l[0], l[1], R.gate, 'training', 'in', V, place); t += 20; add(l[0], R.gate, l[2], 'training', 'gate', V, null); }
         else add(l[0], l[1], l[2], 'training', last ? 'gate' : 'in', V, place);
+        if (last && L0) { const z = segs[segs.length - 1]; z[3][1] = Math.round(z[3][1] + more); t += more; t += T.dwell || 15; }
         if (l[3]) t += T.reverse;
       });
       // the laps: from #A95's junction (157) round, stopping a few seconds at each test stop (doors closed), back to 157.
       // The loop path goes round twice, so each hop is on it in one piece; at a stop the train is put back by one lap
       // (same place) when the next hop starts there (agents.js, cyclic paths).
-      const Lp = T.lap, st = (T.stops || []).filter(x => x > 1 && x < Lp - 1), us = [0];
-      for (let n = 0; n < laps; n++) st.forEach(x => us.push(n * Lp + x));
+      const Lp = T.lap, st = (T.stops || []).filter(x => x > 1 && x < Lp - 1), us = [L0];
+      for (let n = 0; n < laps; n++) st.forEach(x => { if (n * Lp + x > L0 + 1) us.push(n * Lp + x); });
       us.push(laps * Lp);
       for (let i = 1; i < us.length; i++) {
         const len = us[i] - us[i - 1], d0 = us[i - 1] % Lp;

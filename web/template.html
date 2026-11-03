@@ -265,6 +265,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .pclist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .pclist li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .pclist li span { display: flex; flex-direction: column; min-width: 0; } .pclist small { color: var(--muted); font-size: 11px; }
+.rodbtn { position: absolute; transform: translate(-50%, -50%); font: 700 11px/1 var(--display); letter-spacing: .06em; color: #fff; background: #1f3a5f; border: 2px solid #ffcf3f; border-radius: 50%; width: 38px; height: 38px; cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,.6); }
+#depotPlan { position: fixed; inset: 3vh 3vw; z-index: 3000; background: #fff; color: #111; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.6); display: flex; flex-direction: column; overflow: auto; }
+#depotPlan[hidden] { display: none; }
+#depotPlan .dp-hd { display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid #ddd; font: 14px var(--display); } #depotPlan .dp-hd span { color: #666; font-size: 12px; flex: 1; }
+#depotPlan .dp-hd button { background: #111; color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+#depotPlan svg { width: 100%; height: auto; min-width: 640px; }
+#depotPlan .loop { fill: none; stroke: #111; stroke-width: 3; } #depotPlan .tk { stroke: #111; stroke-width: 2; }
+#depotPlan text { font: 12px var(--display); fill: #111; text-anchor: middle; } #depotPlan .pl { font-size: 11px; font-weight: 600; fill: #333; paint-order: stroke; stroke: #fff; stroke-width: 5px; } #depotPlan .grp { font-weight: 700; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; } #depotPlan .lab { font-size: 13px; }
+#depotPlan .tr rect { fill: #ffcf3f; stroke: #111; stroke-width: 1.5; } #depotPlan .tr.coming rect { fill: #fff; stroke-dasharray: 4 3; } #depotPlan .tr { cursor: pointer; } #depotPlan .tr text { font-weight: 700; font-size: 11px; }
+.m3panel button.redbtn { background: #d62828; border-color: #ff5252; color: #fff; font-weight: 700; } .m3panel button.redbtn:hover { background: #ef3b3b; }
 .pclist li .rgr { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto; } .pclist .rg { font-size: 12px; color: var(--muted); } .pclist .rg.ok { color: #7ee08f; }
 .pclist .rg.off { font: 700 11px/1 var(--display); letter-spacing: .05em; padding: 4px 6px; border-radius: 4px; background: #e5383b; color: #fff; } .pclist li.scoperta b { color: #ffb4b4; }
 .pclist .pcsw { flex-direction: row; gap: 4px; flex-wrap: wrap; justify-content: flex-end; } .pclist em { color: #ffcf3f; font-style: normal; font-size: 12px; }
@@ -383,6 +393,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <select id="clSel" aria-label="Tratta da chiudere"></select>
     <div class="clends" id="clEnds"></div>
     <div class="row"><button id="closeBtn">Chiudi la tratta</button><button id="reopenBtn" disabled>Riapri la tratta</button><button id="normalBtn" disabled title="Tutti i treni tornano al loro orario programmato">Torna all'orario</button></div>
+    <div class="row"><button id="totalBtn" title="Tutta la linea, da San Donato a Comasina: il DCT avvisa tutti i treni via radio, si fermano alla prossima stazione e aspettano disposizioni">Chiusura totale della linea</button></div>
     <p class="note" id="secNote">I treni sui lati aperti girano alle stazioni dove finisce la tratta, come nelle regole; quelli dentro si fermano alla stazione successiva e aspettano il DCT.</p>
     <div class="row"><button id="depotAuto" aria-pressed="true" title="Automatico: i segnali del deposito si aprono da soli. Manuale: clic sul segnale per dare via libera a un treno">Deposito: automatico</button><button id="turniBtn" title="Quale treno fa ogni tabella oggi: si cambia finché i treni sono ancora fermi al loro posto">Turni del giorno</button><button id="regoBtn" title="Le partenze dei prossimi 60 minuti e il treno che le fa: togliere un treno, far uscire una riserva per una tabella scoperta">Regolatore</button></div>
     <p class="note" id="ilNote" hidden></p>
@@ -390,7 +401,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   <section class="m3panel faults" aria-label="Emergenze del DCT">
     <div class="label">Emergenze DCT</div>
     <div class="row"><select id="emA" aria-label="Da stazione" style="flex:1"></select><select id="emB" aria-label="A stazione" style="flex:1"></select></div>
-    <div class="row"><button id="emRed" title="Tutti i semafori della tratta a rosso: i treni nella tratta frenano d'emergenza">Pulsante rosso</button><button id="emPower">Togli tensione</button><button id="emStop">Ferma i treni</button></div>
+    <div class="row"><button id="emRed" class="redbtn" title="Tutti i semafori della tratta a rosso: i treni nella tratta frenano d'emergenza">Pulsante rosso</button><button id="emRedAll" class="redbtn" title="Tutti i semafori della linea a rosso, stazioni comprese: tutti i treni in linea frenano d'emergenza">Rosso totale</button><button id="emPower">Togli tensione</button><button id="emStop">Ferma i treni</button></div>
     <p class="note">Su una stazione sola (da e a uguali) vale per le sue banchine; tra due stazioni per i binari in mezzo. Si tolgono dagli Allarmi DCT.</p>
   </section>
   <section class="m3panel faults admin-only" aria-label="Guasti (admin)">
@@ -991,7 +1002,7 @@ window.MTL_PACKS = __PACKS__;
     // the timelines with passenger runs are the tabelle; a train without one (reserve, in test) goes by its car number
     const u = unitMap(F, t).get(tr); if (u == null) return { n: '—', none: true };
     if (tr.tab == null) tr.tab = (tr.segs0 || tr.segs).some(s => s[1] === 'service');
-    const mat = (String(F.stock[u].units || '').match(/\d+/) || [''])[0];
+    const ns = String(F.stock[u].units || '').match(/\d+/g) || [''], mat = ns.length > 1 ? ns[0] + '-' + ns[ns.length - 1] : ns[0];     // (both heads of the train: 941-942)
     // after reopening the trains are renumbered: the tabella of the run the train is making (agents.js, a.tabM)
     const ag = F.ag && tr.agentK != null ? F.ag.agents()[tr.agentK] : null, tm = ag && ag.mode !== 'plan' && ag.tabM != null && F.trains[ag.tabM] ? F.trains[ag.tabM].n : null;
     if (tm != null) return { ...F.stock[u], n: tm, tab: tm, u, renum: tm !== tr.n };
@@ -1308,6 +1319,7 @@ window.MTL_PACKS = __PACKS__;
     if (typeof state.sel === 'string' && state.sel[0] === 'g') return renderSignalCard();
     if (state.sel === 'turni') return renderTurni();
     if (state.sel === 'rego') return renderRego();
+    if (state.sel === 'depot') return renderDepot();
     if (typeof state.sel === 'string') return renderTrainCard();
     const tr = trips[state.sel], r = routes[tr.r], t = state.t;
     if (t > tr.end + 30) { state.sel = null; card.hidden = true; return; }
@@ -2841,6 +2853,66 @@ window.MTL_PACKS = __PACKS__;
   };
   function syncDepotAuto() { const F = fleets.find(f => f.ag), b = document.getElementById('depotAuto'); if (!F || !F.ag.il()) return;
     const on = !!F.ag.il().auto; if (b.getAttribute('aria-pressed') !== String(on)) { b.setAttribute('aria-pressed', String(on)); b.textContent = 'Deposito: ' + (on ? 'automatico' : 'manuale'); } }
+  // ================= the depot card (bozza, Giovanni 3 Nov): at the control tower of Rogoredo, the depot on its own =================
+  // a click on the tower: the depot card (automatic or manual, the trains there) and the schema of the depot: every place
+  // on a white sheet, the trains in it, the test loop round them (so the depot need not be read on the main map)
+  const ROD_TOWER = [45.431475, 9.256625];      // (the tower on the satellite map, where Giovanni put it)
+  setTimeout(() => { if (!fleets.some(f => f.line === 'M3' && f.depotPaths)) return;
+    L.marker(ROD_TOWER, { icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<button class="rodbtn" title="Deposito Rogoredo (ROD)">ROD</button>' }), zIndexOffset: 900 })
+      .on('click', () => { state.sel = 'depot'; state.follow = false; renderCard(); }).addTo(map); }, 0);
+  const depotGroups = F => {      // the places by track: west end (A76-A90) and east end (A48-A65) of the same shed track; the west sheds
+    const P = F.engine.net.depot || [], num = x => parseInt(String(x.name).replace(/\D/g, ''), 10) || 0, byWay = {};
+    P.forEach(x => { (byWay[x.way + ':' + (num(x) >= 69 && num(x) <= 75 ? 'o' : 'r')] = byWay[x.way + ':' + (num(x) >= 69 && num(x) <= 75 ? 'o' : 'r')] || []).push(x); });
+    const rows = Object.entries(byWay).map(([w, L_]) => { const L2 = L_.sort((a, b) => num(b) - num(a)); return { shed: w.endsWith(':o'), west: L2.find(x => num(x) >= 76) || null, east: L2.find(x => num(x) < 69) || (w.endsWith(':o') ? L2[0] : null) }; });
+    const key = r => num(r.east || r.west);
+    return { rim: rows.filter(r => !r.shed).sort((a, b) => key(a) - key(b)), off: rows.filter(r => r.shed).sort((a, b) => key(a) - key(b)) };
+  };
+  function depotWho(F) {        // place -> the train in it, or coming to it
+    const at = {}, A = F.ag.agents();
+    Object.entries(F.depot ? F.depot.at : {}).forEach(([k, q]) => { const r = realTrain(F, F.trains[k], state.t); at[q] = { k: +k, no: r ? r.n : +k + 1, units: r ? r.units : '', here: true }; });
+    Object.entries(F.depot ? F.depot.target : {}).forEach(([k, q]) => { if (q != null && !at[q]) { const r = realTrain(F, F.trains[k], state.t); at[q] = { k: +k, no: r ? r.n : +k + 1, units: r ? r.units : '', here: false }; } });
+    const loop = A.filter(a => F.dm && F.dm.loopInfo && (F.dm.loopInfo(a.k) || {}).onLoop).map(a => (realTrain(F, F.trains[a.k], state.t) || {}).n || a.k + 1);
+    return { at, loop };
+  }
+  function renderDepot() {
+    const F = m3eng(); if (!F || !F.ag || !F.depotPaths) { state.sel = null; card.hidden = true; return; }
+    const W = depotWho(F), here = Object.values(W.at).filter(x => x.here).length, coming = Object.values(W.at).filter(x => !x.here).length, auto = !!(F.ag.il() && F.ag.il().auto);
+    card.innerHTML = `<div class="hd"><div><h2>Deposito Rogoredo (ROD)</h2><div class="sub">Torre di controllo · bozza</div></div></div>
+      <ul class="pclist"><li><span><b>${here}</b><small>treni ai loro posti</small></span></li><li><span><b>${coming}</b><small>in arrivo, con il posto già dato</small></span></li>
+      <li><span><b>${W.loop.length ? W.loop.join(', ') : 'libero'}</b><small>anello di prova</small></span></li></ul>
+      <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:6px"><button id="rodAuto" aria-pressed="${auto}">Deposito: ${auto ? 'automatico' : 'manuale'}</button><button id="rodPlan">Schema del deposito</button><button id="rodTurni">Turni del giorno</button></div>
+      <p class="note">Automatico: i segnali del deposito (anche #A02-#A05 e #A98-#A99) si aprono da soli. Manuale: li apri tu, con un clic sul segnale.</p>
+      <div class="foot"><span></span><button id="cardClose">Chiudi</button></div>`;
+    card.hidden = false;
+    document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
+    document.getElementById('rodAuto').onclick = () => { document.getElementById('depotAuto').click(); renderDepot(); };
+    document.getElementById('rodTurni').onclick = () => { state.sel = 'turni'; renderCard(); };
+    document.getElementById('rodPlan').onclick = () => openDepotPlan();
+  }
+  // the schema: white sheet, the shed tracks one under the other (west places on the left, east on the right), the west
+  // sheds below, the test loop round them, the way to San Donato at the bottom (as on the plan in the depot)
+  const planEl = document.createElement('div'); planEl.id = 'depotPlan'; planEl.hidden = true; document.body.appendChild(planEl);
+  function openDepotPlan() { planEl.hidden = false; drawDepotPlan(); }
+  function drawDepotPlan() {
+    const F = m3eng(); if (planEl.hidden || !F || !F.ag || !F.depotPaths) return;
+    const G = depotGroups(F), W = depotWho(F), nR = G.rim.length, nO = G.off.length, gap = 32, x0 = 190, x1 = 810, y0 = 120;
+    const yR = i => y0 + i * gap, yO = i => y0 + (nR + 1.6) * gap + i * gap, H = yO(nO) + 120;
+    const box = (q, x, y) => { if (!q) return ''; const w = W.at[q.node]; const t = w ? `<g class="tr${w.here ? '' : ' coming'}" data-k="${w.k}"><rect x="${x - 46}" y="${y - 9}" width="92" height="18" rx="4"/><text x="${x}" y="${y + 4}">${w.no}</text></g>` : '';
+      return `<text class="pl" x="${x - 56}" y="${y + 4}" text-anchor="end">${q.name}</text>${t}`; };
+    let svg = `<svg viewBox="0 0 1000 ${H}" xmlns="http://www.w3.org/2000/svg">
+      <rect x="30" y="40" width="940" height="${H - 110}" rx="110" class="loop"/>
+      <text class="lab" x="500" y="32">Anello di prova${W.loop.length ? ' · in giro: ' + W.loop.join(', ') : ''}</text>
+      <text class="grp" x="500" y="${y0 - 26}">Rimessa</text>`;
+    G.rim.forEach((r, i) => { const y = yR(i); svg += `<line class="tk" x1="${x0 - 110}" y1="${y}" x2="${x1 + 110}" y2="${y}"/>${box(r.west, x0 + 70, y)}${box(r.east, x1 - 70, y)}`; });
+    svg += `<text class="grp" x="500" y="${yO(0) - 26}">Capannoni ovest (A69-A75)</text>`;
+    G.off.forEach((r, i) => { const y = yO(i); svg += `<line class="tk" x1="${x0 - 110}" y1="${y}" x2="${(x0 + x1) / 2}" y2="${y}"/>${box(r.east || r.west, x0 + 70, y)}`; });
+    svg += `<line class="tk" x1="500" y1="${H - 70}" x2="500" y2="${H - 30}"/><text class="lab" x="500" y="${H - 12}">San Donato M3</text><text class="lab" x="70" y="${H - 40}" text-anchor="start">per Rogoredo FS</text></svg>`;
+    planEl.innerHTML = `<div class="dp-hd"><b>Deposito Rogoredo (ROD) · schema</b><span>bozza · i posti con il treno che c'è (tratteggiato: in arrivo)</span><button id="dpClose">Chiudi</button></div>${svg}`;
+    document.getElementById('dpClose').onclick = () => { planEl.hidden = true; };
+    const fi = fleets.indexOf(F);
+    planEl.querySelectorAll('g.tr').forEach(g => g.onclick = () => { planEl.hidden = true; state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
+  }
+  setInterval(drawDepotPlan, 1000);
   // ================= DEPOT (web/DepotM3.js: places and test loop) =================
   function depotOf(F) {
     if (!F.depotPaths || !F.ag) return null;
@@ -3019,10 +3091,6 @@ window.MTL_PACKS = __PACKS__;
     }
     R.segs = save; return { none: true };
   }
-  function regoTick() {
-    const F = m3eng(); if (!F || !F.ag) return;
-    if (state.sel === 'rego' && !card.hidden && !card.contains(document.activeElement) && (regoTick.n = (regoTick.n || 0) + 1) % 5 === 0) renderRego();
-  }
   function renderRego() {
     const F = m3eng(); if (!F || !F.ag) { state.sel = null; card.hidden = true; return; }
     const names = F.engine.G.names, nm = X => cap(String(names[X] || '').toLowerCase()), L = coverage(F, state.t - 60, state.t + 3600), R = reserves(F);
@@ -3102,6 +3170,14 @@ window.MTL_PACKS = __PACKS__;
     say('', tx('dct.tratta_chiusa', { tratta: c.label, ora: fmt(F.ag.S.t, true).join(''), navette: navTxt }), 'sys');
     syncClosureUI();
   }
+  // the whole line closed (fase E): the DCT calls all the trains; each stops at its next station and waits
+  function closeAll() {
+    const F = m3fleet(); if (!F || !F.ag || closureNow(F)) return;
+    const last = F.engine.G.names.length - 1, label = tx('pezzo.tutta_la_linea');
+    F.ag.event({ kind: 'close', cl: { a: 0, b: last, ends: {}, all: true }, label });
+    say('DCT', tx('dct.chiusura_totale', { ora: fmt(F.ag.S.t, true).join('') }), 'pc');
+    syncClosureUI();
+  }
   function reopenStretch() {
     const F = m3fleet(), c = closureNow(F); if (!c || c.reopened) return;
     F.ag.event({ kind: 'reopen' });
@@ -3113,7 +3189,7 @@ window.MTL_PACKS = __PACKS__;
     const F = m3fleet(), em = closureNow(F), open = !em || em.reopened;
     if (F) F.emergency = em;
     window.activeClosure = em ? { segment: em.label, active: !em.reopened, a: em.cl.a, b: em.cl.b, since: em.t0 } : null;
-    clSel.disabled = !!em; closeBtn.disabled = !!em || !CL_LIST().length; clEnds.querySelectorAll('select').forEach(x => { x.disabled = !!em; });
+    clSel.disabled = !!em; closeBtn.disabled = !!em || !CL_LIST().length; totalBtn.disabled = !!em; clEnds.querySelectorAll('select').forEach(x => { x.disabled = !!em; });
     reopenBtn.disabled = !em || open; normalBtn.disabled = !em || !open;
     if (!em) secNote.textContent = secNote.dataset.idle;
     else {
@@ -3122,6 +3198,7 @@ window.MTL_PACKS = __PACKS__;
     }
   }
   secNote.dataset.idle = secNote.textContent;
+  const totalBtn = document.getElementById('totalBtn'); totalBtn.onclick = closeAll;
   closeBtn.onclick = closeStretch; reopenBtn.onclick = reopenStretch; normalBtn.onclick = backToTimetable;
   setTimeout(fillClosures, 0);
   const AGLABEL = { service: 'In servizio', stopped: 'Fermo in stazione: tratta interrotta', held: 'Trattenuto: tratta chiusa', turnback: 'In manovra (cambio banco)', empty: 'Vuoto, senza passeggeri', depot: 'Rientrato in deposito', parked: 'In deposito' };
@@ -3458,6 +3535,7 @@ window.MTL_PACKS = __PACKS__;
   for (const [id, zone] of [['emRed', 'red'], ['emPower', 'power'], ['emStop', 'stop']]) document.getElementById(id).onclick = () => {
     const F = m3eng(); if (!F || !F.ag) return; emFill(F);
     F.ag.event({ kind: 'fault', what: 'pczone', zone, a: +document.getElementById('emA').value, b: +document.getElementById('emB').value }); fxFeed(F); renderAlarms(); };
+  document.getElementById('emRedAll').onclick = () => { const F = m3eng(); if (!F || !F.ag) return; F.ag.event({ kind: 'fault', what: 'pczone', zone: 'red', all: true }); fxFeed(F); renderAlarms(); };
   document.getElementById('fxKind').onchange = () => { const t = document.getElementById('fxTrain'); t.dataset.h = ''; fxPanel(m3eng()); };
   document.getElementById('fxRandom').onchange = e => { const F = m3eng(); if (!F || !F.ag) return; F.ag.event({ kind: 'fault', what: 'random', on: e.target.checked }); };
   document.getElementById('fxGo').onclick = () => { const F = m3eng(); if (!F || !F.ag) return;
@@ -3472,7 +3550,7 @@ window.MTL_PACKS = __PACKS__;
     const G = F.engine.G, half = F.engine.half, last = G.names.length - 1, stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
     for (const z of Z) for (const dir of ['N', 'S']) {
       if (z.kind === 'vista' && z.done[dir]) continue;
-      const pid = G[dir].pid, [lo, hi] = z.a === z.b ? [stopOf(dir, z.a) - half - 30, stopOf(dir, z.a) + half + 30] : dir === 'N' ? [stopOf('N', z.a) + half + 5, stopOf('N', z.b) - half - 5] : [stopOf('S', z.b) + half + 5, stopOf('S', z.a) - half - 5];
+      const pid = G[dir].pid, [lo, hi] = z.all ? [0, Math.max(...F.engine.pathEdges[pid].e.map(x => x[3]))] : z.a === z.b ? [stopOf(dir, z.a) - half - 30, stopOf(dir, z.a) + half + 30] : dir === 'N' ? [stopOf('N', z.a) + half + 5, stopOf('N', z.b) - half - 5] : [stopOf('S', z.b) + half + 5, stopOf('S', z.a) - half - 5];
       const pts = [], n = Math.max(2, Math.ceil((hi - lo) / 20)); for (let i = 0; i <= n; i++) pts.push(trackAt(F, pid, lo + (hi - lo) * i / n));
       L.polyline(pts, { color: ZCOL[z.kind] || '#fff', weight: 10, opacity: .45, interactive: false }).addTo(zoneLayer);
     }
@@ -3560,9 +3638,9 @@ window.MTL_PACKS = __PACKS__;
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); regoTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
+    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
-    if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; if (state.sel != null) renderCard(); }
+    if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; const ae = document.activeElement; if (state.sel != null && !(ae && ae.tagName === 'SELECT' && card.contains(ae))) renderCard(); }     // (not while the player is choosing in a menu of the card)
     requestAnimationFrame(frame);
   }
   window.mtl = { map, state, fleets, renderCard, realTrain, scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };

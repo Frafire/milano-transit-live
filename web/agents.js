@@ -404,7 +404,10 @@
       else { add(G.N.pid, stopOf('N', a) + half + 5, stopOf('N', b) - half - 5, 'N'); add(G.S.pid, stopOf('S', b) + half + 5, stopOf('S', a) - half - 5, 'S'); }
       return map;
     }
-    function setZones() { ZONES = (S.zones || []).map(z => ({ z, map: zoneMap(z.a, z.b) })); }
+    // (all: the whole line, the stations and between them, both tracks: the red button on all the line)
+    const pathLen = pid => Math.max(0, ...((pathEdges[pid] || {}).e || []).map(x => x[3]));
+    function zoneAll() { const map = new Map(); for (const [pid, T] of [[G.N.pid, 'N'], [G.S.pid, 'S']]) for (const [ei, l0, l1] of RT.span(pid, 0, pathLen(pid)).pieces) map.set(ei, [l0, l1, T]); return map; }
+    function setZones() { ZONES = (S.zones || []).map(z => ({ z, map: z.all ? zoneAll() : zoneMap(z.a, z.b) })); }
     function addZone(kind, a, b, extra) {
       const x = Math.max(0, Math.min(a, b)), y = Math.min(last, Math.max(a, b)); S.zoneSeq = (S.zoneSeq || 0) + 1;
       S.zones = (S.zones || []).concat([Object.assign({ id: S.zoneSeq, kind, a: x, b: y, done: {} }, extra || {})]); setZones(); return S.zoneSeq;

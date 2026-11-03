@@ -16,6 +16,8 @@
 // - rinumera: closure and reopening: the trains get the number of the tabella of the run they take, the DCT tells them
 // - turni: Turni del giorno: a reserve train on a tabella before it leaves; it leaves from its own place
 // - regolatore: a train taken out of the service: its runs are scoperte; a reserve train goes out for its tabella and makes them
+// - totale: Chiusura totale: the DCT calls all the trains, they stop at a station and wait; reopened, they go again
+// - rossototale: Rosso totale: every train on the line stops (stations too); taken away from the alarms, they go again
 // - settimana: seven changes of day in a row; every tabella has a train; depot trains start from their places; maintenance
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
 //   admitted from the admin menu at night, from the next day it runs a traditional train's duties, out of its own place
@@ -106,17 +108,21 @@ const SCENARIOS = {
       st.sel = 'f' + M.fleets.indexOf(F) + ':' + k; M.renderCard(); await sleep(200);
       const b = document.querySelector('[data-loop="2"]'); if (!b) return { ok: false, why: 'no 2-lap button' }; b.click(); await sleep(200);
       st.playing = true; st.speed = 30; const t0 = Date.now(), stops = [], role = a => { const s = F.trains[k].segs[a.si]; return s && typeof s[6] === 'string' ? s[6] : ''; };
-      let vmax = 0, was = null, lapsSeen = 0;
+      let vmax = 0, was = null, lapsSeen = 0; const R = T.trip[F.depot.at[k]] || {}, gl = (R.legs || [])[(R.legs || []).length - 1] || [];
       while (Date.now() - t0 < 150000) {
         await sleep(100); const a = F.ag.agents()[k]; if (!a) break; const r = role(a);
-        if (r === 'loop:lap' && a.pid === T.cycle) { vmax = Math.max(vmax, a.v); lapsSeen++;
-          const here = Math.round(((a.d % T.lap) + T.lap) % T.lap); if (a.v === 0 && was !== 0) stops.push(here); was = a.v; }
+        const atLap0 = R.lap0 && a.pid === gl[0] && Math.abs(a.d - gl[2]) < 5;       // (standing at the first test stop at the end of the way in)
+        if (r === 'loop:lap' && (a.pid === T.cycle || atLap0)) { vmax = Math.max(vmax, a.v); lapsSeen++;
+          const here = atLap0 ? Math.round(R.lap0) : Math.round(((a.d % T.lap) + T.lap) % T.lap); if (a.v === 0 && was !== 0) stops.push(here); was = a.v; }
+        // (Giovanni 3 Nov: the way in goes on round the loop to the first test stop, no stop where the loop begins)
+        else if (r === 'loop:gate' && R.lap0 && a.pid === gl[0] && a.d > gl[2] - R.lap0 - 30) { vmax = Math.max(vmax, a.v);
+          if (a.v === 0 && was !== 0) stops.push(Math.abs(a.d - gl[2]) < 5 ? Math.round(R.lap0) : -1); was = a.v; }
         else was = null;
         if (lapsSeen && !(F.dm.loopInfo(k) || {}).onLoop && F.depot.target[k] == null) break;
       }
       st.playing = false;
       const near = (x, y) => Math.min(Math.abs(x - y), T.lap - Math.abs(x - y)) < 12;
-      const atStops = stops.filter(x => T.stops.some(y => near(x, y))).length, other = stops.filter(x => !T.stops.some(y => near(x, y)) && !near(x, 0));
+      const atStops = stops.filter(x => T.stops.some(y => near(x, y))).length, other = stops.filter(x => x < 0 || !T.stops.some(y => near(x, y)) && !near(x, 0));
       return { ok: atStops >= 4 && other.length === 0 && vmax * 3.6 > 30, train: k, stops, other, vmaxKmh: Math.round(vmax * 3.6), place: F.depot.at[k] };
     });
   },
@@ -298,6 +304,41 @@ const SCENARIOS = {
       btn.click(); await sleep(300); const d0 = a.d;
       st.playing = true; st.speed = 10; await sleep(4000); st.playing = false; await sleep(200);
       return { ok: stopped && Math.abs(a.d - d0) > 5 && !F.ag.zones().length, train: a.k, stretch: [A, B], stopped, movedAfter: Math.round(Math.abs(a.d - d0)) };
+    });
+  },
+  async totale(p) {    // the whole line closed: the DCT's call to all the trains; every train stops at a station and waits
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      st.playing = false; st.t = 8 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      const b = document.getElementById('totalBtn'); if (!b) return { ok: false, why: 'no button' };
+      b.click(); await sleep(300);
+      st.playing = true; st.speed = 60; await sleep(9000); st.playing = false; await sleep(600);
+      st.sel = 'f' + M.fleets.indexOf(F) + ':0'; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(400);
+      const log = document.getElementById('radioLog').innerText, A = F.ag.agents();
+      const moving = A.filter(a => !a.hidden && a.v > 0.5 && a.status === 'service').length, waiting = A.filter(a => !a.hidden && a.status === 'stopped').length;
+      const call = /A tutti i treni/.test(log), told = (log.match(/attendo disposizioni/g) || []).length, disabled = b.disabled;
+      document.getElementById('reopenBtn').click(); await sleep(300);
+      st.playing = true; st.speed = 30; await sleep(5000); st.playing = false; await sleep(300);
+      const after = F.ag.agents().filter(a => !a.hidden && a.v > 0.5 && a.status === 'service').length;
+      return { ok: call && moving === 0 && waiting >= 10 && told >= 5 && disabled && after >= 5, call, moving, waiting, told, after };
+    });
+  },
+  async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      st.playing = false; st.t = 8 * 3600; await sleep(2500); st.playing = true; st.speed = 10; await sleep(2000); st.playing = false; await sleep(300);
+      const red = getComputedStyle(document.getElementById('emRed')).backgroundColor, b = document.getElementById('emRedAll');
+      if (!b) return { ok: false, why: 'no button' };
+      b.click(); await sleep(300);
+      st.playing = true; st.speed = 10; await sleep(6000); st.playing = false; await sleep(300);
+      const inZone = F.ag.agents().filter(a => !a.hidden && F.ag.zonesOf(a).includes('red')), moving = inZone.filter(a => a.v > 0).length;
+      const btn = [...document.querySelectorAll('#pcAlarms [data-fxa="fix"]')].find(x => /pulsante rosso/i.test(x.closest('li').innerText));
+      if (!btn) return { ok: false, why: 'no PC alarm with Togli', n: inZone.length, moving };
+      btn.click(); await sleep(300); st.playing = true; st.speed = 10; await sleep(4000); st.playing = false; await sleep(200);
+      const after = F.ag.agents().filter(a => !a.hidden && a.v > 0.5 && a.status === 'service').length;
+      return { ok: inZone.length >= 10 && moving === 0 && /rgb\(2[01]\d, 4\d, 4\d\)/.test(red) && !F.ag.zones().length && after >= 3, n: inZone.length, moving, red, after };
     });
   },
   async comasina(p) {  // Comasina platform 1 by radio: the order, the driver's answer, the plan changed

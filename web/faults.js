@@ -512,9 +512,9 @@
       if (e.what === 'random') { F().on = !!e.on; return true; }
       if (e.what === 'new' && KINDS[e.fault] && KINDS[e.fault].on) return add(e.fault, null, { target: e.target });
       if (e.what === 'pczone') {            // the DCT by hand (Emergenze): red button, power off, hold the trains, on a stretch
-        const a = Math.min(e.a, e.b), b = Math.max(e.a, e.b), id = L.zone(e.zone, a, b);
-        const f = { id: ++F().seq, kind: 'pc', k: null, t0: S.t, ph: 'on', what: a === b ? name(a) : name(a) + ' – ' + name(b), zones: [id], zone: e.zone }; F().list.push(f);
-        say(f, 'pc', e.zone === 'red' ? tx('emergenza.dct.pulsante_rosso', { tratta: f.what }) : e.zone === 'power' ? tx('emergenza.dct.tolgo_tensione', { tratta: f.what }) : tx('emergenza.dct.fermo_treni', { tratta: f.what }));
+        const all = !!e.all, a = all ? 0 : Math.min(e.a, e.b), b = all ? L.last() : Math.max(e.a, e.b), id = L.zone(e.zone, a, b, all ? { all: true } : null);
+        const f = { id: ++F().seq, kind: 'pc', k: null, t0: S.t, ph: 'on', what: all ? 'tutta la linea' : a === b ? name(a) : name(a) + ' – ' + name(b), zones: [id], zone: e.zone, all }; F().list.push(f);
+        say(f, 'pc', e.zone === 'red' ? (all ? tx('emergenza.dct.pulsante_rosso_totale') : tx('emergenza.dct.pulsante_rosso', { tratta: f.what })) : e.zone === 'power' ? tx('emergenza.dct.tolgo_tensione', { tratta: f.what }) : tx('emergenza.dct.fermo_treni', { tratta: f.what }));
         return f.id;
       }
       if (e.what === 'avista') {            // the DCT, from the card of signal n: the train standing at it goes by in marcia a vista

@@ -915,7 +915,7 @@ if CFG['training']:
     # beyond #A94, a place is given, on (straight or after a change of cab) to it.
     _sig = {s_['_n']: s_ for s_ in _rules_['signals'] if s_.get('_n')}
     _A94 = _sig.get(94)
-    _TURN71 = _rules_.get('loop_turn')
+    _TURN71 = _rules_.get('loop_turn'); _LW = _rules_.get('loop_wait')
     def _proj(pid, x, y):
         p_, c_ = paths[pid]; best = None
         for i in range(len(p_) - 1):
@@ -954,7 +954,11 @@ if CFG['training']:
                 if not r1 or not r2: continue
                 p1, p2 = _mk(('ltrip', p_, 1, X), r1), _mk(('ltrip', p_, 2, X), r2)
                 if not _passes_a94(p2): continue
-                d1 = paths[p1][1][-1] - TRAIN_HALF; d2 = _turn(p1, d1, p2)
+                # Giovanni 3 Nov: the change of cab right past #A94, its rear at the flag in front of #A94 (after the change
+                # its nose is there, where the trains wait to go in), not on round w1 as far as #A103
+                bw = _proj(p1, *xy(*_LW['on_track'])) if _LW else None
+                d1 = bw[1] + TRAIN_HALF if bw and bw[0] < 3 and bw[1] + TRAIN_HALF < paths[p1][1][-1] - TRAIN_HALF else paths[p1][1][-1] - TRAIN_HALF
+                d2 = _turn(p1, d1, p2)
                 if d2 is None: continue
                 legs = [[p1, start_off(p_), d1, 1], [p2, d2, paths[p2][1][-1], 0]]; break
         if legs is None and _TURN71:
@@ -1077,6 +1081,16 @@ if CFG['training']:
         TEST['stops'].append(round(((d0 + d1) / 2) % _pc[-1], 1))       # the train stops with its centre mid-platform
     TEST['stops'].sort()
     print('test stops on the loop (centre of the train, m from 157):', TEST['stops'], '| lap', TEST['lap'])
+    # Giovanni 3 Nov: going in, the train does not stop where the loop begins (157, past #A47): its way in goes on round the
+    # loop to the first test stop (lap0: the first hop of the laps is already done)
+    _joined = 0
+    for p_, v_ in TEST['trip'].items():
+        pl_, s_, e_, rv_ = v_['legs'][-1]; st_ = PATH_STATES.get(pl_)
+        if not st_ or not TEST['stops'] or abs(e_ - paths[pl_][1][-1]) > 1: continue
+        ph_ = make_path(('ltrip', p_, 'lap0', pl_), st_ + cyc)
+        if abs(paths[ph_][1][-1] - paths[pl_][1][-1] - _L1) > 3: continue
+        v_['legs'][-1] = [ph_, s_, round(e_ + TEST['stops'][0], 1), rv_]; v_['lap0'] = TEST['stops'][0]; _joined += 1
+    print('test loop: way in on to the first test stop for', _joined, 'places of', len(TEST['trip']))
     print('test platforms:', [t['name'] for t in TEST['platforms']])
 else:
     TEST = None
