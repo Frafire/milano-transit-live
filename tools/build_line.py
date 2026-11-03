@@ -1988,6 +1988,8 @@ def _tail_edges(n0):
     return out
 NET['sd_tail_edges'] = sorted({ei for n in CFG['SD_TAILS'] for ei in _tail_edges(n)})
 print('San Donato tails: track pieces', NET['sd_tail_edges'])
+# the sinottico of the depot (data/schema_deposito_m3.json, tools/schema_deposito.py, corrected by hand)
+NET['schema_depot'] = json.load(open('schema_deposito_%s.json' % LINE.lower())) if os.path.exists('schema_deposito_%s.json' % LINE.lower()) else None
 # what the route interlocking needs from the rules: times, capacities, the signals worked by the PC
 NET['route_rules'] = {'times': {'blade': _tval('Ago dello scambio'), 'signal': _tval('Ritardo di apertura del segnale')},
                       'capacity': {k: v for k, v in _rules_.get('capacity', {}).get('edges', {}).items()},

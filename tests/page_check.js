@@ -26,6 +26,8 @@
 //   asked by the Prefettura on every station's screens; a fire: ABBANDONARE LA STAZIONE; the DCT's page TRATTA CHIUSA
 // - telefono: a call of an OS left 60 s stays pending (tab, alarms, map) and a click takes it with no new call; two
 //   stations with calls keep their own conversations; a later message of the same OS goes into the same conversation
+// - sinottico: Mappa | Sinottico; the red track pieces are exactly the ones the trains stand on (head, tail and all), the
+//   signals of the schema are drawn; at two times of day
 // - rossototale: Rosso totale: every train on the line stops (stations too); taken away from the alarms, they go again
 // - settimana: seven changes of day in a row; every tabella has a train; depot trains start from their places; maintenance
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
@@ -438,6 +440,24 @@ const SCENARIOS = {
       const last = c1.lastOS; M.openStationRadio(F, X1); await sleep(300); const rp = document.getElementById('phoneRepeat'); if (rp) rp.click(); await sleep(1800);
       const rep = !!rp && c1.msgs.some(m => /^Ripeto: /.test(m.text) && m.text.includes(last));
       return { ok: pend60 && tabBlink && inAlarms && ring && taken && visible && sep && same && rep, pend60, tabBlink, inAlarms, ring, taken, visible, sep, same, rep, tail: c1.msgs.slice(-4).map(m => m.who + ': ' + m.text) };
+    });
+  },
+  async sinottico(p) {   // the sinottico of the depot (Giovanni 3 Nov 2026): the red pieces against the trains' positions
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), SCH = F.engine.net.schema_depot, SE = new Set(SCH.edges), half = F.engine.half;
+      document.querySelector('.viewsw [data-view="sin"]').click(); const res = [];
+      for (const t of [6.2 * 3600, 10.6 * 3600]) {
+        st.playing = false; st.t = t; await sleep(2500); await sleep(1300);
+        const want = new Set(); F.ag.agents().forEach(a => { if (a.hidden) return; const pe = F.engine.pathEdges[a.pid]; if (!pe) return;
+          for (const [ei, , x0, x1] of pe.e) if (SE.has(ei) && x1 > a.d - half && x0 < a.d + half) want.add(ei); });
+        const red = new Set([...document.querySelectorAll('#depotPlan polyline[data-occ]')].map(x => +x.dataset.e));
+        const sigs = document.querySelectorAll('#depotPlan circle.sg').length, edges = document.querySelectorAll('#depotPlan polyline[data-e]').length;
+        res.push({ t: t / 3600, want: want.size, red: red.size, same: want.size === red.size && [...want].every(e => red.has(e)), sigs, edges });
+      }
+      document.querySelector('.viewsw [data-view="map"]').click(); await sleep(200);
+      const back = document.getElementById('depotPlan').hidden;
+      return { ok: res.every(r => r.same && r.want > 0 && r.sigs === SCH.signals.length && r.edges === SCH.edges.length) && back, res, back };
     });
   },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again

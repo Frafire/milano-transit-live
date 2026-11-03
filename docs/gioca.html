@@ -947,6 +947,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 #depotPlan text { font: 12px var(--display); fill: #111; text-anchor: middle; } #depotPlan .pl { font-size: 11px; font-weight: 600; fill: #333; paint-order: stroke; stroke: #fff; stroke-width: 5px; } #depotPlan .grp { font-weight: 700; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; } #depotPlan .lab { font-size: 13px; }
 #depotPlan .tr rect { fill: #ffcf3f; stroke: #111; stroke-width: 1.5; } #depotPlan .tr.coming rect { fill: #fff; stroke-dasharray: 4 3; } #depotPlan .tr { cursor: pointer; } #depotPlan .tr text { font-weight: 700; font-size: 11px; }
 .bdlabel { position: absolute; transform: translate(-50%, -26px); white-space: nowrap; font: 700 10px/1 var(--display); letter-spacing: .06em; color: #111; background: #ffb400; border-radius: 3px; padding: 2px 5px; box-shadow: 0 1px 4px rgba(0,0,0,.6); }
+.viewsw { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 3100; display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel-solid); }
+.viewsw button { background: none; color: var(--fg); border: 0; padding: 6px 14px; font: 600 13px var(--display); cursor: pointer; } .viewsw button[aria-pressed="true"] { background: var(--signal); color: #111; }
+#depotPlan .tk { fill: none; stroke: #111; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; } #depotPlan .tk.test { stroke: #2b6cb0; } #depotPlan .tk.main { stroke: #555; stroke-width: 3; }
+#depotPlan .tk.occ { stroke: #e5383b; stroke-width: 4; } #depotPlan .sg { stroke: #111; stroke-width: 1; } #depotPlan .sgn { font-size: 8px; fill: #333; text-anchor: start; }
+#depotPlan .nd { fill: #ffcf3f; stroke: #111; stroke-width: 1; cursor: move; } #depotPlan .trn rect { fill: #e5383b; } #depotPlan .trn text { fill: #fff; font-size: 9px; font-weight: 700; } #depotPlan .trn { cursor: pointer; }
 .m3panel button.redbtn { background: #d62828; border-color: #ff5252; color: #fff; font-weight: 700; } .m3panel button.redbtn:hover { background: #ef3b3b; }
 .pclist li .rgr { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto; } .pclist .rg { font-size: 12px; color: var(--muted); } .pclist .rg.ok { color: #7ee08f; }
 .pclist .rg.off { font: 700 11px/1 var(--display); letter-spacing: .05em; padding: 4px 6px; border-radius: 4px; background: #e5383b; color: #fff; } .pclist li.scoperta b { color: #ffb4b4; }
@@ -1157,8 +1162,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <button class="tab" data-mode="signal" role="tab" aria-pressed="false">Signals</button>
     <button class="tab" data-mode="draw" role="tab" aria-pressed="false">Draw track</button>
     <button class="tab" data-mode="speed" role="tab" aria-pressed="false">Speed limits</button>
+    <button class="tab" data-mode="schema" role="tab" aria-pressed="false">Sinottico</button>
   </div>
 
+  <section data-panel="schema" hidden>
+    <p class="note">Sinottico del deposito: trascina i nodi (i quadratini) nel disegno; si agganciano alla griglia (10 px in orizzontale, una riga in verticale). Le modifiche restano in questo browser finché non esporti il file da mettere in data/schema_deposito_m3.json.</p>
+    <div class="row"><button id="schEdit" aria-pressed="false">Sposta i nodi</button><button id="schExport">Esporta il file</button><button id="schUndo">Annulla le modifiche</button></div>
+    <p class="note" id="schNote"></p>
+  </section>
   <section data-panel="mark">
     <p class="note">Click a track on the map (zoom in). Say what it is used for and which way trains run on it.</p>
     <div id="markPick" class="note picked">No track selected</div>
@@ -7244,6 +7255,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     document.querySelectorAll('.drawer .tab').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
     document.querySelectorAll('.drawer [data-panel]').forEach(p => p.hidden = p.dataset.panel !== m);
     redrawCurrent(); drawSpeeds(); if (m === 'speed') fillStretches();
+    if (m !== 'schema' && typeof schEditOff === 'function') schEditOff();
   }
   map.on('zoomend', drawSpeeds);
   document.querySelectorAll('.drawer .tab').forEach(b => b.onclick = () => setMode(b.dataset.mode));
@@ -7455,13 +7467,6 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
       .bindTooltip('Deposito Rogoredo (ROD)', { className: 'st', direction: 'top', offset: [0, -8] }).on('click', open).addTo(map);
     L.marker(ROD_TOWER, { icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<button class="stname rodname" style="--c:#ffcf3f">ROD</button>' }), zIndexOffset: 900 })
       .on('click', open).addTo(nameLayer); }, 0);          // (its name: with the stations' names, shown from zoom 15)
-  const depotGroups = F => {      // the places by track: west end (A76-A90) and east end (A48-A65) of the same shed track; the west sheds
-    const P = F.engine.net.depot || [], num = x => parseInt(String(x.name).replace(/\D/g, ''), 10) || 0, byWay = {};
-    P.forEach(x => { (byWay[x.way + ':' + (num(x) >= 69 && num(x) <= 75 ? 'o' : 'r')] = byWay[x.way + ':' + (num(x) >= 69 && num(x) <= 75 ? 'o' : 'r')] || []).push(x); });
-    const rows = Object.entries(byWay).map(([w, L_]) => { const L2 = L_.sort((a, b) => num(b) - num(a)); return { shed: w.endsWith(':o'), west: L2.find(x => num(x) >= 76) || null, east: L2.find(x => num(x) < 69) || (w.endsWith(':o') ? L2[0] : null) }; });
-    const key = r => num(r.east || r.west);
-    return { rim: rows.filter(r => !r.shed).sort((a, b) => key(a) - key(b)), off: rows.filter(r => r.shed).sort((a, b) => key(a) - key(b)) };
-  };
   function depotWho(F) {        // place -> the train in it, or coming to it
     const at = {}, A = F.ag.agents();
     Object.entries(F.depot ? F.depot.at : {}).forEach(([k, q]) => { const r = realTrain(F, F.trains[k], state.t); at[q] = { k: +k, no: r ? r.n : +k + 1, units: r ? r.units : '', here: true }; });
@@ -7484,29 +7489,93 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     document.getElementById('rodTurni').onclick = () => { state.sel = 'turni'; renderCard(); };
     document.getElementById('rodPlan').onclick = () => openDepotPlan();
   }
-  // the schema: white sheet, the shed tracks one under the other (west places on the left, east on the right), the west
-  // sheds below, the test loop round them, the way to San Donato at the bottom (as on the plan in the depot)
+  // ---- the sinottico of the depot (Giovanni 3 Nov 2026, a proposal to correct together): the wall of a control room, not
+  // the geography. Horizontal lines and 45-degree diagonals from node to node (data/schema_deposito_m3.json, made by
+  // tools/schema_deposito.py, then corrected by hand); live: a track piece with a train on it (head, tail, all of it) in red,
+  // the signals in their colour, the switches as they lie (the leg not set is cut short at the switch), the places by
+  // name. Only to look at: no commands. Mappa | Sinottico above the map. ----
   const planEl = document.createElement('div'); planEl.id = 'depotPlan'; planEl.hidden = true; document.body.appendChild(planEl);
-  function openDepotPlan() { planEl.hidden = false; drawDepotPlan(); }
-  function drawDepotPlan() {
-    const F = m3eng(); if (planEl.hidden || !F || !F.ag || !F.depotPaths) return;
-    const G = depotGroups(F), W = depotWho(F), nR = G.rim.length, nO = G.off.length, gap = 32, x0 = 190, x1 = 810, y0 = 120;
-    const yR = i => y0 + i * gap, yO = i => y0 + (nR + 1.6) * gap + i * gap, H = yO(nO) + 120;
-    const box = (q, x, y) => { if (!q) return ''; const w = W.at[q.node]; const t = w ? `<g class="tr${w.here ? '' : ' coming'}" data-k="${w.k}"><rect x="${x - 46}" y="${y - 9}" width="92" height="18" rx="4"/><text x="${x}" y="${y + 4}">${w.no}</text></g>` : '';
-      return `<text class="pl" x="${x - 56}" y="${y + 4}" text-anchor="end">${q.name}</text>${t}`; };
-    let svg = `<svg viewBox="0 0 1000 ${H}" xmlns="http://www.w3.org/2000/svg">
-      <rect x="30" y="40" width="940" height="${H - 110}" rx="110" class="loop"/>
-      <text class="lab" x="500" y="32">Anello di prova${W.loop.length ? ' · in giro: ' + W.loop.join(', ') : ''}</text>
-      <text class="grp" x="500" y="${y0 - 26}">Rimessa</text>`;
-    G.rim.forEach((r, i) => { const y = yR(i); svg += `<line class="tk" x1="${x0 - 110}" y1="${y}" x2="${x1 + 110}" y2="${y}"/>${box(r.west, x0 + 70, y)}${box(r.east, x1 - 70, y)}`; });
-    svg += `<text class="grp" x="500" y="${yO(0) - 26}">Capannoni ovest (A69-A75)</text>`;
-    G.off.forEach((r, i) => { const y = yO(i); svg += `<line class="tk" x1="${x0 - 110}" y1="${y}" x2="${(x0 + x1) / 2}" y2="${y}"/>${box(r.east || r.west, x0 + 70, y)}`; });
-    svg += `<line class="tk" x1="500" y1="${H - 70}" x2="500" y2="${H - 30}"/><text class="lab" x="500" y="${H - 12}">San Donato M3</text><text class="lab" x="70" y="${H - 40}" text-anchor="start">per Rogoredo FS</text></svg>`;
-    planEl.innerHTML = `<div class="dp-hd"><b>Deposito Rogoredo (ROD) · schema</b><span>bozza · i posti con il treno che c'è (tratteggiato: in arrivo)</span><button id="dpClose">Chiudi</button></div>${svg}`;
-    document.getElementById('dpClose').onclick = () => { planEl.hidden = true; };
-    const fi = fleets.indexOf(F);
-    planEl.querySelectorAll('g.tr').forEach(g => g.onclick = () => { planEl.hidden = true; state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
+  const viewSw = document.createElement('div'); viewSw.className = 'viewsw'; viewSw.innerHTML = '<button data-view="map" aria-pressed="true">Mappa</button><button data-view="sin" aria-pressed="false">Sinottico</button>';
+  document.body.appendChild(viewSw);
+  const setView = v => { viewSw.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v))); planEl.hidden = v !== 'sin'; if (v === 'sin') drawDepotPlan(); };
+  viewSw.querySelectorAll('button').forEach(b => b.onclick = () => setView(b.dataset.view));
+  function openDepotPlan() { setView('sin'); }
+  // the editor of the sinottico (Track editor, tab Sinottico): the nodes dragged, on a grid; kept in this browser, exported
+  var SCH_EDIT = { on: false, nodes: null, drag: null };        // (var: the editor's tabs may ask before this line)
+  try { SCH_EDIT.nodes = JSON.parse(localStorage.getItem('mtl-schema-edit') || 'null'); } catch (e) {}
+  const schNodes = F => Object.assign({}, F.engine.net.schema_depot.nodes, SCH_EDIT.nodes || {});
+  function schEditOff() { if (SCH_EDIT && SCH_EDIT.on) setSchEdit(false); }
+  function setSchEdit(on) { SCH_EDIT.on = on; const b = document.getElementById('schEdit'); if (b) b.setAttribute('aria-pressed', String(on)); if (on) setView('sin'); else drawDepotPlan(); }
+  const SWMEM = {};                       // the last position seen of each depot switch: the pair of track pieces a train went over
+  const octi = (p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1]; return Math.abs(dx) >= Math.abs(dy) ? [p, [q[0] - Math.sign(dx) * Math.abs(dy), p[1]], q] : [p, q]; };
+  const alongPts = (pts, f) => { const L = []; let tot = 0; for (let i = 1; i < pts.length; i++) { L.push(Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); tot += L[i - 1]; }
+    let x = f * tot; for (let i = 1; i < pts.length; i++) { if (x <= L[i - 1] || i === pts.length - 1) { const u = L[i - 1] ? Math.min(1, x / L[i - 1]) : 0; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * u, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * u]; } x -= L[i - 1]; } return pts[0]; };
+  // which track pieces of the schema have a train on them, and where each train is (for its number)
+  function sinOccupied(F, SE) {
+    const occ = new Map(), half = F.engine.half, PE = F.engine.pathEdges;
+    F.ag.agents().forEach(a => { if (a.hidden) return; const pe = PE[a.pid]; if (!pe) return;
+      for (const [ei, , x0, x1] of pe.e) if (SE.has(ei) && x1 > a.d - half && x0 < a.d + half) { if (!occ.has(ei)) occ.set(ei, []); occ.get(ei).push(a.k); } });
+    return occ;
   }
+  function drawDepotPlan() {
+    const F = m3eng(); if (planEl.hidden || !F || !F.ag) return;
+    const SCH = F.engine.net.schema_depot; if (!SCH) { planEl.innerHTML = '<div class="dp-hd"><b>Sinottico</b><span>schema del deposito mancante</span></div>'; return; }
+    const NE = F.engine.net.edges, N = schNodes(F), SE = new Set(SCH.edges), occ = sinOccupied(F, SE), fi = fleets.indexOf(F);
+    const at = {}; SCH.edges.forEach(ei => { const e = NE[ei]; [e.a, e.b].forEach(n => { (at[n] = at[n] || []).push(ei); }); });
+    // the switches: the position (two pieces) from the line interlocking, or from a train on it, or the last one seen
+    const rt = F.ag.rt(), pos = {};
+    for (const [n, list] of Object.entries(at)) { if (list.length < 3) continue;
+      const sw = rt.sw && rt.sw[n]; let pair = sw ? String(sw).split('-').map(Number) : null;
+      const o = list.filter(ei => occ.has(ei)); if (!pair && o.length >= 2) pair = o.slice(0, 2);
+      if (pair) SWMEM[n] = pair; pos[n] = SWMEM[n] || null; }
+    let paths = '', marks = '', W = 0, H = 0;
+    for (const ei of SCH.edges) { const e = NE[ei], p = N[e.a], q = N[e.b]; if (!p || !q) continue;
+      let pts = octi(p, q);
+      // the leg not set at a switch: cut short by 7 px there (as on the panels)
+      const cut = (end) => { const n = end ? e.b : e.a, ps = pos[n]; return ps && !ps.includes(ei); };
+      const shorten = (P, fromEnd) => { const A = fromEnd ? P[P.length - 1] : P[0], B = fromEnd ? P[P.length - 2] : P[1], d = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1, k = Math.min(7, d / 2) / d, C = [A[0] + (B[0] - A[0]) * k, A[1] + (B[1] - A[1]) * k];
+        return fromEnd ? [...P.slice(0, -1), C] : [C, ...P.slice(1)]; };
+      if (cut(false)) pts = shorten(pts, false); if (cut(true)) pts = shorten(pts, true);
+      pts.forEach(([x, y]) => { W = Math.max(W, x); H = Math.max(H, y); });
+      const busy = occ.has(ei), cls = busy ? 'tk occ' : NE[ei].cat === 'test' ? 'tk test' : NE[ei].cat === 'main' ? 'tk main' : 'tk';
+      paths += `<polyline class="${cls}" data-e="${ei}"${busy ? ' data-occ="1"' : ''} points="${pts.map(v => v.map(z => Math.round(z * 10) / 10).join(',')).join(' ')}"/>`;
+    }
+    // the trains: their number on the middle of the pieces they stand on
+    const byTrain = {}; occ.forEach((ks, ei) => ks.forEach(k => { (byTrain[k] = byTrain[k] || []).push(ei); }));
+    for (const [k, eis] of Object.entries(byTrain)) { const ei = eis[Math.floor(eis.length / 2)], e = NE[ei], p = N[e.a], q = N[e.b]; if (!p || !q) continue;
+      const m = alongPts(octi(p, q), 0.5), r = realTrain(F, F.trains[k], state.t);
+      marks += `<g class="trn" data-k="${k}"><rect x="${m[0] - 22}" y="${m[1] - 15}" width="44" height="12" rx="2"/><text x="${m[0]}" y="${m[1] - 6}">${r ? r.n : +k + 1}</text></g>`; }
+    // the signals: their colour (as on the map), their number
+    if (!SIGS) SIGS = buildSignals(F); sigAspects(F);
+    const ASP = { go: '#2ecc40', stop: '#e5383b', sgo: '#ffffff', sstop: '#e5383b' };
+    for (const sg of SCH.signals) { const e = NE[sg.e], p = N[e.a], q = N[e.b]; if (!p || !q) continue;
+      const m = alongPts(octi(p, q), sg.f), tag = '#A' + String(sg.n).padStart(2, '0'), S_ = SIGS.find(x => x.tag === tag), a = S_ && S_.asp || 'stop';
+      marks += `<circle class="sg" data-n="${sg.n}" cx="${m[0]}" cy="${m[1] - 5}" r="3.6" fill="${ASP[a] || '#e5383b'}"/><text class="sgn" x="${m[0] + 5}" y="${m[1] - 7}">${sg.n}</text>`; }
+    for (const pl of SCH.places || []) { const p = N[pl.node]; if (p) marks += `<text class="pl" x="${p[0]}" y="${p[1] + 12}">${pl.name}</text>`; }
+    if (SCH_EDIT.on) for (const [n, p] of Object.entries(N)) marks += `<rect class="nd" data-nd="${n}" x="${p[0] - 3.5}" y="${p[1] - 3.5}" width="7" height="7"/>`;
+    if (SCH_EDIT.drag && !planEl.hidden) return;               // (not while a node is being moved)
+    const svg = `<svg viewBox="0 0 ${Math.ceil(W + 60)} ${Math.ceil(H + 40)}" xmlns="http://www.w3.org/2000/svg">${paths}${marks}</svg>`;
+    planEl.innerHTML = `<div class="dp-hd"><b>Deposito di San Donato · sinottico</b><span>proposta, da correggere insieme · rosso: tratta occupata · segnali col loro colore · scambi come sono · solo da guardare</span><button id="dpClose">Mappa</button></div>${svg}`;
+    document.getElementById('dpClose').onclick = () => setView('map');
+    planEl.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
+    if (SCH_EDIT.on) bindSchDrag(F);
+  }
+  function bindSchDrag(F) {
+    const svgEl = planEl.querySelector('svg'); if (!svgEl) return;
+    const toSvg = ev => { const pt = svgEl.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const q = pt.matrixTransform(svgEl.getScreenCTM().inverse()); return [q.x, q.y]; };
+    svgEl.querySelectorAll('rect.nd').forEach(r => r.onpointerdown = ev => { ev.preventDefault(); SCH_EDIT.drag = { n: r.dataset.nd, r }; r.setPointerCapture(ev.pointerId); });
+    svgEl.onpointermove = ev => { const d = SCH_EDIT.drag; if (!d) return; const [x, y] = toSvg(ev); d.x = Math.round(x / 10) * 10; d.y = Math.round((y - 40) / 11) * 11 + 40;
+      d.r.setAttribute('x', d.x - 3.5); d.r.setAttribute('y', d.y - 3.5); };
+    svgEl.onpointerup = () => { const d = SCH_EDIT.drag; SCH_EDIT.drag = null; if (!d || d.x == null) return;
+      SCH_EDIT.nodes = Object.assign({}, SCH_EDIT.nodes || {}, { [d.n]: [d.x, d.y] });
+      try { localStorage.setItem('mtl-schema-edit', JSON.stringify(SCH_EDIT.nodes)); } catch (e) {}
+      const nt = document.getElementById('schNote'); if (nt) nt.textContent = Object.keys(SCH_EDIT.nodes).length + ' nodi spostati (in questo browser). Esporta il file per tenerli.'; drawDepotPlan(); };
+  }
+  document.getElementById('schEdit').onclick = () => setSchEdit(!SCH_EDIT.on);
+  document.getElementById('schUndo').onclick = () => { SCH_EDIT.nodes = null; try { localStorage.removeItem('mtl-schema-edit'); } catch (e) {} document.getElementById('schNote').textContent = 'Modifiche annullate.'; drawDepotPlan(); };
+  document.getElementById('schExport').onclick = () => { const F = m3eng(); if (!F || !F.engine.net.schema_depot) return;
+    const out = Object.assign({}, F.engine.net.schema_depot, { nodes: schNodes(F) });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' })); a.download = 'schema_deposito_m3.json'; a.click(); };
   setInterval(drawDepotPlan, 1000);
   // ================= DEPOT (web/DepotM3.js: places and test loop) =================
   function depotOf(F) {
@@ -8050,18 +8119,8 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     }
     return false;
   }
-  function updateSignals() {
-    const F = m3eng(); if (!F) return;
-    const show = showSigs && map.getZoom() >= 16;
-    const showNames = (show || !document.getElementById('drawer').hidden) && map.getZoom() >= 16;
-    if (showNames) { if (!NAMES) { NAMES = true; buildNames(F); } if (!map.hasLayer(trkNameLayer)) trkNameLayer.addTo(map); }
-    else if (map.hasLayer(trkNameLayer)) map.removeLayer(trkNameLayer);
-    if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); if (map.hasLayer(illLayer)) map.removeLayer(illLayer); return; }
-    if (!SIGS) { SIGS = buildSignals(F);
-      const gone = ll => (ED.removed || []).some(([la, lo]) => Math.hypot((la - ll.lat) * 111000, (lo - ll.lng) * 78000) < 4);
-      SIGS.forEach(sg => { if (gone(sg.m.getLatLng())) sg.removed = true; else sg.m.addTo(sg.illegal ? illLayer : sigLayer); }); }
-    if (!map.hasLayer(sigLayer)) sigLayer.addTo(map);
-    if (showIll && !map.hasLayer(illLayer)) illLayer.addTo(map); else if (!showIll && map.hasLayer(illLayer)) map.removeLayer(illLayer);
+  // the aspect of every signal now (the map and the sinottico): sg.asp
+  function sigAspects(F) {
     const half = F.engine.half;
     const occ = F.trains.map(tr => trainState(F, tr, state.t));
     // route interlocking: a signal shows via libera when a train has its route set; the signals that are normally green
@@ -8080,7 +8139,24 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
       // interlocking signals: via libera only when cleared for a train
       if (sg.si != null && F.ag && F.ag.IL && F.ag.IL.controlled(sg.si)) { const il = F.ag.il();
         busy = il.grant[sg.si] == null && !(F.ag.IL.isManual(sg.si) && !il.auto && il.pass[sg.si] > 0); }   // cleared by the player: red + white
-      const a = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
+      sg.asp = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
+    });
+  }
+  function updateSignals() {
+    const F = m3eng(); if (!F) return;
+    const show = showSigs && map.getZoom() >= 16;
+    const showNames = (show || !document.getElementById('drawer').hidden) && map.getZoom() >= 16;
+    if (showNames) { if (!NAMES) { NAMES = true; buildNames(F); } if (!map.hasLayer(trkNameLayer)) trkNameLayer.addTo(map); }
+    else if (map.hasLayer(trkNameLayer)) map.removeLayer(trkNameLayer);
+    if (!show) { if (map.hasLayer(sigLayer)) map.removeLayer(sigLayer); if (map.hasLayer(illLayer)) map.removeLayer(illLayer); return; }
+    if (!SIGS) SIGS = buildSignals(F);        // (built by the sinottico too: on the map once)
+    if (!SIGS.onMap) { SIGS.onMap = true;
+      const gone = ll => (ED.removed || []).some(([la, lo]) => Math.hypot((la - ll.lat) * 111000, (lo - ll.lng) * 78000) < 4);
+      SIGS.forEach(sg => { if (gone(sg.m.getLatLng())) sg.removed = true; else sg.m.addTo(sg.illegal ? illLayer : sigLayer); }); }
+    if (!map.hasLayer(sigLayer)) sigLayer.addTo(map);
+    if (showIll && !map.hasLayer(illLayer)) illLayer.addTo(map); else if (!showIll && map.hasLayer(illLayer)) map.removeLayer(illLayer);
+    sigAspects(F);
+    SIGS.forEach(sg => { const a = sg.asp;
       if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${sg.shunt ? ' sh' : ''}" alt="" src="${SIGURL[(sg.illegal && !sg.shunt ? 'i' : '') + a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
     });
   }
