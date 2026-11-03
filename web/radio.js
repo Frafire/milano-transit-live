@@ -63,13 +63,14 @@
       if (!a) return '';
       const closedTxt = `${em.label}`;
       if (window.activeClosure && window.activeClosure.active && (a.status === 'stopped' || a.red)) h += `<div class="row"><button id="emWhy">Spiega: guasto, tratta ${closedTxt} interrotta</button></div>`;
-      if (a.status === 'stopped') {
+      // (also a train held in a San Donato tail in an interruption from there: marcia illegale, web/agents.js)
+      const ops = F.ag.instrOptions ? F.ag.instrOptions(tr.agentK) : [];
+      if (a.status === 'stopped' || ops.length) {
         // the DCT sends it somewhere: ahead, back the wrong way, depot, tail; the way is drawn on the map first
-        const ops = F.ag.instrOptions ? F.ag.instrOptions(tr.agentK) : [];
         if (!ops.some(x => x.key === instrSel)) instrSel = ops.length ? ops[0].key : '';
         const cur = ops.find(x => x.key === instrSel), tn = k => trainNo(F, F.trains[k]);
         if (cur) showRoute(F, F.ag.instrPreview(tr.agentK, cur.key));
-        h += `<div class="lbl">Treno fermo per l'interruzione: dove lo mandi?</div>` + (ops.length ? `<div class="row"><select id="instrSel" aria-label="Dove">${ops.map(x => `<option value="${x.key}" ${x.key === instrSel ? 'selected' : ''}>${labTxt(x.label)}${x.blocked.length ? ' (treno ' + x.blocked.map(tn).join(', ') + ' in mezzo)' : ''}</option>`).join('')}</select></div>` +
+        h += `<div class="lbl">Treno fermo per l'interruzione: dove lo mandi?</div>` + (cur && cur.ill ? `<div class="lbl">Marcia illegale: ordine via radio${cur.cab ? ', cambio banco prima di partire' : ''}, al massimo ${F.engine.ops && F.engine.ops.illegal_kmh || 30} km/h</div>` : '') + (ops.length ? `<div class="row"><select id="instrSel" aria-label="Dove">${ops.map(x => `<option value="${x.key}" ${x.key === instrSel ? 'selected' : ''}>${labTxt(x.label)}${x.blocked.length ? ' (treno ' + x.blocked.map(tn).join(', ') + ' in mezzo)' : ''}</option>`).join('')}</select></div>` +
           (cur && cur.blocked.length ? `<div class="lbl warn">Sulla strada c'è il treno ${cur.blocked.map(tn).join(', ')}: aspetterà che si liberi</div>` : '') +
           `<div class="row"><button id="instrGo" class="send">▶ Conferma (strada in arancione sulla mappa)</button></div>` : `<div class="lbl">Nessuna strada possibile da qui</div>`);
       } else showRoute(F, null);
@@ -89,9 +90,11 @@
       const igo = document.getElementById('instrGo');
       if (igo) igo.onclick = () => {
         const ops = F.ag.instrOptions(tr.agentK), x = ops.find(y => y.key === instrSel); if (!x) return;
-        const lb = labTxt(x.label); say('DCT', tx('treno.istruzione.ordine', { treno: no, dove: lb.charAt(0).toLowerCase() + lb.slice(1) }), 'pc');
+        const lb = labTxt(x.label), kmh = (F.engine.ops && F.engine.ops.illegal_kmh) || 30;
+        if (x.ill) say('DCT', tx(x.cab ? 'treno.marcia_illegale.ordine_cambio_banco' : 'treno.marcia_illegale.ordine', { treno: no, dove: x.to, kmh }), 'pc');
+        else say('DCT', tx('treno.istruzione.ordine', { treno: no, dove: lb.charAt(0).toLowerCase() + lb.slice(1) }), 'pc');
         const r = F.ag.event({ kind: 'order', k: tr.agentK, what: 'instr', arg: { key: x.key } });
-        driverSays(r ? tx('treno.istruzione.risposta') : tx('treno.ordine.negativo'));
+        driverSays(!r ? tx('treno.ordine.negativo') : x.ill ? tx(x.cab ? 'treno.marcia_illegale.risposta_cambio_banco' : 'treno.marcia_illegale.risposta', { dove: x.to, kmh }) : tx('treno.istruzione.risposta'));
         showRoute(F, null); radioCmdHtml = ''; drawRadioCmds();
       };
       const why = document.getElementById('emWhy');

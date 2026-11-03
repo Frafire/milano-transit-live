@@ -26,6 +26,8 @@
 //   asked by the Prefettura on every station's screens; a fire: ABBANDONARE LA STAZIONE; the DCT's page TRATTA CHIUSA
 // - telefono: a call of an OS left 60 s stays pending (tab, alarms, map) and a click takes it with no new call; two
 //   stations with calls keep their own conversations; a later message of the same OS goes into the same conversation
+// - marciaillegale: San Donato – Rogoredo FS closed: by radio the DCT sends a train at a San Donato platform and one in a
+//   tail into the depot or a tail in marcia illegale (the order and the answer on the radio); they get there
 // - sinottico: Mappa | Sinottico; the red track pieces are exactly the ones the trains stand on (head, tail and all), the
 //   signals of the schema are drawn; at two times of day
 // - rossototale: Rosso totale: every train on the line stops (stations too); taken away from the alarms, they go again
@@ -440,6 +442,34 @@ const SCENARIOS = {
       const last = c1.lastOS; M.openStationRadio(F, X1); await sleep(300); const rp = document.getElementById('phoneRepeat'); if (rp) rp.click(); await sleep(1800);
       const rep = !!rp && c1.msgs.some(m => /^Ripeto: /.test(m.text) && m.text.includes(last));
       return { ok: pend60 && tabBlink && inAlarms && ring && taken && visible && sep && same && rep, pend60, tabBlink, inAlarms, ring, taken, visible, sep, same, rep, tail: c1.msgs.slice(-4).map(m => m.who + ': ' + m.text) };
+    });
+  },
+  async marciaillegale(p) {   // interruption from San Donato: the DCT sends a train standing there into the depot or a tail (Giovanni 3 Nov 2026)
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.ag && f.line === 'M3'), fi = M.fleets.indexOf(F);
+      st.playing = false; st.t = 8 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      const sel = document.querySelector('.closures #clSel'), o = [...sel.options].find(x => /^San Donato – Rogoredo FS$/.test(x.textContent.trim()));
+      if (!o) return { ok: false, why: 'no closure San Donato – Rogoredo FS' };
+      sel.value = o.value; sel.onchange(); await sleep(200); document.querySelector('.closures #closeBtn').click(); await sleep(300);
+      st.playing = true; st.speed = 30; await sleep(12000); st.playing = false; await sleep(500);
+      const res = [];
+      // one train at a platform (into the depot), one held in a tail (its radio offers the ways too, though it is not 'stopped')
+      for (const want of ['plat', 'tail']) {
+        const A = F.ag.agents(), k = A.findIndex(a => { const ops = F.ag.instrOptions(a.k).filter(x => x.ill && !x.blocked.length); return ops.length && (want === 'tail' ? a.mode === 'static' : a.mode === 'inside'); });
+        if (k < 0) { res.push({ want, none: true }); continue; }
+        const op = F.ag.instrOptions(k).filter(x => x.ill && !x.blocked.length).sort((x, y) => (y.key === 'ill:dep') - (x.key === 'ill:dep'))[0];
+        st.sel = 'f' + fi + ':' + k; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(600);
+        const s = document.getElementById('instrSel'); if (!s) { res.push({ want, k, noSelect: true }); continue; }
+        s.value = op.key; s.onchange(); await sleep(300);
+        const note = /Marcia illegale: ordine via radio/.test(document.getElementById('radioCmds').textContent);
+        document.getElementById('instrGo').click(); await sleep(2500);
+        const log = document.getElementById('radioLog').innerText, said = /in marcia illegale/.test(log) && /Ricevuto DCT, (cambio banco e vado in )?marcia illegale/.test(log) && (!op.cab || /cambia banco/.test(log));
+        st.playing = true; st.speed = 30; await sleep(25000); st.playing = false; await sleep(300);
+        const a = F.ag.agents()[k], there = op.key === 'ill:dep' ? a.hidden : a.mode === 'static' && a.sdTailHeld;
+        res.push({ want, k, key: op.key, note, said, there, ok: note && said && there });
+      }
+      return { ok: res.length === 2 && res.every(r => r.ok || r.none) && res.some(r => r.ok), res };
     });
   },
   async sinottico(p) {   // the sinottico of the depot (Giovanni 3 Nov 2026): the red pieces against the trains' positions

@@ -2346,6 +2346,34 @@
    "testi": [
     "Ripeto: {testo}"
    ]
+  },
+  "treno.marcia_illegale.ordine": {
+   "chi": "DCT",
+   "quando": "Interruzione da San Donato: il DCT manda un treno fermo a San Donato in tronchetto o in deposito in marcia illegale, già dal lato giusto (dove: il posto; kmh: la velocità) (proposta)",
+   "testi": [
+    "Treno {treno}, sei autorizzato in marcia illegale {dove}, senza passeggeri, al massimo {kmh} km/h. Passo."
+   ]
+  },
+  "treno.marcia_illegale.ordine_cambio_banco": {
+   "chi": "DCT",
+   "quando": "Come sopra, ma il treno è dal lato sbagliato: prima il cambio banco (proposta)",
+   "testi": [
+    "Treno {treno}, cambia banco e sei autorizzato in marcia illegale {dove}, senza passeggeri, al massimo {kmh} km/h. Passo."
+   ]
+  },
+  "treno.marcia_illegale.risposta": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma la marcia illegale (proposta)",
+   "testi": [
+    "Ricevuto DCT, marcia illegale {dove} a {kmh} km/h. Passo."
+   ]
+  },
+  "treno.marcia_illegale.risposta_cambio_banco": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma: cambio banco, poi marcia illegale (proposta)",
+   "testi": [
+    "Ricevuto DCT, cambio banco e vado in marcia illegale {dove} a {kmh} km/h. Passo."
+   ]
   }
  }
 }

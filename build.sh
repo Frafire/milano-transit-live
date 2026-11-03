@@ -39,6 +39,7 @@ node "$ROOT/tests/radio_check.js"
 python3 "$ROOT/tests/schema_check.py"
 node "$ROOT/tests/pc_check.js"
 node "$ROOT/tests/instr_check.js"
+node "$ROOT/tests/illegal_sd_check.js"
 node "$ROOT/tests/faults_check.js"
 node "$ROOT/tests/headway_check.js" || echo "WARNING: trains closer than 2 minutes"
 # Saturday and Sunday: their own service days of the same feed (GTFS s_ and f_), built the same way next to build/

@@ -273,6 +273,8 @@
           lim = stop; why = { sig: c.n, route: { wait: 'scambio' } }; break;          // switches moving, signal opening
         }
         const no = S.rt.lastNo;
+        // marcia illegale (San Donato): the DCT's order covers the routes of the whole move that need the PC
+        if (leg.ill && no && no.pc && RT.authorize(S.rt, no.pc) && RT.request(S.rt, a.k, a.pid, c.d, c.n, occ, blockOf(a), upTo)) { if (RT.ready(S.rt, a.k, a.pid, c.d)) continue; lim = stop; why = { sig: c.n, route: { wait: 'scambio' } }; break; }
         if (otherWay(a, leg, c, occ)) return { lim: a.d, why: { sig: c.n, other: true } };    // the twin path: from the next step
         lim = stop; why = { sig: c.n, route: no }; break;
       }
@@ -319,7 +321,7 @@
         if ((leg.stops || []).some(x => own(x.d)) || (a.lastStop && a.lastStop.pid === a.pid && own(a.lastStop.d))) continue;
         v = Math.min(v, z0 <= a.d + half ? THRU : Math.sqrt(THRU * THRU + 2 * B * (z0 - a.d - half))); }
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
-      if (CONTRA.has(a.pid)) v = Math.min(v, ILL);                           // on a track the wrong way
+      if (CONTRA.has(a.pid) || leg.ill) v = Math.min(v, ILL);               // on a track the wrong way, marcia illegale
       // after reopening: 40 km/h on the stretch that was closed, for 20 minutes (Giovanni)
       if (SLOW && S.t < SLOW.until) { const pe = pathEdges[a.pid], vz = SLOW.kmh / 3.6;
         if (pe) for (const [ei, , x0, x1] of pe.e) { if (x1 < a.d - half) continue; if (x0 > a.d + half + 300) break;
@@ -343,7 +345,7 @@
       const z = o.zones && o.zones[a.pid];
       if (z && (leg.status !== 'service' || leg.skip)) for (const [z0, z1, zv] of z) if (!(z1 < a.d - half || z0 > a.d + half)) v = Math.min(v, zv);
       if (leg.status === 'turnback') v = Math.min(v, 25 / 3.6);
-      if (CONTRA.has(a.pid)) v = Math.min(v, ILL);                           // on a track the wrong way
+      if (CONTRA.has(a.pid) || leg.ill) v = Math.min(v, ILL);               // on a track the wrong way, marcia illegale
       if (SLOW && S.t < SLOW.until) { const pe = pathEdges[a.pid]; if (pe) for (const [ei, , x0, x1] of pe.e) if (x1 >= a.d - half && x0 <= a.d + half && SLOW.set.has(ei)) v = Math.min(v, SLOW.kmh / 3.6); }
       if (a.vlim) v = Math.min(v, a.vlim);
       if (a.avista && a.avista.pid === a.pid) v = Math.min(v, VISTA);
@@ -393,7 +395,7 @@
     const closedBlock = a => {
       if (!S.cl && NAVHOLD) return a.mode === 'navetta' || a.navBack || inHold(a) ? null : pieces => { for (const [ei, l0, l1] of pieces) if (NAVHOLD.has(ei) && l1 - l0 > 8) return { closed: ei, navetta: true }; return null; };
       const C = a.mode === 'navetta' || a.navOut ? CLOSED0 : CLOSED;
-      return S.cl && C && a.mode !== 'inside' && a.mode !== 'held' && !a.exitClosed ? pieces => { for (const [ei, l0, l1] of pieces) if (C.has(ei) && l1 - l0 > 8) return { closed: ei }; return null; } : null; };
+      return S.cl && C && a.mode !== 'inside' && a.mode !== 'held' && !a.exitClosed && !a.illMove ? pieces => { for (const [ei, l0, l1] of pieces) if (C.has(ei) && l1 - l0 > 8) return { closed: ei }; return null; } : null; };
     let CLOSED0 = null;
     // ---------- zones of the line (failures, fase D2-D3; the PC's emergency commands) ----------
     // a stretch of the main tracks between two stations (or one station: its platforms): no power, all signals red
@@ -819,7 +821,9 @@
       // stopped at a station of the closed stretch, waiting for the PC: the routes it held ahead go back (its own track
       // stays protected by the train itself standing there)
       if (m.kind === 'stopped') { a.status = 'stopped'; a.stoppedSince = S.t; delete S.rt.routes[a.k]; return false; }
-      if (m.kind === 'depot') { a.hidden = true; a.mode = 'static'; a.status = 'depot'; return false; }
+      if (m.kind === 'depot') { a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.illMove = false; return false; }
+      // marcia illegale into a San Donato tail (the DCT): it stays there, as the trains held in the tails
+      if (m.kind === 'sdtail') { a.mode = 'static'; a.status = 'held'; a.v = 0; a.illMove = false; a.sdTailHeld = true; a.at = 0; delete S.rt.routes[a.k]; return false; }
       // fase D4: passengers off; then empty to the depot (southbound) or to a tail at Comasina (northbound)
       if (m.kind === 'unload') { a.status = 'empty'; a.stopAt = null; a.wait = S.t + (ops.terminus_unload_s || 45); return false; }
       if (m.kind === 'home') {
@@ -1277,11 +1281,76 @@
       if (e.what === 'lock') { RT.lockSwitch(S.rt, e.nd, e.pos == null ? null : e.pos); return null; }
       return { unknown: e.what };
     }
+    // ---------- marcia illegale at San Donato (Giovanni 3 Nov 2026) ----------
+    // in an interruption from San Donato, a train standing there (at a platform, or held in a tail) can be sent by the DCT
+    // into a tail or into the depot in marcia illegale: on the DCT's radio order, after a change of cab when it faces the
+    // other way, at 30 km/h (ops illegal_kmh, the speed of a train the wrong way); no tail or way excluded. The ways are
+    // paths of the build: those that end in a San Donato tail, those into the depot (they start at the arrival platform),
+    // and those out of a tail to that platform (change of cab there, then into the depot). Up to three moves.
+    const DEPIN = (o.depotIn || []).filter(x => pathEdges[x[0]]);                 // [[pid, the train's place at the platform]]
+    const SDSIG = o.sdTailSig || {};                                               // tail track piece -> number of its signal
+    const pidsAll = Object.keys(pathEdges).map(Number);
+    const TAILP = SDT.size ? pidsAll.filter(p => { const e = pathEdges[p].e; return e.length && SDT.has(e[e.length - 1][0]); }) : [];
+    const CONNP = SDT.size && DEPIN.length ? pidsAll.filter(p => { const e = pathEdges[p].e; return e.length > 1 && SDT.has(e[0][0]) && mapTo(DEPIN[0][0], DEPIN[0][1], p) != null; }) : [];
+    const pEnd = p => { const e = pathEdges[p].e; return e[e.length - 1][3]; };
+    const firstYard = p => { const e = pathEdges[p].e.find(([ei]) => netEdges[ei].cat === 'yard'); return e ? e[2] : null; };
+    // the moves of each kind from (pid, d): [{ pid, start, end, rev, goal }] (goal: tail edge, 'dep', or null for the platform)
+    function illHops(pid, d) {
+      const out = [], fits = p => mapTo(pid, d - half + 1, p) != null && mapTo(pid, d + half - 1, p) != null;
+      const same = (p, d2) => { const x = mapTo(pid, d + 3, p); if (x != null) return x > d2; const y = mapTo(pid, d - 3, p); return y == null || y < d2; };
+      const add = (p, end, goal) => { const d2 = mapTo(pid, d, p); if (d2 == null || end == null || end < d2 + 20 || !fits(p)) return; out.push({ pid: p, start: d2, end, rev: !same(p, d2), goal }); };
+      for (const p of TAILP) add(p, pEnd(p) - half - 1, pathEdges[p].e[pathEdges[p].e.length - 1][0]);
+      for (const [p] of DEPIN) { const y = firstYard(p); add(p, y != null ? y - half - 5 : pEnd(p) - half - 5, 'dep'); }
+      for (const p of CONNP) add(p, mapTo(DEPIN[0][0], DEPIN[0][1], p), null);
+      return out;
+    }
+    // the ways: one per goal (each tail, the depot), the shortest
+    function illWays(a) {
+      if (!S.cl || S.cl.a !== 0 || !SDT.size || a.hidden || a.v > 0.05) return [];
+      const atSD = a.mode === 'inside' && a.status === 'stopped' && a.inside && a.inside.stops[a.inside.q] && a.inside.stops[a.inside.q].st === 0 && Math.abs(a.inside.stops[a.inside.q].d - a.d) < 8;
+      const own = new Set(footprint(a).map(f => f[0])), inTail = a.mode === 'static' && [...own].some(e => SDT.has(e));
+      if (!atSD && !a.sdTailHeld && !inTail) return [];
+      const best = {};
+      let front = [{ pid: a.pid, d: a.d, legs: [], len: 0 }];
+      for (let depth = 0; depth < 3 && front.length; depth++) {
+        const next = new Map();
+        for (const s of front) for (const h of illHops(s.pid, s.d)) {
+          const legs = s.legs.concat([h]), len = s.len + h.end - h.start;
+          if (h.goal != null && !own.has(h.goal)) { const g = String(h.goal); if (!best[g] || len < best[g].len) best[g] = { legs, len, goal: h.goal }; }
+          if (h.goal === 'dep') continue;
+          const kk = h.pid + ':' + Math.round(h.end); if (!next.has(kk) || next.get(kk).len > len) next.set(kk, { pid: h.pid, d: h.end, legs, len });
+        }
+        front = [...next.values()];
+      }
+      return Object.values(best).sort((x, y) => (x.goal === 'dep') - (y.goal === 'dep') || x.len - y.len).map(w => ({
+        key: 'ill:' + w.goal, ill: true, cab: w.legs[0].rev, hops: w.legs, goal: w.goal,
+        to: w.goal === 'dep' ? 'in deposito' : 'in tronchetto' + (SDSIG[w.goal] != null ? ' (segnale ' + SDSIG[w.goal] + ')' : ''),
+        label: (w.goal === 'dep' ? 'In deposito' : 'In tronchetto' + (SDSIG[w.goal] != null ? ' (segnale ' + SDSIG[w.goal] + ')' : '')) + ' in marcia illegale' + (w.legs[0].rev ? ', dopo il cambio banco' : '') }));
+    }
+    function illOptions(a) {
+      return illWays(a).map(w => { const bl = new Set(); for (const h of w.hops) for (const x of trainsOn(h.pid, h.start, h.end, a.k)) bl.add(x);
+        // (a tail: one train; another already sent there by the DCT counts as in the way)
+        if (w.goal !== 'dep') for (const b of S.agents) if (b !== a && b.illMove && b.illGoal === w.goal) bl.add(b.k);
+        return { key: w.key, ill: true, cab: w.cab, to: w.to, label: w.label, blocked: [...bl] }; });
+    }
+    function illPlan(a, key) {
+      const w = illWays(a).find(x => x.key === key); if (!w) return null;
+      const legs = w.hops.map((h, i) => ({ pid: h.pid, status: 'empty', stops: [], start: h.start, end: h.end, rev: h.rev, ill: true }));
+      legs.push(w.goal === 'dep' ? { kind: 'depot' } : { kind: 'sdtail' });
+      return { legs, after: () => { a.mode = 'moving'; a.illMove = true; a.illGoal = w.goal; a.inside = null; a.sdTailHeld = false; a.kept = false; } };
+    }
     // ---------- the PC's instructions to a train standing in a closed stretch (Pannello PC) ----------
     // ahead on its track to a station (to the first open one at most: there it joins the service), back the wrong way
-    // to a station (likewise), on to San Donato and into the depot, on to Comasina and into a tail
+    // to a station (likewise), on to San Donato and into the depot, on to Comasina and into a tail; at San Donato in an
+    // interruption from there: into a tail or the depot in marcia illegale (above)
     function instrOptions(k) {
-      const a = S.agents[k]; if (!a || a.mode !== 'inside' || a.status !== 'stopped' || !a.inside) return [];
+      const a = S.agents[k]; if (!a) return [];
+      const ill = illOptions(a);
+      if (a.mode !== 'inside' || a.status !== 'stopped' || !a.inside) return ill;
+      const out0 = instrOptions0(a, k);
+      return ill.some(x => x.key === 'ill:dep') ? out0.filter(x => x.key !== 'dep').concat(ill) : out0.concat(ill);
+    }
+    function instrOptions0(a, k) {
       const I = a.inside, dir = I.dir, out = [], rev = REVP[dir];
       for (let i = I.q + 1; i < I.stops.length; i++) { const Y = I.stops[i], P = partOf(Y.st);
         out.push({ key: 'a' + i, st: Y.st, open: !!P, label: 'Avanti fino a ' + G.names[Y.st] + (P ? ', poi in servizio' : '') }); if (P) break; }
@@ -1296,6 +1365,7 @@
     }
     // the moves of an instruction (not applied): legs, and what changes in the train when it is given
     function instrPlan(a, key) {
+      if (String(key).startsWith('ill:')) return illPlan(a, key);
       const I = a.inside, dir = I.dir;
       const onto = pid => { const d = pid === a.pid ? a.d : mapTo(a.pid, a.d, pid); return d; };
       if (key[0] === 'a') {
@@ -1328,7 +1398,7 @@
     }
     // for the map: where the instructed move goes, [[pid, from, to]]
     function instrPreview(k, key) {
-      const a = S.agents[k]; if (!a || !a.inside) return null;
+      const a = S.agents[k]; if (!a || (!a.inside && !String(key).startsWith('ill:'))) return null;
       const p = instrPlan(a, key); if (!p) return null;
       const out = []; for (const l of p.legs) { if (l.kind) break; out.push([l.pid, l.start, l.end]); }
       return out;
@@ -1337,7 +1407,7 @@
       if (!instrOptions(a.k).some(x => x.key === key)) return false;
       const p = instrPlan(a, key); if (!p) return false;
       // the PC gives the signals it works along the move (the train goes where the PC sent it)
-      const L0 = p.legs[0]; for (const c of RT.ahead(L0.pid, Math.min(L0.start, L0.end) - 5, Math.abs(L0.end - L0.start) + 200)) if (RT.isPcSignal(c.n)) RT.authorize(S.rt, 'n:' + c.n);
+      for (const L0 of p.legs) { if (L0.kind) break; for (const c of RT.ahead(L0.pid, Math.min(L0.start, L0.end) - 5, Math.abs(L0.end - L0.start) + 200)) if (RT.isPcSignal(c.n)) RT.authorize(S.rt, 'n:' + c.n); if (!L0.ill) break; }
       a.legs = p.legs; p.after(); a.status = 'empty'; a.stopAt = null; a.wait = 0; a.red = null;
       S.log.push({ t: S.t, k: a.k, instr: key });
       return true;
