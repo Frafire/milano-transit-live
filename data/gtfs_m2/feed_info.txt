@@ -1,0 +1,2 @@
+"feed_publisher_name","feed_publisher_url","feed_lang","feed_start_date","feed_version","surface_end_date","mm_end_date"
+"AMAT_Milan_feed","http://www.amat-mi.it","it","20260914","423","20261002","20261015"
