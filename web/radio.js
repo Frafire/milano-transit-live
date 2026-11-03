@@ -138,38 +138,78 @@
     // ================= RADIO ALLA STAZIONE (every station has an agent: Giovanni, 1 Nov 2026) =================
     let radioStation = null; const stPending = [];
     const BIG = /^(SAN DONATO|ROGOREDO FS|LODI T\.I\.B\.B\.|PORTA ROMANA|DUOMO M3|MONTENAPOLEONE|REPUBBLICA|CENTRALE FS|ZARA|COMASINA)$/;
-    // ================= TELEFONO (Giovanni 3 Nov 2026): the DCT calls the station's OS; the radio stays for the trains =================
+    // ================= TELEFONO (Giovanni 3 Nov 2026): one conversation for each station, in tabs in the Telefono panel =================
+    // Each station keeps its own history. A call from an OS never goes away by itself: it stays pending (its tab blinks,
+    // first in the row, also in the Allarmi DCT and on the map) until the DCT takes it with a click (no new call, no
+    // waiting, no "Pronto": what the OS said is there). The DCT closes a tab when he wants. Calling a station with nothing
+    // pending: it rings, the OS answers after 1-8 s (seeded). Closed station: ERRORE in its conversation.
     const phoneEl = document.getElementById('phone'), phoneLog = document.getElementById('phoneLog'), phoneCmds = document.getElementById('phoneCmds');
-    const phoneWho = document.getElementById('phoneWho'), phoneTx = document.getElementById('phoneTx'), phoneMsgs = [];
-    let phoneCmdHtml = '';
-    function sayPhone(who, text, cls) {
-      phoneMsgs.push({ t: state.t, who, text, cls }); if (phoneMsgs.length > 80) phoneMsgs.shift(); drawPhoneLog();
+    const phoneWho = document.getElementById('phoneWho'), phoneTx = document.getElementById('phoneTx');
+    const CONV = new Map(); let phoneActive = null, phoneCmdHtml = '', phoneTabHtml = '', phoneLogHtml = '', convSeq = 0;
+    function conv(F, X) {
+      let c = CONV.get(X);
+      if (!c) { c = { F, X, name: cap(F.engine.G.names[X]), msgs: [], pending: false, open: false, line: false, lastOS: null, order: 0 }; CONV.set(X, c); }
+      c.F = F; return c;
     }
-    function drawPhoneLog() {
-      if (phoneEl.hidden) return;
-      phoneLog.innerHTML = phoneMsgs.map(m => `<div class="m ${m.cls}"><time>${fmt(m.t, true).join('')}</time>${m.who ? m.who + ': ' : ''}${m.text}</div>`).join('');
-      phoneLog.scrollTop = phoneLog.scrollHeight;
+    // a line of a conversation (X: the station; without it, the one on the telephone now)
+    function sayPhone(who, text, cls, X) {
+      const c = X != null ? CONV.get(X) : radioStation; if (!c) return;
+      c.msgs.push({ t: state.t, who, text, cls }); if (c.msgs.length > 120) c.msgs.shift();
+      if (who && who !== 'DCT' && cls !== 'sys' && cls !== 'err') c.lastOS = text;
+      drawPhone();
     }
-    // a call to the station: it rings, the OS answers after a while (1-8 s, seeded); closed: the error, nobody answers
-    let phoneSeq = 0;
+    // the OS calls the DCT. pending: it waits for the DCT (not the opening and closing of the station, said and gone)
+    function osIncoming(F, X, text, cls, pending) {
+      const c = conv(F, X), here = !phoneEl.hidden && phoneActive === X && c.line;
+      sayPhone(osName(F, X), text, cls || 'call', X);
+      if (pending && !here) { if (!c.pending) c.order = ++convSeq; c.pending = true; c.open = true; c.line = false; if (phoneEl.hidden) phoneEl.hidden = false; if (phoneActive == null) select(X); }
+      drawPhone();
+    }
+    function select(X) { phoneActive = X; radioStation = X != null ? CONV.get(X) : null; phoneCmdHtml = ''; }
+    // the DCT on a station: takes its pending call, or is already on the line, or calls it
     function openStationRadio(F, X) {
-      const G = F.engine.G; radioStation = { F, X, name: cap(G.names[X]), line: false, seq: ++phoneSeq };
-      phoneWho.textContent = radioStation.name; phoneCmdHtml = ''; phoneEl.hidden = false; drawPhoneLog();
-      sayPhone('', tx('stazione.telefono.chiamata', { stazione: radioStation.name }), 'sys');
-      if (stClosed(F, X)) { sayPhone('', tx('stazione.errore_chiusa'), 'err'); drawPhoneCmds(); return; }
-      const me = radioStation, wait = 1000 + Math.round(rand() * 7000); phoneTx.classList.add('on'); drawPhoneCmds();
-      setTimeout(() => { if (radioStation !== me) return; phoneTx.classList.remove('on'); me.line = true;
-        sayPhone(osName(F, X), tx('stazione.telefono.risponde'), 'dr'); phoneCmdHtml = ''; drawPhoneCmds(); }, wait);
+      const c = conv(F, X); c.open = true; phoneEl.hidden = false; select(X);
+      if (c.line && stClosed(F, X)) c.line = false;          // (the station closed meanwhile: nobody there any more)
+      if (c.pending) { c.pending = false; c.line = true; drawPhone(); return; }
+      if (c.line) { drawPhone(); return; }
+      if (c.calling) { drawPhone(); return; }
+      sayPhone('', tx('stazione.telefono.chiamata', { stazione: c.name }), 'sys', X);
+      if (stClosed(F, X)) { sayPhone('', tx('stazione.errore_chiusa'), 'err', X); return; }
+      const wait = 1000 + Math.round(rand() * 7000); c.calling = true; drawPhone();
+      setTimeout(() => { c.calling = false; if (!c.open) return; c.line = true; sayPhone(osName(F, X), tx('stazione.telefono.risponde'), 'dr', X); }, wait);
     }
-    document.getElementById('phoneClose').onclick = () => { phoneEl.hidden = true; radioStation = null; phoneTx.classList.remove('on'); };
+    function closeConv(X) {
+      const c = CONV.get(X); if (!c) return; c.open = false; c.line = false; c.pending = false;
+      if (phoneActive === X) { const nx = [...CONV.values()].find(x => x.open); select(nx ? nx.X : null); }
+      drawPhone();
+    }
+    document.getElementById('phoneClose').onclick = () => { phoneEl.hidden = true; };      // (the conversations stay: the tabs, the pending calls)
+    const phonePending = () => [...CONV.values()].filter(c => c.pending).sort((p, q) => p.order - q.order);
+    function drawPhone() {
+      if (phoneEl.hidden) return;
+      const tabs = [...CONV.values()].filter(c => c.open).sort((p, q) => (q.pending - p.pending) || (p.pending ? p.order - q.order : 0));
+      const th = tabs.map(c => `<span class="ptab${c.pending ? ' pend' : ''}${c.X === phoneActive ? ' act' : ''}"><button data-ptab="${c.X}">${c.pending ? '☎ ' : ''}${c.name}</button><button data-pclose="${c.X}" aria-label="Chiudi la conversazione con ${c.name}">×</button></span>`).join('');
+      if (th !== phoneTabHtml) { phoneTabHtml = th; phoneWho.innerHTML = th || '—';
+        phoneWho.querySelectorAll('[data-ptab]').forEach(b => b.onclick = () => { const c = CONV.get(+b.dataset.ptab); if (c) openStationRadio(c.F, c.X); });
+        phoneWho.querySelectorAll('[data-pclose]').forEach(b => b.onclick = () => closeConv(+b.dataset.pclose)); }
+      const c = radioStation, lh = c ? c.msgs.map(m => `<div class="m ${m.cls}"><time>${fmt(m.t, true).join('')}</time>${m.who ? m.who + ': ' : ''}${m.text}</div>`).join('') : '';
+      if (lh !== phoneLogHtml) { phoneLogHtml = lh; phoneLog.innerHTML = lh; phoneLog.scrollTop = phoneLog.scrollHeight; }
+      phoneTx.classList.toggle('on', !!(c && c.calling) || phonePending().length > 0);
+      drawPhoneCmds();
+    }
     function drawPhoneCmds() {
-      if (phoneEl.hidden || !radioStation) return;
-      const h = radioStation.line ? stationCmds() : `<div class="lbl">${stClosed(radioStation.F, radioStation.X) ? '' : '☎ …'}</div>`;
-      if (h === phoneCmdHtml) return; phoneCmdHtml = h; phoneCmds.innerHTML = h; bindPhoneSecs(); if (radioStation.line) bindStation();
+      if (phoneEl.hidden) return;
+      const c = radioStation;
+      const h = !c ? '' : c.line ? stationCmds() + (c.lastOS ? `<div class="row"><button id="phoneRepeat">Ripeti l'ultima comunicazione</button></div>` : '')
+        : `<div class="lbl">${c.calling ? '☎ …' : ''}</div>`;
+      if (h === phoneCmdHtml) return; phoneCmdHtml = h; phoneCmds.innerHTML = h;
+      if (c && c.line) { bindPhoneSecs(); bindStation();
+        const rp = document.getElementById('phoneRepeat'); if (rp) rp.onclick = () => { const last = c.lastOS; sayPhone('DCT', tx('stazione.telefono.ripeti'), 'pc'); stationSays(tx('stazione.telefono.ripeto', { testo: last }), 1200); }; }
     }
+    const drawPhoneLog = drawPhone;
     function stationSays(text, delayMs = 1800) {
-      const who = radioStation; phoneTx.classList.add('on');
-      setTimeout(() => { phoneTx.classList.remove('on'); sayPhone(osName(who.F, who.X), text, 'dr'); phoneCmdHtml = ''; drawPhoneCmds(); }, delayMs);
+      const who = radioStation; if (!who) return; phoneTx.classList.add('on');
+      setTimeout(() => { sayPhone(osName(who.F, who.X), text, 'dr', who.X); phoneCmdHtml = ''; drawPhone(); }, delayMs);
     }
     // how full the station is: for now made up (peak hours, the big stations, a closure, the trains late)
     function crowd(F, X) {
@@ -193,7 +233,7 @@
       'Situazione in banchina': null };
     function trainsHere(F, X) { return F.ag.agents().filter(a => !a.hidden && a.v === 0 && (a.stopAt === X || (a.status === 'stopped' && a.at === X))); }
     // the OS calls the DCT (the opening and closing of the station): no answer expected
-    function osCall(F, X, text) { sayPhone(osName(F, X), text, 'call'); }
+    function osCall(F, X, text) { conv(F, X); sayPhone(osName(F, X), text, 'call', X); }
     // how the OS introduces himself: "Operatore di stazione" or "OS", then the station (Radio sheet: the variants and their weights)
     function osName(F, X) { return tx('stazione.os.chi', { stazione: cap(F.engine.G.names[X] || '').replace(/\s+M\d$/i, '') }); }
     const stClosed = (F, X) => osOpen && !osOpen(F, X);
@@ -259,8 +299,7 @@
     // the answers that take time (the agent goes to see, gets on the train), in game time
     function stationTick() {
       for (let i = stPending.length - 1; i >= 0; i--) { const p = stPending[i]; if (state.t < p.at) continue;
-        stPending.splice(i, 1); sayPhone(osName(p.F, p.X), p.text, 'call');
-        if (phoneEl.hidden) { phoneEl.hidden = false; drawPhoneLog(); } phoneCmdHtml = ''; drawPhoneCmds(); }
+        stPending.splice(i, 1); osIncoming(p.F, p.X, p.text, 'call', true); }
     }
     // the radio commands in folding sections (they stay open or closed as the player left them)
     const radioOpen = new Set();
@@ -660,7 +699,7 @@
     }
     // the driver reports when the ordered stop starts and ends
     function radioTick() {
-      stationTick(); drawPhoneCmds();
+      stationTick(); drawPhone();
       for (let i = radioWatch.length - 1; i >= 0; i--) {
         const w = radioWatch[i], st = trainState(w.F, w.tr, state.t), here = st.v === 0 && w.tr.segs[st.seg] && (st.seg + ':' ) && stationAt(w.F, st.pid, st.d) === w.name;
         if (w.said === 0 && here) { w.said = 1; if (radioTrain && radioTrain.tr === w.tr) { say('T' + radioTrain.no, tx('treno.sosta.inizio', { stazione: cap(w.name), durata: durTxt(w.dur) }), 'dr'); } }
@@ -670,7 +709,7 @@
     }
 
 
-    return { say, sayPhone, drawPhoneCmds, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
+    return { say, sayPhone, osIncoming, phonePending, phoneConv: X => CONV.get(X), drawPhoneCmds, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
              radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain };
   }
   const api = { create };

@@ -812,7 +812,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .cmds button.send:hover { background: #ffe57a; }
 .radio.calling .rhd { animation: blink .5s steps(2) 6; background: #4a1a1a; }
 .radio .log .dr { color: #8dff9e; }
-.radio.phone { top: max(16px, env(safe-area-inset-top, 0px)); bottom: auto; width: min(440px, calc(100vw - 32px)); }   /* (at the top: the train radio stays at the bottom) */ .radio.phone .rhd { background: #14213a; border-bottom-color: #2a3550; } .radio.phone.calling .rhd { animation: blink .5s steps(2) 6; background: #4a1a1a; }
+.radio.phone { top: max(16px, env(safe-area-inset-top, 0px)); bottom: auto; width: min(460px, calc(100vw - 32px)); }
+.radio.phone .rhd { flex-wrap: wrap; } #phoneWho { display: flex; flex-wrap: wrap; gap: 4px; text-transform: none; letter-spacing: 0; }
+.radio.phone .ptab { display: inline-flex; border: 1px solid #3b5e45; border-radius: 3px; overflow: hidden; }
+.radio.phone .ptab button { background: #0d1d12; color: #8dff9e; border: 0; font: inherit; font-size: 15px; padding: 0 6px; cursor: pointer; }
+.radio.phone .ptab.act button { background: #2a4a33; color: #ffd23f; }
+.radio.phone .ptab.pend { border-color: #ff4d4d; animation: blink .6s steps(2) infinite; } .radio.phone .ptab.pend button { color: #ff8a8a; }
+.phring { animation: blink .8s steps(2) infinite; }
+#pcAlarms li.phone { cursor: pointer; }   /* (at the top: the train radio stays at the bottom) */ .radio.phone .rhd { background: #14213a; border-bottom-color: #2a3550; } .radio.phone.calling .rhd { animation: blink .5s steps(2) 6; background: #4a1a1a; }
 .radio .log .sys { color: #6f8f77; }
 .radio .log time { color: #6f8f77; margin-right: 6px; }
 .radio .cmds { border-top: 3px solid #2a3a2e; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
@@ -1139,7 +1146,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   <div class="cmds" id="radioCmds"></div>
 </section>
 <section class="radio phone" id="phone" hidden aria-label="Telefono con le stazioni">
-  <div class="rhd"><span class="tx" id="phoneTx"></span><span>Telefono: <b id="phoneWho">—</b></span><button class="rx" id="phoneClose" aria-label="Riaggancia">X</button></div>
+  <div class="rhd"><span class="tx" id="phoneTx"></span><span>Telefono:</span><span id="phoneWho">—</span><button class="rx" id="phoneClose" aria-label="Riaggancia">X</button></div>
   <div class="log" id="phoneLog" aria-live="polite"></div>
   <div class="cmds" id="phoneCmds"></div>
 </section>
@@ -2172,8 +2179,22 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       if (on === 'stretch') { const out = []; for (let i = 0; i < (L.last ? L.last() : 0); i++) out.push({ v: i, label: name(i) + ' – ' + name(i + 1) }); return out; }
       return [];
     }
+    // a person hit by a train (Giovanni 3 Nov 2026): only with a train coming into that station (in service, moving, its
+    // next stop there, its nose already past the start of the platform)
+    function entering(X) {
+      return S.agents.find(a => !a.hidden && a.status === 'service' && a.v > 0.5 && a.stopAt == null && a.legs[0] && !a.legs[0].kind && a.legs[0].stops
+        && a.legs[0].stops[0] && a.legs[0].stops[0].st === X && a.legs[0].stops[0].d - a.d >= 0 && a.legs[0].stops[0].d - a.d <= 2 * half_()) || null;
+    }
+    const half_ = () => (c.half || 52.5);
+    // why a failure cannot start now on that target (null: it can)
+    function cannot(kind, target) {
+      if (kind === 'investimento') { if (target == null) return G.names.some((_, X) => entering(X)) ? null : 'nessun treno in arrivo'; return entering(target) ? null : 'nessun treno in arrivo'; }
+      return null;
+    }
     function addLine(kind, target, extra) {
       const T = targets(kind); if (!T.length) return null;
+      if (cannot(kind, target)) return null;
+      if (target == null && kind === 'investimento') { const ok = T.filter(x => entering(x.v)); target = ok[Math.floor(rnd() * ok.length)].v; }
       if (target == null && kind !== 'sciopero') target = T[Math.floor(rnd() * T.length)].v;
       if ((!T.some(x => x.v === target) && kind !== 'sciopero') || lineOf().some(f => f.kind === kind && f.target === target)) return null;
       if (kind === 'tensione' && lineOf().some(f => f.kind === 'tensione')) return null;          // one stretch at a time
@@ -2219,7 +2240,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       else if (kind === 'tunnel') { f.what = name(X) + ' – ' + name(X + 1); f.a = X; f.ph = 'alarm'; f.callWho = 'drx';
         call(f, tx('emergenza.tunnel.persona', { tratta: f.what }), ['red'], 30); }
       else if (kind === 'investimento') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.zones = [L.zone('stop', X, X)];
-        { const t0 = S.agents.find(a => !a.hidden && a.stopAt === X) || S.agents.filter(a => !a.hidden && a.status === 'service' && a.legs[0] && a.legs[0].stops && a.legs[0].stops[0] && a.legs[0].stops[0].st === X)[0]; f.tk = t0 ? t0.k : null; if (t0) t0.broken = true; }
+        { const t0 = entering(X); f.tk = t0 ? t0.k : null; if (t0) t0.broken = true; }
         call(f, tx('emergenza.investimento.allarme', { stazione: name(X) }), ['red'], 30); }
       else if (kind === 'incendio') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.smoke = rnd() < 0.4 ? S.t + between(60, 300) : null;
         f.until = S.t + (rnd() < 0.15 ? between(5400, 18000) : between(1800, 5400));
@@ -2584,7 +2605,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     // for the page: the failures in force, the calls waiting for the DCT, the radio of the failures
     function list() { return live().map(f => Object.assign({ label: KINDS[f.kind].label }, f, { call: f.call && Object.assign({}, f.call, { answers: f.call.opts.map(x => [x, (f.labels && f.labels[x]) || ANSWERS[x]]) }) })); }
-    return { emBrake: c.emBrake, targets, hold, extraDwell, manual, half, vcap, tick, event, list, feed: () => F().feed, random: () => F().on, kinds: () => Object.entries(KINDS).filter(([, k]) => k.on !== 'none').map(([id, k]) => ({ id, label: k.label, on: k.on || 'train', perDay: ((c.catalog || []).find(x => x.id === id) || {}).perDay })) };
+    return { emBrake: c.emBrake, targets, cannot, hold, extraDwell, manual, half, vcap, tick, event, list, feed: () => F().feed, random: () => F().on, kinds: () => Object.entries(KINDS).filter(([, k]) => k.on !== 'none').map(([id, k]) => ({ id, label: k.label, on: k.on || 'train', perDay: ((c.catalog || []).find(x => x.id === id) || {}).perDay })) };
   }
 
   const api = { create, KINDS };
@@ -2676,7 +2697,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // text on its platform screens
     const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null, zones: [] };
     // failures (web/faults.js, foglio Guasti): emergency brake of each kind of train
-    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, tempi: o.tempi, badoni: o.badoni, vyard: (ops.depot_speed_kmh || 15) / 3.6, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
+    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, tempi: o.tempi, badoni: o.badoni, half, vyard: (ops.depot_speed_kmh || 15) / 3.6, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
       line: {
         // the signals and switches of the main tracks (where the line failures happen), the route behind a signal
         sigs: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => (o.sigall && o.sigall[pid] || []).map(x => x[1])))].filter(n => !RT.isPcSignal(n)).sort((x, y) => x - y),
@@ -2697,6 +2718,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         stuckIn: () => S.agents.filter(a => !a.hidden && a.why === 'tensione' && a.stopAt == null && a.v === 0),
         station: (X, closed, why) => { const x = S.stn[X] = Object.assign({}, S.stn[X]); if (closed) { x.closed = true; if (why) x.why = why; } else { delete x.closed; delete x.why; } if (!Object.keys(x).length) delete S.stn[X]; },     // (why: 'fire', the screens say so)
       } }) : null;
+    const SDT = new Set(o.sdTails || []);           // the San Donato tails' track pieces (build)
     const VISTA = (ops.marcia_a_vista_kmh || 15) / 3.6, THRU = (ops.closed_station_kmh || 30) / 3.6;         // marcia a vista: 15 km/h (30 on paper; Giovanni's colleague, Nov 2026)
     const last = G ? G.names.length - 1 : 0;
     const stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
@@ -3332,6 +3354,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       }
       S.parts = []; if (ea > 0) S.parts.push([0, ea]); if (eb < last) S.parts.push([eb, last]);
       const cl0 = cl; cl = { a: ea, b: eb };
+      // an interruption from San Donato (Giovanni 3 Nov 2026): its tails are closed to the service for the whole of it. A train
+      // in a tail stays there (it does not come out for a run); one already going into a tail to clear the platform goes on
+      // into it and stays there (the DCT can still move them by hand)
+      const onTail = (pid, x0, x1) => { const pe = pathEdges[pid]; return !!pe && pe.e.some(([ei, , y0, y1]) => SDT.has(ei) && y1 > x0 && y0 < x1); };
+      if (cl0.a === 0 && SDT.size) for (const a of S.agents) {
+        if (a.hidden || a.mode === 'static' || !onTail(a.pid, a.d - half, a.d + half)) continue;
+        const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, intoTail = leg && leg.end != null && onTail(leg.pid, leg.end - 1, leg.end + 1);
+        if (!intoTail) { a.seg0 = a.si; a.mode = 'static'; a.status = 'held'; a.v = 0; a.legs = []; a.sdTailHeld = true; delete S.rt.routes[a.k]; }
+      }
       for (const a of S.agents) {
         if (a.hidden || a.mode === 'static') { a.seg0 = a.si; if (a.mode !== 'static') a.mode = 'static'; continue; }
         const plan = planOf(a.k), p_si = a.si, s = plan[p_si]; a.seg0 = p_si;
@@ -4530,38 +4561,78 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // ================= RADIO ALLA STAZIONE (every station has an agent: Giovanni, 1 Nov 2026) =================
     let radioStation = null; const stPending = [];
     const BIG = /^(SAN DONATO|ROGOREDO FS|LODI T\.I\.B\.B\.|PORTA ROMANA|DUOMO M3|MONTENAPOLEONE|REPUBBLICA|CENTRALE FS|ZARA|COMASINA)$/;
-    // ================= TELEFONO (Giovanni 3 Nov 2026): the DCT calls the station's OS; the radio stays for the trains =================
+    // ================= TELEFONO (Giovanni 3 Nov 2026): one conversation for each station, in tabs in the Telefono panel =================
+    // Each station keeps its own history. A call from an OS never goes away by itself: it stays pending (its tab blinks,
+    // first in the row, also in the Allarmi DCT and on the map) until the DCT takes it with a click (no new call, no
+    // waiting, no "Pronto": what the OS said is there). The DCT closes a tab when he wants. Calling a station with nothing
+    // pending: it rings, the OS answers after 1-8 s (seeded). Closed station: ERRORE in its conversation.
     const phoneEl = document.getElementById('phone'), phoneLog = document.getElementById('phoneLog'), phoneCmds = document.getElementById('phoneCmds');
-    const phoneWho = document.getElementById('phoneWho'), phoneTx = document.getElementById('phoneTx'), phoneMsgs = [];
-    let phoneCmdHtml = '';
-    function sayPhone(who, text, cls) {
-      phoneMsgs.push({ t: state.t, who, text, cls }); if (phoneMsgs.length > 80) phoneMsgs.shift(); drawPhoneLog();
+    const phoneWho = document.getElementById('phoneWho'), phoneTx = document.getElementById('phoneTx');
+    const CONV = new Map(); let phoneActive = null, phoneCmdHtml = '', phoneTabHtml = '', phoneLogHtml = '', convSeq = 0;
+    function conv(F, X) {
+      let c = CONV.get(X);
+      if (!c) { c = { F, X, name: cap(F.engine.G.names[X]), msgs: [], pending: false, open: false, line: false, lastOS: null, order: 0 }; CONV.set(X, c); }
+      c.F = F; return c;
     }
-    function drawPhoneLog() {
-      if (phoneEl.hidden) return;
-      phoneLog.innerHTML = phoneMsgs.map(m => `<div class="m ${m.cls}"><time>${fmt(m.t, true).join('')}</time>${m.who ? m.who + ': ' : ''}${m.text}</div>`).join('');
-      phoneLog.scrollTop = phoneLog.scrollHeight;
+    // a line of a conversation (X: the station; without it, the one on the telephone now)
+    function sayPhone(who, text, cls, X) {
+      const c = X != null ? CONV.get(X) : radioStation; if (!c) return;
+      c.msgs.push({ t: state.t, who, text, cls }); if (c.msgs.length > 120) c.msgs.shift();
+      if (who && who !== 'DCT' && cls !== 'sys' && cls !== 'err') c.lastOS = text;
+      drawPhone();
     }
-    // a call to the station: it rings, the OS answers after a while (1-8 s, seeded); closed: the error, nobody answers
-    let phoneSeq = 0;
+    // the OS calls the DCT. pending: it waits for the DCT (not the opening and closing of the station, said and gone)
+    function osIncoming(F, X, text, cls, pending) {
+      const c = conv(F, X), here = !phoneEl.hidden && phoneActive === X && c.line;
+      sayPhone(osName(F, X), text, cls || 'call', X);
+      if (pending && !here) { if (!c.pending) c.order = ++convSeq; c.pending = true; c.open = true; c.line = false; if (phoneEl.hidden) phoneEl.hidden = false; if (phoneActive == null) select(X); }
+      drawPhone();
+    }
+    function select(X) { phoneActive = X; radioStation = X != null ? CONV.get(X) : null; phoneCmdHtml = ''; }
+    // the DCT on a station: takes its pending call, or is already on the line, or calls it
     function openStationRadio(F, X) {
-      const G = F.engine.G; radioStation = { F, X, name: cap(G.names[X]), line: false, seq: ++phoneSeq };
-      phoneWho.textContent = radioStation.name; phoneCmdHtml = ''; phoneEl.hidden = false; drawPhoneLog();
-      sayPhone('', tx('stazione.telefono.chiamata', { stazione: radioStation.name }), 'sys');
-      if (stClosed(F, X)) { sayPhone('', tx('stazione.errore_chiusa'), 'err'); drawPhoneCmds(); return; }
-      const me = radioStation, wait = 1000 + Math.round(rand() * 7000); phoneTx.classList.add('on'); drawPhoneCmds();
-      setTimeout(() => { if (radioStation !== me) return; phoneTx.classList.remove('on'); me.line = true;
-        sayPhone(osName(F, X), tx('stazione.telefono.risponde'), 'dr'); phoneCmdHtml = ''; drawPhoneCmds(); }, wait);
+      const c = conv(F, X); c.open = true; phoneEl.hidden = false; select(X);
+      if (c.line && stClosed(F, X)) c.line = false;          // (the station closed meanwhile: nobody there any more)
+      if (c.pending) { c.pending = false; c.line = true; drawPhone(); return; }
+      if (c.line) { drawPhone(); return; }
+      if (c.calling) { drawPhone(); return; }
+      sayPhone('', tx('stazione.telefono.chiamata', { stazione: c.name }), 'sys', X);
+      if (stClosed(F, X)) { sayPhone('', tx('stazione.errore_chiusa'), 'err', X); return; }
+      const wait = 1000 + Math.round(rand() * 7000); c.calling = true; drawPhone();
+      setTimeout(() => { c.calling = false; if (!c.open) return; c.line = true; sayPhone(osName(F, X), tx('stazione.telefono.risponde'), 'dr', X); }, wait);
     }
-    document.getElementById('phoneClose').onclick = () => { phoneEl.hidden = true; radioStation = null; phoneTx.classList.remove('on'); };
+    function closeConv(X) {
+      const c = CONV.get(X); if (!c) return; c.open = false; c.line = false; c.pending = false;
+      if (phoneActive === X) { const nx = [...CONV.values()].find(x => x.open); select(nx ? nx.X : null); }
+      drawPhone();
+    }
+    document.getElementById('phoneClose').onclick = () => { phoneEl.hidden = true; };      // (the conversations stay: the tabs, the pending calls)
+    const phonePending = () => [...CONV.values()].filter(c => c.pending).sort((p, q) => p.order - q.order);
+    function drawPhone() {
+      if (phoneEl.hidden) return;
+      const tabs = [...CONV.values()].filter(c => c.open).sort((p, q) => (q.pending - p.pending) || (p.pending ? p.order - q.order : 0));
+      const th = tabs.map(c => `<span class="ptab${c.pending ? ' pend' : ''}${c.X === phoneActive ? ' act' : ''}"><button data-ptab="${c.X}">${c.pending ? '☎ ' : ''}${c.name}</button><button data-pclose="${c.X}" aria-label="Chiudi la conversazione con ${c.name}">×</button></span>`).join('');
+      if (th !== phoneTabHtml) { phoneTabHtml = th; phoneWho.innerHTML = th || '—';
+        phoneWho.querySelectorAll('[data-ptab]').forEach(b => b.onclick = () => { const c = CONV.get(+b.dataset.ptab); if (c) openStationRadio(c.F, c.X); });
+        phoneWho.querySelectorAll('[data-pclose]').forEach(b => b.onclick = () => closeConv(+b.dataset.pclose)); }
+      const c = radioStation, lh = c ? c.msgs.map(m => `<div class="m ${m.cls}"><time>${fmt(m.t, true).join('')}</time>${m.who ? m.who + ': ' : ''}${m.text}</div>`).join('') : '';
+      if (lh !== phoneLogHtml) { phoneLogHtml = lh; phoneLog.innerHTML = lh; phoneLog.scrollTop = phoneLog.scrollHeight; }
+      phoneTx.classList.toggle('on', !!(c && c.calling) || phonePending().length > 0);
+      drawPhoneCmds();
+    }
     function drawPhoneCmds() {
-      if (phoneEl.hidden || !radioStation) return;
-      const h = radioStation.line ? stationCmds() : `<div class="lbl">${stClosed(radioStation.F, radioStation.X) ? '' : '☎ …'}</div>`;
-      if (h === phoneCmdHtml) return; phoneCmdHtml = h; phoneCmds.innerHTML = h; bindPhoneSecs(); if (radioStation.line) bindStation();
+      if (phoneEl.hidden) return;
+      const c = radioStation;
+      const h = !c ? '' : c.line ? stationCmds() + (c.lastOS ? `<div class="row"><button id="phoneRepeat">Ripeti l'ultima comunicazione</button></div>` : '')
+        : `<div class="lbl">${c.calling ? '☎ …' : ''}</div>`;
+      if (h === phoneCmdHtml) return; phoneCmdHtml = h; phoneCmds.innerHTML = h;
+      if (c && c.line) { bindPhoneSecs(); bindStation();
+        const rp = document.getElementById('phoneRepeat'); if (rp) rp.onclick = () => { const last = c.lastOS; sayPhone('DCT', tx('stazione.telefono.ripeti'), 'pc'); stationSays(tx('stazione.telefono.ripeto', { testo: last }), 1200); }; }
     }
+    const drawPhoneLog = drawPhone;
     function stationSays(text, delayMs = 1800) {
-      const who = radioStation; phoneTx.classList.add('on');
-      setTimeout(() => { phoneTx.classList.remove('on'); sayPhone(osName(who.F, who.X), text, 'dr'); phoneCmdHtml = ''; drawPhoneCmds(); }, delayMs);
+      const who = radioStation; if (!who) return; phoneTx.classList.add('on');
+      setTimeout(() => { sayPhone(osName(who.F, who.X), text, 'dr', who.X); phoneCmdHtml = ''; drawPhone(); }, delayMs);
     }
     // how full the station is: for now made up (peak hours, the big stations, a closure, the trains late)
     function crowd(F, X) {
@@ -4585,7 +4656,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       'Situazione in banchina': null };
     function trainsHere(F, X) { return F.ag.agents().filter(a => !a.hidden && a.v === 0 && (a.stopAt === X || (a.status === 'stopped' && a.at === X))); }
     // the OS calls the DCT (the opening and closing of the station): no answer expected
-    function osCall(F, X, text) { sayPhone(osName(F, X), text, 'call'); }
+    function osCall(F, X, text) { conv(F, X); sayPhone(osName(F, X), text, 'call', X); }
     // how the OS introduces himself: "Operatore di stazione" or "OS", then the station (Radio sheet: the variants and their weights)
     function osName(F, X) { return tx('stazione.os.chi', { stazione: cap(F.engine.G.names[X] || '').replace(/\s+M\d$/i, '') }); }
     const stClosed = (F, X) => osOpen && !osOpen(F, X);
@@ -4651,8 +4722,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // the answers that take time (the agent goes to see, gets on the train), in game time
     function stationTick() {
       for (let i = stPending.length - 1; i >= 0; i--) { const p = stPending[i]; if (state.t < p.at) continue;
-        stPending.splice(i, 1); sayPhone(osName(p.F, p.X), p.text, 'call');
-        if (phoneEl.hidden) { phoneEl.hidden = false; drawPhoneLog(); } phoneCmdHtml = ''; drawPhoneCmds(); }
+        stPending.splice(i, 1); osIncoming(p.F, p.X, p.text, 'call', true); }
     }
     // the radio commands in folding sections (they stay open or closed as the player left them)
     const radioOpen = new Set();
@@ -5052,7 +5122,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     // the driver reports when the ordered stop starts and ends
     function radioTick() {
-      stationTick(); drawPhoneCmds();
+      stationTick(); drawPhone();
       for (let i = radioWatch.length - 1; i >= 0; i--) {
         const w = radioWatch[i], st = trainState(w.F, w.tr, state.t), here = st.v === 0 && w.tr.segs[st.seg] && (st.seg + ':' ) && stationAt(w.F, st.pid, st.d) === w.name;
         if (w.said === 0 && here) { w.said = 1; if (radioTrain && radioTrain.tr === w.tr) { say('T' + radioTrain.no, tx('treno.sosta.inizio', { stazione: cap(w.name), durata: durTxt(w.dur) }), 'dr'); } }
@@ -5062,7 +5132,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
 
 
-    return { say, sayPhone, drawPhoneCmds, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
+    return { say, sayPhone, osIncoming, phonePending, phoneConv: X => CONV.get(X), drawPhoneCmds, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
              radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain };
   }
   const api = { create };
@@ -7359,7 +7429,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); tr.carr10 = tr.carr1 && JSON.parse(JSON.stringify(tr.carr1)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, tempi: (E_.net.rules || {}).tempi, badoni: F.test && F.test.badoni, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      planOf: k => F.trains[k].segs, count: F.trains.length, tempi: (E_.net.rules || {}).tempi, sdTails: E_.net.sd_tail_edges, badoni: F.test && F.test.badoni, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino|hitachi/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
@@ -8064,7 +8134,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
       const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
       const txt = m.text.replace(/\{T\}/g, no(m.k)).replace(/\{R\}/g, no(m.r));
       const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? MR.osName(F, m.st) : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : m.who === 'pref' ? 'Prefettura' : m.who === 'bd' ? 'Badoni' : '';
-      if (m.who === 'ag') { MR.sayPhone(who, txt, 'dr'); continue; }          // (the station's OS: on the telephone)
+      if (m.who === 'ag' && m.st != null) { MR.osIncoming(F, m.st, txt, 'dr', true); continue; }          // (the station's OS: a call on the telephone)
       MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
     }
   }
@@ -8075,6 +8145,10 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     if (!kSel.options.length) kSel.innerHTML = FX.kinds().map(x => `<option value="${x.id}">${x.label}${x.perDay != null ? ' (' + String(x.perDay).replace('.', ',') + ' al giorno)' : ''}</option>`).join('');
     if (document.activeElement !== rnd) rnd.checked = FX.random();
     const kd = FX.kinds().find(x => x.id === kSel.value), on = kd ? kd.on : 'train';
+    // (a failure that cannot start now, e.g. investimento without a train coming into the station: the button off, why)
+    { const go = document.getElementById('fxGo'), why = on !== 'train' && FX.cannot ? FX.cannot(kSel.value, tSel.value === '' ? null : +tSel.value) : null;
+      go.disabled = !!why; go.title = why ? 'Non si può: ' + why : ''; const nt = document.getElementById('fxNote');
+      if (why && nt.dataset.why !== why) { nt.dataset.why = why; nt.textContent = 'Non si può: ' + why + '.'; } else if (!why && nt.dataset.why) { nt.dataset.why = ''; nt.textContent = ''; } }
     if (on !== 'train') { const h = '<option value="">a caso</option>' + FX.targets(kSel.value).map(x => `<option value="${x.v}">${x.label}</option>`).join('');
       if (tSel.dataset.h !== h && document.activeElement !== tSel) { tSel.dataset.h = h; tSel.innerHTML = h; } }
     else if (document.activeElement !== tSel) {
@@ -8121,6 +8195,15 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
       L.polyline(pts, { color: ZCOL[z.kind] || '#fff', weight: 10, opacity: .45, interactive: false }).addTo(zoneLayer);
     }
   }
+  // the stations with a call of the OS waiting: a red ring on the map (a click takes the call)
+  const phoneRings = L.layerGroup().addTo(map), phoneSvg = L.svg();        // (svg: the ring blinks)
+  function drawPhoneRings(F) {
+    const P = MR.phonePending(), h = P.map(c => c.X).join(','); if (phoneRings._h === h) return; phoneRings._h = h; phoneRings.clearLayers();
+    const G = F.engine.G;
+    for (const c of P) { const b = (F.boards || []).find(x => x.n.toUpperCase().replace(/\s+M\d$/, '') === G.names[c.X].replace(/\s+M\d$/, '')); if (!b) continue;
+      L.circleMarker([b.la, b.lo], { radius: 14, color: '#ff4d4d', weight: 3, fill: false, className: 'phring', renderer: phoneSvg }).bindTooltip('☎ ' + MR.osName(F, c.X) + ' chiama', { className: 'st', direction: 'top', offset: [0, -14] })
+        .on('click', () => MR.openStationRadio(F, c.X)).addTo(phoneRings); }
+  }
   function renderAlarms() {
     const el = document.getElementById('pcAlarms'), F = m3eng(); if (!el) return;
     if (!F || !F.ag) { el.innerHTML = '<li class="note">Motore spento</li>'; return; }
@@ -8139,17 +8222,21 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
       const fl = F.ag.FX.list();
       fl.filter(f => !f.call && f.kind !== 'vista').forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, g: f.kind === 'segnale' || f.kind === 'sezione' ? f.target : undefined, cls: 'fx', t: f.k != null ? `⚠ Treno ${tno(f.k)}: ${f.label} · ${fxPhase(f)}`
         : f.kind === 'pc' ? `⛔ DCT: ${f.zone === 'red' ? 'pulsante rosso' : f.zone === 'power' ? 'tensione tolta' : 'treni fermi'} · ${f.what}` : `⚠ ${f.label}: ${f.what} · ${fxPhase(f)}`, fx: f }));
-      fl.filter(f => f.call).forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, cls: 'late fx', t: '📻 ' + f.call.text.replace(/\{T\}/g, tno(f.k)).replace(/\{R\}/g, tno(f.rk)), fx: f })); }
+      fl.filter(f => f.call).forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, ph: f.callWho === 'ag' && f.st != null ? f.st : undefined, cls: 'late fx' + (f.callWho === 'ag' ? ' phone' : ''), t: (f.callWho === 'ag' ? '☎ ' : '📻 ') + f.call.text.replace(/\{T\}/g, tno(f.k)).replace(/\{R\}/g, tno(f.rk)), fx: f })); }
     for (const n of Object.keys(rt.redFix || {})) out.push({ g: n, t: `#A${String(n).padStart(2, '0')} rosso fisso` });
     for (const [n, r] of Object.entries(rt.pcRoutes || {})) out.push({ g: n, t: `Itinerario ${r.id} preparato da #A${String(n).padStart(2, '0')}` });
     for (const nd of Object.keys(rt.swLock || {})) out.push({ t: `Scambio ${nd} bloccato` });
     for (const [x, v] of Object.entries(S_.stn || {})) { if (v.closed) out.push({ b: +x, t: `${cap(G.names[x])} chiusa al pubblico` }); if (v.msg) out.push({ b: +x, t: `${cap(G.names[x])}: schermi "${v.msg}"` }); }
     const em = closureNow(F); if (em) out.unshift({ cls: 'late', t: em.reopened ? `Tratta ${em.label} riaperta` : `Tratta ${em.label} chiusa` });
+    // the calls of the OS waiting for the DCT (Telefono): first, until he takes them
+    MR.phonePending().slice().reverse().filter(c => !out.some(x => x.ph === c.X)).forEach(c => out.unshift({ ph: c.X, cls: 'late phone', t: `☎ ${MR.osName(F, c.X)}: ${(c.lastOS || '').replace(/<[^>]+>/g, '')}` }));
+    drawPhoneRings(F);
     const fxBtns = f => `<span class="fxb">${(f.call ? f.call.answers : []).map(([w, l]) => `<button data-fxid="${f.id}" data-fxa="${w}">${l}</button>`).join('')}${f.kind === 'riarmo' && !f.tech && !(f.call && f.call.opts.includes('tech')) ? `<button data-fxid="${f.id}" data-fxa="tech">🔧 Tecnico a bordo</button>` : ''}${f.kind === 'pc' ? `<button data-fxid="${f.id}" data-fxa="fix">Togli</button>` : ''}</span>`;
     const html = out.map((x, i) => `<li data-i="${i}" class="${x.cls || ''}"><span class="where">${x.t}</span>${x.fx ? fxBtns(x.fx) : ''}</li>`).join('') || '<li class="note">Nessun allarme</li>';
     if (el.dataset.h === html) return; el.dataset.h = html; el.innerHTML = html;
     el.querySelectorAll('[data-fxid]').forEach(b => b.onclick = ev => { ev.stopPropagation(); fxAnswer(F, +b.dataset.fxid, b.dataset.fxa); });
     el.querySelectorAll('li[data-i]').forEach(li => li.onclick = () => { const x = out[+li.dataset.i];
+      if (x.ph != null) { MR.openStationRadio(F, x.ph); return; }
       if (x.k != null) state.sel = 'f' + fi + ':' + x.k; else if (x.g != null) state.sel = 'g' + x.g;
       else if (x.b != null) { const bi = F.boards.findIndex(b => b.n.toUpperCase().replace(/\s+M\d$/, '') === G.names[x.b].replace(/\s+M\d$/, '')); if (bi >= 0) state.sel = 'b' + fi + ':' + bi; else return; }
       else return; state.follow = false; renderCard(); });
@@ -8209,7 +8296,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; const ae = document.activeElement; if (state.sel != null && !(ae && ae.tagName === 'SELECT' && card.contains(ae))) renderCard(); }     // (not while the player is choosing in a menu of the card)
     requestAnimationFrame(frame);
   }
-  window.mtl = { map, state, fleets, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
+  window.mtl = { map, state, fleets, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), phone: { conv: X => MR.phoneConv(X), pending: () => MR.phonePending() }, osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
 </script>

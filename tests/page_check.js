@@ -24,6 +24,8 @@
 // - schermi: every change of the platform screens ordered by the DCT, the OS answers "Ricevuto, eseguo"
 // - schermichiusura: San Donato – Porta Romana closed: the dispari screens say Porta Romana, inside "Treni per"; the closure
 //   asked by the Prefettura on every station's screens; a fire: ABBANDONARE LA STAZIONE; the DCT's page TRATTA CHIUSA
+// - telefono: a call of an OS left 60 s stays pending (tab, alarms, map) and a click takes it with no new call; two
+//   stations with calls keep their own conversations; a later message of the same OS goes into the same conversation
 // - rossototale: Rosso totale: every train on the line stops (stations too); taken away from the alarms, they go again
 // - settimana: seven changes of day in a row; every tabella has a train; depot trains start from their places; maintenance
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
@@ -337,22 +339,24 @@ const SCENARIOS = {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
       const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), X = F.engine.G.names.findIndex(n => /CORVETTO/.test(n)), H = M.osHours(F)[X];
       // a call: the OS answers after 1-8 s; closed: the error at once and nobody answers. Open: "Chiedi la situazione"
-      const log = () => document.getElementById('phoneLog').innerText, waits = [];
-      const ask = async () => { const n0 = log().split('\n').length, t0 = Date.now(); M.openStationRadio(F, X); let up = null;
+      const waits = [];
+      const hang = async () => { const b = document.querySelector(`#phoneWho [data-pclose="${X}"]`); if (b) { b.click(); await sleep(200); } };   // (a new call each time)
+      const msgs = () => { const c = M.phone.conv(X); return c ? c.msgs.map(m => (m.who ? m.who + ': ' : '') + m.text) : []; };
+      const ask = async () => { await hang(); const n0 = msgs().length, t0 = Date.now(); M.openStationRadio(F, X); let up = null;
         while (Date.now() - t0 < 9500) { await sleep(100); if (document.querySelector('[data-st="sit"]')) { up = Date.now() - t0; break; } }
         if (up != null) { waits.push(up); document.querySelector('[data-st="sit"]').click(); await sleep(2500); }
-        const L = log().split('\n').slice(n0 - 1); return { err: L.some(x => /ERRORE: stazione chiusa/.test(x)), ans: L.some(x => /(Operatore di stazione|OS) Corvetto: (?!DCT)/.test(x)), up }; };
+        const L = msgs().slice(n0); return { err: L.some(x => /ERRORE: stazione chiusa/.test(x)), ans: L.some(x => /^(Operatore di stazione|OS) Corvetto: (?!DCT)/.test(x)), up }; };
       st.playing = false; st.t = H.open - 1800; await sleep(2500);
       const opened0 = M.osOpen(F, X), l0 = await ask(), err0 = l0.err && !l0.ans && l0.up == null;
       st.t = H.open - 40; await sleep(2500); st.playing = true; st.speed = 10; await sleep(7000); st.playing = false; await sleep(300);
-      const saidOpen = /(Operatore di stazione|OS) Corvetto: DCT, stazione aperta/.test(log()), l1 = await ask(), ans1 = l1.ans && !l1.err;
+      const saidOpen = /(Operatore di stazione|OS) Corvetto: DCT, stazione aperta/.test(msgs().join('\n')), l1 = await ask(), ans1 = l1.ans && !l1.err;
       const l1b = await ask(), l1c = await ask();
       st.t = H.last + 30; await sleep(3000); st.playing = true; st.speed = 60; const t0 = Date.now();
-      while (Date.now() - t0 < 40000 && !/(Operatore di stazione|OS) Corvetto: DCT, stazione chiusa alle/.test(log())) await sleep(300);
+      while (Date.now() - t0 < 40000 && !/(Operatore di stazione|OS) Corvetto: DCT, stazione chiusa alle/.test(msgs().join('\n'))) await sleep(300);
       st.playing = false; await sleep(300);
-      const saidClose = /(Operatore di stazione|OS) Corvetto: DCT, stazione chiusa alle/.test(log()), l2 = await ask(), err2 = l2.err && !l2.ans && l2.up == null;
+      const saidClose = /(Operatore di stazione|OS) Corvetto: DCT, stazione chiusa alle/.test(msgs().join('\n')), l2 = await ask(), err2 = l2.err && !l2.ans && l2.up == null;
       const waitOk = waits.length >= 3 && waits.every(w => w >= 900 && w <= 8600);
-      return { ok: !opened0 && err0 && saidOpen && ans1 && saidClose && err2 && waitOk, waits, open: H.open, first: H.first, last: H.last, opened0, err0, saidOpen, ans1, saidClose, err2, tail: log().split('\n').slice(-3) };
+      return { ok: !opened0 && err0 && saidOpen && ans1 && saidClose && err2 && waitOk, waits, open: H.open, first: H.first, last: H.last, opened0, err0, saidOpen, ans1, saidClose, err2, tail: msgs().slice(-3) };
     });
   },
   async osnome(p) {    // how the OS introduces himself (Giovanni 3 Nov 2026): both ways, and the same again on a new page (seeded)
@@ -407,6 +411,33 @@ const SCENARIOS = {
         if (f && f.call) F.ag.event({ kind: 'fault', what: 'answer', id: f.id, answer: f.call.opts[0] }); st.playing = true; st.speed = 10; await sleep(500); st.playing = false; }
       await sleep(300); const fire = alts('corvetto').some(a => /ABBANDONARE LA STAZIONE/.test(a));
       return { ok: toPR && inside && clPage && lateBtn && back && seen.size === 2 && fire, toPR, inside, clPage, lateBtn, back, pref: [...seen], fire, mis, lodi };
+    });
+  },
+  async telefono(p) {   // one conversation for each station (Giovanni 3 Nov 2026)
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), G = F.engine.G;
+      const X1 = G.names.findIndex(n => /CORVETTO/.test(n)), X2 = G.names.findIndex(n => /PORTA ROMANA/.test(n));
+      st.playing = false; st.t = 10 * 3600; await sleep(2500);
+      // (a) an OS calls (something on the tracks) and nobody answers for 60 s
+      F.ag.event({ kind: 'fault', what: 'new', fault: 'oggetto', target: X1 }); await sleep(60000);
+      const c1 = M.phone.conv(X1), pend60 = !!(c1 && c1.pending), tabBlink = !!document.querySelector(`#phoneWho .ptab.pend [data-ptab="${X1}"]`);
+      const inAlarms = [...document.querySelectorAll('#pcAlarms li.phone')].some(li => /Corvetto/.test(li.innerText)), ring = !!document.querySelector('path.phring');
+      const n0 = c1 ? c1.msgs.length : 0, t0 = Date.now(); document.querySelector(`#phoneWho [data-ptab="${X1}"]`).click(); await sleep(300);
+      const taken = !c1.pending && c1.line && Date.now() - t0 < 1500 && c1.msgs.length === n0 && !c1.msgs.some(m => /Chiamata alla stazione|Pronto/.test(m.text));
+      const visible = /Corvetto/.test(document.getElementById('phoneLog').innerText) && /caduto qualcosa/i.test(document.getElementById('phoneLog').innerText);
+      // (b) a second station calls too: two conversations, each its own
+      F.ag.event({ kind: 'fault', what: 'new', fault: 'oggetto', target: X2 }); await sleep(2500);
+      const c2 = M.phone.conv(X2), sep = !!c2 && c2.msgs.every(m => !/Corvetto/.test(m.who + m.text)) && c1.msgs.every(m => !/Porta Romana/.test(m.who + m.text));
+      // (c) the DCT answers Corvetto's call: what the OS says next goes into the same conversation (no new tab)
+      const f1 = F.ag.FX.list().find(f => f.kind === 'oggetto' && f.st === X1), m1 = c1.msgs.filter(m => /Corvetto/.test(m.who)).length;
+      if (f1 && f1.call) F.ag.event({ kind: 'fault', what: 'answer', id: f1.id, answer: f1.call.opts[0] });
+      st.playing = true; st.speed = 30; const t1 = Date.now(); while (Date.now() - t1 < 30000 && c1.msgs.filter(m => /Corvetto/.test(m.who)).length <= m1) await sleep(300); st.playing = false;
+      const same = c1.msgs.filter(m => /Corvetto/.test(m.who)).length > m1 && document.querySelectorAll(`#phoneWho [data-ptab="${X1}"]`).length === 1;
+      // the repeat button: the OS says again his last words
+      const last = c1.lastOS; M.openStationRadio(F, X1); await sleep(300); const rp = document.getElementById('phoneRepeat'); if (rp) rp.click(); await sleep(1800);
+      const rep = !!rp && c1.msgs.some(m => /^Ripeto: /.test(m.text) && m.text.includes(last));
+      return { ok: pend60 && tabBlink && inAlarms && ring && taken && visible && sep && same && rep, pend60, tabBlink, inAlarms, ring, taken, visible, sep, same, rep, tail: c1.msgs.slice(-4).map(m => m.who + ': ' + m.text) };
     });
   },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again

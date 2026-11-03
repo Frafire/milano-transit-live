@@ -2332,6 +2332,20 @@
     "Pronto, dica pure.",
     "Pronto DCT, dica."
    ]
+  },
+  "stazione.telefono.ripeti": {
+   "chi": "DCT",
+   "quando": "Il DCT chiede all'OS di ripetere la sua ultima comunicazione (tasto Ripeti)",
+   "testi": [
+    "Qui DCT, non ho copiato: puoi ripetere? Passo."
+   ]
+  },
+  "stazione.telefono.ripeto": {
+   "chi": "stazione",
+   "quando": "L'OS ripete la sua ultima comunicazione",
+   "testi": [
+    "Ripeto: {testo}"
+   ]
   }
  }
 }

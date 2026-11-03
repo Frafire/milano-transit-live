@@ -151,7 +151,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .cmds button.send:hover { background: #ffe57a; }
 .radio.calling .rhd { animation: blink .5s steps(2) 6; background: #4a1a1a; }
 .radio .log .dr { color: #8dff9e; }
-.radio.phone { top: max(16px, env(safe-area-inset-top, 0px)); bottom: auto; width: min(440px, calc(100vw - 32px)); }   /* (at the top: the train radio stays at the bottom) */ .radio.phone .rhd { background: #14213a; border-bottom-color: #2a3550; } .radio.phone.calling .rhd { animation: blink .5s steps(2) 6; background: #4a1a1a; }
+.radio.phone { top: max(16px, env(safe-area-inset-top, 0px)); bottom: auto; width: min(460px, calc(100vw - 32px)); }
+.radio.phone .rhd { flex-wrap: wrap; } #phoneWho { display: flex; flex-wrap: wrap; gap: 4px; text-transform: none; letter-spacing: 0; }
+.radio.phone .ptab { display: inline-flex; border: 1px solid #3b5e45; border-radius: 3px; overflow: hidden; }
+.radio.phone .ptab button { background: #0d1d12; color: #8dff9e; border: 0; font: inherit; font-size: 15px; padding: 0 6px; cursor: pointer; }
+.radio.phone .ptab.act button { background: #2a4a33; color: #ffd23f; }
+.radio.phone .ptab.pend { border-color: #ff4d4d; animation: blink .6s steps(2) infinite; } .radio.phone .ptab.pend button { color: #ff8a8a; }
+.phring { animation: blink .8s steps(2) infinite; }
+#pcAlarms li.phone { cursor: pointer; }   /* (at the top: the train radio stays at the bottom) */ .radio.phone .rhd { background: #14213a; border-bottom-color: #2a3550; } .radio.phone.calling .rhd { animation: blink .5s steps(2) 6; background: #4a1a1a; }
 .radio .log .sys { color: #6f8f77; }
 .radio .log time { color: #6f8f77; margin-right: 6px; }
 .radio .cmds { border-top: 3px solid #2a3a2e; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
@@ -478,7 +485,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   <div class="cmds" id="radioCmds"></div>
 </section>
 <section class="radio phone" id="phone" hidden aria-label="Telefono con le stazioni">
-  <div class="rhd"><span class="tx" id="phoneTx"></span><span>Telefono: <b id="phoneWho">—</b></span><button class="rx" id="phoneClose" aria-label="Riaggancia">X</button></div>
+  <div class="rhd"><span class="tx" id="phoneTx"></span><span>Telefono:</span><span id="phoneWho">—</span><button class="rx" id="phoneClose" aria-label="Riaggancia">X</button></div>
   <div class="log" id="phoneLog" aria-live="polite"></div>
   <div class="cmds" id="phoneCmds"></div>
 </section>
@@ -3580,7 +3587,7 @@ window.MTL_PACKS = __PACKS__;
       const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
       const txt = m.text.replace(/\{T\}/g, no(m.k)).replace(/\{R\}/g, no(m.r));
       const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? MR.osName(F, m.st) : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : m.who === 'pref' ? 'Prefettura' : m.who === 'bd' ? 'Badoni' : '';
-      if (m.who === 'ag') { MR.sayPhone(who, txt, 'dr'); continue; }          // (the station's OS: on the telephone)
+      if (m.who === 'ag' && m.st != null) { MR.osIncoming(F, m.st, txt, 'dr', true); continue; }          // (the station's OS: a call on the telephone)
       MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
     }
   }
@@ -3641,6 +3648,15 @@ window.MTL_PACKS = __PACKS__;
       L.polyline(pts, { color: ZCOL[z.kind] || '#fff', weight: 10, opacity: .45, interactive: false }).addTo(zoneLayer);
     }
   }
+  // the stations with a call of the OS waiting: a red ring on the map (a click takes the call)
+  const phoneRings = L.layerGroup().addTo(map), phoneSvg = L.svg();        // (svg: the ring blinks)
+  function drawPhoneRings(F) {
+    const P = MR.phonePending(), h = P.map(c => c.X).join(','); if (phoneRings._h === h) return; phoneRings._h = h; phoneRings.clearLayers();
+    const G = F.engine.G;
+    for (const c of P) { const b = (F.boards || []).find(x => x.n.toUpperCase().replace(/\s+M\d$/, '') === G.names[c.X].replace(/\s+M\d$/, '')); if (!b) continue;
+      L.circleMarker([b.la, b.lo], { radius: 14, color: '#ff4d4d', weight: 3, fill: false, className: 'phring', renderer: phoneSvg }).bindTooltip('☎ ' + MR.osName(F, c.X) + ' chiama', { className: 'st', direction: 'top', offset: [0, -14] })
+        .on('click', () => MR.openStationRadio(F, c.X)).addTo(phoneRings); }
+  }
   function renderAlarms() {
     const el = document.getElementById('pcAlarms'), F = m3eng(); if (!el) return;
     if (!F || !F.ag) { el.innerHTML = '<li class="note">Motore spento</li>'; return; }
@@ -3659,17 +3675,21 @@ window.MTL_PACKS = __PACKS__;
       const fl = F.ag.FX.list();
       fl.filter(f => !f.call && f.kind !== 'vista').forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, g: f.kind === 'segnale' || f.kind === 'sezione' ? f.target : undefined, cls: 'fx', t: f.k != null ? `⚠ Treno ${tno(f.k)}: ${f.label} · ${fxPhase(f)}`
         : f.kind === 'pc' ? `⛔ DCT: ${f.zone === 'red' ? 'pulsante rosso' : f.zone === 'power' ? 'tensione tolta' : 'treni fermi'} · ${f.what}` : `⚠ ${f.label}: ${f.what} · ${fxPhase(f)}`, fx: f }));
-      fl.filter(f => f.call).forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, cls: 'late fx', t: '📻 ' + f.call.text.replace(/\{T\}/g, tno(f.k)).replace(/\{R\}/g, tno(f.rk)), fx: f })); }
+      fl.filter(f => f.call).forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, ph: f.callWho === 'ag' && f.st != null ? f.st : undefined, cls: 'late fx' + (f.callWho === 'ag' ? ' phone' : ''), t: (f.callWho === 'ag' ? '☎ ' : '📻 ') + f.call.text.replace(/\{T\}/g, tno(f.k)).replace(/\{R\}/g, tno(f.rk)), fx: f })); }
     for (const n of Object.keys(rt.redFix || {})) out.push({ g: n, t: `#A${String(n).padStart(2, '0')} rosso fisso` });
     for (const [n, r] of Object.entries(rt.pcRoutes || {})) out.push({ g: n, t: `Itinerario ${r.id} preparato da #A${String(n).padStart(2, '0')}` });
     for (const nd of Object.keys(rt.swLock || {})) out.push({ t: `Scambio ${nd} bloccato` });
     for (const [x, v] of Object.entries(S_.stn || {})) { if (v.closed) out.push({ b: +x, t: `${cap(G.names[x])} chiusa al pubblico` }); if (v.msg) out.push({ b: +x, t: `${cap(G.names[x])}: schermi "${v.msg}"` }); }
     const em = closureNow(F); if (em) out.unshift({ cls: 'late', t: em.reopened ? `Tratta ${em.label} riaperta` : `Tratta ${em.label} chiusa` });
+    // the calls of the OS waiting for the DCT (Telefono): first, until he takes them
+    MR.phonePending().slice().reverse().filter(c => !out.some(x => x.ph === c.X)).forEach(c => out.unshift({ ph: c.X, cls: 'late phone', t: `☎ ${MR.osName(F, c.X)}: ${(c.lastOS || '').replace(/<[^>]+>/g, '')}` }));
+    drawPhoneRings(F);
     const fxBtns = f => `<span class="fxb">${(f.call ? f.call.answers : []).map(([w, l]) => `<button data-fxid="${f.id}" data-fxa="${w}">${l}</button>`).join('')}${f.kind === 'riarmo' && !f.tech && !(f.call && f.call.opts.includes('tech')) ? `<button data-fxid="${f.id}" data-fxa="tech">🔧 Tecnico a bordo</button>` : ''}${f.kind === 'pc' ? `<button data-fxid="${f.id}" data-fxa="fix">Togli</button>` : ''}</span>`;
     const html = out.map((x, i) => `<li data-i="${i}" class="${x.cls || ''}"><span class="where">${x.t}</span>${x.fx ? fxBtns(x.fx) : ''}</li>`).join('') || '<li class="note">Nessun allarme</li>';
     if (el.dataset.h === html) return; el.dataset.h = html; el.innerHTML = html;
     el.querySelectorAll('[data-fxid]').forEach(b => b.onclick = ev => { ev.stopPropagation(); fxAnswer(F, +b.dataset.fxid, b.dataset.fxa); });
     el.querySelectorAll('li[data-i]').forEach(li => li.onclick = () => { const x = out[+li.dataset.i];
+      if (x.ph != null) { MR.openStationRadio(F, x.ph); return; }
       if (x.k != null) state.sel = 'f' + fi + ':' + x.k; else if (x.g != null) state.sel = 'g' + x.g;
       else if (x.b != null) { const bi = F.boards.findIndex(b => b.n.toUpperCase().replace(/\s+M\d$/, '') === G.names[x.b].replace(/\s+M\d$/, '')); if (bi >= 0) state.sel = 'b' + fi + ':' + bi; else return; }
       else return; state.follow = false; renderCard(); });
@@ -3729,7 +3749,7 @@ window.MTL_PACKS = __PACKS__;
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; const ae = document.activeElement; if (state.sel != null && !(ae && ae.tagName === 'SELECT' && card.contains(ae))) renderCard(); }     // (not while the player is choosing in a menu of the card)
     requestAnimationFrame(frame);
   }
-  window.mtl = { map, state, fleets, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
+  window.mtl = { map, state, fleets, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), phone: { conv: X => MR.phoneConv(X), pending: () => MR.phonePending() }, osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
 </script>
