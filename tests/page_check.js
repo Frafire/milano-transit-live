@@ -26,6 +26,9 @@
 //   asked by the Prefettura on every station's screens; a fire: ABBANDONARE LA STAZIONE; the DCT's page TRATTA CHIUSA
 // - telefono: a call of an OS left 60 s stays pending (tab, alarms, map) and a click takes it with no new call; two
 //   stations with calls keep their own conversations; a later message of the same OS goes into the same conversation
+// - emergenzastazione: the stations' openings said also played at 300x; investimento at Corvetto: the OS asks for news,
+//   answers a check "negativo", a closing "già chiusa", an opening "impossibile, ti richiamo"; the DCT's closure from the
+//   menu goes to all the trains by radio and is the investimento's
 // - marciaillegale: San Donato – Rogoredo FS closed: by radio the DCT sends a train at a San Donato platform and one in a
 //   tail into the depot or a tail in marcia illegale (the order and the answer on the radio); they get there
 // - sinottico: Mappa | Sinottico; the red track pieces are exactly the ones the trains stand on (head, tail and all), the
@@ -444,6 +447,40 @@ const SCENARIOS = {
       return { ok: pend60 && tabBlink && inAlarms && ring && taken && visible && sep && same && rep, pend60, tabBlink, inAlarms, ring, taken, visible, sep, same, rep, tail: c1.msgs.slice(-4).map(m => m.who + ': ' + m.text) };
     });
   },
+  async emergenzastazione(p) {   // the OS in an emergency, the closure told to all, the openings played fast (Giovanni 3 Nov 2026)
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), G = F.engine.G;
+      // the openings of the stations at 300x: each OS still says it
+      st.playing = false; st.t = 4.8 * 3600; await sleep(2500); st.speed = 300; st.playing = true; const tq = Date.now();
+      while (Date.now() - tq < 40000 && st.t < 6.6 * 3600) await sleep(300); st.playing = false; await sleep(1500);
+      const opened = G.names.filter((n, X) => { const c = M.phone.conv(X); return c && c.msgs.some(m => /stazione aperta alle/.test(m.text)); }).length;
+      // an investimento at Corvetto (a train coming in), the red button
+      const X = G.names.findIndex(n => /CORVETTO/.test(n)); st.t = 10 * 3600; await sleep(2500);
+      let id = null; st.speed = 2; st.playing = true; const t0 = Date.now();
+      while (id == null && Date.now() - t0 < 60000) { if (!F.ag.FX.cannot('investimento', X)) id = F.ag.event({ kind: 'fault', what: 'new', fault: 'investimento', target: X }); await sleep(100); }
+      st.playing = false; if (id == null) return { ok: false, why: 'no train coming into Corvetto', opened };
+      await sleep(500); const f = () => F.ag.FX.list().find(x => x.id === id);
+      if (f().call && f().call.opts.includes('red')) F.ag.event({ kind: 'fault', what: 'answer', id, answer: 'red' }); await sleep(500);
+      // the DCT calls Corvetto: the OS asks for news; a check: negative, waiting for help; close: closed already; open: not now
+      // (a call of the OS waiting: taken first, then the DCT hangs up and calls again)
+      M.openStationRadio(F, X); const c = M.phone.conv(X); await sleep(300); const xb = document.querySelector(`#phoneWho [data-pclose="${X}"]`); if (xb) xb.click(); await sleep(300);
+      M.openStationRadio(F, X); const t1 = Date.now(); while (!c.line && Date.now() - t1 < 12000) await sleep(200);
+      const last = () => c.msgs.slice(-1)[0].text, news = /novità/i.test(last());
+      const click = async (sel, re) => { const b = document.querySelector('#phoneCmds ' + sel); if (!b) return false; b.click(); const t2 = Date.now(); while (Date.now() - t2 < 5000 && !re.test(last())) await sleep(200); return re.test(last()); };
+      const check = await click('[data-chk="Situazione in banchina"]', /Negativo DCT/);
+      const shut = await click('[data-acc="close"]', /già chiusa/), notNow = await click('[data-acc="open"]', /Impossibile al momento/);
+      const stillClosed = !!(F.ag.S.stn[X] || {}).closed;
+      // the DCT closes San Donato – Porta Romana from the menu: to all the trains, by radio; the investimento takes it
+      const sel = document.querySelector('.closures #clSel'), o = [...sel.options].find(x => /^San Donato – Porta Romana$/.test(x.textContent.trim()));
+      sel.value = o.value; sel.onchange(); await sleep(200); document.querySelector('.closures #closeBtn').click(); await sleep(500);
+      st.speed = 2; st.playing = true; await sleep(2500); st.playing = false; await sleep(300);
+      st.sel = 'f' + M.fleets.indexOf(F) + ':0'; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(500);
+      const rl = document.getElementById('radioLog').textContent, all = /A tutti i treni, qui DCT: .*San Donato – Porta Romana è chiusa/.test(rl), taken = !!f().closed;
+      if (!all) console.log('radioLog: ' + rl.slice(-600) + ' | closeBtn disabled ' + document.querySelector('.closures #closeBtn').disabled + ' | clLast ' + JSON.stringify(F.ag.S.clLast));
+      return { ok: opened >= 15 && news && check && shut && notNow && stillClosed && all && taken, opened, news, check, shut, notNow, stillClosed, all, taken, tail: c.msgs.slice(-4).map(m => m.who + ': ' + m.text) };
+    });
+  },
   async marciaillegale(p) {   // interruption from San Donato: the DCT sends a train standing there into the depot or a tail (Giovanni 3 Nov 2026)
     return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -476,7 +513,8 @@ const SCENARIOS = {
     return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));
       const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), SCH = F.engine.net.schema_depot, SE = new Set(SCH.edges), half = F.engine.half;
-      document.querySelector('.viewsw [data-view="sin"]').click(); const res = [];
+      if (document.querySelector('.viewsw') && document.querySelector('.viewsw').isConnected) return { ok: false, why: 'the Mappa | Sinottico switch is still on the screen' };
+      M.setView('sin'); const res = [];
       for (const t of [6.2 * 3600, 10.6 * 3600]) {
         st.playing = false; st.t = t; await sleep(2500); await sleep(1300);
         const want = new Set(); F.ag.agents().forEach(a => { if (a.hidden) return; const pe = F.engine.pathEdges[a.pid]; if (!pe) return;
@@ -485,7 +523,7 @@ const SCENARIOS = {
         const sigs = document.querySelectorAll('#depotPlan circle.sg').length, edges = document.querySelectorAll('#depotPlan polyline[data-e]').length;
         res.push({ t: t / 3600, want: want.size, red: red.size, same: want.size === red.size && [...want].every(e => red.has(e)), sigs, edges });
       }
-      document.querySelector('.viewsw [data-view="map"]').click(); await sleep(200);
+      document.getElementById('dpClose').click(); await sleep(200);
       const back = document.getElementById('depotPlan').hidden;
       return { ok: res.every(r => r.same && r.want > 0 && r.sigs === SCH.signals.length && r.edges === SCH.edges.length) && back, res, back };
     });
@@ -666,7 +704,7 @@ const SCENARIOS = {
   const which = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(SCENARIOS);
   const b = await chromium.launch(); let fail = 0;
   for (const name of which) {
-    const p = await b.newPage(), errs = []; p.on('pageerror', e => errs.push(process.env.STACK ? e.stack : e.message));
+    const p = await b.newPage(), errs = []; p.on('pageerror', e => errs.push(process.env.STACK ? e.stack : e.message)); if (process.env.CONSOLE) p.on('console', m => console.log('  [page] ' + m.text().slice(0, 900)));
     await p.goto(PAGE); await p.waitForTimeout(6000);
     const r = await SCENARIOS[name](p); if (errs.length) { r.ok = false; r.errors = errs.slice(0, 3); }
     console.log(`page ${name}: ${r.ok ? 'ok' : 'FAILED'}`, JSON.stringify(r)); if (!r.ok) fail++;

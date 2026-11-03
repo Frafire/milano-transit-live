@@ -106,6 +106,8 @@ for (const kind of PEOPLE) {
   for (t = T0 + 10; t <= 16 * 3600; t += 10) {
     ag.step(t);
     const f = ag.S.faults.list.find(x => x.id === id); phases.add(f.ph); if (f.done && endT == null) endT = f.done;
+    // (the closure of an investimento and its reopening: never by themselves, the DCT answers: Giovanni 3 Nov 2026)
+    if (kind === 'investimento' && f.call && f.call.opts.some(o => o === 'cl0' || o === 'reopen') && t - f.call.t >= 600) ag.event({ kind: 'fault', what: 'answer', id, answer: f.call.opts.includes('cl0') ? 'cl0' : 'reopen' });
     for (const z of ag.zones()) { zonesSeen.add(z.kind); if (!zv.has(z.id)) zv.set(z.id, t); }
     if (ag.S.stn[X] && ag.S.stn[X].closed) closedSeen = true; if (ag.S.cl) clSeen = true;
     ag.agents().forEach(x => { if (x.hidden) return;
@@ -125,6 +127,34 @@ for (const kind of PEOPLE) {
   console.log(`${bad ? 'FAIL' : 'ok  '} ${kind} ${f.what}: phases ${[...phases].join(' > ')} | over at ${endT ? new Date(endT * 1000).toISOString().slice(11, 16) : 'never'} | zones ${[...zonesSeen].join(', ') || '-'} | moving after the red button: ${movingRed} | ${kind === 'malore_stazione' ? 'fastest at the station ' + slowMax.toFixed(1) + ' km/h | ' : ''}${kind === 'tunnel' ? 'marcia a vista ' + vistaMax.toFixed(1) + ' km/h | ' : ''}station closed: ${closedSeen} | stuck 25+ min at the end: ${stuck} | overlaps ${ov} | without route: signals ${rt.viol || 0}, switches ${rt.swViol || 0} | ${Date.now() - t0} ms`);
   for (const m of ag.S.faults.feed.filter(x => x.id === id).slice(0, 6)) console.log('       ' + new Date(m.t * 1000).toISOString().slice(11, 19) + ' ' + m.who + ': ' + m.text);
   if (bad) fail++;
+}
+// investimento at Corvetto, the closure the DCT's own (Giovanni 3 Nov 2026): the game never closes a stretch by itself
+// (the question stays there 10 minutes and more); the DCT closes San Donato – Porta Romana from the menu: that is the
+// closure of the investimento (the question goes, the label is his); after the rilievi he reopens from the menu: over
+if (!ARG || ARG === 'people' || ARG === 'investimento') {
+  const ag = L.agents(M, D, t => L.posAt(day, t)), t0 = Date.now(), G = M.degraded, X = G.names.findIndex(n => /CORVETTO/.test(n));
+  const C = M.net.closures.find(c => /^San Donato – Porta Romana$/.test(c.label));
+  ag.start(T0 - 600, L.posAt(day, T0 - 600)); ag.step(T0);
+  let t = T0, id = null; while (id == null && t < T0 + 3600) { ag.step(t += 2); id = ag.event({ kind: 'fault', what: 'new', fault: 'investimento', target: X }); }
+  let asked = null, byItself = false, mine = false, gone = false, reopenAsk = false, done = false, ov = 0, deadOk = false;
+  for (t += 10; t <= 16 * 3600 && !done; t += 10) {
+    ag.step(t); const f = ag.S.faults.list.find(x => x.id === id);
+    if (f.call && f.call.opts.includes('red')) ag.event({ kind: 'fault', what: 'answer', id, answer: 'red' });
+    if (asked == null && f.call && f.call.opts.includes('cl0')) { asked = t;
+      // no closure that would turn the trains where the power is off (Porto di Mare, Brenta: around Corvetto)
+      const offered = Object.values(f.labels || {}).filter(x => /^Chiudi /.test(x)), within = c => (c.a > 0 && c.a >= X - 1 && c.a <= X) || (c.b < G.names.length - 1 && c.b >= X && c.b <= X + 1);
+      deadOk = offered.length > 0 && M.net.closures.filter(within).every(c => !offered.includes('Chiudi ' + c.label) && ag.closureBlocked(c.a, c.b) != null); }
+    if (asked != null && !mine && ag.S.cl) byItself = true;
+    if (asked != null && !mine && t - asked >= 900) { ag.event({ kind: 'close', cl: { a: C.a, b: C.b, ends: {} }, label: C.label }); mine = true; }
+    if (mine && !gone && f.closed && !(f.call && f.call.opts.includes('cl0'))) gone = true;
+    if (f.ph === 'reopen' && !reopenAsk) { reopenAsk = true; ag.event({ kind: 'reopen' }); }
+    if (f.done) done = true;
+    if (t % 60 === 0) ov += overlaps(ag);
+  }
+  const f = ag.S.faults.list.find(x => x.id === id), lab = ag.S.faults.feed.filter(x => x.id === id).map(m => m.text).find(x => /Chiusa San Donato – Porta Romana/.test(x));
+  const bad = id == null || asked == null || byItself || !gone || !lab || !reopenAsk || !done || ov || !deadOk;
+  console.log(`${bad ? 'FAIL' : 'ok  '} investimento a Corvetto, chiusura del DCT: asked ${asked != null} (no closure turning where the power is off: ${deadOk}), closed by itself in 15 min ${byItself}, the DCT's San Donato – Porta Romana taken ${gone} (${lab || 'no message'}), reopened by the DCT: over ${done} | overlaps ${ov} | ${Date.now() - t0} ms`);
+  if (bad) fail++; void f;
 }
 // the rescue of a train with both units dead, each way: the train behind pushes (15 km/h), the train in front comes
 // back and pulls (30 km/h), the Badoni from ROD (the line without power on the way). Checks: the broken train is taken

@@ -179,7 +179,8 @@
       sayPhone('', tx('stazione.telefono.chiamata', { stazione: c.name }), 'sys', X);
       if (stClosed(F, X)) { sayPhone('', tx('stazione.errore_chiusa'), 'err', X); return; }
       const wait = 1000 + Math.round(rand() * 7000); c.calling = true; drawPhone();
-      setTimeout(() => { c.calling = false; if (!c.open) return; c.line = true; sayPhone(osName(F, X), tx('stazione.telefono.risponde'), 'dr', X); }, wait);
+      setTimeout(() => { c.calling = false; if (!c.open) return; c.line = true; const em = emergencyAt(F, X);
+        sayPhone(osName(F, X), em ? tx('stazione.emergenza.novita', { stazione: c.name }) : tx('stazione.telefono.risponde'), 'dr', X); }, wait);
     }
     function closeConv(X) {
       const c = CONV.get(X); if (!c) return; c.open = false; c.line = false; c.pending = false;
@@ -236,10 +237,38 @@
       'Situazione in banchina': null };
     function trainsHere(F, X) { return F.ag.agents().filter(a => !a.hidden && a.v === 0 && (a.stopAt === X || (a.status === 'stopped' && a.at === X))); }
     // the OS calls the DCT (the opening and closing of the station): no answer expected
-    function osCall(F, X, text) { conv(F, X); sayPhone(osName(F, X), text, 'call', X); }
+    function osCall(F, X, text) { const c = conv(F, X); c.open = true; sayPhone(osName(F, X), text, 'call', X); }      // (its tab shows it: not a pending call)
     // how the OS introduces himself: "Operatore di stazione" or "OS", then the station (Radio sheet: the variants and their weights)
     function osName(F, X) { return tx('stazione.os.chi', { stazione: cap(F.engine.G.names[X] || '').replace(/\s+M\d$/i, '') }); }
     const stClosed = (F, X) => osOpen && !osOpen(F, X);
+    // ---- a serious emergency at the station (investimento, incendio): the OS answers with it in mind, tells the DCT how it
+    // goes on, asks him for news (Giovanni 3 Nov 2026). The times: Tempi sheet (proposals) ----
+    const EMK = ['investimento', 'incendio'];
+    function emergencyAt(F, X) { const fx = F.ag && F.ag.FX; if (!fx || !fx.list) return null; return fx.list().find(f => !f.done && f.st === X && EMK.includes(f.kind)) || null; }
+    const tempoR = (F, pre, dflt) => { const tm = (F.engine.net.rules || {}).tempi || {}, v = Object.entries(tm).find(([n]) => n.startsWith(pre)); return v && v[1][0] != null ? +v[1][0] : dflt; };
+    // what the OS says of the emergency now
+    function emState(f) {
+      if (f.kind === 'incendio') return f.ph === 'done' ? 'stazione.emergenza.situazione_incendio_spento' : 'stazione.emergenza.situazione_incendio';
+      return f.ph === 'alarm' ? 'stazione.emergenza.situazione_investimento_allarme' : f.ph === 'recover' ? 'stazione.emergenza.situazione_investimento_rilievi' : 'stazione.emergenza.situazione_investimento_finito';
+    }
+    const EMW = {};             // (fault id -> what the OS has already said: arrivals, last update)
+    function emergencyTick() {
+      const F = m3eng && m3eng(); if (!F || !F.ag || !F.ag.FX || !F.ag.FX.list) return;
+      for (const f of F.ag.FX.list()) {
+        if (f.done || !EMK.includes(f.kind) || f.st == null) continue;
+        const w = EMW[f.id] = EMW[f.id] || { t0: state.t, last: state.t }, X = f.st, nm = cap(F.engine.G.names[X] || '').replace(/\s+M\d$/i, '');
+        if (state.t < w.t0 - 60) { EMW[f.id] = { t0: state.t, last: state.t }; continue; }            // (back in time)
+        const arr = tempoR(F, 'Emergenza: arrivo dei soccorsi', 900), every = tempoR(F, 'Emergenza: aggiornamento dell', 1800);
+        const busy = f.kind === 'incendio' ? f.ph === 'fire' : f.ph === 'recover';
+        if (busy && w.b0 == null) w.b0 = state.t;                                  // (from the call for help: the red button, the fire)
+        if (!w.arrived && busy && state.t - w.b0 >= arr) { w.arrived = true; w.last = state.t;
+          osIncoming(F, X, tx(f.kind === 'incendio' ? 'stazione.emergenza.vvf_arrivati' : 'stazione.emergenza.soccorsi_arrivati', { stazione: nm }), 'call', true); continue; }
+        if (w.arrived && busy && state.t - w.last >= every) { w.last = state.t;
+          osIncoming(F, X, tx(f.kind === 'incendio' ? 'stazione.emergenza.aggiornamento_incendio' : 'stazione.emergenza.aggiornamento_investimento', { stazione: nm }), 'call', true); }
+      }
+      // the OS who said "I'll call you back": the emergency is over
+      for (const c of CONV.values()) if (c.callback && !emergencyAt(c.F, c.X)) { c.callback = false; osIncoming(c.F, c.X, tx('stazione.emergenza.richiamo', { stazione: c.name }), 'call', true); }
+    }
     function stationCmds() {
       const { F, X } = radioStation, G = F.engine.G, st = F.ag.S.stn[X] || {}, here = trainsHere(F, X), tn = a => trainNo(F, F.trains[a.k]);
       const pend = stPending.filter(p => p.F === F && p.X === X), H = osHours ? osHours(F)[X] : null;
@@ -254,7 +283,8 @@
         const p = asg.find(x => x.k === a.k);
         return `<div class="row"><span class="lbl">Treno ${tn(a)}</span>` + (p ? `<button disabled>Agente sul treno…</button>` : `<button data-ass="${a.k}">Manda l'agente sul treno</button>`) + (a.pcHold && !p ? `<button data-rel="${a.k}">Fai ripartire</button>` : '') + `</div>`; }).join('')
         : `<div class="lbl">Nessun treno fermo in stazione</div>`, held.length ? held.length + ' trattenuti' : '');
-      h += radioSec('stacc', 'Accessi della stazione', `<div class="row">${st.closed ? '<button data-acc="open">Riapri la stazione</button>' : '<button data-acc="close">Chiudi la stazione: i treni non fermano</button>'}</div>`, st.closed ? 'chiusa' : '');
+      const em = emergencyAt(F, X);
+      h += radioSec('stacc', 'Accessi della stazione', `<div class="row">${em ? '<button data-acc="close">Chiudi la stazione: i treni non fermano</button><button data-acc="open">Riapri la stazione</button>' : st.closed ? '<button data-acc="open">Riapri la stazione</button>' : '<button data-acc="close">Chiudi la stazione: i treni non fermano</button>'}</div>`, em ? 'emergenza' : st.closed ? 'chiusa' : '');
       return h;
     }
     function bindStation() {
@@ -264,8 +294,8 @@
         e.stopImmediatePropagation(); e.preventDefault(); sayPhone('', tx('stazione.errore_chiusa'), 'err'); }, true));
       phoneCmds.querySelectorAll('[data-st="sit"]').forEach(b => b.onclick = () => {
         sayPhone('DCT', tx('stazione.situazione.chiede', { stazione: name }), 'pc');
-        const c = crowd(F, X), cl = (F.ag.S.stn[X] || {}).closed;
-        stationSays(cl ? tx('stazione.situazione.chiusa') : tx('stazione.situazione.risposta', { folla: crowdTxt(c) }));
+        const c = crowd(F, X), cl = (F.ag.S.stn[X] || {}).closed, em = emergencyAt(F, X);
+        stationSays(em ? tx(emState(em)) : cl ? tx('stazione.situazione.chiusa') : tx('stazione.situazione.risposta', { folla: crowdTxt(c) }));
       });
       phoneCmds.querySelectorAll('[data-ann]').forEach(b => b.onclick = () => {
         const k = b.dataset.ann; sayPhone('DCT', tx('stazione.annuncio.ordine', { stazione: name, annuncio: tx(ANN[k]) }), 'pc'); stationSays(tx('stazione.annuncio.risposta'));
@@ -277,6 +307,7 @@
       });
       phoneCmds.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => {
         const k = b.dataset.chk; sayPhone('DCT', tx('stazione.verifica.ordine', { stazione: name, cosa: k.toLowerCase() }), 'pc');
+        const em = emergencyAt(F, X); if (em) { stationSays(tx(em.kind === 'incendio' ? 'stazione.emergenza.verifica_incendio' : 'stazione.emergenza.verifica_investimento')); return; }
         const ans = CHECK[k] ? tx(rand() < 0.8 ? CHECK[k][0] : CHECK[k][1]) : tx('stazione.verifica.banchina', { folla: crowdTxt(crowd(F, X)) });
         stationSays(tx('stazione.verifica.vado'), 1200);
         stPending.push({ F, X, kind: 'check', at: state.t + 60 + rand() * 90, text: ans });
@@ -294,8 +325,12 @@
         sayPhone('DCT', tx('treno.riparti.ordine', { treno: no }), 'pc'); phoneCmdHtml = ''; drawPhoneCmds();
       });
       phoneCmds.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => {
-        const close = b.dataset.acc === 'close'; F.ag.event({ kind: 'station', st: X, what: close ? 'close' : 'open' });
+        const close = b.dataset.acc === 'close', em = emergencyAt(F, X), shut = !!(F.ag.S.stn[X] || {}).closed;
         sayPhone('DCT', close ? tx('stazione.chiusura.ordine', { stazione: name }) : tx('stazione.riapertura.ordine', { stazione: name }), 'pc');
+        // in an emergency: closed already ("affermativo"); not to be opened now: he calls back when it is over
+        if (em && close && shut) { stationSays(tx('stazione.emergenza.gia_chiusa')); return; }
+        if (em && !close) { stationSays(tx('stazione.emergenza.non_riapribile')); radioStation.callback = true; return; }
+        F.ag.event({ kind: 'station', st: X, what: close ? 'close' : 'open' });
         stationSays(close ? tx('stazione.chiusura.risposta') : tx('stazione.riapertura.risposta')); phoneCmdHtml = ''; drawPhoneCmds();
       });
     }
@@ -702,7 +737,7 @@
     }
     // the driver reports when the ordered stop starts and ends
     function radioTick() {
-      stationTick(); drawPhone();
+      stationTick(); emergencyTick(); drawPhone();
       for (let i = radioWatch.length - 1; i >= 0; i--) {
         const w = radioWatch[i], st = trainState(w.F, w.tr, state.t), here = st.v === 0 && w.tr.segs[st.seg] && (st.seg + ':' ) && stationAt(w.F, st.pid, st.d) === w.name;
         if (w.said === 0 && here) { w.said = 1; if (radioTrain && radioTrain.tr === w.tr) { say('T' + radioTrain.no, tx('treno.sosta.inizio', { stazione: cap(w.name), durata: durTxt(w.dur) }), 'dr'); } }

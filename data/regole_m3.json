@@ -110,6 +110,16 @@
    600,
    600,
    "Giovanni, 03/11/2026"
+  ],
+  "Emergenza: arrivo dei soccorsi in stazione, dalla chiamata (investimento: polizia e soccorsi; incendio: vigili del fuoco)": [
+   900,
+   null,
+   "Proposta di Claude (3 nov 2026), da confermare: quando l'OS dice al DCT che sono arrivati"
+  ],
+  "Emergenza: aggiornamento dell'OS al DCT, ogni": [
+   1800,
+   null,
+   "Proposta di Claude (3 nov 2026), da confermare: l'OS richiama per dire come va e chiedere novità"
   ]
  },
  "semafori": {

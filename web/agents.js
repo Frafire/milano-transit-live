@@ -95,7 +95,8 @@
         // the Badoni from ROD (the line cut off): the broken train is taken away; the DCT: closures, back to the hybrid timetable
         takeAway: k => { const a = S.agents[k]; if (!a) return; a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.v = 0; delete S.rt.routes[a.k]; },
         badoniWay: k => badoniWay(k), place: (k, pid, d) => { const a = S.agents[k]; if (!a) return; a.pid = pid; a.d = d; a.v = 0; a.stopAt = null; },
-        closures: X => (o.closures || []).map((c, i) => Object.assign({ i }, c)).filter(c => c.a <= X - 1 && c.b >= X + 1 && (c.often === 'sì' || c.often === 'raramente' || c.often == null)).sort((p, q) => (p.b - p.a) - (q.b - q.a)).slice(0, 3),
+        // (not those that would turn the trains where there is no power now: closureBlocked)
+        closures: X => (o.closures || []).map((c, i) => Object.assign({ i }, c)).filter(c => c.a <= X - 1 && c.b >= X + 1 && (c.often === 'sì' || c.often === 'raramente' || c.often == null) && closureBlocked(c.a, c.b) == null).sort((p, q) => (p.b - p.a) - (q.b - q.a)).slice(0, 3),
         close: i => { const c = (o.closures || [])[i]; if (!c) return false; close({ a: c.a, b: c.b, ends: {} }); S.clLast = { label: c.label, t0: S.t, cl: { a: c.a, b: c.b, ends: {} } }; return true; },
         reopen: () => { if (S.cl) reopen(S.t); },
         hybrid: () => toHybrid(), wake: k => wake(S.agents[k]), names: () => G.names,
@@ -415,6 +416,16 @@
     function addZone(kind, a, b, extra) {
       const x = Math.max(0, Math.min(a, b)), y = Math.min(last, Math.max(a, b)); S.zoneSeq = (S.zoneSeq || 0) + 1;
       S.zones = (S.zones || []).concat([Object.assign({ id: S.zoneSeq, kind, a: x, b: y, done: {} }, extra || {})]); setZones(); return S.zoneSeq;
+    }
+    // a closure a-b whose trains would turn at an end where a zone without power (or with the red button) takes the
+    // track beyond the station (the turn uses it): that end station, else null. (Giovanni 3 Nov 2026: with an
+    // investimento at Brenta, San Donato – Lodi left the trains unable to turn at Lodi, and the line stuck behind them)
+    function closureBlocked(a, b) {
+      for (const z of S.zones || []) { if (z.kind !== 'red' && z.kind !== 'power') continue;
+        if (z.all) return a > 0 ? a : b;
+        if (a > 0 && z.a <= a && z.b >= a + 1) return a;
+        if (b < last && z.a <= b - 1 && z.b >= b) return b; }
+      return null;
     }
     function dropZone(id) { S.zones = (S.zones || []).filter(z => z.id !== id); setZones(); }
     const inZ = (Z, ei, l0, l1) => { const p = Z.map.get(ei); return p && l0 < p[1] - 2 && p[0] + 2 < l1 ? p[2] : null; };
@@ -1507,7 +1518,7 @@
       if (c.clLast && c.clLast.cl) { close(c.clLast.cl); S.clLast = Object.assign({}, c.clLast, { t0: S.t }); }
       snapshot();
     }
-    return { S, TL, IL, RT, FX, carryOut, carryIn, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, agents: () => S.agents, occ: ei => edgeMap.get(ei),
+    return { S, TL, IL, RT, FX, carryOut, carryIn, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, closureBlocked, agents: () => S.agents, occ: ei => edgeMap.get(ei),
       // the regolatore (fase E): a train out of the service at the end of its run, one kept in the depot, the runs taken in the hybrid timetable
       runs: () => [...usedRuns] };
   }

@@ -2374,6 +2374,133 @@
    "testi": [
     "Ricevuto DCT, cambio banco e vado in marcia illegale {dove} a {kmh} km/h. Passo."
    ]
+  },
+  "dct.chiusura_non_possibile": {
+   "chi": "sistema",
+   "quando": "Il DCT prova a chiudere una tratta che farebbe girare i treni dove ora non c'è tensione (investimento, pulsante rosso)",
+   "testi": [
+    "Non si può chiudere {tratta}: oltre {stazione} non c'è tensione, i treni non potrebbero girare lì. Chiudi più lontano."
+   ]
+  },
+  "dct.tratta_chiusa_a_tutti": {
+   "chi": "DCT",
+   "quando": "Una tratta viene chiusa (dal menu o dall'allarme di un investimento): avviso radio a tutti i treni (in coda le navette)",
+   "testi": [
+    "A tutti i treni, qui DCT: dalle {ora} la tratta {tratta} è chiusa. I treni girano alle stazioni di fine tratta.{navette} Passo."
+   ]
+  },
+  "dct.tratta_riaperta_a_tutti": {
+   "chi": "DCT",
+   "quando": "La tratta chiusa viene riaperta: avviso radio a tutti i treni",
+   "testi": [
+    "A tutti i treni, qui DCT: la tratta {tratta} è riaperta. 40 km/h sulla tratta per 20 minuti. Ogni treno prende la prima partenza scoperta, salvo mie disposizioni. Passo."
+   ]
+  },
+  "stazione.emergenza.aggiornamento_incendio": {
+   "chi": "stazione",
+   "quando": "Incendio in corso: l'OS aggiorna il DCT (Tempi: Emergenza, aggiornamento dell'OS) (proposta)",
+   "testi": [
+    "DCT, qui {stazione}: i vigili del fuoco sono ancora al lavoro. Hai novità? Passo."
+   ]
+  },
+  "stazione.emergenza.aggiornamento_investimento": {
+   "chi": "stazione",
+   "quando": "Investimento, rilievi in corso: l'OS aggiorna il DCT (Tempi: Emergenza, aggiornamento dell'OS) (proposta)",
+   "testi": [
+    "DCT, qui {stazione}: rilievi ancora in corso. Hai novità? Passo."
+   ]
+  },
+  "stazione.emergenza.gia_chiusa": {
+   "chi": "stazione",
+   "quando": "Emergenza: il DCT chiede di chiudere la stazione, già chiusa (proposta)",
+   "testi": [
+    "Affermativo DCT, la stazione è già chiusa. Passo."
+   ]
+  },
+  "stazione.emergenza.non_riapribile": {
+   "chi": "stazione",
+   "quando": "Emergenza in corso: il DCT chiede di riaprire la stazione (proposta)",
+   "testi": [
+    "Impossibile al momento DCT. Ti richiamo appena si può riaprire. Passo."
+   ]
+  },
+  "stazione.emergenza.novita": {
+   "chi": "stazione",
+   "quando": "Il DCT chiama una stazione con un'emergenza grave in corso (investimento, incendio): l'OS chiede novità (proposta)",
+   "testi": [
+    "Pronto DCT, qui {stazione}. Ci sono novità? Passo.",
+    "Pronto DCT, {stazione}. Hai novità? I passeggeri continuano a chiedere. Passo."
+   ]
+  },
+  "stazione.emergenza.richiamo": {
+   "chi": "stazione",
+   "quando": "L'OS aveva detto 'ti richiamo': l'emergenza è finita (proposta)",
+   "testi": [
+    "DCT, qui {stazione}, ti richiamo come detto: l'emergenza è finita, la stazione si può riaprire. Passo."
+   ]
+  },
+  "stazione.emergenza.situazione_incendio": {
+   "chi": "stazione",
+   "quando": "Incendio in corso: il DCT chiede la situazione (proposta)",
+   "testi": [
+    "Stazione evacuata e chiusa, i vigili del fuoco stanno lavorando. Passo."
+   ]
+  },
+  "stazione.emergenza.situazione_incendio_spento": {
+   "chi": "stazione",
+   "quando": "Incendio spento: il DCT chiede la situazione (proposta)",
+   "testi": [
+    "Incendio spento, aspetto il tuo via libera. Passo."
+   ]
+  },
+  "stazione.emergenza.situazione_investimento_allarme": {
+   "chi": "stazione",
+   "quando": "Investimento, prima della tolta tensione: il DCT chiede la situazione (proposta)",
+   "testi": [
+    "Treno fermo in banchina per l'investimento. Aspetto la tolta tensione e i soccorsi. Passo."
+   ]
+  },
+  "stazione.emergenza.situazione_investimento_finito": {
+   "chi": "stazione",
+   "quando": "Investimento, rilievi finiti: il DCT chiede la situazione (proposta)",
+   "testi": [
+    "Rilievi finiti, aspetto il tuo via libera. Passo."
+   ]
+  },
+  "stazione.emergenza.situazione_investimento_rilievi": {
+   "chi": "stazione",
+   "quando": "Investimento, soccorsi e rilievi: il DCT chiede la situazione (proposta)",
+   "testi": [
+    "Stazione chiusa. Soccorsi e polizia sul posto, rilievi in corso. Passo."
+   ]
+  },
+  "stazione.emergenza.soccorsi_arrivati": {
+   "chi": "stazione",
+   "quando": "Investimento: arrivano soccorsi e polizia (Tempi: Emergenza, arrivo dei soccorsi) (proposta)",
+   "testi": [
+    "DCT, qui {stazione}: sono arrivati i soccorsi e la polizia, sono al binario. Passo."
+   ]
+  },
+  "stazione.emergenza.verifica_incendio": {
+   "chi": "stazione",
+   "quando": "Incendio: il DCT chiede una verifica in banchina (proposta)",
+   "testi": [
+    "Negativo DCT, la stazione è evacuata: aspetto i vigili del fuoco. Passo."
+   ]
+  },
+  "stazione.emergenza.verifica_investimento": {
+   "chi": "stazione",
+   "quando": "Investimento: il DCT chiede una verifica in banchina (proposta)",
+   "testi": [
+    "Negativo DCT, non posso: sto aspettando i soccorsi e la polizia. Passo."
+   ]
+  },
+  "stazione.emergenza.vvf_arrivati": {
+   "chi": "stazione",
+   "quando": "Incendio: arrivano i vigili del fuoco (Tempi: Emergenza, arrivo dei soccorsi) (proposta)",
+   "testi": [
+    "DCT, qui {stazione}: sono arrivati i vigili del fuoco. Passo."
+   ]
   }
  }
 }

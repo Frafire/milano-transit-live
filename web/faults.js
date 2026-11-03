@@ -105,6 +105,10 @@
         L.place(f.k, b.pid, b.d - b.s * (b.half + 3 + BD.half)); if (left < 0.05) b.st = 'home'; }
     }
     function say(f, who, text) { const Q = F().feed; Q.push({ t: S.t, id: f.id, k: f.k, r: f.rk, who, st: f.st, text }); if (Q.length > 200) Q.splice(0, Q.length - 200); }
+    // investimento: a stretch closed now (not reopened) with the station inside it
+    const closedAround = f => !!(S.cl && S.reopened == null && S.cl.a < f.st && S.cl.b > f.st);
+    function closedBy(f) { f.closed = true; if (f.call && f.call.opts.some(o => /^cl\d$/.test(o))) f.call = null;
+      say(f, 'pc', tx('emergenza.investimento.tratta_chiusa', { chiusura: 'Chiusa ' + ((S.clLast && S.clLast.label) || '') })); }
     function call(f, text, opts, auto) { f.call = { t: S.t, text, opts, auto: auto || AUTO }; say(f, f.callWho || 'dr', text); }
     function end(f, text, who) { if (text) say(f, who || 'dr', text); f.done = S.t; f.call = null; }
     const live = () => F().list.filter(f => !f.done);
@@ -265,10 +269,16 @@
       }
       else if (f.kind === 'investimento' && f.ph === 'recover' && f.closeAsk === undefined && L.closures) {
         // the DCT must close a stretch around the station (he chooses which one)
+        // (never answered by itself: the DCT decides, from this call or from the menu of the closures; Giovanni 3 Nov 2026)
         const cl = L.closures(f.st); f.closeAsk = cl.map(c => c.i);
-        if (cl.length) { f.labels = Object.assign({}, f.labels || {}, Object.fromEntries(cl.map((c, i) => ['cl' + i, 'Chiudi ' + c.label]))); call(f, tx('emergenza.investimento.chiudi_tratta', { stazione: name(f.st) }), cl.map((c, i) => 'cl' + i)); }
+        if (closedAround(f)) closedBy(f);
+        else if (cl.length) { f.labels = Object.assign({}, f.labels || {}, Object.fromEntries(cl.map((c, i) => ['cl' + i, 'Chiudi ' + c.label]))); call(f, tx('emergenza.investimento.chiudi_tratta', { stazione: name(f.st) }), cl.map((c, i) => 'cl' + i), Infinity); }
       }
-      else if (f.kind === 'investimento' && f.ph === 'recover' && S.t >= f.until && !f.call) { f.ph = 'done'; call(f, tx('emergenza.investimento.rilievi_finiti', { stazione: name(f.st) }), ['clear']); }
+      // the DCT closed a stretch over the station himself (the menu): that is the closure of the investimento
+      else if (f.kind === 'investimento' && f.closeAsk !== undefined && !f.closed && closedAround(f)) closedBy(f);
+      // and reopened it himself: the investimento is over
+      else if (f.kind === 'investimento' && f.ph === 'reopen' && !closedAround(f)) end(f, tx('emergenza.investimento.tratta_riaperta'), 'pc');
+      else if (f.kind === 'investimento' && f.ph === 'recover' && S.t >= f.until && (!f.call || f.call.opts.every(o => /^cl\d$/.test(o)))) { f.ph = 'done'; call(f, tx('emergenza.investimento.rilievi_finiti', { stazione: name(f.st) }), ['clear']); }
       else if (f.kind === 'incendio') {
         if (f.smoke && S.t >= f.smoke && f.ph === 'fire') { f.smoke = null; call(f, tx('emergenza.incendio.fumo', { stazione: name(f.st) }), ['red'], 30); }
         if (f.ph === 'fire' && !f.smoke && !f.call && S.t >= f.until) { f.ph = 'done'; f.callWho = 'vvf'; call(f, tx('emergenza.incendio.spento', { stazione: name(f.st) }), ['clear']); }
@@ -348,7 +358,7 @@
       if (what === 'clear') {
         if (f.kind === 'investimento' && f.tk != null && L.home) L.home(f.tk, false);         // the train goes to the depot
         unLine(f);
-        if (f.kind === 'investimento' && f.closed) { L.station(f.st, false); f.ph = 'reopen'; call(f, tx('emergenza.investimento.riapri_tratta', { stazione: name(f.st) }), ['reopen']); return null; }
+        if (f.kind === 'investimento' && f.closed && S.cl && S.reopened == null) { L.station(f.st, false); f.ph = 'reopen'; call(f, tx('emergenza.investimento.riapri_tratta', { stazione: name(f.st) }), ['reopen'], Infinity); return null; }
         if (f.kind === 'tunnel') f.zones = [L.zone('vista', f.a, f.a + 1)];          // the first train on each track: marcia a vista
         if (f.kind === 'investimento' || f.kind === 'incendio') L.station(f.st, false);
         end(f, f.kind === 'tunnel' ? tx('emergenza.tunnel.ridata_tensione', { tratta: f.what }) : f.kind === 'incendio' ? tx('emergenza.incendio.riaperta', { stazione: name(f.st) })
