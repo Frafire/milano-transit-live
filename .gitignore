@@ -5,3 +5,4 @@ __pycache__/
 .DS_Store
 build_sat/
 build_sun/
+build_m2/

@@ -51,6 +51,16 @@ for pair in "sat:$SAT_DAY" "sun:$SUN_DAY"; do
     grep -h "tail clashes\|not covered" m3.log && node "$ROOT/tools/precompute_live.js" > pre.log && python3 "$ROOT/tests/check_tails.py" && python3 "$ROOT/tests/check_depot.py" && \
     node "$ROOT/tests/day_agents_check.js" 5 24 && node "$ROOT/tests/timetable_check.js" && (node "$ROOT/tests/headway_check.js" || echo "WARNING ($n): trains closer than 2 minutes"))
 done
+# M2, tappa 1 (in test): its own timetable extract (data/gtfs_m2) and the turni, in build_m2/<1|6|7>; nothing of the
+# M3 build is used or changed. tools/assemble_m2.py packs it.
+GTFS_M2="$ROOT/data/gtfs_m2"
+for pair in "1:$DAY" "6:$SAT_DAY" "7:$SUN_DAY"; do
+  n="${pair%%:*}"; d="${pair##*:}"; BD="$ROOT/build_m2/$n"; mkdir -p "$BD"
+  cp "$ROOT/data/operations_m2.json" "$BD"/
+  echo "== M2 ($n): timetable for service day $d and turni"
+  (cd "$BD" && python3 "$ROOT/tools/build_data.py" "$GTFS_M2" "$d" data.json 2> bd.log && gzip -9 -kf data.json && \
+    python3 "$ROOT/tools/turni_m2.py" && python3 "$ROOT/tests/m2_check.py")
+done
 cd "$B"
 echo "== page"
 python3 "$ROOT/tools/assemble.py"

@@ -61,6 +61,10 @@ for suf, dn in (('6', 'build_sat'), ('7', 'build_sun')):
         m2 = base64.b64encode(gzip.compress(json.dumps({'fleets': [json.load(open(os.path.join(bd, 'm3.json')))]}, separators=(',', ':')).encode(), 9)).decode()
         l2 = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm3_live.json'), 'rb').read(), 9)).decode()
         write_pack('M3', suf, d2, m2, l2)
+# the other lines' data, each from its own file (tools/assemble_<line>.py): nothing of theirs in this file
+import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import assemble_m2
+packs.update(assemble_m2.write(dati))
 t = t.replace('__PACKS__', json.dumps(packs))
 assert '__DATA' not in t and '__PACKS__' not in t
 open(OUT, 'w').write(t)
@@ -70,8 +74,8 @@ print('written', OUT, round(os.path.getsize(OUT) / 1e6, 1), 'MB')
 linee = json.load(open(os.path.join(ROOT, 'data', 'linee.json')))
 play = {k: v for k, v in linee.items() if not k.startswith('_')}
 for k, v in play.items():
-    assert v in ('giocabile', 'in arrivo'), 'data/linee.json: %s = %r (giocabile / in arrivo)' % (k, v)
-    if v == 'giocabile' and k.startswith('M'):      # a metro line or a set of lines: each one needs its data
+    assert v in ('giocabile', 'in test', 'in arrivo'), 'data/linee.json: %s = %r (giocabile / in test / in arrivo)' % (k, v)
+    if v in ('giocabile', 'in test') and k.startswith('M'):      # a metro line or a set of lines: each one needs its data
         for ln in k.split('+'):
             assert ln in packs, 'data/linee.json says %s is giocabile, but there are no data for %s (dati/%s_1.js)' % (k, ln, ln.lower())
         assert '+' not in k, 'data/linee.json: %s together cannot be played yet (gioca.html loads one line)' % k
