@@ -39,8 +39,9 @@ shapes, with no tracks, depots or signals yet. Everything M2 is in its own files
   are listed as ambiguous, not solved. A proposal, to be checked against how the M2 really runs.
 - `tests/m2_check.py`: every run in one turno, links at the right terminus and within the limits.
 - `tools/assemble_m2.py`: the M2 data files `docs/dati/m2_1.js`, `m2_6.js`, `m2_7.js`, called by `tools/assemble.py`.
-- `tools/osm_to_txt.py`: turns an Overpass export of the metro tracks into `data/osm_m2.txt` (the query is in the
-  file). The M2 tracks are not in the project yet.
+- `data/osm_m2.txt`: the M2 tracks from OpenStreetMap (Overpass export of 3 Nov 2026, 401 ways: line, the four
+  branches, Cascina Gobba, the depots of Gorgonzola, Cologno Nord and Famagosta, the links to M1, M3 and M5), made
+  by `tools/osm_to_txt.py` (the query is in that file). Not used by the build yet: to be checked by Giovanni.
 
 ## Layout
 
