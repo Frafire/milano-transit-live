@@ -96,6 +96,7 @@ header { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
 .tag { position: absolute; top: 10px; right: 10px; z-index: 1; font: 900 12px/1 var(--dots); letter-spacing: .08em; text-transform: uppercase; padding: 6px 8px 5px; background: #0b0a08; border: 2px solid #4b5055; border-radius: 3px; }
 .tag.soon { color: var(--led); text-shadow: 0 0 5px rgba(255,140,20,.65); }
 .tag.ok { color: var(--crt); text-shadow: 0 0 5px rgba(120,255,150,.55); }
+.tag.test { color: #8fd3ff; text-shadow: 0 0 5px rgba(120,200,255,.6); }
 .tile .stripe { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; }
 
 #mezzo .grid { grid-template-columns: repeat(3, 1fr); }
@@ -207,16 +208,18 @@ header { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
 
 <script>
 // what can be played: data/linee.json, put here by tools/assemble.py
-const LINEE = {"M1": "in arrivo", "M2": "in arrivo", "M3": "giocabile", "M4": "in arrivo", "M5": "in arrivo", "M1+M2+M3": "in arrivo", "metro-tutte": "in arrivo", "tram": "in arrivo", "bus": "in arrivo", "rete": "in arrivo"};
-const ok = k => k.split(/[,]/).some(x => LINEE[x] === 'giocabile');
+const LINEE = {"M1": "in arrivo", "M2": "in test", "M3": "giocabile", "M4": "in arrivo", "M5": "in arrivo", "M1+M2+M3": "in arrivo", "metro-tutte": "in arrivo", "tram": "in arrivo", "bus": "in arrivo", "rete": "in arrivo"};
+// "in test": it can be opened, to try it while it is being built (not finished: the tile says so)
+const ok = k => k.split(/[,]/).some(x => LINEE[x] === 'giocabile' || LINEE[x] === 'in test');
+const inTest = k => !k.split(/[,]/).some(x => LINEE[x] === 'giocabile') && k.split(/[,]/).some(x => LINEE[x] === 'in test');
 const metroLines = ['M1', 'M2', 'M3', 'M4', 'M5'].filter(l => LINEE[l] === 'giocabile');
 if (!LINEE.metro) LINEE.metro = metroLines.length ? 'giocabile' : 'in arrivo';
 const gioca = k => 'gioca.html?linee=' + (k === 'metro-tutte' ? ['M1', 'M2', 'M3', 'M4', 'M5'] : k.split(/[+,]/)).join(',');
 
 document.querySelectorAll('.tile[data-k]').forEach(b => {
   const k = b.dataset.k, yes = ok(k);
-  const tag = document.createElement('span'); tag.className = 'tag ' + (yes ? 'ok' : 'soon');
-  tag.textContent = yes ? (k === 'metro' ? metroLines.join(' ') + ' giocabile' : 'Giocabile') : 'In arrivo';
+  const test = yes && inTest(k), tag = document.createElement('span'); tag.className = 'tag ' + (test ? 'test' : yes ? 'ok' : 'soon');
+  tag.textContent = test ? 'In test' : yes ? (k === 'metro' ? metroLines.join(' ') + ' giocabile' : 'Giocabile') : 'In arrivo';
   b.prepend(tag);
   if (!yes) { b.classList.add('off'); b.setAttribute('aria-disabled', 'true'); b.onclick = () => toast('IN ARRIVO. Per ora si gioca solo: ' + metroLines.join(', ') + '.'); return; }
   if (/^M\d$/.test(k) && b.closest('#metro')) b.classList.add('big');
