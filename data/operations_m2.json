@@ -1,0 +1,5 @@
+{
+  "_nota": "Regole d'esercizio della M2 (tools/turni_m2.py). Proposta di Giovanni, 3 nov 2026: corse legate allo stesso capolinea se la partenza viene meno di turni_link_max_min minuti dopo l'arrivo, altrimenti il treno va in deposito. turni_link_min_min: tempo minimo per invertire (0 = nessun minimo, valore da confermare). Dopo una modifica: ./build.sh",
+  "turni_link_max_min": 4,
+  "turni_link_min_min": 0
+}
