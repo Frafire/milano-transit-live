@@ -441,12 +441,23 @@ held = late = 0
 
 PREF_WAIT = 120     # a train would rather wait in the tail until ~2 min before departure...
 LAST_IN_TAIL = {}   # ...but leaves earlier (and waits on the platform) when the tail is needed
+# San Donato, the trains out of the tails: a share on binario 2, the rest on binario 3 (Giovanni 3 Nov 2026: half and
+# half; Tempi sheet of the rules Excel). Internal platform 1 is binario 3 (way 78), 2 is binario 2 (way 103).
+_RG0 = json.load(open('regole_%s.json' % LINE.lower())) if os.path.exists('regole_%s.json' % LINE.lower()) else {}
+_t2 = next((v for k_, v in _RG0.get('tempi', {}).items() if k_.startswith('San Donato: treni dai tronchetti')), None)
+SHARE_B2 = (_t2[0] / 100.0) if _t2 and _t2[0] is not None else 0.5
+SD_PLAT_REAL = {1: 3, 2: 2}
+TAIL_PLAT_N = collections.Counter()
 def leave_tail(term, tail, t_tail, dep, key_choices):
     """returns (preferred exit, earliest exit, platform, travel time) for the tail stay"""
-    best = None
-    for key, tout in key_choices:
-        te_min = max(t_tail + REVERSE, plat_free[key])
-        if best is None or te_min + tout < best[0] + best[2]: best = (te_min, key, tout)
+    opts = [(max(t_tail + REVERSE, plat_free[key]), key, tout) for key, tout in key_choices]
+    best = min(opts, key=lambda o: o[0] + o[2])
+    if term == 'SD' and len(opts) > 1:
+        ok = [o for o in opts if o[0] + o[2] <= dep - 30]          # in time for its departure from either platform
+        if len(ok) > 1:
+            n = sum(TAIL_PLAT_N.values()) + 1; want = {2: SHARE_B2, 1: 1 - SHARE_B2}
+            best = min(ok, key=lambda o: (TAIL_PLAT_N[o[1][1]] - want.get(o[1][1], 0.5) * n, o[0] + o[2]))
+        TAIL_PLAT_N[best[1][1]] += 1
     te_min, key, tout = best
     te = max(te_min, dep - tout - PREF_WAIT)
     return te, te_min, key, tout
@@ -544,6 +555,7 @@ for t, log in TAIL_LOG.items():
     log.sort()
     for x, y in zip(log, log[1:]):
         if y[0] < x[1]: clash += 1
+print('San Donato from the tails: binario 2', TAIL_PLAT_N[2], '| binario 3', TAIL_PLAT_N[1], '| share wanted on 2:', SHARE_B2)
 print('tail clashes:', clash, '| held on arrival platform for a free tail:', held, '| departures that would be late:', late)
 SD_TAIL_OF = COM_TAIL_OF = TAIL_OF
 
@@ -1092,6 +1104,18 @@ if CFG['training']:
         v_['legs'][-1] = [ph_, s_, round(e_ + TEST['stops'][0], 1), rv_]; v_['lap0'] = TEST['stops'][0]; _joined += 1
     print('test loop: way in on to the first test stop for', _joined, 'places of', len(TEST['trip']))
     print('test platforms:', [t['name'] for t in TEST['platforms']])
+    # the Badoni (Giovanni 3 Nov 2026): it always stands in the depot behind #A104 (its track); called, it goes out through
+    # San Donato binario 3 to the line (web/faults.js). d: its centre, 3 m behind the signal; plat: San Donato binario 3
+    # (the way found goes round by #A94 and through the depot: not used until Giovanni says which way the Badoni goes out)
+    _b104 = next((s_ for s_ in _rules_['signals'] if s_.get('_n') == 104), None); TEST['badoni'] = None
+    for _bn in ([e_['a'] for e_ in edges if e_['way'] == _b104['w']] + [e_['b'] for e_ in edges if e_['way'] == _b104['w']]) if _b104 else []:
+        _rb = route_nodes(_bn, SD_OUT_NODE, via=[SD_DEP[1]])
+        if not _rb: continue
+        _pb = make_path(('badoni', _bn), _rb); _bb = _proj(_pb, *xy(*_b104['on_track'])); _bp = _proj(_pb, *node_pos[SD_DEP[1]])
+        if not _bb or _bb[0] > 4 or abs((_bb[2] - _b104['heading'] + 180) % 360 - 180) > 60 or not _bp: continue
+        if _bb[1] - 8 < 0: continue
+        TEST['badoni'] = {'pid': _pb, 'd': round(_bb[1] - 8, 1), 'plat': round(_bp[1], 1)}; break
+    print('Badoni: behind #A104', TEST['badoni'])
 else:
     TEST = None
 
@@ -1951,6 +1975,7 @@ NET['itineraries'] = [{'id': m['id'], 'group': m['group'], 'sense': m['sense'], 
 _tm = _RG.get('tempi', {})
 _tval = lambda pre, i=1: next((v[i] for k, v in _tm.items() if k.startswith(pre) and v[i] is not None), 0)
 NET['rules'] = {'tempi': _tm}
+NET['sd_plat_names'] = {str(k): str(v) for k, v in SD_PLAT_REAL.items()} if LINE == 'M3' else {}     # (the page: Binario 2 / 3)
 # what the route interlocking needs from the rules: times, capacities, the signals worked by the PC
 NET['route_rules'] = {'times': {'blade': _tval('Ago dello scambio'), 'signal': _tval('Ritardo di apertura del segnale')},
                       'capacity': {k: v for k, v in _rules_.get('capacity', {}).get('edges', {}).items()},
@@ -1996,8 +2021,27 @@ NET['closures'] = [{'a': x, 'b': y, 'label': '%s – %s' % (_nm_of(x), _nm_of(y)
 print('closures:', len(NET['closures']), [c['label'] + ' (' + str(c['often']) + ')' for c in NET['closures'] if c['often'] in ('sì', 'raramente')])
 print('itineraries: %d (%d with other ways), rules for %d of them' % (len(_IT), sum(1 for m in _IT if m.get('alt')), sum(1 for m in _IT if m['id'] in _rit)))
 print('route interlocking: signals on the paths', sum(len(v) for v in SIGALL.values()), '| signals', len(_SIGAT))
+# the numbers of the tabelle (Giovanni 3 Nov 2026, Tempi sheet): the ones out of Comasina in the morning 11-16, the one out
+# of Comasina in the afternoon 17; the others take the free numbers from 1, in the order they start (to be told by Giovanni)
+def _rng(pre):
+    v = next((v for k_, v in _RG0.get('tempi', {}).items() if k_.startswith(pre)), None)
+    return list(range(int(v[0]), int(v[1]) + 1)) if v and v[0] is not None and v[1] is not None else []
+_first = lambda tl: min((x[3][0] for x in tl.segs if x[1] == 'service'), default=None)
+TAB_NO = [None] * len(out); _used = set()
+_tabs = sorted([i for i, tl in enumerate(out) if _first(tl) is not None], key=lambda i: _first(out[i]))
+for pre, am in (('Numeri delle tabelle: da Comasina la mattina', True), ('Numeri delle tabelle: da Comasina il pomeriggio', False)):
+    nums = [x for x in _rng(pre) if x not in _used]
+    for i in _tabs:
+        if not nums: break
+        if TAB_NO[i] is None and out[i].start_where == 'Comasina' and (_first(out[i]) < 12 * 3600) == am: TAB_NO[i] = nums.pop(0); _used.add(TAB_NO[i])
+_free = (x for x in range(1, 1000) if x not in _used)
+for i in _tabs:
+    if TAB_NO[i] is None: TAB_NO[i] = next(_free); _used.add(TAB_NO[i])
+for i in range(len(out)):
+    if TAB_NO[i] is None: TAB_NO[i] = next(_free); _used.add(TAB_NO[i])
+print('tabelle numbers:', [(TAB_NO[i], out[i].start_where) for i in _tabs])
 json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in paths],
-           'trains': [tl.segs for tl in out],
+           'trains': [tl.segs for tl in out], 'tab_no': TAB_NO,
            'where': [[tl.start_where, tl.end_where] for tl in out],
            'alts': [ALTS.get(tl.k, []) for tl in out],
            'arr2': [ARR2.get(tl.k, []) for tl in out], 'carr1': [CARR1.get(tl.k, []) for tl in out],

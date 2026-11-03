@@ -149,20 +149,20 @@ if (!ARG || ARG === 'rescue' || ARG === 'badoni') {
   ag.start(T0 - 600, L.posAt(day, T0 - 600)); ag.step(T0);
   const S_ = ag.agents().filter(x => !x.hidden && x.status === 'service' && x.v > 8 && x.at >= 3 && (x.legs[0] || {}).dir === 'S').sort((p, q) => p.at - q.at);
   const a = S_[0], id = a ? ag.event({ kind: 'fault', what: 'new', fault: 'soccorso', k: a.k }) : null;
-  let answered = false, bd = null, sts = [], vB = 0, vT = 0, prev = null, ov = 0, t;
+  let answered = false, bd = null, sts = [], vB = 0, vT = 0, vY = 0, prev = null, ov = 0, t;
   for (t = T0 + 10; a && t <= 12 * 3600; t += 10) {
     ag.step(t); const f = ag.S.faults.list.find(x => x.id === id);
     if (!answered && f.call && f.call.opts.includes('badoni')) { answered = true; ag.event({ kind: 'fault', what: 'answer', id, answer: 'badoni' }); }
     if (f.bd) { bd = bd || JSON.parse(JSON.stringify(f.bd)); if (sts[sts.length - 1] !== f.bd.st) sts.push(f.bd.st);
-      if (prev && prev.st === f.bd.st) { const v = Math.abs(f.bd.d - prev.d) / 10 * 3.6; if (f.bd.st === 'coming') vB = Math.max(vB, v); if (f.bd.st === 'tow') vT = Math.max(vT, v); }
+      if (prev && prev.st === f.bd.st) { const v = Math.abs(f.bd.d - prev.d) / 10 * 3.6; if (f.bd.st === 'coming') vB = Math.max(vB, v); if (f.bd.st === 'tow') vT = Math.max(vT, v); if (f.bd.st === 'yard') vY = Math.max(vY, v); }
       prev = { st: f.bd.st, d: f.bd.d }; }
     if (t % 60 === 0) ov += overlaps(ag);
     if (f.done && t > f.done + 300) break;
   }
   const f = a && ag.S.faults.list.find(x => x.id === id), rt = ag.rt();
-  const want = a && answered && bd && sts.join('>') === 'prep>coming>coupling>tow' && f.done != null && a.hidden && vB <= 25.5 && vB > 10 && vT <= 15.5 && vT > 5;
+  const want = a && answered && bd && sts.join('>') === 'prep>coming>coupling>tow' && f.done != null && a.hidden && vB <= 25.5 && vB > 10 && vT <= 15.5 && vT > 5 && vY <= 15.5 && (!M.test || !M.test.badoni || (bd.d === M.test.badoni.d && bd.pid === M.test.badoni.pid));
   const bad = !want || ov || rt.viol || rt.swViol;
-  console.log(`${bad ? 'FAIL' : 'ok  '} badoni on the map for train ${a ? a.k + 1 : '-'}: ${sts.join(' > ')} | fastest out ${vB.toFixed(1)} km/h, towing ${vT.toFixed(1)} km/h | over at ${f && f.done ? new Date(f.done * 1000).toISOString().slice(11, 16) : 'never'} | broken train ${a && a.hidden ? 'in the depot' : a && a.status} | overlaps ${ov} | without route: signals ${rt.viol || 0}, switches ${rt.swViol || 0} | ${Date.now() - t0} ms`);
+  console.log(`${bad ? 'FAIL' : 'ok  '} badoni on the map for train ${a ? a.k + 1 : '-'}: ${sts.join(' > ')} | from #A104 ${bd ? 'pid ' + bd.pid + ' d ' + bd.d : '-'}, depot ${vY.toFixed(1)}, out ${vB.toFixed(1)} km/h, towing ${vT.toFixed(1)} km/h | over at ${f && f.done ? new Date(f.done * 1000).toISOString().slice(11, 16) : 'never'} | broken train ${a && a.hidden ? 'in the depot' : a && a.status} | overlaps ${ov} | without route: signals ${rt.viol || 0}, switches ${rt.swViol || 0} | ${Date.now() - t0} ms`);
   if (bad) fail++;
 }
 // a strike day (D5): 30% of the drivers, from 06:00 to 19:00, both answers of the DCT. Checks: at 8:45 the trains on

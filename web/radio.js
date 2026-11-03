@@ -308,9 +308,10 @@
       h += radioSec('stop', 'Attesa in stazione', x, pend ? pend + ' ordinate' : '');
       h += speedSec(F, tr);
       // departure platform at San Donato
+      const pn = p => (F.engine.net.sd_plat_names || {})[p] || p;        // (the real numbers: binario 2 and 3)
       const ai = tr.alts.findIndex(a => state.t <= a.leave && a.leave - state.t < 20 * 60);
       if (ai >= 0) { const a = tr.alts[ai];
-        h += radioSec('plat', 'Partenza da San Donato', `<div class="lbl">Partenza delle ${fmt(a.dep)}</div><div class="row">${Object.keys(a.opts).map(Number).sort().map(p => `<button data-rp="${p}" data-ai="${ai}" ${a.plat === p ? 'disabled' : ''}>Binario ${p}</button>`).join('')}</div>`, 'binario ' + a.plat); }
+        h += radioSec('plat', 'Partenza da San Donato', `<div class="lbl">Partenza delle ${fmt(a.dep)}</div><div class="row">${Object.keys(a.opts).map(Number).sort().map(p => `<button data-rp="${p}" data-ai="${ai}" ${a.plat === p ? 'disabled' : ''}>Binario ${pn(p)}</button>`).join('')}</div>`, 'binario ' + pn(a.plat)); }
       // which tail at Comasina
       const ci = (tr.calts || []).findIndex(c => !c.done && state.t >= c.open && state.t <= c.close);
       if (ci >= 0) { const c = tr.calts[ci];

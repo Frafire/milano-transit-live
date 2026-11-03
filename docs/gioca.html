@@ -926,7 +926,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .pclist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .pclist li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .pclist li span { display: flex; flex-direction: column; min-width: 0; } .pclist small { color: var(--muted); font-size: 11px; }
-.rodbtn { position: absolute; transform: translate(-50%, -50%); font: 700 11px/1 var(--display); letter-spacing: .06em; color: #fff; background: #1f3a5f; border: 2px solid #ffcf3f; border-radius: 50%; width: 38px; height: 38px; cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,.6); }
+.rodname { font-weight: 700; }
 #depotPlan { position: fixed; inset: 3vh 3vw; z-index: 3000; background: #fff; color: #111; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.6); display: flex; flex-direction: column; overflow: auto; }
 #depotPlan[hidden] { display: none; }
 #depotPlan .dp-hd { display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid #ddd; font: 14px var(--display); } #depotPlan .dp-hd span { color: #666; font-size: 12px; flex: 1; }
@@ -2112,7 +2112,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       couple: tval('Badoni: aggancio', 300), vt: tval('Badoni: velocità con il treno', 15) / 3.6, half: 5 };
     function badoniStep(f) {
       const b = f.bd, dt = Math.max(0, S.t - b.last); b.last = S.t;
-      if (b.st === 'prep') { if (S.t >= b.t) { b.st = 'coming'; say(f, 'bd', tx('soccorso.badoni.uscito')); } return; }
+      if (b.st === 'prep') { if (S.t >= b.t) { b.st = b.yard != null ? 'yard' : 'coming'; if (b.st === 'coming') { b.pid = b.mpid; b.d = b.e0; say(f, 'bd', tx('soccorso.badoni.uscito')); } } return; }
+      if (b.st === 'yard') { const left = Math.abs(b.yard - b.d); b.d += Math.sign(b.yard - b.d) * Math.min(left, (c.vyard || 15 / 3.6) * dt);
+        if (left < 0.05) { b.pid = b.mpid; b.d = b.e0; b.st = 'coming'; say(f, 'bd', tx('soccorso.badoni.uscito')); } return; }
       if (b.st === 'coming') { const left = Math.abs(b.to - b.d), v = left < 20 ? BD.vc : BD.v; b.d += Math.sign(b.to - b.d) * Math.min(left, v * dt);
         if (Math.abs(b.to - b.d) < 0.05) { b.d = b.to; b.st = 'coupling'; b.t = S.t + BD.couple; say(f, 'bd', tx('soccorso.badoni.aggancio')); } return; }
       if (b.st === 'coupling') { if (S.t >= b.t) { b.st = 'tow'; say(f, 'bd', tx('soccorso.badoni.agganciato')); } return; }
@@ -2376,7 +2378,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         f.zones = (f.zones || []).concat([L.zone('power', 0, far)]); f.ph = 'badoni'; f.until = S.t + 600 + Math.round(km / 25 * 3600) + 300 + Math.round(km / 15 * 3600);
         // the Badoni on the map: out of San Donato on the train's track, up to it (when nobody stands in between)
         const w = L.badoniWay ? L.badoniWay(f.k) : null;
-        if (w && !w.blocked) { f.bd = { pid: w.pid, d: w.e0, to: w.x + w.s * (w.half + 3 + BD.half), home: w.e0, s: w.s, half: w.half, st: 'prep', t: S.t + BD.prep, last: S.t }; f.until = Infinity; }
+        // (it stands in the depot behind #A104; its way out of the depot to San Donato is not known yet (Giovanni): it waits
+        // there for its time out of ROD, then it is on the train's track at San Donato. yard: the end of a way through the depot)
+        const H = c.badoni;
+        if (w && !w.blocked) { f.bd = { pid: H ? H.pid : w.pid, d: H ? H.d : w.e0, yard: null, mpid: w.pid, e0: w.e0, to: w.x + w.s * (w.half + 3 + BD.half), home: w.e0, s: w.s, half: w.half, st: 'prep', t: S.t + BD.prep, last: S.t }; f.until = Infinity; }
         f.evacUntil = S.t + between(1200, 2700);
         say(f, 'pc', tx('soccorso.badoni.interruzione', { stazione: name(far) }));
         say(f, 'dr', tx('soccorso.badoni.evacuo'));
@@ -2658,7 +2663,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // text on its platform screens
     const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null, zones: [] };
     // failures (web/faults.js, foglio Guasti): emergency brake of each kind of train
-    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, tempi: o.tempi, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
+    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, tempi: o.tempi, badoni: o.badoni, vyard: (ops.depot_speed_kmh || 15) / 3.6, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
       line: {
         // the signals and switches of the main tracks (where the line failures happen), the route behind a signal
         sigs: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => (o.sigall && o.sigall[pid] || []).map(x => x[1])))].filter(n => !RT.isPcSignal(n)).sort((x, y) => x - y),
@@ -4682,9 +4687,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       h += radioSec('stop', 'Attesa in stazione', x, pend ? pend + ' ordinate' : '');
       h += speedSec(F, tr);
       // departure platform at San Donato
+      const pn = p => (F.engine.net.sd_plat_names || {})[p] || p;        // (the real numbers: binario 2 and 3)
       const ai = tr.alts.findIndex(a => state.t <= a.leave && a.leave - state.t < 20 * 60);
       if (ai >= 0) { const a = tr.alts[ai];
-        h += radioSec('plat', 'Partenza da San Donato', `<div class="lbl">Partenza delle ${fmt(a.dep)}</div><div class="row">${Object.keys(a.opts).map(Number).sort().map(p => `<button data-rp="${p}" data-ai="${ai}" ${a.plat === p ? 'disabled' : ''}>Binario ${p}</button>`).join('')}</div>`, 'binario ' + a.plat); }
+        h += radioSec('plat', 'Partenza da San Donato', `<div class="lbl">Partenza delle ${fmt(a.dep)}</div><div class="row">${Object.keys(a.opts).map(Number).sort().map(p => `<button data-rp="${p}" data-ai="${ai}" ${a.plat === p ? 'disabled' : ''}>Binario ${pn(p)}</button>`).join('')}</div>`, 'binario ' + pn(a.plat)); }
       // which tail at Comasina
       const ci = (tr.calts || []).findIndex(c => !c.done && state.t >= c.open && state.t <= c.close);
       if (ci >= 0) { const c = tr.calts[ci];
@@ -5365,7 +5371,8 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
       .bindTooltip(tp.name + ' · banchina di prova', { className: 'st', direction: 'top' }).addTo(platLayer));
     // (copies: the game changes the plans, the data of the day stay as they came, for the next time that kind of day comes)
     const cp = x => x == null ? x : JSON.parse(JSON.stringify(x));
-    fleet.trains = cp(F.trains).map((segs, i) => ({ n: i + 1, segs, starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: cp((F.alts || [])[i] || []), arr2: cp((F.arr2 || [])[i] || []), calts: cp((F.calts || [])[i] || []), carr1: cp((F.carr1 || [])[i] || []), duties: cp((F.duties || [])[i] || null) }));
+    fleet.trains = cp(F.trains).map((segs, i) => ({ n: (F.tab_no || [])[i] || i + 1, segs,     // (the numbers of the tabelle: tools/build_line.py, Tempi sheet)
+ starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: cp((F.alts || [])[i] || []), arr2: cp((F.arr2 || [])[i] || []), calts: cp((F.calts || [])[i] || []), carr1: cp((F.carr1 || [])[i] || []), duties: cp((F.duties || [])[i] || null) }));
     if (F.net && F.ops && window.MTLEngine) {
       fleet.engine = { ops: { ...F.ops, train_half: F.half }, rev: F.reverse_s, net: F.net, S: F.section, half: F.half, pathEdges: F.path_edges, fileSpeeds: F.speeds || {} };
       fleet.engine.fileCuts = F.cuts || {};
@@ -7277,7 +7284,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); tr.carr10 = tr.carr1 && JSON.parse(JSON.stringify(tr.carr1)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, tempi: (E_.net.rules || {}).tempi, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      planOf: k => F.trains[k].segs, count: F.trains.length, tempi: (E_.net.rules || {}).tempi, badoni: F.test && F.test.badoni, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino|hitachi/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
@@ -7296,8 +7303,13 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
   // on a white sheet, the trains in it, the test loop round them (so the depot need not be read on the main map)
   const ROD_TOWER = [45.431475, 9.256625];      // (the tower on the satellite map, where Giovanni put it)
   setTimeout(() => { if (!fleets.some(f => f.line === 'M3' && f.depotPaths)) return;
-    L.marker(ROD_TOWER, { icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<button class="rodbtn" title="Deposito Rogoredo (ROD)">ROD</button>' }), zIndexOffset: 900 })
-      .on('click', () => { state.sel = 'depot'; state.follow = false; renderCard(); }).addTo(map); }, 0);
+    // (like a station: a circle of the same size on the screen at every zoom, its name always under it)
+    const open = () => { state.sel = 'depot'; state.follow = false; renderCard(); };
+    L.circleMarker(ROD_TOWER, { radius: 18, stroke: false, fillOpacity: 0, bubblingMouseEvents: false }).on('click', open).addTo(map);
+    L.circleMarker(ROD_TOWER, { radius: 7, color: '#ffcf3f', weight: 3, fillColor: '#1f3a5f', fillOpacity: 1, bubblingMouseEvents: false })
+      .bindTooltip('Deposito Rogoredo (ROD)', { className: 'st', direction: 'top', offset: [0, -8] }).on('click', open).addTo(map);
+    L.marker(ROD_TOWER, { icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<button class="stname rodname" style="--c:#ffcf3f">ROD</button>' }), zIndexOffset: 900 })
+      .on('click', open).addTo(map); }, 0);
   const depotGroups = F => {      // the places by track: west end (A76-A90) and east end (A48-A65) of the same shed track; the west sheds
     const P = F.engine.net.depot || [], num = x => parseInt(String(x.name).replace(/\D/g, ''), 10) || 0, byWay = {};
     P.forEach(x => { (byWay[x.way + ':' + (num(x) >= 69 && num(x) <= 75 ? 'o' : 'r')] = byWay[x.way + ':' + (num(x) >= 69 && num(x) <= 75 ? 'o' : 'r')] || []).push(x); });
@@ -7924,7 +7936,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
                   alarm: 'allarme', recover: 'tratta ferma, recupero in corso', told: 'da verificare', found: 'oggetto sul binario', ask: 'chiede di fermare i treni',
                   holding: 'treni fermi in stazione', day: 'giornata di sciopero', announced: 'chiusura programmata', closed: 'stazione chiusa', end: 'da riaprire', homeWait: 'rientro a fine della prossima corsa', badoni: 'Badoni in arrivo, linea senza tensione', reopen: 'da riaprire la tratta', fire: 'stazione chiusa, vigili del fuoco', limited: 'marcia limitata 30 km/h',
                   udt: 'una unità esclusa', homing: 'rientro al deposito di Rogoredo', coming: 'arriva il treno di soccorso', coupling: 'aggancio del soccorso', towed: 'spinto dal treno di soccorso' };
-  const BD_PH = { prep: 'Badoni in preparazione a ROD, linea senza tensione', coming: 'Badoni in arrivo, linea senza tensione', coupling: 'aggancio del Badoni', tow: 'trainato dal Badoni verso San Donato' };
+  const BD_PH = { yard: 'Badoni in uscita dal deposito, linea senza tensione', prep: 'Badoni in preparazione a ROD, linea senza tensione', coming: 'Badoni in arrivo, linea senza tensione', coupling: 'aggancio del Badoni', tow: 'trainato dal Badoni verso San Donato' };
   const fxPhase = f => (f.ph === 'badoni' && f.bd ? BD_PH[f.bd.st] || 'Badoni' : f.tech === 'wait' ? 'tecnico in attesa a San Donato' : f.tech === 'board' ? 'tecnico a bordo' : FX_PH[f.ph] || f.ph);
   function fxAnswer(F, id, what) {
     if (!F || !F.ag) return;
@@ -7987,9 +7999,11 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
   // the Badoni (soccorso da ROD): a small yellow tractor on the track, with its name; coupled, the broken train behind it
   const badoniLayer = L.layerGroup().addTo(map);
   function drawBadoni(F) {
-    const B = F.ag.FX.list().filter(f => f.ph === 'badoni' && f.bd && f.bd.st !== 'prep'), h = JSON.stringify(B.map(f => [f.id, Math.round(f.bd.d), f.bd.st]));
+    // (not called: it stands in the depot behind #A104)
+    const A = F.ag.FX.list().filter(f => f.ph === 'badoni' && f.bd).map(f => f.bd), H = F.test && F.test.badoni;
+    const B = A.length ? A : H && map.getZoom() >= 15 ? [{ pid: H.pid, d: H.d, st: 'home' }] : [], h = JSON.stringify(B.map(b => [b.pid, Math.round(b.d), b.st]));     // (standing in the depot: shown from zoom 15, like the depot tracks)
     if (badoniLayer._h === h) return; badoniLayer._h = h; badoniLayer.clearLayers();
-    for (const f of B) { const b = f.bd, pts = [trackAt(F, b.pid, b.d - 5), trackAt(F, b.pid, b.d + 5)].filter(Boolean); if (pts.length < 2) continue;
+    for (const b of B) { const pts = [trackAt(F, b.pid, b.d - 5), trackAt(F, b.pid, b.d + 5)].filter(Boolean); if (pts.length < 2) continue;
       L.polyline(pts, { color: '#ffb400', weight: 11, opacity: 1, interactive: false }).addTo(badoniLayer);
       L.marker(pts[0], { icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<div class="bdlabel">BADONI</div>' }), interactive: false }).addTo(badoniLayer); }
   }

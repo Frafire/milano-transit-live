@@ -95,7 +95,9 @@
       couple: tval('Badoni: aggancio', 300), vt: tval('Badoni: velocità con il treno', 15) / 3.6, half: 5 };
     function badoniStep(f) {
       const b = f.bd, dt = Math.max(0, S.t - b.last); b.last = S.t;
-      if (b.st === 'prep') { if (S.t >= b.t) { b.st = 'coming'; say(f, 'bd', tx('soccorso.badoni.uscito')); } return; }
+      if (b.st === 'prep') { if (S.t >= b.t) { b.st = b.yard != null ? 'yard' : 'coming'; if (b.st === 'coming') { b.pid = b.mpid; b.d = b.e0; say(f, 'bd', tx('soccorso.badoni.uscito')); } } return; }
+      if (b.st === 'yard') { const left = Math.abs(b.yard - b.d); b.d += Math.sign(b.yard - b.d) * Math.min(left, (c.vyard || 15 / 3.6) * dt);
+        if (left < 0.05) { b.pid = b.mpid; b.d = b.e0; b.st = 'coming'; say(f, 'bd', tx('soccorso.badoni.uscito')); } return; }
       if (b.st === 'coming') { const left = Math.abs(b.to - b.d), v = left < 20 ? BD.vc : BD.v; b.d += Math.sign(b.to - b.d) * Math.min(left, v * dt);
         if (Math.abs(b.to - b.d) < 0.05) { b.d = b.to; b.st = 'coupling'; b.t = S.t + BD.couple; say(f, 'bd', tx('soccorso.badoni.aggancio')); } return; }
       if (b.st === 'coupling') { if (S.t >= b.t) { b.st = 'tow'; say(f, 'bd', tx('soccorso.badoni.agganciato')); } return; }
@@ -359,7 +361,10 @@
         f.zones = (f.zones || []).concat([L.zone('power', 0, far)]); f.ph = 'badoni'; f.until = S.t + 600 + Math.round(km / 25 * 3600) + 300 + Math.round(km / 15 * 3600);
         // the Badoni on the map: out of San Donato on the train's track, up to it (when nobody stands in between)
         const w = L.badoniWay ? L.badoniWay(f.k) : null;
-        if (w && !w.blocked) { f.bd = { pid: w.pid, d: w.e0, to: w.x + w.s * (w.half + 3 + BD.half), home: w.e0, s: w.s, half: w.half, st: 'prep', t: S.t + BD.prep, last: S.t }; f.until = Infinity; }
+        // (it stands in the depot behind #A104; its way out of the depot to San Donato is not known yet (Giovanni): it waits
+        // there for its time out of ROD, then it is on the train's track at San Donato. yard: the end of a way through the depot)
+        const H = c.badoni;
+        if (w && !w.blocked) { f.bd = { pid: H ? H.pid : w.pid, d: H ? H.d : w.e0, yard: null, mpid: w.pid, e0: w.e0, to: w.x + w.s * (w.half + 3 + BD.half), home: w.e0, s: w.s, half: w.half, st: 'prep', t: S.t + BD.prep, last: S.t }; f.until = Infinity; }
         f.evacUntil = S.t + between(1200, 2700);
         say(f, 'pc', tx('soccorso.badoni.interruzione', { stazione: name(far) }));
         say(f, 'dr', tx('soccorso.badoni.evacuo'));
