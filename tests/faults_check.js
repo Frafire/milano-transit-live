@@ -91,7 +91,16 @@ for (const kind of PEOPLE) {
   ag.start(T0 - 600, L.posAt(day, T0 - 600)); ag.step(T0);
   const a = ag.agents().find(x => !x.hidden && x.status === 'service' && x.v > 8 && x.at > 3 && x.at < 15), dir = (a.legs[0] || {}).dir;
   const X = kind === 'tunnel' ? (dir === 'S' ? a.at - 1 : a.at) : dir === 'S' ? a.at - 1 : a.at + 1;
+  // investimento (Giovanni 3 Nov 2026): only with a train coming into that station; first without one (it does not
+  // start), then on until a train comes in (it starts)
+  const comingIn = () => ag.agents().find(x => !x.hidden && x.status === 'service' && x.v > 0.5 && x.stopAt == null && x.legs[0] && !x.legs[0].kind && x.legs[0].stops
+    && x.legs[0].stops[0] && x.legs[0].stops[0].st === X && x.legs[0].stops[0].d - x.d >= 0 && x.legs[0].stops[0].d - x.d <= 2 * H);
+  let refused = null;
+  if (kind === 'investimento') { let tt = T0; while (comingIn() && tt < T0 + 600) ag.step(tt += 5);
+    refused = ag.event({ kind: 'fault', what: 'new', fault: kind, target: X }) == null;
+    while (!comingIn() && tt < T0 + 3600) ag.step(tt += 2); }
   const id = ag.event({ kind: 'fault', what: 'new', fault: kind, target: X });
+  if (kind === 'investimento') { console.log(`${refused && id != null ? 'ok  ' : 'FAIL'} investimento only with a train coming into the station: without one ${refused ? 'refused' : 'STARTED'}, with one ${id != null ? 'started' : 'REFUSED'}`); if (!refused || id == null) { fail++; continue; } }
   let clSeen = false, ov = 0, endT = null, movingRed = 0, slowMax = 0, vistaMax = 0, closedSeen = false, zonesSeen = new Set(), phases = new Set(), t = T0;
   const moved = new Map(), zv = new Map();
   for (t = T0 + 10; t <= 16 * 3600; t += 10) {

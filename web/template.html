@@ -3591,6 +3591,10 @@ window.MTL_PACKS = __PACKS__;
     if (!kSel.options.length) kSel.innerHTML = FX.kinds().map(x => `<option value="${x.id}">${x.label}${x.perDay != null ? ' (' + String(x.perDay).replace('.', ',') + ' al giorno)' : ''}</option>`).join('');
     if (document.activeElement !== rnd) rnd.checked = FX.random();
     const kd = FX.kinds().find(x => x.id === kSel.value), on = kd ? kd.on : 'train';
+    // (a failure that cannot start now, e.g. investimento without a train coming into the station: the button off, why)
+    { const go = document.getElementById('fxGo'), why = on !== 'train' && FX.cannot ? FX.cannot(kSel.value, tSel.value === '' ? null : +tSel.value) : null;
+      go.disabled = !!why; go.title = why ? 'Non si può: ' + why : ''; const nt = document.getElementById('fxNote');
+      if (why && nt.dataset.why !== why) { nt.dataset.why = why; nt.textContent = 'Non si può: ' + why + '.'; } else if (!why && nt.dataset.why) { nt.dataset.why = ''; nt.textContent = ''; } }
     if (on !== 'train') { const h = '<option value="">a caso</option>' + FX.targets(kSel.value).map(x => `<option value="${x.v}">${x.label}</option>`).join('');
       if (tSel.dataset.h !== h && document.activeElement !== tSel) { tSel.dataset.h = h; tSel.innerHTML = h; } }
     else if (document.activeElement !== tSel) {

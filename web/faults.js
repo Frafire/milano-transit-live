@@ -142,8 +142,22 @@
       if (on === 'stretch') { const out = []; for (let i = 0; i < (L.last ? L.last() : 0); i++) out.push({ v: i, label: name(i) + ' – ' + name(i + 1) }); return out; }
       return [];
     }
+    // a person hit by a train (Giovanni 3 Nov 2026): only with a train coming into that station (in service, moving, its
+    // next stop there, its nose already past the start of the platform)
+    function entering(X) {
+      return S.agents.find(a => !a.hidden && a.status === 'service' && a.v > 0.5 && a.stopAt == null && a.legs[0] && !a.legs[0].kind && a.legs[0].stops
+        && a.legs[0].stops[0] && a.legs[0].stops[0].st === X && a.legs[0].stops[0].d - a.d >= 0 && a.legs[0].stops[0].d - a.d <= 2 * half_()) || null;
+    }
+    const half_ = () => (c.half || 52.5);
+    // why a failure cannot start now on that target (null: it can)
+    function cannot(kind, target) {
+      if (kind === 'investimento') { if (target == null) return G.names.some((_, X) => entering(X)) ? null : 'nessun treno in arrivo'; return entering(target) ? null : 'nessun treno in arrivo'; }
+      return null;
+    }
     function addLine(kind, target, extra) {
       const T = targets(kind); if (!T.length) return null;
+      if (cannot(kind, target)) return null;
+      if (target == null && kind === 'investimento') { const ok = T.filter(x => entering(x.v)); target = ok[Math.floor(rnd() * ok.length)].v; }
       if (target == null && kind !== 'sciopero') target = T[Math.floor(rnd() * T.length)].v;
       if ((!T.some(x => x.v === target) && kind !== 'sciopero') || lineOf().some(f => f.kind === kind && f.target === target)) return null;
       if (kind === 'tensione' && lineOf().some(f => f.kind === 'tensione')) return null;          // one stretch at a time
@@ -189,7 +203,7 @@
       else if (kind === 'tunnel') { f.what = name(X) + ' – ' + name(X + 1); f.a = X; f.ph = 'alarm'; f.callWho = 'drx';
         call(f, tx('emergenza.tunnel.persona', { tratta: f.what }), ['red'], 30); }
       else if (kind === 'investimento') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.zones = [L.zone('stop', X, X)];
-        { const t0 = S.agents.find(a => !a.hidden && a.stopAt === X) || S.agents.filter(a => !a.hidden && a.status === 'service' && a.legs[0] && a.legs[0].stops && a.legs[0].stops[0] && a.legs[0].stops[0].st === X)[0]; f.tk = t0 ? t0.k : null; if (t0) t0.broken = true; }
+        { const t0 = entering(X); f.tk = t0 ? t0.k : null; if (t0) t0.broken = true; }
         call(f, tx('emergenza.investimento.allarme', { stazione: name(X) }), ['red'], 30); }
       else if (kind === 'incendio') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.smoke = rnd() < 0.4 ? S.t + between(60, 300) : null;
         f.until = S.t + (rnd() < 0.15 ? between(5400, 18000) : between(1800, 5400));
@@ -554,7 +568,7 @@
     }
     // for the page: the failures in force, the calls waiting for the DCT, the radio of the failures
     function list() { return live().map(f => Object.assign({ label: KINDS[f.kind].label }, f, { call: f.call && Object.assign({}, f.call, { answers: f.call.opts.map(x => [x, (f.labels && f.labels[x]) || ANSWERS[x]]) }) })); }
-    return { emBrake: c.emBrake, targets, hold, extraDwell, manual, half, vcap, tick, event, list, feed: () => F().feed, random: () => F().on, kinds: () => Object.entries(KINDS).filter(([, k]) => k.on !== 'none').map(([id, k]) => ({ id, label: k.label, on: k.on || 'train', perDay: ((c.catalog || []).find(x => x.id === id) || {}).perDay })) };
+    return { emBrake: c.emBrake, targets, cannot, hold, extraDwell, manual, half, vcap, tick, event, list, feed: () => F().feed, random: () => F().on, kinds: () => Object.entries(KINDS).filter(([, k]) => k.on !== 'none').map(([id, k]) => ({ id, label: k.label, on: k.on || 'train', perDay: ((c.catalog || []).find(x => x.id === id) || {}).perDay })) };
   }
 
   const api = { create, KINDS };
