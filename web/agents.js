@@ -104,6 +104,7 @@
         stuckIn: () => S.agents.filter(a => !a.hidden && a.why === 'tensione' && a.stopAt == null && a.v === 0),
         station: (X, closed, why) => { const x = S.stn[X] = Object.assign({}, S.stn[X]); if (closed) { x.closed = true; if (why) x.why = why; } else { delete x.closed; delete x.why; } if (!Object.keys(x).length) delete S.stn[X]; },     // (why: 'fire', the screens say so)
       } }) : null;
+    const SDT = new Set(o.sdTails || []);           // the San Donato tails' track pieces (build)
     const VISTA = (ops.marcia_a_vista_kmh || 15) / 3.6, THRU = (ops.closed_station_kmh || 30) / 3.6;         // marcia a vista: 15 km/h (30 on paper; Giovanni's colleague, Nov 2026)
     const last = G ? G.names.length - 1 : 0;
     const stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
@@ -739,6 +740,15 @@
       }
       S.parts = []; if (ea > 0) S.parts.push([0, ea]); if (eb < last) S.parts.push([eb, last]);
       const cl0 = cl; cl = { a: ea, b: eb };
+      // an interruption from San Donato (Giovanni 3 Nov 2026): its tails are closed to the service for the whole of it. A train
+      // in a tail stays there (it does not come out for a run); one already going into a tail to clear the platform goes on
+      // into it and stays there (the DCT can still move them by hand)
+      const onTail = (pid, x0, x1) => { const pe = pathEdges[pid]; return !!pe && pe.e.some(([ei, , y0, y1]) => SDT.has(ei) && y1 > x0 && y0 < x1); };
+      if (cl0.a === 0 && SDT.size) for (const a of S.agents) {
+        if (a.hidden || a.mode === 'static' || !onTail(a.pid, a.d - half, a.d + half)) continue;
+        const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, intoTail = leg && leg.end != null && onTail(leg.pid, leg.end - 1, leg.end + 1);
+        if (!intoTail) { a.seg0 = a.si; a.mode = 'static'; a.status = 'held'; a.v = 0; a.legs = []; a.sdTailHeld = true; delete S.rt.routes[a.k]; }
+      }
       for (const a of S.agents) {
         if (a.hidden || a.mode === 'static') { a.seg0 = a.si; if (a.mode !== 'static') a.mode = 'static'; continue; }
         const plan = planOf(a.k), p_si = a.si, s = plan[p_si]; a.seg0 = p_si;

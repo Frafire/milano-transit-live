@@ -13,19 +13,23 @@ for (const ci of which) {
   if (process.argv[2] == null && !(CL[ci].often === 'sì' || CL[ci].often === 'raramente')) continue;
   for (const [X, dir] of [[CL[ci].a, 'N'], [CL[ci].b, 'S']]) for (const t of Object.keys(OT[X + ':' + dir] || {})) if (X > 0 && X < last && !OT[X + ':' + dir][t].same) runs.push([ci, { [X]: t }]);
 }
-const TC = 8 * 3600, TR = 9 * 3600, TE = 10 * 3600, H = M.half;
+const TC = 8 * 3600, TR = 9 * 3600, TE = 10 * 3600, H = M.half, SDT = new Set(M.net.sd_tail_edges || []);
 let fail = 0;
 for (const [ci, ends] of runs) {
   const c = CL[ci], ag = L.agents(M, D, t => L.posAt(day, t)), t0 = Date.now();
   ag.start(TC - 600, L.posAt(day, TC - 600)); ag.step(TC);
   ag.event({ kind: 'close', cl: { a: c.a, b: c.b, ends }, label: c.label });
   const endTxt = Object.entries(ends).map(([x, t]) => ` [${M.degraded.names[x]}: solo binario ${t === '1' ? 2 : 1}]`).join('');
-  let navMoved = 0, navT = null;
+  let navMoved = 0, navT = null, sdTail = 0;
   const closed = ag.closed(), closed0 = ag.closed0() || closed, before = new Set(Object.values(ag.rt().routes).flat());
   let overlap = 0, minGap = Infinity, intoClosed = 0, moved = new Map(), stuckOpen = 0, fastAfter = 0, vAfter = 0;
   const modes = {}; ag.agents().forEach(a => { modes[a.mode] = (modes[a.mode] || 0) + 1; });
   for (let t = TC + 30; t <= TE; t += 30) {
     ag.step(t);
+    // an interruption from San Donato: nobody moves in the San Donato tails until it is reopened (Giovanni 3 Nov 2026)
+    // (a train already going into a tail to clear the platform when it closes: its first minutes)
+    if (c.a === 0 && t >= TC + 300 && t < TR) for (const a of ag.agents()) { if (a.hidden || a.v < 0.1) continue; const pe = M.path_edges[a.pid];
+      if (pe && pe.e.some(([ei, , x0, x1]) => SDT.has(ei) && x1 > a.d - H && x0 < a.d + H)) sdTail++; }
     if (t === TR) {
       ag.agents().forEach(a => { const m = moved.get(a.k); if (a.mode === 'shuttle' && !a.hidden && !(ag.S.t < a.wait) && m && TR - m.t > 1200) stuckOpen++; });
       ag.event({ kind: 'reopen' });
@@ -48,8 +52,8 @@ for (const [ci, ends] of runs) {
   const stuck = ag.agents().filter(a => { const m = moved.get(a.k); return !a.hidden && a.status !== 'parked' && a.mode !== 'static' && a.status !== 'stopped' && m && TE - m.t > 1500 && !(ag.S.t < a.wait); }).length;
   const navNeeded = ag.S.log.some(x => x.nav && !x.none) || ag.S.log.some(x => x.nav && x.none);
   const navBad = Object.keys(ends).length && ag.S.log.some(x => x.nav) && navMoved < 3;
-  const bad = overlap || rt.viol || rt.swViol || intoClosed || stuck || stuckOpen || navBad || fastAfter;
-  console.log(`${bad ? 'FAIL' : 'ok  '} ${c.label}${endTxt}: ${navNeeded ? `navetta: ${ag.S.log.filter(x => x.nav).map(x => x.none ? 'nessun treno' : 'treno ' + (x.k + 1)).join(', ')}, stazioni servite ${navMoved} | ` : ''}at closing ${JSON.stringify(modes)} | overlaps ${overlap} (closest ${Math.round(minGap)} m) | without route: signals ${rt.viol || 0}, switches ${rt.swViol || 0} | routes into the closed stretch ${intoClosed} | open side standing 20+ min at 09:00: ${stuckOpen}`);
+  const bad = overlap || rt.viol || rt.swViol || intoClosed || stuck || stuckOpen || navBad || fastAfter || sdTail;
+  console.log(`${bad ? 'FAIL' : 'ok  '} ${c.label}${endTxt}: ${navNeeded ? `navetta: ${ag.S.log.filter(x => x.nav).map(x => x.none ? 'nessun treno' : 'treno ' + (x.k + 1)).join(', ')}, stazioni servite ${navMoved} | ` : ''}at closing ${JSON.stringify(modes)} | overlaps ${overlap} (closest ${Math.round(minGap)} m) | without route: signals ${rt.viol || 0}, switches ${rt.swViol || 0} | routes into the closed stretch ${intoClosed} | open side standing 20+ min at 09:00: ${stuckOpen}${c.a === 0 ? ' | moving in the San Donato tails while closed: ' + sdTail : ''}`);
   console.log(`     10:00 ${JSON.stringify(after)} | stuck 25+ min: ${stuck} | fastest on the reopened stretch 09:00-09:20: ${Math.round(vAfter)} km/h | timetable runs taken after reopening: ${ag.S.log.filter(x => x.ref != null || x.at).length} | ${Date.now() - t0} ms`);
   if (bad) fail++;
 }

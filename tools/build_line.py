@@ -1976,6 +1976,18 @@ _tm = _RG.get('tempi', {})
 _tval = lambda pre, i=1: next((v[i] for k, v in _tm.items() if k.startswith(pre) and v[i] is not None), 0)
 NET['rules'] = {'tempi': _tm}
 NET['sd_plat_names'] = {str(k): str(v) for k, v in SD_PLAT_REAL.items()} if LINE == 'M3' else {}     # (the page: Binario 2 / 3)
+# the San Donato tails: their track pieces, from the dead end to the first switch (closed to the service during an
+# interruption from San Donato: web/agents.js)
+def _tail_edges(n0):
+    out, cur, prev = [], n0, None
+    for _ in range(8):
+        es = [e for e in node_edges[cur] if e != prev]
+        if len(es) != 1: break
+        ei = es[0]; out.append(ei); prev = ei; cur = edges[ei]['b'] if edges[ei]['a'] == cur else edges[ei]['a']
+        if len(node_edges[cur]) > 2: break
+    return out
+NET['sd_tail_edges'] = sorted({ei for n in CFG['SD_TAILS'] for ei in _tail_edges(n)})
+print('San Donato tails: track pieces', NET['sd_tail_edges'])
 # what the route interlocking needs from the rules: times, capacities, the signals worked by the PC
 NET['route_rules'] = {'times': {'blade': _tval('Ago dello scambio'), 'signal': _tval('Ritardo di apertura del segnale')},
                       'capacity': {k: v for k, v in _rules_.get('capacity', {}).get('edges', {}).items()},
