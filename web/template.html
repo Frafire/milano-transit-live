@@ -2079,15 +2079,20 @@ window.MTL_PACKS = __PACKS__;
     else if (kind === 'end') L.push({ text: 'TRENI PER', x: 1, y: 2, color: SCR_G }, dest(14, W - 2));
     else L.push(...data.lines.map((tx, i) => ({ text: tx, x: 1, y: 2 + i * 9, color: SCR_G })));
     const key = kind + '|' + hm + '|' + JSON.stringify(data);
-    return `<img class="scr" alt="${(data.dest || (data.lines || []).join(' ')).replace(/"/g, '')}" src="${scrImage(key, L, hm)}">`;
+    return `<img class="scr" alt="${((kind === 'end' ? 'TRENI PER ' : kind === 'train' || kind === 'here' ? 'TRENO PER ' : '') + (data.dest || (data.lines || []).join(' '))).replace(/"/g, '')}" src="${scrImage(key, L, hm)}">`;
   }
   // one screen: items = [{ t, here }] for the trains of this platform, sorted; info = notices only (Comasina arrivals)
   // stn: what the DCT set for the station (closed: no train stops; msg: its text instead of the usual notices)
-  const scrLines = txt => { const out = []; for (const w of String(txt).split(' ')) { const l = out[out.length - 1]; if (l != null && (l + ' ' + w).length <= 20) out[out.length - 1] = l + ' ' + w; else out.push(w); } return out.slice(0, 3); };
-  function platformScreen(t, items, dest, info, stn) {
-    const slot = Math.floor(Date.now() / 10000) % 4, notice = { lines: stn && stn.msg ? scrLines(stn.msg) : SCR_NOTICES[slot === 1 ? 0 : 1] };
-    if (stn && stn.closed) return scrPage('notice', t, { lines: ['STAZIONE CHIUSA', 'I TRENI', 'NON FERMANO'] });
-    if (info) return scrPage('notice', t, stn && stn.msg ? notice : { lines: SCR_NOTICES[Math.floor(Date.now() / 10000) % 2] });
+  // (a message in lines of its own: 'I TRENI / VIAGGIANO IN / RITARDO'; else the words in lines of up to 20 letters)
+  const scrLines = txt => { if (/ \/ /.test(txt)) return String(txt).split(' / ').slice(0, 3); const out = []; for (const w of String(txt).split(' ')) { const l = out[out.length - 1]; if (l != null && (l + ' ' + w).length <= 20) out[out.length - 1] = l + ' ' + w; else out.push(w); } return out.slice(0, 3); };
+  // ctx (Giovanni 3 Nov 2026): inside (the station is inside a closed stretch: "Treni per" as at night), pages (more notice
+  // pages for every station: the closure asked by the Prefettura)
+  function platformScreen(t, items, dest, info, stn, ctx) {
+    const slot = Math.floor(Date.now() / 10000) % 4, ex = (ctx && ctx.pages) || [], own = [...(stn && stn.msg ? [scrLines(stn.msg)] : []), ...ex];
+    const notice = { lines: own.length ? own[Math.floor(Date.now() / 20000) % own.length] : SCR_NOTICES[slot === 1 ? 0 : 1] };
+    if (stn && stn.closed) return scrPage('notice', t, { lines: stn.why === 'fire' ? ['ABBANDONARE', 'LA STAZIONE'] : ['STAZIONE CHIUSA', 'I TRENI', 'NON FERMANO'] });
+    if (info) return scrPage('notice', t, own.length ? notice : { lines: SCR_NOTICES[Math.floor(Date.now() / 10000) % 2] });
+    if (ctx && ctx.inside) return scrPage('end', t, { dest });
     const next = items.filter(x => x.here || x.t >= t - 5);
     if (!next.length || !next[0].here && next[0].t - t > 30 * 60) return scrPage('end', t, { dest });      // no train in the next half hour
     const first = next[0];
@@ -2110,14 +2115,28 @@ window.MTL_PACKS = __PACKS__;
     const items = d => d ? (liveBoard(F, b, d, t) || []) : [];
     const G = F.engine && F.engine.G, X = G ? G.names.findIndex(n => n.toUpperCase().replace(/\s+M\d$/, '') === name.replace(/\s+M\d$/, '')) : -1;
     const stn = F.ag && X >= 0 ? F.ag.S.stn[X] : null;
+    // a stretch closed (Giovanni 3 Nov 2026): the trains go to the last station before it (San Donato – Porta Romana closed:
+    // binario dispari "Treno per Porta Romana"); inside it "Treni per" as at night
+    const S_ = F.ag && F.ag.S, parts = S_ && S_.cl && S_.reopened == null ? S_.parts || [] : null, last = G ? G.names.length - 1 : 0;
+    const P = parts && X >= 0 ? parts.find(p => X >= p[0] && X <= p[1]) : null, nmOf = i => G.names[i].replace(/\s+M\d$/i, '').toUpperCase();
+    const toCO = P && P[1] < last ? nmOf(P[1]) : 'COMASINA', toSD = P && P[0] > 0 ? nmOf(P[0]) : 'SAN DONATO';
+    const ctx = { inside: !!parts && !P, pages: prefPages(F) };
     if (/^SAN DONATO$/.test(name)) {
       const it = items(dCO || 'COMASINA');
-      return ['2', '3'].map(pl => box('Binario ' + pl, platformScreen(t, it.filter(x => sdPlatOf(F, x.pid) === pl), 'COMASINA', false, stn))).join('');
+      return ['2', '3'].map(pl => box('Binario ' + pl, platformScreen(t, it.filter(x => sdPlatOf(F, x.pid) === pl), toCO, false, stn, ctx))).join('');
     }
     // binario pari (2) on top, dispari (1) below: as the tracks lie (Giovanni, 2 Nov 2026)
     if (/^COMASINA$/.test(name))
-      return box('Binario pari (2) · arrivi', platformScreen(t, [], '', true, stn)) + box('Binario dispari (1) · partenze', platformScreen(t, items(dSD || 'SAN DONATO'), 'SAN DONATO', false, stn));
-    return box('Binario pari (2)', platformScreen(t, items(dCO), 'COMASINA', false, stn)) + box('Binario dispari (1)', platformScreen(t, items(dSD), 'SAN DONATO', false, stn));
+      return box('Binario pari (2) · arrivi', platformScreen(t, [], '', true, stn, ctx)) + box('Binario dispari (1) · partenze', platformScreen(t, items(dSD || 'SAN DONATO'), toSD, false, stn, ctx));
+    return box('Binario pari (2)', platformScreen(t, items(dCO), toCO, false, stn, ctx)) + box('Binario dispari (1)', platformScreen(t, items(dSD), toSD, false, stn, ctx));
+  }
+  // the closure asked by the Prefettura, on the screens of every station from when it is announced: two pages,
+  // "[STAZIONE] CHIUSA" and "SU RICHIESTA DELLA / PREFETTURA / DALLE .. ALLE .." (its own hours)
+  function prefPages(F) {
+    if (!F.ag || !F.ag.FX) return [];
+    const h = t => { const s = Math.round(((t % 86400) + 86400) % 86400 / 60), m = s % 60; return Math.floor(s / 60) + (m ? ':' + String(m).padStart(2, '0') : ''); };
+    return F.ag.FX.list().filter(f => f.kind === 'prefettura' && (f.ph === 'announced' || f.ph === 'closed') && f.st != null && f.from != null).flatMap(f => [
+      scrLines(F.engine.G.names[f.st].replace(/\s+M\d$/i, '').toUpperCase() + ' CHIUSA'), ['SU RICHIESTA DELLA', 'PREFETTURA', 'DALLE ' + h(f.from) + ' ALLE ' + h(f.until)]]);
   }
   function renderBoard() {
     const [fi, bi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], b = F.boards[bi], t = state.t;

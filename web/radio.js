@@ -184,7 +184,8 @@
     const ANN = { 'Ritardi sulla linea': 'pezzo.annuncio.ritardi', 'Servizio limitato': 'pezzo.annuncio.servizio_limitato',
       'Tratta interrotta': 'pezzo.annuncio.tratta_interrotta', 'Navetta': 'pezzo.annuncio.navetta',
       'Treni che non fermano': 'pezzo.annuncio.treni_non_fermano', 'Servizio regolare': 'pezzo.annuncio.servizio_regolare' };
-    const SCR_TXT = ['SERVIZIO LIMITATO', 'TRATTA INTERROTTA', 'CIRCOLAZIONE RALLENTATA', 'SERVIZIO SOSPESO', 'STAZIONE CHIUSA'];
+    const SCR_TXT = ['SERVIZIO LIMITATO', 'TRATTA INTERROTTA', 'CIRCOLAZIONE RALLENTATA', 'SERVIZIO SOSPESO', 'STAZIONE CHIUSA', 'I TRENI / VIAGGIANO IN / RITARDO'];
+    const SCR_CL = 'TRATTA CHIUSA / CI SCUSIAMO PER / IL DISAGIO';          // (only while a stretch is closed: Giovanni 3 Nov 2026)
     // the agent's answer: [all in order (8 times in 10), something found]
     const CHECK = { 'Porte di un treno': ['stazione.verifica.porte_regolari', 'stazione.verifica.porta_bloccata'],
       'Persona sui binari': ['stazione.verifica.nessuno_binari', 'stazione.verifica.persona_allontanata'],
@@ -202,7 +203,8 @@
       let h = stClosed(F, X) ? `<div class="lbl">Stazione chiusa${H && state.t < H.open ? ': apre alle ' + fmt(H.open) : ''}</div>` : '';
       h += radioSec('stsit', 'Situazione', `<div class="row"><button data-st="sit">Chiedi la situazione</button></div>`, '', true);
       h += radioSec('stann', 'Annuncio ai passeggeri', `<div class="row">${Object.keys(ANN).map(k => `<button data-ann="${k}">${k}</button>`).join('')}</div>`);
-      h += radioSec('stscr', 'Schermi di banchina', (st.msg ? `<div class="lbl">Ora: ${st.msg}</div>` : '') + `<div class="row">${SCR_TXT.map(k => `<button data-scr="${k}" aria-pressed="${st.msg === k}">${k}</button>`).join('')}${st.msg ? '<button data-scr="">Togli il messaggio</button>' : ''}</div>`, st.msg ? 'messaggio' : '');
+      const scrOpts = F.ag.S.cl && F.ag.S.reopened == null ? [...SCR_TXT, SCR_CL] : SCR_TXT;
+      h += radioSec('stscr', 'Schermi di banchina', (st.msg ? `<div class="lbl">Ora: ${st.msg}</div>` : '') + `<div class="row">${scrOpts.map(k => `<button data-scr="${k}" aria-pressed="${st.msg === k}">${k}</button>`).join('')}${st.msg ? '<button data-scr="">Togli il messaggio</button>' : ''}</div>`, st.msg ? 'messaggio' : '');
       h += radioSec('stchk', 'Verifica in banchina', `<div class="row">${Object.keys(CHECK).map(k => `<button data-chk="${k}">${k}</button>`).join('')}</div>`);
       const held = here.filter(a => a.pcHold), asg = pend.filter(p => p.kind === 'assist');
       h += radioSec('stass', 'Assistenza a un treno', here.length ? here.map(a => {

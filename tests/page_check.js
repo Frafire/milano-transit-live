@@ -22,6 +22,8 @@
 // - osnome: the OS introduces himself as "Operatore di stazione" or "OS" (both, the Radio sheet's weights), the same on a new
 //   page (seeded random numbers)
 // - schermi: every change of the platform screens ordered by the DCT, the OS answers "Ricevuto, eseguo"
+// - schermichiusura: San Donato – Porta Romana closed: the dispari screens say Porta Romana, inside "Treni per"; the closure
+//   asked by the Prefettura on every station's screens; a fire: ABBANDONARE LA STAZIONE; the DCT's page TRATTA CHIUSA
 // - rossototale: Rosso totale: every train on the line stops (stations too); taken away from the alarms, they go again
 // - settimana: seven changes of day in a row; every tabella has a train; depot trains start from their places; maintenance
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
@@ -375,6 +377,36 @@ const SCENARIOS = {
       for (const k of ['SERVIZIO LIMITATO', 'TRATTA INTERROTTA', '']) { document.querySelector(`[data-scr="${k}"]`).click(); await sleep(1800); }
       const L = document.getElementById('phoneLog').innerText.split('\n').slice(n0 - 1), acks = L.filter(l => /Corvetto: Ricevuto, eseguo/.test(l)).length;
       return { ok: acks === 3 && !(F.ag.S.stn[X] || {}).msg, acks, log: L.slice(-4) };
+    });
+  },
+  async schermichiusura(p) {   // the platform screens in a closure (Giovanni 3 Nov 2026)
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, fi = M.fleets.findIndex(f => f.line === 'M3' && f.ag), F = M.fleets[fi], G = F.engine.G;
+      const alts = nm => { st.sel = 'b' + fi + ':' + F.boards.findIndex(x => new RegExp(nm, 'i').test(x.n)); M.renderCard(); return [...document.querySelectorAll('#card img.scr')].map(i => i.alt); };
+      st.playing = false; st.t = 9 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      const sel = document.querySelector('.closures #clSel'), o = [...sel.options].find(x => /^San Donato – Porta Romana$/.test(x.textContent.trim()));
+      if (!o) return { ok: false, why: 'no closure San Donato – Porta Romana' };
+      sel.value = o.value; sel.onchange(); await sleep(200); document.querySelector('.closures #closeBtn').click(); await sleep(300);
+      st.playing = true; st.speed = 30; await sleep(4000); st.playing = false; await sleep(300);
+      let mis = alts('missori'), toPR = false; const lodi = alts('lodi');
+      for (let i = 0; i < 30 && !toPR; i++) { mis = alts('missori'); toPR = /PER PORTA ROMANA/.test(mis[1] || ''); if (!toPR) await sleep(1000); }   // (the pages take turns)
+      const inside = lodi.length === 2 && lodi.every(a => /^TRENI PER/.test(a));
+      // the DCT's page for a closure, from the station's telephone
+      const X = G.names.findIndex(n => /MISSORI/.test(n)); M.openStationRadio(F, X); for (let i = 0; i < 50 && !document.querySelector('[data-scr]'); i++) await sleep(200);
+      const clPage = !!document.querySelector('[data-scr="TRATTA CHIUSA / CI SCUSIAMO PER / IL DISAGIO"]'), lateBtn = !!document.querySelector('[data-scr="I TRENI / VIAGGIANO IN / RITARDO"]');
+      document.getElementById('reopenBtn').click(); await sleep(300); st.playing = true; st.speed = 10; await sleep(1500); st.playing = false; await sleep(300);
+      let back = false; for (let i = 0; i < 30 && !back; i++) { back = /PER SAN DONATO/.test(alts('missori')[1] || ''); if (!back) await sleep(1000); }
+      // the Prefettura closes Duomo: its pages on the screens of another station (they take turns with the others)
+      const D = G.names.findIndex(n => /DUOMO/.test(n)); F.ag.event({ kind: 'fault', what: 'new', fault: 'prefettura', target: D }); await sleep(300);
+      const seen = new Set(); const t0 = Date.now();
+      while (Date.now() - t0 < 45000 && !(seen.has('d') && seen.has('p'))) { alts('missori').forEach(a => { if (/DUOMO CHIUSA/.test(a)) seen.add('d'); if (/PREFETTURA DALLE/.test(a)) seen.add('p'); }); await sleep(1000); }
+      // a fire at Corvetto: its screens say to leave the station
+      const C = G.names.findIndex(n => /CORVETTO/.test(n)), id = F.ag.event({ kind: 'fault', what: 'new', fault: 'incendio', target: C });
+      for (let i = 0; i < 40; i++) { const f = F.ag.FX.list().find(x => x.kind === 'incendio'); if (f && f.call && f.call.opts.includes('fire')) { F.ag.event({ kind: 'fault', what: 'answer', id: f.id, answer: 'fire' }); break; }
+        if (f && f.call) F.ag.event({ kind: 'fault', what: 'answer', id: f.id, answer: f.call.opts[0] }); st.playing = true; st.speed = 10; await sleep(500); st.playing = false; }
+      await sleep(300); const fire = alts('corvetto').some(a => /ABBANDONARE LA STAZIONE/.test(a));
+      return { ok: toPR && inside && clPage && lateBtn && back && seen.size === 2 && fire, toPR, inside, clPage, lateBtn, back, pref: [...seen], fire, mis, lodi };
     });
   },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again

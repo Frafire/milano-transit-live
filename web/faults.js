@@ -322,7 +322,7 @@
         if (f.kind === 'incendio') say(f, 'pc', tx('emergenza.incendio.fumo_tensione_tolta', { stazione: name(f.st) }));
         return null;
       }
-      if (what === 'fire') { L.station(f.st, true); f.ph = 'fire'; say(f, 'pc', tx('emergenza.incendio.chiudo', { stazione: name(f.st) })); say(f, 'ag', tx('emergenza.incendio.faccio_uscire')); return null; }
+      if (what === 'fire') { L.station(f.st, true, 'fire'); f.ph = 'fire'; say(f, 'pc', tx('emergenza.incendio.chiudo', { stazione: name(f.st) })); say(f, 'ag', tx('emergenza.incendio.faccio_uscire')); return null; }
       if (what === 'cut') { f.zones = (f.zones || []).concat([L.zone('power', f.st, f.st)]); f.ph = 'recover'; f.until = S.t + between(300, 900); say(f, 'pc', tx('emergenza.oggetto.tolgo_tensione', { stazione: name(f.st) })); return null; }
       if (what === 'hold') { f.zones = (f.zones || []).concat([L.zone('stop', f.st, f.st)]); f.ph = 'holding'; f.holdUntil = S.t + between(120, 300); say(f, 'pc', tx('emergenza.malore_stazione.fermo_treni', { stazione: name(f.st) })); return null; }
       if (/^cl\d$/.test(what)) { const i = f.closeAsk[+what.slice(2)]; if (L.close(i)) { f.closed = true; say(f, 'pc', tx('emergenza.investimento.tratta_chiusa', { chiusura: f.labels[what] })); } return null; }

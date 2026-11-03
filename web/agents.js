@@ -102,7 +102,7 @@
         // a train on strike still in the depot (its plan takes it out later): it stays there
         keepIn: k => { const a = S.agents[k]; if (!a || a.hidden || a.mode !== 'plan' || a.status !== 'parked' || a.legs.some(l => !l.kind && l.status === 'service')) return false; a.mode = 'static'; a.strikeDepot = true; return true; },
         stuckIn: () => S.agents.filter(a => !a.hidden && a.why === 'tensione' && a.stopAt == null && a.v === 0),
-        station: (X, closed) => { const x = S.stn[X] = Object.assign({}, S.stn[X]); if (closed) x.closed = true; else delete x.closed; if (!Object.keys(x).length) delete S.stn[X]; },
+        station: (X, closed, why) => { const x = S.stn[X] = Object.assign({}, S.stn[X]); if (closed) { x.closed = true; if (why) x.why = why; } else { delete x.closed; delete x.why; } if (!Object.keys(x).length) delete S.stn[X]; },     // (why: 'fire', the screens say so)
       } }) : null;
     const VISTA = (ops.marcia_a_vista_kmh || 15) / 3.6, THRU = (ops.closed_station_kmh || 30) / 3.6;         // marcia a vista: 15 km/h (30 on paper; Giovanni's colleague, Nov 2026)
     const last = G ? G.names.length - 1 : 0;
