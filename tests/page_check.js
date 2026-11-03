@@ -17,6 +17,8 @@
 // - turni: Turni del giorno: a reserve train on a tabella before it leaves; it leaves from its own place
 // - regolatore: a train taken out of the service: its runs are scoperte; a reserve train goes out for its tabella and makes them
 // - totale: Chiusura totale: the DCT calls all the trains, they stop at a station and wait; reopened, they go again
+// - orari: the hours of a station (OS): closed at night, any order gives ERRORE; it opens before its first train and says
+//   so; it closes after its last departure and says so
 // - rossototale: Rosso totale: every train on the line stops (stations too); taken away from the alarms, they go again
 // - settimana: seven changes of day in a row; every tabella has a train; depot trains start from their places; maintenance
 // - nuovo: the new Hitachi (9201-9202) in test goes round the test loop by itself at 09:40, its card says "in prova";
@@ -322,6 +324,24 @@ const SCENARIOS = {
       st.playing = true; st.speed = 30; await sleep(5000); st.playing = false; await sleep(300);
       const after = F.ag.agents().filter(a => !a.hidden && a.v > 0.5 && a.status === 'service').length;
       return { ok: call && moving === 0 && waiting >= 10 && told >= 5 && disabled && after >= 5, call, moving, waiting, told, after };
+    });
+  },
+  async orari(p) {     // the hours of a station (Giovanni 3 Nov 2026): the OS opens 5 min before the first train, closes 10 min
+    // after the last real departure, tells the DCT; closed, every order: "ERRORE: stazione chiusa", nobody answers
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), X = F.engine.G.names.findIndex(n => /CORVETTO/.test(n)), H = M.osHours(F)[X];
+      const log = () => document.getElementById('radioLog').innerText, ask = async () => { const n0 = log().split('\n').length; document.querySelector('[data-st="sit"]').click(); await sleep(2500);
+        const L = log().split('\n').slice(n0 - 1); return { err: L.some(x => /ERRORE: stazione chiusa/.test(x)), ans: L.some(x => /Staz\. Corvetto: (?!DCT)/.test(x)) }; };
+      st.playing = false; st.t = H.open - 1800; await sleep(2500); M.openStationRadio(F, X); await sleep(400);
+      const opened0 = M.osOpen(F, X), l0 = await ask(), err0 = l0.err && !l0.ans;
+      st.t = H.open - 40; await sleep(2500); st.playing = true; st.speed = 10; await sleep(7000); st.playing = false; await sleep(300);
+      const saidOpen = /Corvetto: DCT, stazione aperta/.test(log()), l1 = await ask(), ans1 = l1.ans && !l1.err;
+      st.t = H.last + 30; await sleep(3000); st.playing = true; st.speed = 60; const t0 = Date.now();
+      while (Date.now() - t0 < 40000 && !/Corvetto: DCT, stazione chiusa alle/.test(log())) await sleep(300);
+      st.playing = false; await sleep(300);
+      const saidClose = /Corvetto: DCT, stazione chiusa alle/.test(log()), l2 = await ask(), err2 = l2.err && !l2.ans;
+      return { ok: !opened0 && err0 && saidOpen && ans1 && saidClose && err2, open: H.open, first: H.first, last: H.last, opened0, err0, saidOpen, ans1, saidClose, err2, tail: log().split('\n').slice(-3) };
     });
   },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again

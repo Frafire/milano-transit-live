@@ -803,6 +803,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radio .log .m { white-space: pre-wrap; }
 .radio .log .pc { color: #ffd23f; }
 .radio .log .call { color: #ff6b6b; }
+.radio .log .err { color: #ff4d4d; font-weight: 700; }
 .radio .log .ok { color: #5fd38d; }
 .radio .free { display: flex; gap: 6px; padding: 6px 10px 10px; }
 .radio .free input { flex: 1; min-width: 0; background: #0d1d12; color: #8dff9e; border: 2px solid #3b5e45; font: inherit; font-size: 18px; padding: 1px 8px; }
@@ -3708,7 +3709,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         if (S.lastDep[key] != null && S.t - S.lastDep[key] < (leg.status === 'service' ? HEADWAY : NON_SERVICE_HEADWAY)) { a.why = 'intervallo'; return; }
         const au = authority(a, leg);
         if (au.lim < a.d + 5) { a.why = 'segnale'; if (!a.red) a.red = { since: S.t, why: au.why }; a.red.now = au.why; return; }
-        S.lastDep[key] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift(); a.lastStop = { pid: a.pid, d: a.d };
+        S.lastDep[key] = S.t; if (leg.status === 'service') (S.lastSvc = S.lastSvc || {})[st.st] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift(); a.lastStop = { pid: a.pid, d: a.d };
         // a station closed to the public before its next stop: in M3 a train goes through a station without stopping only
         // by hand (the interlocking: Giovanni's colleague, Nov 2026): manual driving from here to the station after it
         { let i = 0; while (i < leg.stops.length && S.stn[leg.stops[i].st] && S.stn[leg.stops[i].st].closed) i++; a.manualTo = i > 0 && i < leg.stops.length ? leg.stops[i].st : null; }
@@ -3774,7 +3775,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // ---------- time line: saved states and events ----------
     const SNAP = 600, TL = { snaps: [], events: [] };
     function snapshot() {
-      const snap = structuredClone({ clLast: S.clLast, strike: S.strike, zones: S.zones, zoneSeq: S.zoneSeq, faults: S.faults, stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
+      const snap = structuredClone({ clLast: S.clLast, strike: S.strike, zones: S.zones, zoneSeq: S.zoneSeq, faults: S.faults, stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], lastSvc: S.lastSvc || {}, turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
       TL.snaps = TL.snaps.filter(x => x.t < S.t); TL.snaps.push(snap);
       if (TL.snaps.length > 220) TL.snaps.splice(1, 1);
     }
@@ -3785,7 +3786,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       S.turnOv = c.turnOv || {}; S.nav = c.nav || []; S.navInfo = c.navInfo || {}; S.navWant = c.navWant || {}; NAVHOLD = c.navHold ? new Set(c.navHold) : null; SLOW = c.slow ? { set: new Set(c.slow.set), until: c.slow.until, kmh: c.slow.kmh } : null;
       S.clEff = c.clEff || null;
       if (S.cl) { CLOSED0 = closedPieces(S.cl); CLOSED = S.clEff && (S.clEff.a !== S.cl.a || S.clEff.b !== S.cl.b) ? closedPieces(S.clEff) : CLOSED0; } else { CLOSED = CLOSED0 = null; }
-      usedRuns.clear(); (c.usedRuns || []).forEach(x => usedRuns.add(x)); atoLast = -Infinity;
+      usedRuns.clear(); (c.usedRuns || []).forEach(x => usedRuns.add(x)); atoLast = -Infinity; S.lastSvc = c.lastSvc || {};
       TL.events.forEach(e => { e.done = e.t <= S.t; });
     }
     let lastResult = null;
@@ -4383,7 +4384,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 //   const R = MTLRadio.create(env); R.say(...), R.openRadio(F, tr), R.radioTick(), R.dcoTick(), R.closingTick() ...
 (function (root) {
   function create(env) {
-    const { tx, D, trips, state, fmt, showRoute, P2WAY, trackAt, realTrain, trainState, trainOnPlatform, relive, reliveFleet, setPlat, orderP2, closureNow, depotAssign, depotName, depotTaken, pastEntrance, loopRole, m3eng, sigNo } = env;
+    const { tx, D, trips, state, fmt, osOpen, osHours, showRoute, P2WAY, trackAt, realTrain, trainState, trainOnPlatform, relive, reliveFleet, setPlat, orderP2, closureNow, depotAssign, depotName, depotTaken, pastEntrance, loopRole, m3eng, sigNo } = env;
     // ================= RADIO TERRA-TRENO (M3) =================
     // The player is the Dirigente Centrale del Traffico (DCT). Orders: a longer stop at the next station, the departure platform at
     // San Donato, platform 2 and reversal there coming from Rogoredo. The driver answers in Italian.
@@ -4548,10 +4549,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       'Oggetto sui binari': ['stazione.verifica.nessun_oggetto', 'stazione.verifica.oggetto_binari'],
       'Situazione in banchina': null };
     function trainsHere(F, X) { return F.ag.agents().filter(a => !a.hidden && a.v === 0 && (a.stopAt === X || (a.status === 'stopped' && a.at === X))); }
+    // the OS calls the DCT (the opening and closing of the station): no answer expected
+    function osCall(F, X, text) { say('Staz. ' + cap(F.engine.G.names[X]), text, 'call'); }
+    const stClosed = (F, X) => osOpen && !osOpen(F, X);
     function stationCmds() {
       const { F, X } = radioStation, G = F.engine.G, st = F.ag.S.stn[X] || {}, here = trainsHere(F, X), tn = a => trainNo(F, F.trains[a.k]);
-      const pend = stPending.filter(p => p.F === F && p.X === X);
-      let h = radioSec('stsit', 'Situazione', `<div class="row"><button data-st="sit">Chiedi la situazione</button></div>`, '', true);
+      const pend = stPending.filter(p => p.F === F && p.X === X), H = osHours ? osHours(F)[X] : null;
+      let h = stClosed(F, X) ? `<div class="lbl">Stazione chiusa${H && state.t < H.open ? ': apre alle ' + fmt(H.open) : ''}</div>` : '';
+      h += radioSec('stsit', 'Situazione', `<div class="row"><button data-st="sit">Chiedi la situazione</button></div>`, '', true);
       h += radioSec('stann', 'Annuncio ai passeggeri', `<div class="row">${Object.keys(ANN).map(k => `<button data-ann="${k}">${k}</button>`).join('')}</div>`);
       h += radioSec('stscr', 'Schermi di banchina', (st.msg ? `<div class="lbl">Ora: ${st.msg}</div>` : '') + `<div class="row">${SCR_TXT.map(k => `<button data-scr="${k}" aria-pressed="${st.msg === k}">${k}</button>`).join('')}${st.msg ? '<button data-scr="">Togli il messaggio</button>' : ''}</div>`, st.msg ? 'messaggio' : '');
       h += radioSec('stchk', 'Verifica in banchina', `<div class="row">${Object.keys(CHECK).map(k => `<button data-chk="${k}">${k}</button>`).join('')}</div>`);
@@ -4565,6 +4570,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
     function bindStation() {
       const { F, X, name } = radioStation, G = F.engine.G;
+      // closed (night): every order gives the error, nobody answers, nothing happens
+      radioCmds.querySelectorAll('button').forEach(b => b.addEventListener('click', e => { if (!stClosed(F, X)) return;
+        e.stopImmediatePropagation(); e.preventDefault(); say('', tx('stazione.errore_chiusa'), 'err'); }, true));
       radioCmds.querySelectorAll('[data-st="sit"]').forEach(b => b.onclick = () => {
         say('DCT', tx('stazione.situazione.chiede', { stazione: name }), 'pc');
         const c = crowd(F, X), cl = (F.ag.S.stn[X] || {}).closed;
@@ -5011,7 +5019,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     }
 
 
-    return { say, cap, trainNo, openRadio, openStationRadio, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
+    return { say, cap, trainNo, openRadio, openStationRadio, osCall, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
              radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain };
   }
   const api = { create };
@@ -7569,6 +7577,34 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
       renderRego(); });
   }
   document.getElementById('regoBtn').onclick = () => { state.sel = state.sel === 'rego' ? null : 'rego'; state.follow = false; renderCard(); };
+  // ---------- the hours of the stations (Giovanni 3 Nov 2026): the operatore di stazione (OS) opens it a few minutes before
+  // its first train (either way, by the timetable) and closes it a few minutes after its last real passenger departure;
+  // the minutes: Tempi sheet. He tells the DCT; closed, nobody answers the DCT there ("ERRORE: stazione chiusa").
+  const tempo = (F, pre, dflt) => { const tm = (F.engine.net.rules || {}).tempi || {}, v = Object.entries(tm).find(([n]) => n.startsWith(pre)); return v && v[1][0] != null ? +v[1][0] : dflt; };
+  function osHoursOf(F) {
+    if (F._osh && F._osh.tr === F.trains) return F._osh.h;
+    const sof = F._sof = F._sof || stopsOfF(F), h = {};
+    F.trains.forEach(tr => (tr.segs0 || tr.segs).forEach(s => { if (s[1] !== 'service' || s[2] < 0) return; const sts = sof(s);
+      sts.slice(0, -1).forEach(z => { const t = s[4][z.j + 1] === z.d ? s[3][z.j + 1] : s[3][z.j], x = h[z.st] = h[z.st] || { first: Infinity, last: -Infinity };
+        x.first = Math.min(x.first, t); x.last = Math.max(x.last, t); }); }));
+    const ob = tempo(F, 'OS: apertura', 300); Object.values(h).forEach(x => { x.open = x.first - ob; });
+    F._osh = { tr: F.trains, h }; return h;
+  }
+  function osOpen(F, X, t) {
+    if (!F || !F.ag) return true; const H = osHoursOf(F)[X]; if (!H) return true; t = t == null ? state.t : t;
+    if (t < H.open) return false;
+    if (t <= H.last) return true;
+    // after its last departure in the timetable: open while a passenger train is still to come, then a few minutes more
+    if (F.ag.agents().some(a => !a.hidden && a.status === 'service' && a.legs.some(l => l.status === 'service' && l.stops && l.stops.some(z => z.st === X)))) return true;
+    return t < Math.max(H.last, (F.ag.S.lastSvc || {})[X] || 0) + tempo(F, 'OS: chiusura', 600);
+  }
+  const OSST = {}; let osLastT = null;
+  function osTick() {
+    const F = m3eng(); if (!F || !F.ag) return; const G = F.engine.G, t = state.t, jump = osLastT == null || Math.abs(t - osLastT) > 120; osLastT = t;
+    G.names.forEach((n, X) => { const o = osOpen(F, X, t), was = OSST[X]; OSST[X] = o;
+      if (was == null || was === o || jump) return;
+      MR.osCall(F, X, tx(o ? 'stazione.os.apertura' : 'stazione.os.chiusura', { ora: fmt(t) })); });
+  }
   // the data of the next kind of day, loaded in the night before they are needed
   function preloadNextDay() {
     const next = (dayPick % 7) + 1, nsfx = hasDay(dayType(next)) ? dayType(next) : '';
@@ -7686,7 +7722,7 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     const bb = L.latLngBounds(segs.flatMap(([pid, d0, d1]) => [trackAt(F, pid, d0), trackAt(F, pid, d1)]));
     if (!map.getBounds().contains(bb)) map.fitBounds(bb.pad(0.6), { maxZoom: 16 });
   }
-  const MR = MTLRadio.create({ tx: (...a) => tx(...a), D, trips, state, P2WAY, fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
+  const MR = MTLRadio.create({ tx: (...a) => tx(...a), D, trips, state, P2WAY, osOpen: (F, X, t) => osOpen(F, X, t), osHours: F => osHoursOf(F), fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
     get p2Msg() { return p2Msg; }, set p2Msg(v) { p2Msg = v; },
     resetSigs: () => { if (SIGS) SIGS.forEach(x => { x.a = null; }); },
     trackAt: (...a) => trackAt(...a),
@@ -8100,12 +8136,12 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
+    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); osTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; const ae = document.activeElement; if (state.sel != null && !(ae && ae.tagName === 'SELECT' && card.contains(ae))) renderCard(); }     // (not while the player is choosing in a menu of the card)
     requestAnimationFrame(frame);
   }
-  window.mtl = { map, state, fleets, renderCard, realTrain, scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
+  window.mtl = { map, state, fleets, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
 </script>

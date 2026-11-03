@@ -4,7 +4,7 @@
 //   const R = MTLRadio.create(env); R.say(...), R.openRadio(F, tr), R.radioTick(), R.dcoTick(), R.closingTick() ...
 (function (root) {
   function create(env) {
-    const { tx, D, trips, state, fmt, showRoute, P2WAY, trackAt, realTrain, trainState, trainOnPlatform, relive, reliveFleet, setPlat, orderP2, closureNow, depotAssign, depotName, depotTaken, pastEntrance, loopRole, m3eng, sigNo } = env;
+    const { tx, D, trips, state, fmt, osOpen, osHours, showRoute, P2WAY, trackAt, realTrain, trainState, trainOnPlatform, relive, reliveFleet, setPlat, orderP2, closureNow, depotAssign, depotName, depotTaken, pastEntrance, loopRole, m3eng, sigNo } = env;
     // ================= RADIO TERRA-TRENO (M3) =================
     // The player is the Dirigente Centrale del Traffico (DCT). Orders: a longer stop at the next station, the departure platform at
     // San Donato, platform 2 and reversal there coming from Rogoredo. The driver answers in Italian.
@@ -169,10 +169,14 @@
       'Oggetto sui binari': ['stazione.verifica.nessun_oggetto', 'stazione.verifica.oggetto_binari'],
       'Situazione in banchina': null };
     function trainsHere(F, X) { return F.ag.agents().filter(a => !a.hidden && a.v === 0 && (a.stopAt === X || (a.status === 'stopped' && a.at === X))); }
+    // the OS calls the DCT (the opening and closing of the station): no answer expected
+    function osCall(F, X, text) { say('Staz. ' + cap(F.engine.G.names[X]), text, 'call'); }
+    const stClosed = (F, X) => osOpen && !osOpen(F, X);
     function stationCmds() {
       const { F, X } = radioStation, G = F.engine.G, st = F.ag.S.stn[X] || {}, here = trainsHere(F, X), tn = a => trainNo(F, F.trains[a.k]);
-      const pend = stPending.filter(p => p.F === F && p.X === X);
-      let h = radioSec('stsit', 'Situazione', `<div class="row"><button data-st="sit">Chiedi la situazione</button></div>`, '', true);
+      const pend = stPending.filter(p => p.F === F && p.X === X), H = osHours ? osHours(F)[X] : null;
+      let h = stClosed(F, X) ? `<div class="lbl">Stazione chiusa${H && state.t < H.open ? ': apre alle ' + fmt(H.open) : ''}</div>` : '';
+      h += radioSec('stsit', 'Situazione', `<div class="row"><button data-st="sit">Chiedi la situazione</button></div>`, '', true);
       h += radioSec('stann', 'Annuncio ai passeggeri', `<div class="row">${Object.keys(ANN).map(k => `<button data-ann="${k}">${k}</button>`).join('')}</div>`);
       h += radioSec('stscr', 'Schermi di banchina', (st.msg ? `<div class="lbl">Ora: ${st.msg}</div>` : '') + `<div class="row">${SCR_TXT.map(k => `<button data-scr="${k}" aria-pressed="${st.msg === k}">${k}</button>`).join('')}${st.msg ? '<button data-scr="">Togli il messaggio</button>' : ''}</div>`, st.msg ? 'messaggio' : '');
       h += radioSec('stchk', 'Verifica in banchina', `<div class="row">${Object.keys(CHECK).map(k => `<button data-chk="${k}">${k}</button>`).join('')}</div>`);
@@ -186,6 +190,9 @@
     }
     function bindStation() {
       const { F, X, name } = radioStation, G = F.engine.G;
+      // closed (night): every order gives the error, nobody answers, nothing happens
+      radioCmds.querySelectorAll('button').forEach(b => b.addEventListener('click', e => { if (!stClosed(F, X)) return;
+        e.stopImmediatePropagation(); e.preventDefault(); say('', tx('stazione.errore_chiusa'), 'err'); }, true));
       radioCmds.querySelectorAll('[data-st="sit"]').forEach(b => b.onclick = () => {
         say('DCT', tx('stazione.situazione.chiede', { stazione: name }), 'pc');
         const c = crowd(F, X), cl = (F.ag.S.stn[X] || {}).closed;
@@ -632,7 +639,7 @@
     }
 
 
-    return { say, cap, trainNo, openRadio, openStationRadio, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
+    return { say, cap, trainNo, openRadio, openStationRadio, osCall, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
              radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain };
   }
   const api = { create };

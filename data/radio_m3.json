@@ -2277,6 +2277,27 @@
    "testi": [
     "DCT, qui Badoni: uscito da San Donato, vado verso il treno {T}. Passo."
    ]
+  },
+  "stazione.errore_chiusa": {
+   "chi": "sistema",
+   "quando": "Il DCT dà un comando a una stazione chiusa (tra chiusura e apertura): nessuno risponde, nessuna conseguenza",
+   "testi": [
+    "ERRORE: stazione chiusa"
+   ]
+  },
+  "stazione.os.apertura": {
+   "chi": "stazione",
+   "quando": "L'operatore di stazione (OS) apre la stazione, 5 minuti prima del primo treno, e lo dice al DCT (non aspetta risposta)",
+   "testi": [
+    "DCT, stazione aperta alle {ora}. Passo."
+   ]
+  },
+  "stazione.os.chiusura": {
+   "chi": "stazione",
+   "quando": "L'OS chiude la stazione, 10 minuti dopo l'ultima partenza, e lo dice al DCT (non aspetta risposta)",
+   "testi": [
+    "DCT, stazione chiusa alle {ora}. Buonanotte. Passo."
+   ]
   }
  }
 }

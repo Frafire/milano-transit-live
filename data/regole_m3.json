@@ -100,6 +100,16 @@
    17,
    17,
    "Giovanni, 03/11/2026"
+  ],
+  "OS: apertura della stazione prima del primo treno (qualsiasi direzione, da orario)": [
+   300,
+   300,
+   "Giovanni, 03/11/2026"
+  ],
+  "OS: chiusura della stazione dopo l'ultima partenza reale": [
+   600,
+   600,
+   "Giovanni, 03/11/2026"
   ]
  },
  "semafori": {
