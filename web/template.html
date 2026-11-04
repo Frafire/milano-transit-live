@@ -184,6 +184,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .trkname.dep { color: #cfd6dc; font-size: 9px; }
 .sigtag { position: absolute; left: 7px; top: -16px; font: 600 10px/1 system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.72); padding: 1px 3px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
 .sigpx.sh { width: 9px; height: 10px; }
+.kitsig { position: relative; transform: translate(-50%, -100%); display: flex; align-items: flex-end; gap: 2px; pointer-events: none; }
+.kitsig img { image-rendering: pixelated; width: auto; height: auto; transform: scale(2); transform-origin: bottom center; filter: drop-shadow(0 0 1px #000); }
+.kitsig svg { margin-left: 6px; }
+.kitsig span { position: absolute; left: 100%; top: -14px; margin-left: 4px; font: 700 11px var(--body); color: #fff; background: rgba(0,0,0,.75); padding: 0 4px; border-radius: 3px; white-space: nowrap; }
+.kitsig.cur img { outline: 1px dashed #ffcf3f; }
 .sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
@@ -557,6 +562,19 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <option value="nose2">Bandiera 2: secondo treno sullo stesso binario (dove sta la sua estremità)</option>
       <option value="cut">Taglio: nessun treno passa su questo pezzo di binario (tra i due scambi)</option>
     </select>
+    <div id="sigKit" hidden>
+      <span class="label">Galleria o superficie</span>
+      <div class="row"><button class="skenv" data-v="galleria" aria-pressed="true">Galleria</button><button class="skenv" data-v="superficie" aria-pressed="false">Superficie</button></div>
+      <div id="skVeleRow"><span class="label">Vele (superficie)</span>
+      <div class="row"><button class="skvele" data-v="1" aria-pressed="false">1 vela</button><button class="skvele" data-v="2" aria-pressed="true">2 vele</button></div></div>
+      <span class="label">Lettera P (dalla stessa parte del segnale)</span>
+      <div class="row"><button class="skp" data-v="luminosa" aria-pressed="true">Luminosa</button><button class="skp" data-v="fissa" aria-pressed="false">Fissa</button><button class="skp" data-v="nessuna" aria-pressed="false">Nessuna</button></div>
+      <span class="label">Legale o illegale</span>
+      <div class="row"><button class="sklegal" data-v="1" aria-pressed="true">Legale (vela tonda, a)</button><button class="sklegal" data-v="0" aria-pressed="false">Illegale (vela quadra, b)</button></div>
+      <p class="note" id="skInfo"></p>
+      <div class="row" style="align-items:center;gap:8px"><span id="skPrefix" style="font:700 13px var(--body)">S</span><input type="text" id="skNum" inputmode="numeric" placeholder="Numero, es. 123" style="flex:1"><span id="skSuffix" style="font:700 13px var(--body)">a</span></div>
+      <canvas id="skPreview" width="11" height="44" style="image-rendering:pixelated;width:33px;height:132px"></canvas>
+    </div>
     <input type="text" id="sigName" placeholder="Name (optional), e.g. S12">
     <div class="row"><button id="sigSave">Place signal</button></div>
   </section>
@@ -916,7 +934,7 @@ window.MTL_PACKS = __PACKS__;
       test: [{ color: '#ffe066', weight: 2.4, opacity: .95, dashArray: '7 5' }],
       link: [{ color: '#d0d0d0', weight: 2, opacity: .8, dashArray: '4 4' }]
     };
-    if (draw) F.tracks.forEach(t => ALLTRACKS.push({ line: F.line, w: t.w, c: t.c, pts: decodeFlat(t.p) }));
+    if (draw) F.tracks.forEach(t => ALLTRACKS.push({ line: F.line, w: t.w, c: t.c, d: t.d, g: t.g, pts: decodeFlat(t.p) }));
     const drawn_ = F.net ? F.net.edges.map(e => ({ c: e.cat, p: e.p })) : F.tracks;   // M3: drawn from the engine's network
     if (draw) ['yard', 'test', 'link', 'siding', 'crossover', 'main'].forEach(cat => drawn_.filter(t => t.c === cat).forEach(t => {
       const pts = decodeFlat(t.p);
@@ -2444,6 +2462,59 @@ window.MTL_PACKS = __PACKS__;
     html: `<div class="sig" style="position:relative"><svg width="22" height="22" viewBox="0 0 22 22" style="transform:translate(-50%,-50%)"><circle cx="11" cy="11" r="9" fill="#e5383b" stroke="#000" stroke-width="1.5"/><path d="M6 6 L16 16 M16 6 L6 16" stroke="#fff" stroke-width="3"/></svg>${name ? `<span>${name}</span>` : ''}</div>` }) : L.divIcon({ className: '', iconSize: [0, 0],
     html: `<div class="sig" style="position:relative"><div style="transform:rotate(${deg}deg)"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M11 2 L18 16 L11 12 L4 16 Z" fill="${SIGCOL[type] || '#fff'}" stroke="#000" stroke-width="1.5"/><circle cx="11" cy="19" r="2.5" fill="#000"/></svg></div>${name ? `<span>${name}</span>` : ''}</div>` });
 
+  // ---- signals of lines with more than the M3's (the M2, Giovanni 4 Nov 2026): the drawings of the proposal of 3 Nov ----
+  // SIGKIT[line]: the kinds of signal the editor offers there and what each placed signal carries (galleria / superficie,
+  // vele, lettera P, legale / illegale, the name). Roles (blocco, partenza, protezione...) come later from the Excel.
+  // Galleria: one head with three lamps, red, yellow, green from the top; rounded corners legale, square illegale.
+  // Superficie: one or two velas on a striped pole, round legale (on the right), square illegale (on the left).
+  // P: a fixed plate or a digital screen, on the same side as the signal. Names: galleria S + 3 digits + a (legale) or
+  // b (illegale); superficie POSTO + number + a or b, so they never clash with the M3's #A numbers.
+  const SIGKIT = { M2: { types: [['main', 'Semaforo'], ['shunt', 'Manovra (basso, come San Donato)'], ['stop', 'Fermata'],
+    ['nose', 'Bandiera: arresto del muso'], ['nose2', 'Bandiera 2: secondo treno sullo stesso binario'], ['cut', 'Taglio: nessun treno passa su questo pezzo']] } };
+  const KLAMP = { R: ['#d60012', '#ff3c4e'], Y: ['#e8a800', '#ffe066'], V: ['#00a14b', '#6dffa8'] }, KOFF = '#3a3a3a';
+  function kitCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); return [c, x, (i, j, col) => { x.fillStyle = col; x.fillRect(i, j, 1, 1); }]; }
+  function kitLamp(px, x0, y0, L, on) { ['.XXX.', 'XXXXX', 'XXXXX', 'XXXXX', '.XXX.'].forEach((row, r) => [...row].forEach((ch, i) => { if (ch === 'X') px(x0 + i, y0 + r, on ? KLAMP[L][0] : KOFF); }));
+    if (on) { px(x0 + 1, y0 + 1, KLAMP[L][1]); px(x0 + 2, y0 + 1, KLAMP[L][1]); px(x0 + 1, y0 + 2, KLAMP[L][1]); } }
+  function kitP(px, x0, y0, type, on) {
+    for (let j = 0; j < 7; j++) for (let i = 0; i < 7; i++) { const e = j === 0 || j === 6 || i === 0 || i === 6; px(x0 + i, y0 + j, type === 'fissa' ? (e ? '#101010' : '#f4f4f4') : (e ? '#5a6064' : '#050505')); }
+    ['111', '101', '111', '100', '100'].forEach((row, r) => [...row].forEach((ch, i) => { if (ch === '1') px(x0 + 2 + i, y0 + 1 + r, type === 'fissa' ? '#101010' : on ? '#ffffff' : '#262626'); }));
+  }
+  const DISC = ['...wwwww...', '..wkkkkkw..', '.wkkkkkkkw.', 'wkkkkkkkkkw', 'wkkkkkkkkkw', 'wkkkkkkkkkw', 'wkkkkkkkkkw', 'wkkkkkkkkkw', '.wkkkkkkkw.', '..wkkkkkw..', '...wwwww...'];
+  // o: { env: 'galleria' | 'superficie', vele: 1 | 2, p: 'luminosa' | 'fissa' | 'nessuna', legal, lit: ['R'...], pOn }
+  function kitSprite(o) {
+    const P = o.p && o.p !== 'nessuna', lit = o.lit || ['R'];
+    if (o.env !== 'superficie') {
+      const W = 11, HH = 4 + 3 * 6 + 1, H = HH + (P ? 8 : 0), [c, x, px] = kitCanvas(W, H), round = o.legal !== false;
+      for (let j = 0; j < HH; j++) for (let i = 0; i < W; i++) { const e = i === 0 || i === W - 1 || j === 0 || j === HH - 1, n = i === 1 || i === W - 2 || j === 1 || j === HH - 2; px(i, j, e ? '#a0a0a0' : n ? '#dedede' : '#101010'); }
+      if (round) { for (const [i, j] of [[0, 0], [1, 0], [0, 1], [W - 1, 0], [W - 2, 0], [W - 1, 1], [0, HH - 1], [1, HH - 1], [0, HH - 2], [W - 1, HH - 1], [W - 2, HH - 1], [W - 1, HH - 2]]) x.clearRect(i, j, 1, 1);
+        px(1, 1, '#a0a0a0'); px(W - 2, 1, '#a0a0a0'); px(1, HH - 2, '#a0a0a0'); px(W - 2, HH - 2, '#a0a0a0'); }
+      ['R', 'Y', 'V'].forEach((L, n) => kitLamp(px, 3, 3 + n * 6, L, lit.includes(L)));
+      if (P) kitP(px, 2, HH + 1, o.p, o.pOn);
+      return c;
+    }
+    const n = o.vele === 1 ? 1 : 2, VH = 12, POLE = 16, H = n * VH + (P ? 8 : 0) + POLE + 1, [c, x, px] = kitCanvas(11, H);
+    const top = lit.includes('V') ? 'V' : lit.includes('Y') && !lit.includes('R') ? 'Y' : 'R', below = lit.includes('R') && lit.includes('Y') ? 'Y' : null;
+    let y = 0;
+    for (let k = 0; k < n; k++) {
+      (o.legal !== false ? DISC : DISC.map(() => 'wkkkkkkkkkw').map((r, i) => i === 0 || i === 10 ? 'wwwwwwwwwww' : r)).forEach((row, r) => [...row].forEach((ch, i) => { if (ch !== '.') px(i, y + r, ch === 'w' ? '#f2f2f2' : '#101010'); }));
+      const L = k === 0 ? top : below; kitLamp(px, 3, y + 3, L || 'R', !!L); y += VH;
+    }
+    if (P) { kitP(px, 2, y, o.p, o.pOn); y += 8; }
+    for (let j = y; j < H - 1; j++) { const b = Math.floor((j - y) / 3) % 2; px(4, j, b ? '#111' : '#d8d8d8'); px(5, j, b ? '#222' : '#f4f4f4'); px(6, j, b ? '#0a0a0a' : '#bdbdbd'); }
+    for (let i = 2; i < 9; i++) px(i, H - 1, '#55595c');
+    return c;
+  }
+  // the low shunting signal, as at San Donato (the two bottom lamps lit: stop)
+  function kitShunt() { const [c, x] = kitCanvas(9, 10); x.fillStyle = '#101010'; x.fillRect(0, 1, 9, 9); x.fillRect(0, 0, 5, 1); x.fillRect(5, 1, 4, 3);
+    x.fillStyle = '#8a8a8a'; x.fillRect(0, 9, 9, 1); [[1, 1, false], [1, 5, true], [5, 5, true]].forEach(([i, j, on]) => { x.fillStyle = on ? '#ffffff' : '#3a3a3a'; x.fillRect(i, j, 3, 3); }); return c; }
+  const KITURL = {};
+  const kitUrl = sg => { const k = [sg.type, sg.env, sg.vele, sg.p, sg.legal].join('|');
+    return KITURL[k] || (KITURL[k] = (sg.type === 'shunt' ? kitShunt() : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa' })).toDataURL()); };
+  // on the map: the signal as it looks (red), a small arrow for the way it faces, the name
+  const kitIcon = (sg, current) => L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="kitsig${current ? ' cur' : ''}"><img alt="" src="${kitUrl(sg)}"><svg width="12" height="12" viewBox="0 0 14 14" style="transform:rotate(${sg.heading}deg)"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="#ffcf3f" stroke="#000" stroke-width="1"/></svg>${sg.name ? `<span>${sg.name}</span>` : ''}</div>` });
+  // the signals already in the line's file (data/rules_<line>.json, packed with the fleet): shown with the ones of this browser
+  const FILE_SIGNALS = (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => ((F.edits || {}).signals || []).map(sg => ({ ...sg, line: sg.line || F.line })));
+
   // nearest track to a click, with the point on it and the track's own direction there
   function snap(latlng, tol = 18) {
     const P = map.latLngToContainerPoint(latlng); let best = null;
@@ -2487,8 +2558,10 @@ window.MTL_PACKS = __PACKS__;
     }
     if (mode === 'signal' && pickSig) {
       if (pickSig.click && pickSig.off > 1) L.polyline([pickSig.click, pickSig.ll], { color: '#fff', weight: 1, dashArray: '2 3', interactive: false }).addTo(currentLayer);
-      L.marker(pickSig.click || pickSig.ll, { interactive: false, icon: sigIcon((pickSig.brg + (sigDir < 0 ? 180 : 0)) % 360, document.getElementById('sigType').value, document.getElementById('sigName').value.trim()) }).addTo(currentLayer);
+      const ktk = kitTrack(), kh = (pickSig.brg + (sigDir < 0 ? 180 : 0)) % 360, kt = document.getElementById('sigType').value;
+      L.marker(pickSig.click || pickSig.ll, { interactive: false, icon: ktk && (kt === 'main' || kt === 'shunt') ? kitIcon({ ...kitSignal(ktk), heading: kh }, true) : sigIcon(kh, kt, document.getElementById('sigName').value.trim()) }).addTo(currentLayer);
     }
+    if (mode === 'signal') syncKit();
     ptCount.textContent = pts.length + (pts.length === 1 ? ' point' : ' points');
   }
   function describeTrack(tk) {
@@ -2503,8 +2576,12 @@ window.MTL_PACKS = __PACKS__;
       if (tk) { L.polyline(tk.pts, { color: '#ff4fd8', weight: 4, interactive: false }).addTo(savedLayer); wayArrows(tk, m.dir, '#ff4fd8', savedLayer); }
       add(m.role + ' · ' + m.line + (m.note ? ' · ' + m.note : ''), () => { ED.marks.splice(i, 1); persist(); redrawSaved(); });
     });
+    const kitDraw = sg => SIGKIT[sg.line] && (sg.type === 'main' || sg.type === 'shunt');
+    FILE_SIGNALS.forEach(sg => { if (ED.signals.some(x => Math.abs(x.lat - sg.lat) < 2e-6 && Math.abs(x.lon - sg.lon) < 2e-6)) return;
+      L.marker([sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer); });
+    if (FILE_SIGNALS.length) { add(`Nel file della linea: ${FILE_SIGNALS.length} segnali (per cambiarli: piazzali di nuovo e mandami l'export)`, () => {}); trkList.lastChild.lastChild.remove(); }
     ED.signals.forEach((sg, i) => {
-      L.marker([sg.lat, sg.lon], { interactive: false, icon: sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer);
+      L.marker([sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer);
       add('Signal ' + (sg.name || '') + ' · ' + sg.type + ' · ' + sg.line, () => { ED.signals.splice(i, 1); persist(); redrawSaved(); });
     });
     ED.tracks.forEach((tk, i) => {
@@ -2725,6 +2802,50 @@ window.MTL_PACKS = __PACKS__;
   document.querySelectorAll('.sdir').forEach(b => b.onclick = () => { sigDir = +b.dataset.dir; pressGroup('.sdir', sigDir); redrawCurrent(); });
   document.getElementById('sigType').onchange = redrawCurrent;
   document.getElementById('sigName').oninput = redrawCurrent;
+  // ---- the fields of a line with a SIGKIT (the M2): galleria / superficie, vele, P, legale / illegale, name ----
+  const sigKit = document.getElementById('sigKit'), sigTypeSel = document.getElementById('sigType'), M3TYPES = sigTypeSel.innerHTML;
+  const KS = { env: 'galleria', vele: 2, p: 'luminosa', legal: true, legalAuto: true, envAuto: true };
+  const kitTrack = () => pickSig && ALLTRACKS[pickSig.ti] && SIGKIT[ALLTRACKS[pickSig.ti].line] ? ALLTRACKS[pickSig.ti] : null;
+  const kitPress = (sel, v) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === String(v)));
+  function kitName() { const num = document.getElementById('skNum').value.trim().replace(/^(S|POSTO)\s*/i, '').replace(/[ab]$/i, '');
+    return num ? (KS.env === 'superficie' ? 'POSTO ' : 'S') + num + (KS.legal ? 'a' : 'b') : ''; }
+  function kitSignal(tk) {        // what the signal being placed carries, as it is saved
+    const type = sigTypeSel.value, main = type === 'main';
+    return { type, env: KS.env, vele: KS.env === 'superficie' && main ? KS.vele : undefined, p: main ? KS.p : undefined,
+      legal: KS.legal, vela: KS.legal ? 'tonda' : 'quadra', name: main || type === 'shunt' ? kitName() : '' };
+  }
+  function syncKit() {
+    // the line: the one of the track just clicked, else the line of the page (the M2 page keeps its fields between signals)
+    const tk = kitTrack(), want = tk ? tk.line : (!pickSig && SIGKIT[ONLY_LINE] ? ONLY_LINE : '');
+    sigKit.hidden = !want; document.getElementById('sigName').hidden = !!want;
+    if (sigTypeSel.dataset.kit !== want) { sigTypeSel.innerHTML = want ? SIGKIT[want].types.map(([v, t]) => `<option value="${v}">${t}</option>`).join('') : M3TYPES; sigTypeSel.dataset.kit = want; }
+    if (!want) return;
+    if (tk && KS.legalAuto && (tk.d === 1 || tk.d === -1)) KS.legal = sigDir === tk.d;
+    const main = sigTypeSel.value === 'main';
+    kitPress('.skenv', KS.env); kitPress('.skvele', KS.vele); kitPress('.skp', KS.p); kitPress('.sklegal', KS.legal ? 1 : 0);
+    document.getElementById('skVeleRow').hidden = KS.env !== 'superficie' || !main;
+    document.querySelectorAll('.skp').forEach(b => b.disabled = !main);
+    document.getElementById('skPrefix').textContent = KS.env === 'superficie' ? 'POSTO' : 'S';
+    document.getElementById('skSuffix').textContent = KS.legal ? 'a' : 'b';
+    // warnings: trains run on the right. A legale signal faces the way the track is run and stands on its right
+    const warn = [];
+    if (!tk) warn.push('Clicca dove sta il segnale.');
+    else if (tk.d === 1 || tk.d === -1) { if (KS.legal !== (sigDir === tk.d)) warn.push(KS.legal ? 'Attenzione: questo binario si percorre nell\'altro verso, il segnale sarebbe illegale.' : 'Attenzione: il segnale guarda i treni nel verso normale del binario, di solito è legale.'); }
+    else warn.push('Binario senza verso fisso (' + (tk.c === 'main' ? 'linea' : tk.c) + '): scegli tu legale o illegale.');
+    if (tk && pickSig.off > 1) { const right = (pickSig.side === 'right') === (sigDir === 1); if (right !== KS.legal) warn.push(KS.legal ? 'Attenzione: il segnale legale di solito sta a destra del binario, tu l\'hai messo a sinistra.' : 'Attenzione: il segnale illegale di solito sta a sinistra del binario, tu l\'hai messo a destra.'); }
+    const num = document.getElementById('skNum').value.trim();
+    if (main && KS.env === 'galleria' && num && !/^\d{3}$/.test(num.replace(/^S/i, '').replace(/[ab]$/i, ''))) warn.push('In galleria il nome è S + 3 cifre (es. S123a).');
+    document.getElementById('skInfo').textContent = (KS.legal ? 'Legale: vela tonda, nome con a. ' : 'Illegale: vela quadra, nome con b. ') + (kitName() ? 'Nome: ' + kitName() + '. ' : '') + warn.join(' ');
+    const pv = document.getElementById('skPreview'), spr = sigTypeSel.value === 'shunt' ? kitShunt() : kitSprite({ ...kitSignal(tk), lit: ['R'], pOn: KS.p === 'luminosa' });
+    pv.width = spr.width; pv.height = spr.height; pv.style.width = spr.width * 3 + 'px'; pv.style.height = spr.height * 3 + 'px'; pv.getContext('2d').drawImage(spr, 0, 0);
+    pv.hidden = !(main || sigTypeSel.value === 'shunt');
+  }
+  const kitSet = (k, v) => () => { KS[k] = v; if (k === 'legal') KS.legalAuto = false; if (k === 'env') KS.envAuto = false; redrawCurrent(); };
+  document.querySelectorAll('.skenv').forEach(b => b.onclick = kitSet('env', b.dataset.v));
+  document.querySelectorAll('.skvele').forEach(b => b.onclick = kitSet('vele', +b.dataset.v));
+  document.querySelectorAll('.skp').forEach(b => b.onclick = kitSet('p', b.dataset.v));
+  document.querySelectorAll('.sklegal').forEach(b => b.onclick = kitSet('legal', b.dataset.v === '1'));
+  document.getElementById('skNum').oninput = redrawCurrent;
 
   function setDrawing(on) {
     drawing = on; drawer.hidden = !on; drawBtn.setAttribute('aria-pressed', on);
@@ -2786,7 +2907,8 @@ window.MTL_PACKS = __PACKS__;
     if (!s) { (mode === 'mark' ? markPick : sigPick).textContent = 'No track there. Zoom in and click right on a track.'; return; }
     const tk = ALLTRACKS[s.ti];
     if (mode === 'mark') { pickTrack = s; markPick.textContent = describeTrack(tk); }
-    else { pickSig = s; sigPick.textContent = describeTrack(tk) + (s.off > 1 ? ' · ' + s.off + ' m to the ' + s.side + ' of the track (way direction)' : ' · on the track'); }
+    else { pickSig = s; sigPick.textContent = describeTrack(tk) + (s.off > 1 ? ' · ' + s.off + ' m to the ' + s.side + ' of the track (way direction)' : ' · on the track');
+      if (SIGKIT[tk.line]) { KS.legalAuto = true; if (tk.g != null) KS.env = tk.g ? 'galleria' : 'superficie'; } }
     redrawCurrent();
   });
   document.getElementById('markSave').onclick = () => {
@@ -2806,6 +2928,7 @@ window.MTL_PACKS = __PACKS__;
     ED.signals.push({ line: tk.line, w: tk.w, lat: +at[0].toFixed(6), lon: +at[1].toFixed(6), on_track: pickSig.ll.map(x => +x.toFixed(6)),
       offset_m: pickSig.off || 0, side: pickSig.side || 'on track', heading,
       dir: sigDir, type: document.getElementById('sigType').value, name: document.getElementById('sigName').value.trim() });
+    if (SIGKIT[tk.line]) { const k = kitSignal(tk); Object.keys(k).forEach(x => k[x] === undefined && delete k[x]); Object.assign(ED.signals[ED.signals.length - 1], k); document.getElementById('skNum').value = ''; }
     document.getElementById('sigName').value = ''; pickSig = null; sigPick.textContent = 'Placed. Click where the next signal stands.';
     persist(); redrawSaved(); redrawCurrent();
   };

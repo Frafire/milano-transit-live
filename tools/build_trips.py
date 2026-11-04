@@ -5,7 +5,8 @@ import os, sys, json, math, heapq, collections
 sys.path.insert(0, '.')
 LINE = os.environ.get('LINE', 'M1')
 from router import *
-print('main-line directions (right-hand running):', infer_main_directions())
+MAIN_DIRS = infer_main_directions()
+print('main-line directions (right-hand running):', MAIN_DIRS)
 from dwell import add_dwell
 
 D = json.load(open('data.json'))
@@ -174,6 +175,10 @@ for w in W:
     for a, b, n in w['pts']:
         A, B = round(a * 1e6), round(b * 1e6); flat += [A - pa, B - pb]; pa, pb = A, B
     tracks.append({'c': cat, 'p': flat, 'w': w['i']})
+    # TRACK_DIRS (the M2): the way trains run on a main-line track (1 along the way, -1 against it, right-hand
+    # running), for the editor to tell a signal facing the normal way (legale) from one facing the other (illegale)
+    if os.environ.get('TRACK_DIRS') and MAIN_DIRS.get(w['i']) in (1, -1): tracks[-1]['d'] = MAIN_DIRS[w['i']]
+    if os.environ.get('TRACK_DIRS'): tracks[-1]['g'] = 1 if w['tunnel'] else 0     # in a tunnel (galleria) or not
 
 def enc(p):
     flat, pa, pb = [], 0, 0

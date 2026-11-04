@@ -17,8 +17,13 @@ def write(dati):
         data = base64.b64encode(open(os.path.join(bd, 'data.json.gz'), 'rb').read()).decode()
         turni = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm2_turni.json'), 'rb').read(), 9)).decode()
         # the runs on the real tracks and the tracks for the editor (tools/build_trips.py), when built
-        fp = os.path.join(bd, 'm2.json')
-        fleet = base64.b64encode(gzip.compress(json.dumps({'fleets': [json.load(open(fp))]}, separators=(',', ':')).encode(), 9)).decode() if os.path.exists(fp) else ''
+        fp = os.path.join(bd, 'm2.json'); fleet = ''
+        if os.path.exists(fp):
+            F = json.load(open(fp))
+            # the signals and marks Giovanni placed in the editor (data/rules_m2.json): shown on the map and in the editor
+            rp = os.path.join(ROOT, 'data', 'rules_m2.json')
+            if os.path.exists(rp): F['edits'] = {k: v for k, v in json.load(open(rp)).items() if not k.startswith('_')}
+            fleet = base64.b64encode(gzip.compress(json.dumps({'fleets': [F]}, separators=(',', ':')).encode(), 9)).decode()
         name = 'm2_%s.js' % folder
         js = '(window.MTL_PACK = window.MTL_PACK || {})[%s] = %s;\n' % (json.dumps('M2' + sfx), json.dumps({'data': data, 'fleet': fleet, 'live': '', 'turni': turni}))
         open(os.path.join(dati, name), 'w').write(js)

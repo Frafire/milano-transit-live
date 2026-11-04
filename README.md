@@ -47,6 +47,14 @@ Everything M2 is in its own files, so the M3 build does not change:
 - `data/osm_m2_platforms.json`: the M2 platforms from OpenStreetMap (34 at 17 stations, e.g. Cascina Gobba: two side
   platforms and the island in the middle, all four tracks), made by `tools/osm_platforms.py` from an Overpass export of
   the platforms; the other stations get the 110 m platforms the build draws by itself.
+- **M2 signals in the track editor** (Admin → Track editor → Signals, on the M2 page): Semaforo, Manovra (low, as at
+  San Donato), Fermata, Bandiere, Taglio. A semaforo also carries galleria / superficie (a switch: the head with three
+  lamps, or one or two velas on a pole), the lettera P (luminosa, fissa, nessuna, on the same side as the signal) and
+  legale / illegale (from the way the track is run, right-hand running: legale vela tonda and name ending in a,
+  illegale vela quadra and b; the editor warns when a signal stands on the unusual side). Names: galleria S + 3 digits
+  + a/b, superficie POSTO + number + a/b. Roles (blocco, partenza, protezione...) come later from
+  `data/Regole_M2.xlsx`. Copy all, then `python3 tools/import_edit_m2.py export.txt` puts the M2 part into
+  `data/rules_m2.json` (never into the M3's file); `tests/m2_signals_check.py` checks every signal in the build.
 - `data/osm_m2_fix.json`: Giovanni's corrections to the OSM tracks (kind of track, tunnel / surface / covered
   station), by OSM way id, so a new export keeps them. `tools/osm_to_txt.py` applies them after every conversion;
   `python3 tools/osm_fix.py data/osm_m2.txt data/osm_m2_fix.json` applies them to the file as it is.

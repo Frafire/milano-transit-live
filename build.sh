@@ -56,13 +56,15 @@ done
 # M2, tappa 1 (in test): its own timetable extract (data/gtfs_m2) and the turni, in build_m2/<1|6|7>; nothing of the
 # M3 build is used or changed. tools/assemble_m2.py packs it.
 GTFS_M2="$ROOT/data/gtfs_m2"
+echo "== M2: signals placed in the editor (data/rules_m2.json)"
+python3 "$ROOT/tests/m2_signals_check.py" "$ROOT"
 for pair in "1:$DAY" "6:$SAT_DAY" "7:$SUN_DAY"; do
   n="${pair%%:*}"; d="${pair##*:}"; BD="$ROOT/build_m2/$n"; mkdir -p "$BD"
   cp "$ROOT/data/operations_m2.json" "$ROOT/data/osm_m2.txt" "$ROOT/data/osm_m2_platforms.json" "$BD"/
   echo "== M2 ($n): timetable for service day $d, turni, runs on the real tracks"
   # the runs on the tracks: the M1's builder (tools/build_trips.py); PICK_DOT 0.3: see the note there (Garibaldi)
   (cd "$BD" && python3 "$ROOT/tools/build_data.py" "$GTFS_M2" "$d" data.json 2> bd.log && gzip -9 -kf data.json && \
-    python3 "$ROOT/tools/turni_m2.py" && LINE=M2 TRACKS=osm_m2.txt PICK_DOT=0.3 PLATFORMS=osm_m2_platforms.json python3 "$ROOT/tools/build_trips.py" > trips.log && \
+    python3 "$ROOT/tools/turni_m2.py" && LINE=M2 TRACKS=osm_m2.txt PICK_DOT=0.3 PLATFORMS=osm_m2_platforms.json TRACK_DIRS=1 python3 "$ROOT/tools/build_trips.py" > trips.log && \
     grep -h "^patterns\|written" trips.log && python3 "$ROOT/tests/m2_check.py")
 done
 cd "$B"
