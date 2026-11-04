@@ -26,6 +26,9 @@
 //   asked by the Prefettura on every station's screens; a fire: ABBANDONARE LA STAZIONE; the DCT's page TRATTA CHIUSA
 // - telefono: a call of an OS left 60 s stays pending (tab, alarms, map) and a click takes it with no new call; two
 //   stations with calls keep their own conversations; a later message of the same OS goes into the same conversation
+// - incendio: a fire at Corvetto: the OS has the station evacuated by himself and does not answer; 5 minutes later the
+//   station is clear, the firemen there; when they finish (no damage) the DCT reopens
+// - prefetturanotte: the Prefettura closes Duomo at 3 at night: the OS is not there, no call
 // - emergenzastazione: the stations' openings said also played at 300x; investimento at Corvetto: the OS asks for news,
 //   answers a check "negativo", a closing "già chiusa", an opening "impossibile, ti richiamo"; the DCT's closure from the
 //   menu goes to all the trains by radio and is the investimento's
@@ -405,13 +408,13 @@ const SCENARIOS = {
       const inside = lodi.length === 2 && lodi.every(a => /^TRENI PER/.test(a));
       // the DCT's page for a closure, from the station's telephone
       const X = G.names.findIndex(n => /MISSORI/.test(n)); M.openStationRadio(F, X); for (let i = 0; i < 50 && !document.querySelector('[data-scr]'); i++) await sleep(200);
-      const clPage = !!document.querySelector('[data-scr="TRATTA CHIUSA / CI SCUSIAMO PER / IL DISAGIO"]'), lateBtn = !!document.querySelector('[data-scr="I TRENI / VIAGGIANO IN / RITARDO"]');
+      const clPage = !!document.querySelector('[data-scr="TRATTA CHIUSA / CI SCUSIAMO PER / IL DISAGIO"]'), lateBtn = (document.querySelector('[data-scr="I TRENI / VIAGGIANO IN / RITARDO"]') || {}).textContent === 'CIRCOLAZIONE RALLENTATA' && !document.querySelector('[data-scr="CIRCOLAZIONE RALLENTATA"]');   // (B-015: one button)
       document.getElementById('reopenBtn').click(); await sleep(300); st.playing = true; st.speed = 10; await sleep(1500); st.playing = false; await sleep(300);
       let back = false; for (let i = 0; i < 30 && !back; i++) { back = /PER SAN DONATO/.test(alts('missori')[1] || ''); if (!back) await sleep(1000); }
       // the Prefettura closes Duomo: its pages on the screens of another station (they take turns with the others)
       const D = G.names.findIndex(n => /DUOMO/.test(n)); F.ag.event({ kind: 'fault', what: 'new', fault: 'prefettura', target: D }); await sleep(300);
       const seen = new Set(); const t0 = Date.now();
-      while (Date.now() - t0 < 45000 && !(seen.has('d') && seen.has('p'))) { alts('missori').forEach(a => { if (/DUOMO CHIUSA/.test(a)) seen.add('d'); if (/PREFETTURA DALLE/.test(a)) seen.add('p'); }); await sleep(1000); }
+      while (Date.now() - t0 < 45000 && !(seen.has('d') && seen.has('p'))) { alts('missori').forEach(a => { if (/DUOMO CHIUSA/.test(a)) seen.add('d'); if (/DUOMO CHIUSA DALLE \S+ ALLE \S+ PER (ORDINE|ORD\.) PUBBLICO/.test(a)) seen.add('p'); }); await sleep(1000); }
       // a fire at Corvetto: its screens say to leave the station
       const C = G.names.findIndex(n => /CORVETTO/.test(n)), id = F.ag.event({ kind: 'fault', what: 'new', fault: 'incendio', target: C });
       for (let i = 0; i < 40; i++) { const f = F.ag.FX.list().find(x => x.kind === 'incendio'); if (f && f.call && f.call.opts.includes('fire')) { F.ag.event({ kind: 'fault', what: 'answer', id: f.id, answer: 'fire' }); break; }
@@ -445,6 +448,40 @@ const SCENARIOS = {
       const last = c1.lastOS; M.openStationRadio(F, X1); await sleep(300); const rp = document.getElementById('phoneRepeat'); if (rp) rp.click(); await sleep(1800);
       const rep = !!rp && c1.msgs.some(m => /^Ripeto: /.test(m.text) && m.text.includes(last));
       return { ok: pend60 && tabBlink && inAlarms && ring && taken && visible && sep && same && rep, pend60, tabBlink, inAlarms, ring, taken, visible, sep, same, rep, tail: c1.msgs.slice(-4).map(m => m.who + ': ' + m.text) };
+    });
+  },
+  async incendio(p) {   // B-014: a fire at Corvetto: the OS has it evacuated by himself and is gone, 5 minutes later the station is
+    // clear and the firemen there; when they have finished (no damage) the DCT reopens
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), G = F.engine.G, X = G.names.findIndex(n => /CORVETTO/.test(n));
+      st.playing = false; st.t = 10 * 3600; await sleep(2500);
+      const id = F.ag.event({ kind: 'fault', what: 'new', fault: 'incendio', target: X }), f = () => F.ag.FX.list().find(x => x.id === id);
+      st.speed = 1; st.playing = true; await sleep(1500); st.playing = false; await sleep(500);
+      const s0 = F.ag.S.stn[X] || {}, closed = !!s0.closed && s0.why === 'fire', held = F.ag.zones().some(z => z.kind === 'stop' && z.a === X && z.b === X), c = M.phone.conv(X);
+      const said = c && c.msgs.some(m => /Sto facendo evacuare/.test(m.text)), noAsk = !(f().call);
+      M.openStationRadio(F, X); await sleep(400); const away1 = c.msgs.slice(-1)[0].text === 'Nessuna risposta.' && !c.line;
+      const t1 = Date.now(); M.openStationRadio(F, X); while (c.calling && Date.now() - t1 < 12000) await sleep(200); await sleep(300); const away2 = /Nessuna risposta/.test(c.msgs.slice(-1)[0].text) && !c.line;
+      st.speed = 30; st.playing = true; const t2 = Date.now(); while (Date.now() - t2 < 30000 && !c.msgs.some(m => /stazione sgombra/.test(m.text))) await sleep(300); st.playing = false;
+      const clear = c.msgs.some(m => /stazione sgombra, i vigili del fuoco sono sul posto/.test(m.text));
+      { const g = F.ag.S.faults.list.find(x => x.id === id); g.smoke = null; g.until = F.ag.S.t + 30; } st.playing = true; const t3 = Date.now(); while (Date.now() - t3 < 20000 && !(f().call && f().call.opts.includes('clear'))) await sleep(300); st.playing = false; await sleep(800);
+      const done = !!(f().call && f().call.opts.includes('clear')) && c.msgs.some(m => /nessun danno strutturale/.test(m.text));
+      if (done) F.ag.event({ kind: 'fault', what: 'answer', id, answer: 'clear' }); await sleep(300);
+      const open = !(F.ag.S.stn[X] || {}).closed;
+      return { ok: closed && held && said && noAsk && away1 && away2 && clear && done && open, closed, held, said, noAsk, away1, away2, clear, done, open, tail: c.msgs.slice(-3).map(m => m.who + ': ' + m.text) };
+    });
+  },
+  async prefetturanotte(p) {   // B-011: the Prefettura closes Duomo at 3 at night, no trains: the OS is not there, he does not call
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), G = F.engine.G, D = G.names.findIndex(n => /DUOMO/.test(n));
+      st.playing = false; st.t = 3 * 3600; await sleep(2500);
+      const id = F.ag.event({ kind: 'fault', what: 'new', fault: 'prefettura', target: D }), f = F.ag.FX.list().find(x => x.id === id);
+      if (!f) return { ok: false, why: 'no Prefettura closure' };
+      st.speed = 60; st.playing = true; const t0 = Date.now(); while (Date.now() - t0 < 40000 && st.t < f.from + 600) await sleep(200); st.playing = false; await sleep(1500);
+      const c = M.phone.conv(D), os = c ? c.msgs.filter(m => m.who && m.who !== 'DCT' && m.cls !== 'sys' && m.cls !== 'err') : [];
+      const g = F.ag.S.faults.list.find(x => x.id === id);
+      return { ok: g.ph === 'closed' && os.length === 0 && !(c && c.pending) && !M.osOpen(F, D), ph: g.ph, osSaid: os.map(m => m.text), from: g.from, t: st.t, agT: F.ag.S.t };
     });
   },
   async emergenzastazione(p) {   // the OS in an emergency, the closure told to all, the openings played fast (Giovanni 3 Nov 2026)

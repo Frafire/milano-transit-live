@@ -1654,7 +1654,8 @@ window.MTL_PACKS = __PACKS__;
       <g transform="translate(130 158) scale(.95)"><path d="M-8 -9 h16 v9 q0 8 -8 11 q-8 -3 -8 -11 z" fill="#fff" stroke="#7d848a" stroke-width=".8"/><path d="M-1.5 -8 h3 v6 h6 v3 h-6 v8.5 h-3 v-8.5 h-6 v-3 h6 z" fill="#d0141f"/>
         <path d="M-11 -6 q-3.5 9 3 16 M11 -6 q3.5 9 -3 16" fill="none" stroke="#2f7d38" stroke-width="2.2"/><path d="M-5.5 -13.5 h11 l-1.5 3.5 h-8 z" fill="#c8a12a"/></g>
       <!-- light units (the lamps on the outer side) -->
-      ${housing(12.75, 27.5, 36)}${housing(189, 221.5, 196.5)}
+      <!-- (the left unit the mirror of the right one: same height, the same gap to its yellow edge; B-013, Giovanni 4 Nov 2026) -->
+      ${housing(24.5, 39.5, 44.5)}${housing(189, 221.5, 196.5)}
       <path d="M3 200 H258" stroke="#000" stroke-opacity=".3" stroke-width="1"/>
       <!-- bumper: two ribbed blocks, the coupler between them with its cables, the skirt below -->
       <path d="M0 203 H261 V214 H0 Z" fill="#26292c"/>
@@ -2154,8 +2155,10 @@ window.MTL_PACKS = __PACKS__;
   function prefPages(F) {
     if (!F.ag || !F.ag.FX) return [];
     const h = t => { const s = Math.round(((t % 86400) + 86400) % 86400 / 60), m = s % 60; return Math.floor(s / 60) + (m ? ':' + String(m).padStart(2, '0') : ''); };
-    return F.ag.FX.list().filter(f => f.kind === 'prefettura' && (f.ph === 'announced' || f.ph === 'closed') && f.st != null && f.from != null).flatMap(f => [
-      scrLines(F.engine.G.names[f.st].replace(/\s+M\d$/i, '').toUpperCase() + ' CHIUSA'), ['SU RICHIESTA DELLA', 'PREFETTURA', 'DALLE ' + h(f.from) + ' ALLE ' + h(f.until)]]);
+    // one page (B-012, Giovanni 4 Nov 2026): [STAZIONE] CHIUSA / DALLE .. ALLE .. / PER ORDINE PUBBLICO (ORD. PUBBLICO if it does not fit)
+    const fit = t => txtW(t, 'small') <= SCR.W - 2 * SCR.P, why = fit('PER ORDINE PUBBLICO') ? 'PER ORDINE PUBBLICO' : 'PER ORD. PUBBLICO';
+    return F.ag.FX.list().filter(f => f.kind === 'prefettura' && (f.ph === 'announced' || f.ph === 'closed') && f.st != null && f.from != null).map(f =>
+      [F.engine.G.names[f.st].replace(/\s+M\d$/i, '').toUpperCase() + ' CHIUSA', 'DALLE ' + h(f.from) + ' ALLE ' + h(f.until), why]);
   }
   function renderBoard() {
     const [fi, bi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], b = F.boards[bi], t = state.t;
@@ -3686,7 +3689,8 @@ window.MTL_PACKS = __PACKS__;
       const key = m.t + ':' + m.id + ':' + m.text; if (fxSaid.has(key)) continue; fxSaid.add(key);
       const txt = m.text.replace(/\{T\}/g, no(m.k)).replace(/\{R\}/g, no(m.r));
       const who = m.who === 'dr' ? 'T' + no(m.k) : m.who === 'drr' ? 'T' + no(m.r) : m.who === 'pc' ? 'DCT' : m.who === 'ag' ? MR.osName(F, m.st) : m.who === 'man' ? 'Manutenzione' : m.who === 'en' ? 'Energia' : m.who === 'drx' ? 'Macchinista' : m.who === 'pol' ? 'Polizia' : m.who === 'vvf' ? 'Vigili del fuoco' : m.who === 'uff' ? 'Ufficio Movimento' : m.who === 'pref' ? 'Prefettura' : m.who === 'bd' ? 'Badoni' : '';
-      if (m.who === 'ag' && m.st != null) { MR.osIncoming(F, m.st, txt, 'dr', true); continue; }          // (the station's OS: a call on the telephone)
+      // (out of its hours there is no OS at the station: he says nothing; B-011, Giovanni 4 Nov 2026)
+      if (m.who === 'ag' && m.st != null) { if (osOpen(F, m.st, m.t)) MR.osIncoming(F, m.st, txt, 'dr', true); continue; }          // (the station's OS: a call on the telephone)
       MR.say(who, txt, m.who === 'pc' ? 'pc' : m.who === 'sys' ? 'sys' : 'dr');
     }
   }

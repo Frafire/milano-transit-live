@@ -211,7 +211,11 @@
         call(f, tx('emergenza.investimento.allarme', { stazione: name(X) }), ['red'], 30); }
       else if (kind === 'incendio') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.smoke = rnd() < 0.4 ? S.t + between(60, 300) : null;
         f.until = S.t + (rnd() < 0.15 ? between(5400, 18000) : between(1800, 5400));
-        call(f, tx('emergenza.incendio.allarme', { stazione: name(X) }), ['fire'], 30); }
+        // (B-014, Giovanni 4 Nov 2026) the OS does not wait for the DCT: he has the station evacuated, it is closed, its
+        // protection signals held at stop; he tells the DCT and is gone (no answer) until the station is clear, then he
+        // says so (the firemen there); when the firemen have finished, no damage to the structure: the DCT reopens
+        L.station(X, true, 'fire'); f.zones = [L.zone('stop', X, X)]; f.ph = 'fire'; f.osBack = S.t + tval('Incendio: l\'OS torna', 300);
+        say(f, 'ag', tx('emergenza.incendio.evacuo', { stazione: name(X) })); }
       F().list.push(f); return f.id;
     }
     // the position of switch nd a waiting train needs (the squad puts it there), else the first one
@@ -281,7 +285,8 @@
       else if (f.kind === 'investimento' && f.ph === 'recover' && S.t >= f.until && (!f.call || f.call.opts.every(o => /^cl\d$/.test(o)))) { f.ph = 'done'; call(f, tx('emergenza.investimento.rilievi_finiti', { stazione: name(f.st) }), ['clear']); }
       else if (f.kind === 'incendio') {
         if (f.smoke && S.t >= f.smoke && f.ph === 'fire') { f.smoke = null; call(f, tx('emergenza.incendio.fumo', { stazione: name(f.st) }), ['red'], 30); }
-        if (f.ph === 'fire' && !f.smoke && !f.call && S.t >= f.until) { f.ph = 'done'; f.callWho = 'vvf'; call(f, tx('emergenza.incendio.spento', { stazione: name(f.st) }), ['clear']); }
+        if (f.ph === 'fire' && f.osBack != null && S.t >= f.osBack) { f.osBack = null; say(f, 'ag', tx('emergenza.incendio.sgombra', { stazione: name(f.st) })); }
+        if (f.ph === 'fire' && !f.smoke && !f.call && f.osBack == null && S.t >= f.until) { f.ph = 'done'; call(f, tx('emergenza.incendio.finito', { stazione: name(f.st) }), ['clear']); }
       }
       else if (f.kind === 'tensione' && f.ph === 'off' && !f.evacAsk && S.t - f.t0 >= 1200 && L.stuckIn && L.stuckIn().length) {
         f.evacAsk = true; call(f, tx('energia.evacuare_chiesto', { tratta: f.what }), ['evac', 'ack']);

@@ -173,13 +173,15 @@
     function openStationRadio(F, X) {
       const c = conv(F, X); c.open = true; phoneEl.hidden = false; select(X);
       if (c.line && stClosed(F, X)) c.line = false;          // (the station closed meanwhile: nobody there any more)
+      if (c.line && osAway(F, X)) c.line = false;             // (a fire: the OS is having the station evacuated)
+      if (c.pending && osAway(F, X)) { c.pending = false; c.line = false; sayPhone('', tx('stazione.telefono.nessuna_risposta'), 'err', X); drawPhone(); return; }
       if (c.pending) { c.pending = false; c.line = true; drawPhone(); return; }
       if (c.line) { drawPhone(); return; }
       if (c.calling) { drawPhone(); return; }
       sayPhone('', tx('stazione.telefono.chiamata', { stazione: c.name }), 'sys', X);
       if (stClosed(F, X)) { sayPhone('', tx('stazione.errore_chiusa'), 'err', X); return; }
       const wait = 1000 + Math.round(rand() * 7000); c.calling = true; drawPhone();
-      setTimeout(() => { c.calling = false; if (!c.open) return; c.line = true; const em = emergencyAt(F, X);
+      setTimeout(() => { c.calling = false; if (!c.open) return; if (osAway(F, X)) { sayPhone('', tx('stazione.telefono.nessuna_risposta'), 'err', X); return; } c.line = true; const em = emergencyAt(F, X);
         sayPhone(osName(F, X), em ? tx('stazione.emergenza.novita', { stazione: c.name }) : tx('stazione.telefono.risponde'), 'dr', X); }, wait);
     }
     function closeConv(X) {
@@ -228,7 +230,9 @@
     const ANN = { 'Ritardi sulla linea': 'pezzo.annuncio.ritardi', 'Servizio limitato': 'pezzo.annuncio.servizio_limitato',
       'Tratta interrotta': 'pezzo.annuncio.tratta_interrotta', 'Navetta': 'pezzo.annuncio.navetta',
       'Treni che non fermano': 'pezzo.annuncio.treni_non_fermano', 'Servizio regolare': 'pezzo.annuncio.servizio_regolare' };
-    const SCR_TXT = ['SERVIZIO LIMITATO', 'TRATTA INTERROTTA', 'CIRCOLAZIONE RALLENTATA', 'SERVIZIO SOSPESO', 'STAZIONE CHIUSA', 'I TRENI / VIAGGIANO IN / RITARDO'];
+    // (one button for the slow traffic: "Circolazione rallentata" puts I TRENI VIAGGIANO IN RITARDO; B-015, Giovanni 4 Nov 2026)
+    const SCR_TXT = ['SERVIZIO LIMITATO', 'TRATTA INTERROTTA', 'I TRENI / VIAGGIANO IN / RITARDO', 'SERVIZIO SOSPESO', 'STAZIONE CHIUSA'];
+    const SCR_LBL = { 'I TRENI / VIAGGIANO IN / RITARDO': 'CIRCOLAZIONE RALLENTATA' }, scrLbl = k => SCR_LBL[k] || k.replace(/ \/ /g, ' ');
     const SCR_CL = 'TRATTA CHIUSA / CI SCUSIAMO PER / IL DISAGIO';          // (only while a stretch is closed: Giovanni 3 Nov 2026)
     // the agent's answer: [all in order (8 times in 10), something found]
     const CHECK = { 'Porte di un treno': ['stazione.verifica.porte_regolari', 'stazione.verifica.porta_bloccata'],
@@ -244,6 +248,8 @@
     // ---- a serious emergency at the station (investimento, incendio): the OS answers with it in mind, tells the DCT how it
     // goes on, asks him for news (Giovanni 3 Nov 2026). The times: Tempi sheet (proposals) ----
     const EMK = ['investimento', 'incendio'];
+    // a fire: from his call until the station is clear the OS is not at the telephone (B-014, Giovanni 4 Nov 2026)
+    const osAway = (F, X) => { const fx = F.ag && F.ag.FX; return !!(fx && fx.list && fx.list().some(f => !f.done && f.kind === 'incendio' && f.st === X && f.osBack != null && f.osBack > F.ag.S.t)); };
     function emergencyAt(F, X) { const fx = F.ag && F.ag.FX; if (!fx || !fx.list) return null; return fx.list().find(f => !f.done && f.st === X && EMK.includes(f.kind)) || null; }
     const tempoR = (F, pre, dflt) => { const tm = (F.engine.net.rules || {}).tempi || {}, v = Object.entries(tm).find(([n]) => n.startsWith(pre)); return v && v[1][0] != null ? +v[1][0] : dflt; };
     // what the OS says of the emergency now
@@ -260,7 +266,8 @@
         if (state.t < w.t0 - 60) { EMW[f.id] = { t0: state.t, last: state.t }; continue; }            // (back in time)
         const arr = tempoR(F, 'Emergenza: arrivo dei soccorsi', 900), every = tempoR(F, 'Emergenza: aggiornamento dell', 1800);
         const busy = f.kind === 'incendio' ? f.ph === 'fire' : f.ph === 'recover';
-        if (busy && w.b0 == null) w.b0 = state.t;                                  // (from the call for help: the red button, the fire)
+        if (busy && w.b0 == null) w.b0 = state.t;
+        if (f.kind === 'incendio') { if (f.osBack != null) continue; if (!w.arrived) { w.arrived = true; w.last = state.t; } }     // (he said it himself: the station clear, the firemen there)                                  // (from the call for help: the red button, the fire)
         if (!w.arrived && busy && state.t - w.b0 >= arr) { w.arrived = true; w.last = state.t;
           osIncoming(F, X, tx(f.kind === 'incendio' ? 'stazione.emergenza.vvf_arrivati' : 'stazione.emergenza.soccorsi_arrivati', { stazione: nm }), 'call', true); continue; }
         if (w.arrived && busy && state.t - w.last >= every) { w.last = state.t;
@@ -276,7 +283,7 @@
       h += radioSec('stsit', 'Situazione', `<div class="row"><button data-st="sit">Chiedi la situazione</button></div>`, '', true);
       h += radioSec('stann', 'Annuncio ai passeggeri', `<div class="row">${Object.keys(ANN).map(k => `<button data-ann="${k}">${k}</button>`).join('')}</div>`);
       const scrOpts = F.ag.S.cl && F.ag.S.reopened == null ? [...SCR_TXT, SCR_CL] : SCR_TXT;
-      h += radioSec('stscr', 'Schermi di banchina', (st.msg ? `<div class="lbl">Ora: ${st.msg}</div>` : '') + `<div class="row">${scrOpts.map(k => `<button data-scr="${k}" aria-pressed="${st.msg === k}">${k}</button>`).join('')}${st.msg ? '<button data-scr="">Togli il messaggio</button>' : ''}</div>`, st.msg ? 'messaggio' : '');
+      h += radioSec('stscr', 'Schermi di banchina', (st.msg ? `<div class="lbl">Ora: ${st.msg.replace(/ \/ /g, ' ')}</div>` : '') + `<div class="row">${scrOpts.map(k => `<button data-scr="${k}" aria-pressed="${st.msg === k}">${scrLbl(k)}</button>`).join('')}${st.msg ? '<button data-scr="">Togli il messaggio</button>' : ''}</div>`, st.msg ? 'messaggio' : '');
       h += radioSec('stchk', 'Verifica in banchina', `<div class="row">${Object.keys(CHECK).map(k => `<button data-chk="${k}">${k}</button>`).join('')}</div>`);
       const held = here.filter(a => a.pcHold), asg = pend.filter(p => p.kind === 'assist');
       h += radioSec('stass', 'Assistenza a un treno', here.length ? here.map(a => {
@@ -302,7 +309,7 @@
       });
       phoneCmds.querySelectorAll('[data-scr]').forEach(b => b.onclick = () => {
         const k = b.dataset.scr; F.ag.event({ kind: 'station', st: X, what: 'msg', text: k || null });
-        sayPhone('DCT', k ? tx('stazione.schermi.messaggio', { stazione: name, messaggio: k }) : tx('stazione.schermi.normali', { stazione: name }), 'pc');
+        sayPhone('DCT', k ? tx('stazione.schermi.messaggio', { stazione: name, messaggio: k.replace(/ \/ /g, ' ') }) : tx('stazione.schermi.normali', { stazione: name }), 'pc');
         stationSays(tx('stazione.schermi.risposta'), 1200); phoneCmdHtml = ''; drawPhoneCmds();       // (the OS: every change of the screens, Giovanni 3 Nov 2026)
       });
       phoneCmds.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => {

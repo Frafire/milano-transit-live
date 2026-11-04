@@ -2501,6 +2501,34 @@
    "testi": [
     "DCT, qui {stazione}: sono arrivati i vigili del fuoco. Passo."
    ]
+  },
+  "emergenza.incendio.evacuo": {
+   "chi": "stazione",
+   "quando": "Incendio: l'OS avvisa il DCT che fa evacuare, la stazione è chiusa e le protezioni sono a via impedita; poi non risponde più fino alla stazione sgombra (B-014)",
+   "testi": [
+    "DCT, qui {stazione}: incendio in stazione. Sto facendo evacuare: stazione chiusa, segnali di protezione bloccati a via impedita. Ti richiamo. Passo."
+   ]
+  },
+  "emergenza.incendio.finito": {
+   "chi": "stazione",
+   "quando": "Incendio: i vigili del fuoco hanno finito; il DCT riapre la stazione",
+   "testi": [
+    "DCT, qui {stazione}: i vigili del fuoco hanno finito, nessun danno strutturale alla stazione. Si può riaprire. Passo."
+   ]
+  },
+  "emergenza.incendio.sgombra": {
+   "chi": "stazione",
+   "quando": "Incendio: l'OS torna (Tempi: Incendio, l'OS torna al telefono) e dice che la stazione è sgombra e i vigili del fuoco sono sul posto",
+   "testi": [
+    "DCT, qui {stazione}: stazione sgombra, i vigili del fuoco sono sul posto. Passo."
+   ]
+  },
+  "stazione.telefono.nessuna_risposta": {
+   "chi": "sistema",
+   "quando": "Il DCT chiama una stazione e l'OS non può rispondere (incendio: sta facendo evacuare)",
+   "testi": [
+    "Nessuna risposta."
+   ]
   }
  }
 }
