@@ -127,7 +127,17 @@ trains.sort(key=lambda segs: segs[0][3][0])
 # ---- station platforms beside each used track ----
 PLAT_LEN, PLAT_W, GAP = 110.0, 4.0, 2.6
 platforms = []
+# the platforms from OpenStreetMap where there are (PLATFORMS: data/osm_<line>_platforms.json, tools/osm_platforms.py):
+# those stations get the real ones, the others the 110 m platforms drawn here
+OSM_PLAT = json.load(open(os.environ['PLATFORMS'])).get('platforms', []) if os.environ.get('PLATFORMS') else []
+for op in OSM_PLAT:
+    flat, pa, pb = [], 0, 0
+    for a_, b_ in op['p']:
+        A, B = round(a_ * 1e6), round(b_ * 1e6); flat += [A - pa, B - pb]; pa, pb = A, B
+    platforms.append({'n': op['station'].title(), 'p': flat, 'osm': op['osm'], 'ref': op.get('ref', '')})
+OSM_ST = {op['station'].upper() for op in OSM_PLAT}
 for name, sts in station_tracks.items():
+    if name in OSM_ST: continue
     # station centre = mean of the projections
     rec = [s for s in D['stops'] if s[0].upper().replace(' M1', '').strip() == name]
     if not rec: continue

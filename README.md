@@ -44,6 +44,9 @@ Everything M2 is in its own files, so the M3 build does not change:
 - `data/osm_m2.txt`: the M2 tracks from OpenStreetMap (Overpass export of 3 Nov 2026, 401 ways: line, the four
   branches, Cascina Gobba, the depots of Gorgonzola, Cologno Nord and Famagosta, the links to M1, M3 and M5), made
   by `tools/osm_to_txt.py` (the query is in that file), checked by Giovanni.
+- `data/osm_m2_platforms.json`: the M2 platforms from OpenStreetMap (34 at 17 stations, e.g. Cascina Gobba: two side
+  platforms and the island in the middle, all four tracks), made by `tools/osm_platforms.py` from an Overpass export of
+  the platforms; the other stations get the 110 m platforms the build draws by itself.
 - `data/osm_m2_fix.json`: Giovanni's corrections to the OSM tracks (kind of track, tunnel / surface / covered
   station), by OSM way id, so a new export keeps them. `tools/osm_to_txt.py` applies them after every conversion;
   `python3 tools/osm_fix.py data/osm_m2.txt data/osm_m2_fix.json` applies them to the file as it is.

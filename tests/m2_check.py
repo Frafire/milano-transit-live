@@ -21,4 +21,8 @@ if os.path.exists('m2.json'):
     check(len(F['trains']) == len(R), 'M2 %s: every run on the real tracks (%d of %d)' % (T['day'], len(F['trains']), len(R)))
     P = F['paths']; drawn = {t['w'] for t in F['tracks']}
     check(len(drawn) == len(F['tracks']), 'M2 %s: %d tracks drawn for the editor, each once' % (T['day'], len(F['tracks'])))
+    if os.path.exists('osm_m2_platforms.json'):
+        O = json.load(open('osm_m2_platforms.json'))['platforms']
+        got = sum(1 for p in F['platforms'] if 'osm' in p)
+        check(got == len(O), 'M2 %s: the platforms from OpenStreetMap on the map (%d of %d)' % (T['day'], got, len(O)))
 sys.exit(1 if bad else 0)
