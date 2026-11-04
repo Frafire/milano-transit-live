@@ -125,6 +125,11 @@
    300,
    null,
    "Giovanni 4 nov 2026 (bug B-014)"
+  ],
+  "Riserva a Comasina il sabato e la domenica, in posizione 3 di un tronchetto tutto il giorno: treni (numero, non secondi)": [
+   1,
+   null,
+   "Giovanni 4 nov 2026 (bug B-016): il treno entrato in fondo venerdì sera, ci resta fino a lunedì mattina se la riserva non serve"
   ]
  },
  "semafori": {

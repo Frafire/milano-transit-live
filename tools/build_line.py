@@ -295,6 +295,15 @@ for k in NIGHT_SD_END: DEPOT_AFTER.pop(trains[k][-1]['ti'], None)
 # Comasina; the one in position 3 of a tail stays there until the afternoon run (no more empty run at 15:49). In the
 # evening the first train left over after 20:00 goes into position 3 instead of back to the depot; the last ones of the
 # night fill the tails from the inside out (3, then 2, then 1) and the very last one stays on the arrival platform.
+# B-016 (Giovanni 4 Nov 2026): on Saturday and Sunday a reserve train stands at Comasina, in position 3 of a tail (the
+# deepest), the whole day: the train that went in there on Friday evening, it stays until Monday morning if it is not
+# needed. Tempi sheet: how many (0: none). Its tail: the one whose position 3 no train leaves from in the morning
+import datetime as _dt
+_DOW = _dt.date(int(D['day'][:4]), int(D['day'][4:6]), int(D['day'][6:8])).weekday() if D.get('day') else 0
+_RG00 = json.load(open('regole_%s.json' % LINE.lower())) if os.path.exists('regole_%s.json' % LINE.lower()) else {}
+_v = next((v for k_, v in _RG00.get('tempi', {}).items() if k_.startswith('Riserva a Comasina il sabato e la domenica')), None)
+COM_RESERVE = int(_v[0]) if LINE == 'M3' and _DOW >= 5 and _v and _v[0] is not None else 0
+COM_RESERVE_SLOT = None             # (tail, 3)
 NIGHT_COM_POS = {}                  # train -> (tail, position) at the start / end of its day; position 'P': the platform
 NIGHT_COM_POS_END = {}
 _TSL = json.load(open('rules_%s.json' % LINE.lower())).get('tail_slots', {}) if os.path.exists('rules_%s.json' % LINE.lower()) else {}
@@ -304,6 +313,9 @@ if LINE == 'M3' and _TSL.get('positions') and CFG.get('com_night', True):
     _slots = [(_A, 1), (_B, 1), ('P', None), (_A, 2), (_B, 2), (_B, 3), (_A, 3)]
     NIGHT_COM_START = {c[0]['train']: (sl[0] if sl[0] != 'P' else None) for c, sl in zip(_start, _slots)}
     NIGHT_COM_POS = {c[0]['train']: sl for c, sl in zip(_start, _slots)}
+    if COM_RESERVE:
+        _taken = set(NIGHT_COM_POS.values()); COM_RESERVE_SLOT = next((sl for sl in ((_A, 3), (_B, 3)) if sl not in _taken), None)
+        print('Comasina reserve (weekend):', COM_RESERVE_SLOT, '(tail no.', CFG.get('COM_TAIL_NO', {}).get(COM_RESERVE_SLOT[0]) if COM_RESERVE_SLOT else None, ')')
     _ret = sorted([c for c in trains if c[-1]['out'] and RETIRE.get(c[-1]['ti'])], key=lambda c: c[-1]['arr'])
     _after20 = [c for c in _ret if c[-1]['arr'] >= 20 * 3600]
     _ends = ([_after20[0]] if _after20 else []) + [c for c in _ret[-6:] if not _after20 or c is not _after20[0]]
@@ -315,6 +327,7 @@ if LINE == 'M3' and _TSL.get('positions') and CFG.get('com_night', True):
         for _t in _rg.sample([_A, _B], 2):
             if (_t, _p) not in _eslots: _eslots.append((_t, _p))
     _eslots.append(('P', None))
+    if COM_RESERVE_SLOT: _eslots.remove(COM_RESERVE_SLOT)                 # (the reserve stands there: nobody else goes in)
     NIGHT_COM_END = {c[-1]['train']: (sl[0] if sl[0] != 'P' else None) for c, sl in zip(_ends, _eslots)}
     NIGHT_COM_POS_END = {c[-1]['train']: sl for c, sl in zip(_ends, _eslots)}
     print('Comasina at night: morning', {k: v for k, v in NIGHT_COM_POS.items()}, '| evening', {k: v for k, v in NIGHT_COM_POS_END.items()})
@@ -1194,6 +1207,12 @@ if LINE in ('M3', 'M4'):
     _used = {sg[5] for tl in out for sg in tl.segs if len(sg) > 5 and sg[5] is not None}
     _unused_cfg = (json.load(open('rules_%s.json' % LINE.lower())) if os.path.exists('rules_%s.json' % LINE.lower()) else {}).get('depot_unused', {}).get('nodes', [])
     _free_places = [p for p in storage if p not in _used] + [p for p in _unused_cfg if p not in _used]
+    # the weekend reserve at Comasina (B-016): standing in its position 3 the whole day (never leaves by itself)
+    if COM_RESERVE_SLOT and len(STOCK) > len(out):
+        _t3 = COM_RESERVE_SLOT[0]; pid_ = leg_path(_t3, CFG['IN_VIA'], SD_TAILS[0]); d_ = pos_off(3)
+        tl = TL(len(out)); tl.add(pid_, 'to_depot', [30 * 3600, 30 * 3600 + 1], [d_, d_]); tl.segs[-1].append(None)
+        tl.start_where = tl.end_where = CFG['far']; tl.com_reserve = True; out.append(tl); DUTIES.append([])
+        print('Comasina reserve train: timeline', len(out) - 1, 'path', pid_, 'd', round(d_, 1))
     n_extra = len(STOCK) - len(out); RESERVE_NODES = []
     for _ in range(max(0, n_extra)):
         if not _free_places: print('no free depot place for a reserve train'); break
@@ -2048,6 +2067,11 @@ for pre, am in (('Numeri delle tabelle: da Comasina la mattina', True), ('Numeri
     for i in _tabs:
         if not nums: break
         if TAB_NO[i] is None and out[i].start_where == 'Comasina' and (_first(out[i]) < 12 * 3600) == am: TAB_NO[i] = nums.pop(0); _used.add(TAB_NO[i])
+# (the weekend reserve at Comasina: the number of the afternoon Comasina tabella, if no tabella has it; B-016)
+for i, tl in enumerate(out):
+    if getattr(tl, 'com_reserve', False):
+        nums = [x for x in _rng('Numeri delle tabelle: da Comasina il pomeriggio') if x not in _used]
+        if nums: TAB_NO[i] = nums[0]; _used.add(nums[0])
 _free = (x for x in range(1, 1000) if x not in _used)
 for i in _tabs:
     if TAB_NO[i] is None: TAB_NO[i] = next(_free); _used.add(TAB_NO[i])

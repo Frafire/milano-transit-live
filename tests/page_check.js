@@ -26,6 +26,8 @@
 //   asked by the Prefettura on every station's screens; a fire: ABBANDONARE LA STAZIONE; the DCT's page TRATTA CHIUSA
 // - telefono: a call of an OS left 60 s stays pending (tab, alarms, map) and a click takes it with no new call; two
 //   stations with calls keep their own conversations; a later message of the same OS goes into the same conversation
+// - riservacomasina: Friday -> Saturday -> Sunday: a reserve train stands at Comasina in position 3 of a tail all day
+//   (Saturday it is the 17), with its train
 // - incendio: a fire at Corvetto: the OS has the station evacuated by himself and does not answer; 5 minutes later the
 //   station is clear, the firemen there; when they finish (no damage) the DCT reopens
 // - prefetturanotte: the Prefettura closes Duomo at 3 at night: the OS is not there, no call
@@ -448,6 +450,24 @@ const SCENARIOS = {
       const last = c1.lastOS; M.openStationRadio(F, X1); await sleep(300); const rp = document.getElementById('phoneRepeat'); if (rp) rp.click(); await sleep(1800);
       const rep = !!rp && c1.msgs.some(m => /^Ripeto: /.test(m.text) && m.text.includes(last));
       return { ok: pend60 && tabBlink && inAlarms && ring && taken && visible && sep && same && rep, pend60, tabBlink, inAlarms, ring, taken, visible, sep, same, rep, tail: c1.msgs.slice(-4).map(m => m.who + ': ' + m.text) };
+    });
+  },
+  async riservacomasina(p) {   // B-016: Saturday and Sunday a reserve train stands at Comasina in position 3 of a tail all day
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state; window.__stay = 1;
+      document.querySelector('.dayb[data-d="5"]').click(); await sleep(400);
+      const F_ = () => M.fleets.find(f => f.line === 'M3' && f.ag), days = [];
+      for (let d = 0; d < 2; d++) {          // Friday -> Saturday, Saturday -> Sunday
+        st.playing = false; st.t = 26.95 * 3600; await sleep(2000); const label0 = document.getElementById('day').textContent;
+        st.speed = 60; st.playing = true; const t0 = Date.now(); while (Date.now() - t0 < 40000 && !(st.t < 4 * 3600 && document.getElementById('day').textContent !== label0)) await sleep(200);
+        await sleep(800); st.playing = false; st.t = 11 * 3600; await sleep(2500);
+        const F = F_(), G = F.engine.G, k = F.trains.findIndex(tr => (tr.segs0 || tr.segs).length === 1 && /comasina/i.test((tr.where || [])[0] || '') && !(tr.segs0 || tr.segs).some(x => x[1] === 'service'));
+        const a = k >= 0 ? F.ag.agents()[k] : null, r = k >= 0 ? M.realTrain(F, F.trains[k], st.t) : null, pe = a && F.engine.pathEdges[a.pid];
+        const tail = pe ? pe.e.filter(([, , x0, x1]) => x1 > a.d - 52.5 && x0 < a.d + 52.5).map(x => x[0]) : [];
+        days.push({ day: document.getElementById('day').textContent.split(' · ')[1], k, n: k >= 0 ? F.trains[k].n : null, units: r && r.units, missing: !r || !!r.missing || !!r.none, hidden: a && a.hidden, v: a && a.v, tail });
+      }
+      return { ok: window.__stay === 1 && days.length === 2 && days.every(x => x.k >= 0 && !x.missing && !x.hidden && x.v === 0 && x.tail.length > 0) && days[0].n === 17 && days[0].units === days[1].units, days };      // (Saturday the 17; the same train on Sunday)
     });
   },
   async incendio(p) {   // B-014: a fire at Corvetto: the OS has it evacuated by himself and is gone, 5 minutes later the station is
