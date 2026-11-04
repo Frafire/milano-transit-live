@@ -3219,15 +3219,84 @@ window.MTL_PACKS = __PACKS__;
     }
     R.segs = save; return { none: true };
   }
+  // ---- the reserve at Comasina (B-016, Giovanni 4 Nov 2026): Saturday and Sunday it stands in position 3 of a tail. The DCT
+  // can send it out for a tabella left without its train, from a departure from Comasina. Then that evening the trains
+  // coming in fill the tail from the inside (each one place deeper: the last one, which slept on the arrival platform,
+  // goes into the tail), and after the closing of the line the DCT sends a train empty from the depot to the arrival
+  // platform of Comasina: the station has its trains again for the next day ----
+  const comReserves = F => F.trains.map((tr, k) => ({ tr, k, r: realTrain(F, tr, state.t), a: F.ag.agents()[k] })).filter(x => !isTab(x.tr) && !x.tr.cover
+    && /comasina/i.test((x.tr.where || [])[0] || '') && x.tr.segs.length === 1 && x.tr.segs[0][3][0] >= 29 * 3600 && x.a && !x.a.hidden && x.a.v === 0
+    && x.r && !x.r.none && !x.r.missing && !inMaint(x.r.units));
+  function insertComReserve(F, k, m) {
+    const R = F.trains[k], T = F.trains[m], a = F.ag.agents()[k], pe = F.engine.pathEdges, last = F.engine.G.names.length - 1;
+    if (!a || !comReserves(F).some(x => x.k === k) || !uncovered(F, m)) return null;
+    const t0 = state.t + PREP(F), te = pe[a.pid].e[0], save = R.segs;
+    const cands = Object.keys(pe).map(Number).filter(p => pe[p].e[0][0] === te[0] && pe[p].e[0][1] === te[1]);
+    for (const r of runsOf(F, m)) {
+      if (r.X !== last || r.dir !== 'S' || r.t < t0) continue;
+      const s = T.segs[r.j], nx = T.segs[r.j + 1];
+      for (const X of cands) {
+        const ds = s[4].map(d => F.ag.mapTo(s[0], d, X)), dR = F.ag.mapTo(a.pid, a.d, X);
+        if (ds.some(d => d == null) || dR == null || dR >= ds[0]) continue;
+        if (nx) { const e = F.ag.mapTo(X, ds[ds.length - 1], nx[0]); if (e == null || Math.abs(e - nx[4][0]) > 3) continue; }
+        const tB = s[3][0], tA = Math.round(tB - (ds[0] - dR) / (20 / 3.6) - 60); if (tA < t0) continue;
+        const s2 = JSON.parse(JSON.stringify(s)); s2[0] = X; s2[4] = ds.map(d => Math.round(d * 10) / 10);
+        R.segs = [[X, 'turnback', -1, [tA, tB], [Math.round(dR * 10) / 10, s2[4][0]]], s2, ...JSON.parse(JSON.stringify(T.segs.slice(r.j + 1)))];
+        R.starts = R.segs.map(x => x[3][0]); R.where0 = R.where0 || R.where; R.where = ['Comasina', (T.where || [])[1] || 'depot'];
+        R.cover = { m, from: r.j }; T.coveredBy = { k, from: r.j }; R.live = null; T.live = null; R.comFrom = te[0];
+        F.ag.event({ kind: 'regola', what: 'insert', k, pid: X, d: dR });
+        comEvening(F, te[0]);
+        return { t: r.t, com: true };
+      }
+    }
+    R.segs = save; return { none: true };
+  }
+  // that evening at Comasina (the reserve gone from position 3 of tail te): the trains coming into that tail go one place
+  // deeper; the last train of the night, on the arrival platform, goes into the tail too; after the closing, an empty
+  // run from the depot to the arrival platform
+  function comEvening(F, te) {
+    const pe = F.engine.pathEdges, plen = p => pe[p].e[pe[p].e.length - 1][3], into = p => pe[p].e[pe[p].e.length - 1][0] === te;
+    const last = F.engine.G.names.length - 1, sof = F._sof = F._sof || stopsOfF(F), SLOT = 110, ins = []; let P = null;
+    F.trains.forEach((tr, k) => { const g = tr.segs, z = g[g.length - 1]; if (!z || z[3][0] < state.t || !isTab(tr) || tr.coveredBy || (tr.cover && tr.cover.invio)) return;
+      if (z[1] === 'turnback' && into(z[0])) ins.push({ tr, k, z, depth: plen(z[0]) - z[4][z[4].length - 1] });
+      else if (z[1] === 'service') { const sts = sof(z); if (sts.length && sts[sts.length - 1].st === last && (!P || z[3][z[3].length - 1] > P.z[3][P.z[3].length - 1])) P = { tr, k, z }; } });
+    const depths = ins.map(x => Math.round(x.depth));
+    ins.forEach(x => { const nd = x.depth - SLOT; if (nd < SLOT / 2 - 1) return;
+      x.z[4][x.z[4].length - 1] = Math.round((plen(x.z[0]) - nd) * 10) / 10; x.tr.live = null; F.ag.replan(x.k); });
+    // (the outermost place freed: the train of the platform goes in there, after its arrival)
+    const out1 = Math.max(...depths, 0), freed = ins.length && !ins.some(x => Math.round(x.depth - SLOT) === out1);
+    let pin = false;
+    if (P && ins.length && freed) { const X = ins[0].z[0], dP = F.ag.mapTo(P.z[0], P.z[4][P.z[4].length - 1], X), tP = P.z[3][P.z[3].length - 1] + 45;
+      if (dP != null) { const dE = plen(X) - out1; P.tr.segs.push([X, 'turnback', -1, [tP, Math.round(tP + Math.abs(dE - dP) / (20 / 3.6))], [Math.round(dP * 10) / 10, Math.round(dE * 10) / 10]]);
+        P.tr.starts = P.tr.segs.map(x => x[3][0]); P.tr.live = null; F.ag.replan(P.k); pin = true; } }
+    // after the closing: the empty run to the arrival platform (from the last arrival there, plus the closing of its station)
+    const tLast = Math.max(...F.trains.map(tr => { const z = tr.segs[tr.segs.length - 1]; return z && z[3][z[3].length - 1] < 28 * 3600 ? z[3][z[3].length - 1] : 0; }));
+    F._comInvio = P ? { day: dayPick, t: tLast + tempo(F, 'OS: chiusura', 600), pid: P.z[0], d0: P.z[4][0], d1: P.z[4][P.z[4].length - 1], plat: pin } : null;
+  }
+  function comInvioTick() {
+    const F = m3eng(), w = F && F._comInvio; if (!w || w.done || w.day !== dayPick || state.t < w.t || state.t > 26.9 * 3600) return;
+    w.done = true;
+    const R0 = reserves(F); for (const y of R0) {
+      const R = F.trains[y.k], q = F.depot.at[y.k], save = R.segs, tS = state.t + PREP(F);
+      R.segs = [[w.pid, 'from_depot', -1, [tS - 1, tS], [w.d0, w.d0], +q], [w.pid, 'empty', -1, [tS, tS + 1800], [w.d0, w.d1]]];
+      if (!F.dm.rewriteOut(R, 0, q)) { R.segs = save; continue; }
+      const o = R.segs[0], m0 = F.ag.mapTo(o[0], o[4][1], w.pid); if (m0 == null) { R.segs = save; continue; }
+      R.segs[1][4][0] = Math.round(m0 * 10) / 10; R.segs[1][3][0] = o[3][1]; R.starts = R.segs.map(x => x[3][0]);
+      R.where0 = R.where0 || R.where; R.where = ['depot', 'Comasina']; R.cover = { invio: true }; R.live = null;
+      F.ag.event({ kind: 'regola', what: 'insert', k: y.k, pid: o[0], d: o[4][0] });
+      say('DCT', tx('dct.regola.invio_comasina', { treno: y.r.units, ora: fmt(o[3][1]) }), 'pc'); return;
+    }
+    say('', tx('dct.regola.invio_comasina_nessuno'), 'sys');
+  }
   function renderRego() {
     const F = m3eng(); if (!F || !F.ag) { state.sel = null; card.hidden = true; return; }
-    const names = F.engine.G.names, nm = X => cap(String(names[X] || '').toLowerCase()), L = coverage(F, state.t - 60, state.t + 3600), R = reserves(F);
+    const names = F.engine.G.names, nm = X => cap(String(names[X] || '').toLowerCase()), L = coverage(F, state.t - 60, state.t + 3600), R = reserves(F), RC = comReserves(F);
     const lbl = { orario: '', riserva: 'riserva', ibrido: 'orario ibrido' };
     const who = x => x.by != null ? (realTrain(F, F.trains[x.by], state.t) || {}).units || '' : '';
     const row = x => { const tab = F.trains[x.m].n, free = uncovered(F, x.m), mine = x.by === x.m && x.how === 'orario';
       const right = x.by != null ? `<span class="rg ok">${who(x)}${lbl[x.how] ? ' · ' + lbl[x.how] : ''}</span>${mine ? `<button data-wd="${x.m}" title="A fine corsa scarica e rientra">Ritira</button>` : ''}`
         : x.how === 'ibrido' ? '<span class="rg ok">presa (orario ibrido)</span>' : x.how === 'libera' ? '<span class="rg">libera: la prende il primo treno</span>'
-        : `<span class="rg off">SCOPERTA</span>${free && R.length ? `<select data-ins="${x.m}" aria-label="Riserva per la tabella ${tab}"><option value="">Riserva…</option>${R.map(y => `<option value="${y.k}">${y.r.units} (${depotName(F, F.depot.at[y.k])})</option>`).join('')}</select>` : ''}`;
+        : `<span class="rg off">SCOPERTA</span>${free && (R.length || RC.length) ? `<select data-ins="${x.m}" aria-label="Riserva per la tabella ${tab}"><option value="">Riserva…</option>${R.map(y => `<option value="${y.k}">${y.r.units} (${depotName(F, F.depot.at[y.k])})</option>`).join('')}${RC.map(y => `<option value="${y.k}">${y.r.units} (Comasina, in tronchetto)</option>`).join('')}</select>` : ''}`;
       return `<li class="${x.by == null && x.how !== 'ibrido' && x.how !== 'libera' ? 'scoperta' : ''}"><span><b>${fmt(x.t)} · tabella ${tab}</b><small>da ${nm(x.X)} verso ${nm(x.to)}</small></span><span class="rgr">${right}</span></li>`; };
     const by = X => L.filter(x => (X === 0 ? x.X === 0 : X === 1 ? x.X === names.length - 1 : x.X !== 0 && x.X !== names.length - 1));
     const sec = (t, l) => l.length ? `<div class="pclbl">${t}</div><ul class="pclist">${l.map(row).join('')}</ul>` : '';
@@ -3236,13 +3305,15 @@ window.MTL_PACKS = __PACKS__;
       <p class="note">Ritira: il treno finisce la corsa, scarica e rientra (se è ancora fermo al suo posto in deposito, resta lì). Una tabella rimasta senza treno si copre con una riserva in deposito: esce per la prima partenza da San Donato che fa in tempo a prendere (${Math.round(PREP(F) / 60)} minuti per prepararla).</p>
       ${sec('Da San Donato', by(0))}${sec('Da Comasina', by(1))}${sec('Da altre stazioni', by(2))}
       <div class="pclbl">Riserva in deposito</div><ul class="pclist">${R.map(y => `<li><span><b>${y.r.units}</b><small>${depotName(F, F.depot.at[y.k])}</small></span></li>`).join('') || '<li><span><small>nessun treno pronto</small></span></li>'}</ul>
+      ${RC.length ? `<div class="pclbl">Riserva a Comasina</div><ul class="pclist">${RC.map(y => `<li><span><b>${y.r.units}</b><small>in tronchetto, posizione 3: esce per una partenza da Comasina</small></span></li>`).join('')}</ul>` : ''}
       <div class="foot"><span></span><button id="cardClose">Chiudi</button></div>`;
     card.hidden = false;
     document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
     card.querySelectorAll('[data-wd]').forEach(b => b.onclick = () => { withdraw(F, +b.dataset.wd); renderRego(); });
     card.querySelectorAll('[data-ins]').forEach(sel => sel.onchange = () => { if (sel.value === '') return; const m = +sel.dataset.ins, k = +sel.value, u = (realTrain(F, F.trains[k], state.t) || {}).units;
-      const r = insertReserve(F, k, m);
-      if (r && r.t != null) say('', tx('dct.regola.inserisci', { treno: u, posto: depotName(F, r.q), tabella: F.trains[m].n, ora: fmt(r.t) }), 'sys');
+      const r = comReserves(F).some(y => y.k === k) ? insertComReserve(F, k, m) : insertReserve(F, k, m);
+      if (r && r.com) say('', tx('dct.regola.inserisci_comasina', { treno: u, tabella: F.trains[m].n, ora: fmt(r.t) }), 'sys');
+      else if (r && r.t != null) say('', tx('dct.regola.inserisci', { treno: u, posto: depotName(F, r.q), tabella: F.trains[m].n, ora: fmt(r.t) }), 'sys');
       else if (r) say('', tx('dct.regola.nessuna_corsa', { tabella: F.trains[m].n, treno: u }), 'sys');
       renderRego(); });
   }
@@ -3851,7 +3922,7 @@ window.MTL_PACKS = __PACKS__;
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); osTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
+    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); osTick(); comInvioTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; const ae = document.activeElement; if (state.sel != null && !(ae && ae.tagName === 'SELECT' && card.contains(ae))) renderCard(); }     // (not while the player is choosing in a menu of the card)
     requestAnimationFrame(frame);
@@ -3874,7 +3945,7 @@ window.MTL_PACKS = __PACKS__;
     bar.addEventListener('dblclick', e => { if (e.target.closest('button')) return; el.style.left = el.style.top = el.style.bottom = ''; el.classList.remove('moved'); try { localStorage.removeItem(key); } catch (e2) {} });
   }
   ['radio', 'phone'].forEach(id => { const el = document.getElementById(id); if (el) movable(el); });
-  window.mtl = { map, state, fleets, setView, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), phone: { conv: X => MR.phoneConv(X), pending: () => MR.phonePending() }, osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
+  window.mtl = { map, state, fleets, setView, rego: { comReserves: F => comReserves(F), insertComReserve: (F, k, m) => insertComReserve(F, k, m), withdraw: (F, k) => withdraw(F, k), uncovered: (F, m) => uncovered(F, m), runsOf: (F, m) => runsOf(F, m) }, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), phone: { conv: X => MR.phoneConv(X), pending: () => MR.phonePending() }, osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
 </script>

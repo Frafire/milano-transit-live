@@ -2529,6 +2529,27 @@
    "testi": [
     "Nessuna risposta."
    ]
+  },
+  "dct.regola.inserisci_comasina": {
+   "chi": "sistema",
+   "quando": "Regolatore: il DCT fa partire la riserva di Comasina (sabato e domenica, in tronchetto) per coprire una tabella scoperta (B-016)",
+   "testi": [
+    "Regolatore: il {treno} esce dal tronchetto di Comasina come tabella {tabella}, partenza da Comasina alle {ora}."
+   ]
+  },
+  "dct.regola.invio_comasina": {
+   "chi": "DCT",
+   "quando": "La riserva di Comasina è stata usata: dopo la chiusura della linea il DCT manda un treno a vuoto dal deposito alla banchina di arrivo di Comasina (B-016)",
+   "testi": [
+    "Treno {treno}, qui DCT: esci dal deposito alle {ora} e vai a vuoto fino alla banchina di arrivo di Comasina, lì ti fermi per la notte. Passo."
+   ]
+  },
+  "dct.regola.invio_comasina_nessuno": {
+   "chi": "sistema",
+   "quando": "Dopo la chiusura servirebbe un invio a vuoto a Comasina ma in deposito non c'è un treno pronto",
+   "testi": [
+    "Regolatore: nessun treno pronto in deposito per l'invio a vuoto a Comasina."
+   ]
   }
  }
 }

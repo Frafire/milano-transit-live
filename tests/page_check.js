@@ -28,6 +28,8 @@
 //   stations with calls keep their own conversations; a later message of the same OS goes into the same conversation
 // - riservacomasina: Friday -> Saturday -> Sunday: a reserve train stands at Comasina in position 3 of a tail all day
 //   (Saturday it is the 17), with its train
+// - riservausata: Saturday, the reserve of Comasina covers a tabella; that night its tail is full (3 trains) and an
+//   empty run from the depot stops on the arrival platform of Comasina
 // - incendio: a fire at Corvetto: the OS has the station evacuated by himself and does not answer; 5 minutes later the
 //   station is clear, the firemen there; when they finish (no damage) the DCT reopens
 // - prefetturanotte: the Prefettura closes Duomo at 3 at night: the OS is not there, no call
@@ -468,6 +470,34 @@ const SCENARIOS = {
         days.push({ day: document.getElementById('day').textContent.split(' · ')[1], k, n: k >= 0 ? F.trains[k].n : null, units: r && r.units, missing: !r || !!r.missing || !!r.none, hidden: a && a.hidden, v: a && a.v, tail });
       }
       return { ok: window.__stay === 1 && days.length === 2 && days.every(x => x.k >= 0 && !x.missing && !x.hidden && x.v === 0 && x.tail.length > 0) && days[0].n === 17 && days[0].units === days[1].units, days };      // (Saturday the 17; the same train on Sunday)
+    });
+  },
+  async riservausata(p) {   // B-016: Saturday, a Comasina tabella left without its train: the DCT sends the reserve of Comasina;
+    // in the evening the tail fills from the inside, the platform train goes in too; after the closing an empty run from the
+    // depot to the arrival platform of Comasina
+    await p.goto(PAGE.replace(/day=\d+/, 'day=6')); await p.waitForTimeout(6000);
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state;
+      const F = M.fleets.find(f => f.line === 'M3' && f.ag), G = F.engine.G, last = G.names.length - 1, H = F.engine.half;
+      st.playing = false; st.t = 10 * 3600; await sleep(2500);
+      const RC = M.rego.comReserves(F); if (!RC.length) return { ok: false, why: 'no reserve at Comasina' };
+      const kR = RC[0].k, aR = F.ag.agents()[kR], d0 = aR.d, te = F.engine.pathEdges[aR.pid].e[0][0];
+      // a tabella with a departure from Comasina in 20-60 minutes, its train taken out of the service
+      const m = F.trains.findIndex((tr, m) => tr.n != null && M.rego.runsOf(F, m).some(r => r.X === last && r.dir === 'S' && r.t > st.t + 1500 && r.t < st.t + 3600) && F.ag.agents()[m].mode === 'plan');
+      if (m < 0) return { ok: false, why: 'no tabella to cover' };
+      M.rego.withdraw(F, m); await sleep(300);
+      const r = M.rego.insertComReserve(F, kR, m); if (!r || !r.com) return { ok: false, why: 'reserve not sent', r };
+      const sR = F.trains[kR].segs[0][3][0];
+      st.speed = 60; st.playing = true; let t0 = Date.now(); while (Date.now() - t0 < 60000 && st.t < r.t + 300) await sleep(300); st.playing = false; await sleep(500);
+      const left = F.ag.agents()[kR].mode === 'plan' && Math.abs(F.ag.agents()[kR].d - d0) > 50 && F.ag.agents()[kR].pid !== aR.pid || F.ag.agents()[kR].d > d0 + 300;
+      // the night: the tail and the platform
+      const w = F._comInvio; if (!w) return { ok: false, why: 'no empty run planned', left };
+      st.speed = 300; st.playing = true; t0 = Date.now(); while (Date.now() - t0 < 200000 && st.t < Math.min(26.8 * 3600, w.t + 3600)) await sleep(400); st.playing = false; await sleep(800);
+      const A = F.ag.agents(), inTail = A.filter(a => !a.hidden && F.engine.pathEdges[a.pid].e.some(([ei, , x0, x1]) => ei === te && x1 > a.d - H && x0 < a.d + H)).length;
+      const kI = F.trains.findIndex(tr => tr.cover && tr.cover.invio), aI = kI >= 0 ? A[kI] : null;
+      const atPlat = !!aI && !aI.hidden && aI.v === 0 && aI.pid === w.pid && Math.abs(aI.d - w.d1) < 8;
+      return { ok: left && inTail === 3 && atPlat, left, inTail, invio: kI, atPlat, sR, t: st.t / 3600, w: { t: w.t / 3600, plat: w.plat } };
     });
   },
   async incendio(p) {   // B-014: a fire at Corvetto: the OS has it evacuated by himself and is gone, 5 minutes later the station is
