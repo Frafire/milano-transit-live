@@ -23,6 +23,9 @@ def write(dati):
             # the signals and marks Giovanni placed in the editor (data/rules_m2.json): shown on the map and in the editor
             rp = os.path.join(ROOT, 'data', 'rules_m2.json')
             if os.path.exists(rp): F['edits'] = {k: v for k, v in json.load(open(rp)).items() if not k.startswith('_')}
+            # the aspects and codes for the page's panel (data/codici_m2.json, from the Codici sheet of Regole_M2.xlsx)
+            cp = os.path.join(ROOT, 'data', 'codici_m2.json')
+            if os.path.exists(cp): F['codici'] = json.load(open(cp))
             fleet = base64.b64encode(gzip.compress(json.dumps({'fleets': [F]}, separators=(',', ':')).encode(), 9)).decode()
         name = 'm2_%s.js' % folder
         js = '(window.MTL_PACK = window.MTL_PACK || {})[%s] = %s;\n' % (json.dumps('M2' + sfx), json.dumps({'data': data, 'fleet': fleet, 'live': '', 'turni': turni}))

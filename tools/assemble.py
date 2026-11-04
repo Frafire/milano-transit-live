@@ -66,7 +66,9 @@ import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import assemble_m2
 packs.update(assemble_m2.write(dati))
 t = t.replace('__PACKS__', json.dumps(packs))
-assert '__DATA' not in t and '__PACKS__' not in t
+# what each line has in the page (data/capacita.json): panels with data-cap are shown only for lines with that capability
+t = t.replace('__CAPS__', json.dumps({k: v for k, v in json.load(open(os.path.join(ROOT, 'data', 'capacita.json'))).items() if not k.startswith('_')}, ensure_ascii=False))
+assert '__DATA' not in t and '__PACKS__' not in t and '__CAPS__' not in t
 open(OUT, 'w').write(t)
 print('written', OUT, round(os.path.getsize(OUT) / 1e6, 1), 'MB')
 

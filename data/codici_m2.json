@@ -1,0 +1,85 @@
+{
+ "_about": "Aspetti e codici della M2, dal foglio Codici di data/Regole_M2.xlsx (tools/codici_m2.py). Velocità in km/h; vuoto = dato che manca.",
+ "aspetti": [
+  {
+   "aspetto": "Rosso (via impedita imperativa)",
+   "significato": "Arresto",
+   "codice": null,
+   "scaglione": null,
+   "leonardo": null,
+   "meneghino": null,
+   "fonte": "Giovanni, 03/11/2026 (da verificare con il collega): rosso = 0",
+   "note": "Che codice si capta nella sezione davanti a un rosso? Nessuno (quindi 15) o un codice di arresto?"
+  },
+  {
+   "aspetto": "Rosso con P luminosa accesa (via impedita permissiva)",
+   "significato": "Fermarsi, attendere 10 s, superare in marcia a vista",
+   "codice": null,
+   "scaglione": 15,
+   "leonardo": 15,
+   "meneghino": 15,
+   "fonte": "Collega M2, 03/11/2026",
+   "note": "Vedi Tempi e Eccezioni 2"
+  },
+  {
+   "aspetto": "Rosso con P luminosa spenta",
+   "significato": "Via impedita imperativa",
+   "codice": null,
+   "scaglione": null,
+   "leonardo": null,
+   "meneghino": null,
+   "fonte": "Collega M2, 03/11/2026",
+   "note": "Primo segnale dietro un treno"
+  },
+  {
+   "aspetto": "Rosso con P fissa (su tabella)",
+   "significato": "Permissivo, ma da considerare imperativo (primo segnale dietro un treno)",
+   "codice": null,
+   "scaglione": null,
+   "leonardo": null,
+   "meneghino": null,
+   "fonte": "Collega M2, 03/11/2026",
+   "note": "Da chiarire: si considera imperativo sempre o solo quando è il primo dietro un treno?"
+  },
+  {
+   "aspetto": "Nessun codice",
+   "significato": "Marcia limitata",
+   "codice": null,
+   "scaglione": 15,
+   "leonardo": 15,
+   "meneghino": 15,
+   "fonte": "Giovanni, 03/11/2026 (da verificare con il collega)",
+   "note": null
+  },
+  {
+   "aspetto": "Rosso / giallo",
+   "significato": "Via libera con limite",
+   "codice": 120,
+   "scaglione": 30,
+   "leonardo": 25,
+   "meneghino": 30,
+   "fonte": "Giovanni, 03/11/2026 (120 = 25 km/h); scaglioni: Collega M2, 03/11/2026",
+   "note": "Da confermare: 120 corrisponde allo scaglione 30 (Leonardo 25, Meneghino 30)?"
+  },
+  {
+   "aspetto": "Giallo",
+   "significato": "Via libera con limite",
+   "codice": 180,
+   "scaglione": 50,
+   "leonardo": 45,
+   "meneghino": 50,
+   "fonte": "Giovanni, 03/11/2026 (180 = 45 km/h); scaglioni: Collega M2, 03/11/2026",
+   "note": "Da confermare: 180 corrisponde allo scaglione 50?"
+  },
+  {
+   "aspetto": "Verde",
+   "significato": "Via libera",
+   "codice": 270,
+   "scaglione": 85,
+   "leonardo": 70,
+   "meneghino": 70,
+   "fonte": "Giovanni, 03/11/2026 (270 = 70 km/h); scaglioni: Collega M2, 03/11/2026",
+   "note": "Da confermare: 270 corrisponde allo scaglione 85?"
+  }
+ ]
+}

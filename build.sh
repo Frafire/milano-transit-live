@@ -74,3 +74,5 @@ echo "== the page in a browser (depot, test loop, radio)"
 if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/page_check.js"; else echo "(skipped: Playwright not installed)"; fi
 echo "== the menu in a browser (only the chosen line is loaded)"
 if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/home_check.js"; else echo "(skipped: Playwright not installed)"; fi
+echo "== the panels of each line (data/capacita.json)"
+if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/caps_check.js"; else echo "(skipped: Playwright not installed)"; fi

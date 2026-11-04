@@ -184,6 +184,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .trkname.dep { color: #cfd6dc; font-size: 9px; }
 .sigtag { position: absolute; left: 7px; top: -16px; font: 600 10px/1 system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.72); padding: 1px 3px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
 .sigpx.sh { width: 9px; height: 10px; }
+.nocap { display: none !important; }
+.asptab table { width: 100%; border-collapse: collapse; font-size: 12px; } .asptab th, .asptab td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.asptab td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; } .asptab th { color: var(--muted); font-weight: 600; }
 .kitsig { position: relative; transform: translate(-50%, -100%); display: flex; align-items: flex-end; gap: 2px; pointer-events: none; }
 .kitsig img { image-rendering: pixelated; width: auto; height: auto; transform: scale(2); transform-origin: bottom center; filter: drop-shadow(0 0 1px #000); }
 .kitsig svg { margin-left: 6px; }
@@ -402,7 +405,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   </div>
   <input type="range" class="keep admin-only" id="slider" min="10800" max="97140" step="60" value="12600" aria-label="Time of day, service day 03:00 to 02:59">
 
-  <section class="player-only m3panel" aria-label="M3 control panel">
+  <section class="player-only m3panel" data-cap="tronchetti" aria-label="M3 control panel">
     <div class="label">Pannello di controllo M3</div>
     <div class="legend"><span><i class="lg ok"></i>in orario</span><span><i class="lg late"></i>+2 min o più</span><span><i class="lg early"></i>anticipo 3 min o più</span></div>
     <ul class="m3list" id="m3list"></ul>
@@ -411,23 +414,34 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="label">Allarmi DCT</div>
     <ul class="m3list" id="pcAlarms"></ul>
   </section>
-  <section class="m3panel closures" aria-label="Chiusura tratte M3">
+  <section class="m3panel" data-cap="bivi" aria-label="Bivi">
+    <div class="label">Bivi</div>
+    <div class="row" id="biviRow"></div>
+    <p class="note">Automatico: l'ordine dei treni al bivio lo decide il regolatore (Precedenze). DCT: i treni si fermano al segnale di protezione del bivio e scegli tu chi passa (Pannello PC M2-1, M2-2). Per ora la scelta resta salvata ma non muove i treni: diventa attiva con il motore della M2.</p>
+  </section>
+  <section class="m3panel" data-cap="aspetti_codici" aria-label="Aspetti e codici">
+    <div class="label">Aspetti e codici</div>
+    <div class="asptab" id="aspTab"></div>
+  </section>
+  <section class="m3panel closures" data-cap="chiusure deposito_sinottico regolatore_turni" aria-label="Chiusura tratte M3">
+    <div data-cap="chiusure">
     <div class="label">Chiudi tratta M3</div>
     <select id="clSel" aria-label="Tratta da chiudere"></select>
     <div class="clends" id="clEnds"></div>
     <div class="row"><button id="closeBtn">Chiudi la tratta</button><button id="reopenBtn" disabled>Riapri la tratta</button><button id="normalBtn" disabled title="Tutti i treni tornano al loro orario programmato">Torna all'orario</button></div>
     <div class="row"><button id="totalBtn" title="Tutta la linea, da San Donato a Comasina: il DCT avvisa tutti i treni via radio, si fermano alla prossima stazione e aspettano disposizioni">Chiusura totale della linea</button></div>
     <p class="note" id="secNote">I treni sui lati aperti girano alle stazioni dove finisce la tratta, come nelle regole; quelli dentro si fermano alla stazione successiva e aspettano il DCT.</p>
+    </div>
     <div class="row"><button id="depotAuto" aria-pressed="true" title="Automatico: i segnali del deposito si aprono da soli. Manuale: clic sul segnale per dare via libera a un treno">Deposito: automatico</button><button id="turniBtn" title="Quale treno fa ogni tabella oggi: si cambia finché i treni sono ancora fermi al loro posto">Turni del giorno</button><button id="regoBtn" title="Le partenze dei prossimi 60 minuti e il treno che le fa: togliere un treno, far uscire una riserva per una tabella scoperta">Regolatore</button></div>
     <p class="note" id="ilNote" hidden></p>
   </section>
-  <section class="m3panel faults" aria-label="Emergenze del DCT">
+  <section class="m3panel faults" data-cap="guasti_soccorso" aria-label="Emergenze del DCT">
     <div class="label">Emergenze DCT</div>
     <div class="row"><select id="emA" aria-label="Da stazione" style="flex:1"></select><select id="emB" aria-label="A stazione" style="flex:1"></select></div>
     <div class="row"><button id="emRed" class="redbtn" title="Tutti i semafori della tratta a rosso: i treni nella tratta frenano d'emergenza">Pulsante rosso</button><button id="emRedAll" class="redbtn" title="Tutti i semafori della linea a rosso, stazioni comprese: tutti i treni in linea frenano d'emergenza">Rosso totale</button><button id="emPower">Togli tensione</button><button id="emStop">Ferma i treni</button></div>
     <p class="note">Su una stazione sola (da e a uguali) vale per le sue banchine; tra due stazioni per i binari in mezzo. Si tolgono dagli Allarmi DCT.</p>
   </section>
-  <section class="m3panel faults admin-only" aria-label="Guasti (admin)">
+  <section class="m3panel faults admin-only" data-cap="guasti_soccorso" aria-label="Guasti (admin)">
     <div class="label">Guasti M3 (admin)</div>
     <label><input type="checkbox" id="fxRandom"> Guasti casuali, quante volte al giorno come nell'Excel (valgono anche per il player)</label>
     <select id="fxKind" aria-label="Guasto"></select>
@@ -466,14 +480,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     </div>
     <p class="note" id="mapNote" hidden></p>
   </div>
-  <div class="admin-only">
+  <div class="admin-only" data-cap="segnali_itinerari">
     <div class="label" style="margin-bottom:6px">M3 trains</div>
     <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button><button id="platBtn" aria-pressed="false">Platforms</button><button id="sigsBtn" aria-pressed="false">Segnali</button><button id="illBtn" aria-pressed="false" title="Segnali sul senso illegale (sempre rossi)">Segnali illegali</button></div>
     <div class="row"><button id="sigDelBtn" aria-pressed="false" title="Clic su un semaforo per toglierlo (finisce nell'export MTL-EDIT)">Togli semafori</button><button id="sigUndoBtn" title="Rimette tutti i semafori tolti">Rimetti tutti</button></div>
     <p class="note" id="sigDelNote" hidden></p>
     <p class="note">On: trains drive with acceleration and braking. Off: they follow the plan exactly.</p>
   </div>
-  <div class="admin-only" hidden>
+  <div class="admin-only" data-cap="treni_nuovi" hidden>
     <div class="label" style="margin-bottom:6px">Treni nuovi (in prova)</div>
     <div id="newTrains"></div>
   </div>
@@ -506,8 +520,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <button class="tab" data-mode="mark" role="tab" aria-pressed="true">Platforms &amp; tracks</button>
     <button class="tab" data-mode="signal" role="tab" aria-pressed="false">Signals</button>
     <button class="tab" data-mode="draw" role="tab" aria-pressed="false">Draw track</button>
-    <button class="tab" data-mode="speed" role="tab" aria-pressed="false">Speed limits</button>
-    <button class="tab" data-mode="schema" role="tab" aria-pressed="false">Sinottico</button>
+    <button class="tab" data-mode="speed" data-cap="limiti_velocita" role="tab" aria-pressed="false">Speed limits</button>
+    <button class="tab" data-mode="schema" data-cap="deposito_sinottico" role="tab" aria-pressed="false">Sinottico</button>
   </div>
 
   <section data-panel="schema" hidden>
@@ -627,6 +641,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 // chosen in the menu (index.html -> gioca.html?linee=M3). PACKS: the files there are, e.g. {"M3": ["", "6", "7"]}
 // ('' = weekday, 6 = Saturday, 7 = Sunday). A <script> and not fetch(), so the page also works opened from the disk.
 window.MTL_PACKS = __PACKS__;
+// what each line has (data/capacita.json): a panel with data-cap is shown only if the line has one of its capabilities
+window.MTL_CAPS = __CAPS__;
 </script>
 <script>
 (async function () {
@@ -642,6 +658,11 @@ window.MTL_PACKS = __PACKS__;
   if (!LINES.length) { document.getElementById('loading').innerHTML = 'Linea non ancora giocabile. <a href="index.html" style="color:inherit;margin-left:8px">Torna al menu</a>'; return; }
   if (LINES.length > 1) console.warn('More than one line chosen: only ' + LINES[0] + ' is loaded for now', LINES);
   const LINE = LINES[0];
+  // the capabilities of the line (data/capacita.json); a line without an entry shows every panel, as before
+  const CAPS = MTL_CAPS[LINE] ? new Set(MTL_CAPS[LINE]) : null;
+  const hasCap = c => !CAPS || CAPS.has(c);
+  const applyCaps = () => document.querySelectorAll('[data-cap]').forEach(el => el.classList.toggle('nocap', !el.dataset.cap.split(' ').some(hasCap)));
+  applyCaps();
   const hasDay = sfx => MTL_PACKS[LINE].includes(sfx);
   let SUF = dayType(dayPick); if (!hasDay(SUF)) { SUF = ''; if (dayPick > 5) dayPick = 1; }
   // the data of one kind of day ('' weekday, '6' Saturday, '7' Sunday): its file in dati/, unpacked (base64 of gzip).
@@ -1019,6 +1040,23 @@ window.MTL_PACKS = __PACKS__;
     const fl = buildFleet(F, fleets.length, true, LIVE0); if (fl) fleets.push(fl);
   });
   const fleetOf = ri => fleets.find(f => f.li === ri);
+  // ---- the panels of a line with the capabilities bivi and aspetti_codici (the M2) ----
+  (function () {
+    const FD = FLEETDATA ? FLEETDATA.fleets.find(f => f.line === LINE) : null;
+    const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    if (hasCap('aspetti_codici')) {
+      const A = (FD && FD.codici && FD.codici.aspetti) || [], v = x => x == null || x === '' ? '—' : esc(x);
+      document.getElementById('aspTab').innerHTML = A.length ? `<table><tr><th>Aspetto</th><th>Codice</th><th>Scaglione</th><th>Leonardo</th><th>Meneghino</th></tr>${A.map(a =>
+        `<tr title="${esc(a.significato)}${a.note ? ' · ' + esc(a.note) : ''}"><td>${esc(a.aspetto)}</td><td class="n">${v(a.codice)}</td><td class="n">${v(a.scaglione)}</td><td class="n">${v(a.leonardo)}</td><td class="n">${v(a.meneghino)}</td></tr>`).join('')}</table><p class="note">km/h, dal foglio Codici di Regole_M2.xlsx; — = dato che manca.</p>` : '<p class="note">Tabella degli aspetti non trovata.</p>';
+    }
+    if (hasCap('bivi')) {
+      const key = 'mtl-bivi-' + LINE; let B = {}; try { B = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) {}
+      const row = document.getElementById('biviRow');
+      const draw = () => { row.innerHTML = (MTL_CAPS[LINE + '_bivi'] || []).map((n, i) => `<button id="bivo${i}" data-n="${esc(n)}" aria-pressed="${B[n] === 'dct'}">${esc(n)}: ${B[n] === 'dct' ? 'DCT' : 'automatico'}</button>`).join('');
+        row.querySelectorAll('button').forEach(b => b.onclick = () => { B[b.dataset.n] = B[b.dataset.n] === 'dct' ? 'auto' : 'dct'; try { localStorage.setItem(key, JSON.stringify(B)); } catch (e) {} draw(); }); };
+      draw();
+    }
+  })();
   syncPlat();
   const STATUS = {
     service: 'In service', turnback: 'Turning back, not in service', from_depot: 'Leaving the depot',
