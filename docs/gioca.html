@@ -1244,6 +1244,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <div class="row"><button class="skvele" data-v="1" aria-pressed="false">1 vela</button><button class="skvele" data-v="2" aria-pressed="true">2 vele</button></div></div>
       <span class="label">Lettera P (dalla stessa parte del segnale)</span>
       <div class="row"><button class="skp" data-v="luminosa" aria-pressed="true">Luminosa</button><button class="skp" data-v="fissa" aria-pressed="false">Fissa</button><button class="skp" data-v="nessuna" aria-pressed="false">Nessuna</button></div>
+      <div id="skDirRow"><span class="label">Indicatore di direzione (bivio)</span>
+      <div class="row"><button class="skdirind" data-v="0" aria-pressed="true">Nessuno</button><button class="skdirind" data-v="1" aria-pressed="false">Presente</button></div></div>
       <span class="label">Legale o illegale</span>
       <div class="row"><button class="sklegal" data-v="1" aria-pressed="true">Legale (vela tonda, a)</button><button class="sklegal" data-v="0" aria-pressed="false">Illegale (vela quadra, b)</button></div>
       <p class="note" id="skInfo"></p>
@@ -7206,19 +7208,26 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     ['111', '101', '111', '100', '100'].forEach((row, r) => [...row].forEach((ch, i) => { if (ch === '1') px(x0 + 2 + i, y0 + 1 + r, type === 'fissa' ? '#101010' : on ? '#ffffff' : '#262626'); }));
   }
   const DISC = ['...wwwww...', '..wkkkkkw..', '.wkkkkkkkw.', 'wkkkkkkkkkw', 'wkkkkkkkkkw', 'wkkkkkkkkkw', 'wkkkkkkkkkw', 'wkkkkkkkkkw', '.wkkkkkkkw.', '..wkkkkkw..', '...wwwww...'];
-  // o: { env: 'galleria' | 'superficie', vele: 1 | 2, p: 'luminosa' | 'fissa' | 'nessuna', legal, lit: ['R'...], pOn }
+  // the direction indicator at a junction (Cascina Gobba, Giovanni's photo of 4 Nov 2026): a black screen, a diagonal of
+  // white dots towards the way the route goes, right (Gessate) or left (Cologno Nord); it is never straight
+  function kitDirInd(px, x0, y0, on) {
+    for (let j = 0; j < 9; j++) for (let i = 0; i < 9; i++) { const e = j === 0 || j === 8 || i === 0 || i === 8; px(x0 + i, y0 + j, e ? '#5a6064' : '#050505'); }
+    for (let k = 0; k < 6; k++) { const i = on === 'L' ? 7 - k : 1 + k, j = 7 - k; px(x0 + i, y0 + j, on ? '#ffffff' : '#262626'); }
+  }
+  // o: { env: 'galleria' | 'superficie', vele: 1 | 2, p: 'luminosa' | 'fissa' | 'nessuna', dirind, dirOn: 'R' | 'L' | null, legal, lit: ['R'...], pOn }
   function kitSprite(o) {
     const P = o.p && o.p !== 'nessuna', lit = o.lit || ['R'];
     if (o.env !== 'superficie') {
-      const W = 11, HH = 4 + 3 * 6 + 1, H = HH + (P ? 8 : 0), [c, x, px] = kitCanvas(W, H), round = o.legal !== false;
+      const W = 11, HH = 4 + 3 * 6 + 1, H = HH + (P ? 8 : 0) + (o.dirind ? 10 : 0), [c, x, px] = kitCanvas(W, H), round = o.legal !== false;
       for (let j = 0; j < HH; j++) for (let i = 0; i < W; i++) { const e = i === 0 || i === W - 1 || j === 0 || j === HH - 1, n = i === 1 || i === W - 2 || j === 1 || j === HH - 2; px(i, j, e ? '#a0a0a0' : n ? '#dedede' : '#101010'); }
       if (round) { for (const [i, j] of [[0, 0], [1, 0], [0, 1], [W - 1, 0], [W - 2, 0], [W - 1, 1], [0, HH - 1], [1, HH - 1], [0, HH - 2], [W - 1, HH - 1], [W - 2, HH - 1], [W - 1, HH - 2]]) x.clearRect(i, j, 1, 1);
         px(1, 1, '#a0a0a0'); px(W - 2, 1, '#a0a0a0'); px(1, HH - 2, '#a0a0a0'); px(W - 2, HH - 2, '#a0a0a0'); }
       ['R', 'Y', 'V'].forEach((L, n) => kitLamp(px, 3, 3 + n * 6, L, lit.includes(L)));
       if (P) kitP(px, 2, HH + 1, o.p, o.pOn);
+      if (o.dirind) kitDirInd(px, 1, HH + (P ? 9 : 1), o.dirOn);
       return c;
     }
-    const n = o.vele === 1 ? 1 : 2, VH = 12, POLE = 16, H = n * VH + (P ? 8 : 0) + POLE + 1, [c, x, px] = kitCanvas(11, H);
+    const n = o.vele === 1 ? 1 : 2, VH = 12, POLE = 16, H = n * VH + (P ? 8 : 0) + (o.dirind ? 10 : 0) + POLE + 1, [c, x, px] = kitCanvas(11, H);
     const top = lit.includes('V') ? 'V' : lit.includes('Y') && !lit.includes('R') ? 'Y' : 'R', below = lit.includes('R') && lit.includes('Y') ? 'Y' : null;
     let y = 0;
     for (let k = 0; k < n; k++) {
@@ -7226,6 +7235,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       const L = k === 0 ? top : below; kitLamp(px, 3, y + 3, L || 'R', !!L); y += VH;
     }
     if (P) { kitP(px, 2, y, o.p, o.pOn); y += 8; }
+    if (o.dirind) { kitDirInd(px, 1, y, o.dirOn); y += 10; }
     for (let j = y; j < H - 1; j++) { const b = Math.floor((j - y) / 3) % 2; px(4, j, b ? '#111' : '#d8d8d8'); px(5, j, b ? '#222' : '#f4f4f4'); px(6, j, b ? '#0a0a0a' : '#bdbdbd'); }
     for (let i = 2; i < 9; i++) px(i, H - 1, '#55595c');
     return c;
@@ -7234,8 +7244,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   function kitShunt() { const [c, x] = kitCanvas(9, 10); x.fillStyle = '#101010'; x.fillRect(0, 1, 9, 9); x.fillRect(0, 0, 5, 1); x.fillRect(5, 1, 4, 3);
     x.fillStyle = '#8a8a8a'; x.fillRect(0, 9, 9, 1); [[1, 1, false], [1, 5, true], [5, 5, true]].forEach(([i, j, on]) => { x.fillStyle = on ? '#ffffff' : '#3a3a3a'; x.fillRect(i, j, 3, 3); }); return c; }
   const KITURL = {};
-  const kitUrl = sg => { const k = [sg.type, sg.env, sg.vele, sg.p, sg.legal].join('|');
-    return KITURL[k] || (KITURL[k] = (sg.type === 'shunt' ? kitShunt() : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa' })).toDataURL()); };
+  const kitUrl = sg => { const k = [sg.type, sg.env, sg.vele, sg.p, sg.legal, sg.dirind].join('|');
+    return KITURL[k] || (KITURL[k] = (sg.type === 'shunt' ? kitShunt() : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa', dirOn: 'R' })).toDataURL()); };
   // on the map: the signal as it looks (red), a small arrow for the way it faces, the name
   const kitIcon = (sg, current) => L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="kitsig${current ? ' cur' : ''}"><img alt="" src="${kitUrl(sg)}"><svg width="12" height="12" viewBox="0 0 14 14" style="transform:rotate(${sg.heading}deg)"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="#ffcf3f" stroke="#000" stroke-width="1"/></svg>${sg.name ? `<span>${sg.name}</span>` : ''}</div>` });
   // the signals already in the line's file (data/rules_<line>.json, packed with the fleet): shown with the ones of this browser
@@ -7530,7 +7540,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   document.getElementById('sigName').oninput = redrawCurrent;
   // ---- the fields of a line with a SIGKIT (the M2): galleria / superficie, vele, P, legale / illegale, name ----
   const sigKit = document.getElementById('sigKit'), sigTypeSel = document.getElementById('sigType'), M3TYPES = sigTypeSel.innerHTML;
-  const KS = { env: 'galleria', vele: 2, p: 'luminosa', legal: true, legalAuto: true, envAuto: true };
+  const KS = { env: 'galleria', vele: 2, p: 'luminosa', dirind: false, legal: true, legalAuto: true, envAuto: true };
   const kitTrack = () => pickSig && ALLTRACKS[pickSig.ti] && SIGKIT[ALLTRACKS[pickSig.ti].line] ? ALLTRACKS[pickSig.ti] : null;
   const kitPress = (sel, v) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === String(v)));
   function kitName() { const num = document.getElementById('skNum').value.trim().replace(/^(S|POSTO)\s*/i, '').replace(/[ab]$/i, '');
@@ -7538,7 +7548,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   function kitSignal(tk) {        // what the signal being placed carries, as it is saved
     const type = sigTypeSel.value, main = type === 'main';
     return { type, env: KS.env, vele: KS.env === 'superficie' && main ? KS.vele : undefined, p: main ? KS.p : undefined,
-      legal: KS.legal, vela: KS.legal ? 'tonda' : 'quadra', name: main || type === 'shunt' ? kitName() : '' };
+      dirind: main && KS.dirind ? true : undefined, legal: KS.legal, vela: KS.legal ? 'tonda' : 'quadra', name: main || type === 'shunt' ? kitName() : '' };
   }
   function syncKit() {
     // the line: the one of the track just clicked, else the line of the page (the M2 page keeps its fields between signals)
@@ -7548,7 +7558,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (!want) return;
     if (tk && KS.legalAuto && (tk.d === 1 || tk.d === -1)) KS.legal = sigDir === tk.d;
     const main = sigTypeSel.value === 'main';
-    kitPress('.skenv', KS.env); kitPress('.skvele', KS.vele); kitPress('.skp', KS.p); kitPress('.sklegal', KS.legal ? 1 : 0);
+    kitPress('.skenv', KS.env); kitPress('.skvele', KS.vele); kitPress('.skp', KS.p); kitPress('.sklegal', KS.legal ? 1 : 0); kitPress('.skdirind', KS.dirind ? 1 : 0);
+    document.getElementById('skDirRow').hidden = !main;
     document.getElementById('skVeleRow').hidden = KS.env !== 'superficie' || !main;
     document.querySelectorAll('.skp').forEach(b => b.disabled = !main);
     document.getElementById('skPrefix').textContent = KS.env === 'superficie' ? 'POSTO' : 'S';
@@ -7562,7 +7573,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const num = document.getElementById('skNum').value.trim();
     if (main && KS.env === 'galleria' && num && !/^\d{3}$/.test(num.replace(/^S/i, '').replace(/[ab]$/i, ''))) warn.push('In galleria il nome è S + 3 cifre (es. S123a).');
     document.getElementById('skInfo').textContent = (KS.legal ? 'Legale: vela tonda, nome con a. ' : 'Illegale: vela quadra, nome con b. ') + (kitName() ? 'Nome: ' + kitName() + '. ' : '') + warn.join(' ');
-    const pv = document.getElementById('skPreview'), spr = sigTypeSel.value === 'shunt' ? kitShunt() : kitSprite({ ...kitSignal(tk), lit: ['R'], pOn: KS.p === 'luminosa' });
+    const pv = document.getElementById('skPreview'), spr = sigTypeSel.value === 'shunt' ? kitShunt() : kitSprite({ ...kitSignal(tk), lit: ['R'], pOn: KS.p === 'luminosa', dirOn: 'R' });
     pv.width = spr.width; pv.height = spr.height; pv.style.width = spr.width * 3 + 'px'; pv.style.height = spr.height * 3 + 'px'; pv.getContext('2d').drawImage(spr, 0, 0);
     pv.hidden = !(main || sigTypeSel.value === 'shunt');
   }
@@ -7571,6 +7582,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   document.querySelectorAll('.skvele').forEach(b => b.onclick = kitSet('vele', +b.dataset.v));
   document.querySelectorAll('.skp').forEach(b => b.onclick = kitSet('p', b.dataset.v));
   document.querySelectorAll('.sklegal').forEach(b => b.onclick = kitSet('legal', b.dataset.v === '1'));
+  document.querySelectorAll('.skdirind').forEach(b => b.onclick = kitSet('dirind', b.dataset.v === '1'));
   document.getElementById('skNum').oninput = redrawCurrent;
 
   function setDrawing(on) {

@@ -2,7 +2,7 @@
 - a type the M2 editor offers, the line M2 and a track of data/osm_m2.txt;
 - the way it faces (dir 1 or -1, heading) and, for a semaforo or a manovra, galleria / superficie and legale / illegale
   with the vela that goes with it (legale tonda, illegale quadra); a semaforo also the lettera P, and in superficie
-  1 or 2 vele;
+  1 or 2 vele; the indicatore di direzione (dirind, at a junction: right or left, never straight) true or absent;
 - a name, when it has one, in the M2 form: galleria S + 3 digits + a / b, superficie POSTO + number + a / b, a for a
   legale signal and b for an illegale one.
 Also: no M2 signal or mark in data/rules_m3.json (the M3's file). Warnings (not failures): a semaforo without a name,
@@ -30,6 +30,7 @@ for k, sg in enumerate(R.get('signals', [])):
         if sg.get('p') not in ('luminosa', 'fissa', 'nessuna'): bad.append(who + ': lettera P missing')
         if sg.get('env') == 'superficie' and sg.get('vele') not in (1, 2): bad.append(who + ': vele missing')
         if not sg.get('name'): warn.append(who + ': no name yet')
+        if 'dirind' in sg and sg['dirind'] is not True: bad.append(who + ': indicatore di direzione should be true or absent')
     nm = sg.get('name') or ''
     if nm:
         form = r'^S\d{3}[ab]$' if sg.get('env') == 'galleria' else r'^POSTO \d+[ab]$' if sg.get('env') == 'superficie' else r'.'
