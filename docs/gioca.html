@@ -5448,6 +5448,8 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     for (const K of ['C', 'S']) {
       const here = pool[K].filter(ok), bad = pool[K].filter(i => !ok(i));
       T.filter(t => t.tab && t.kind === K).sort((a, b) => a.dep - b.dep).forEach(t => { const i = here.shift(); if (i) t.unit = i; });
+      // (the weekend reserve at Comasina, B-016: the train left over there stays, in its tail)
+      T.filter(t => !t.tab && t.kind === K).forEach(t => { const i = here.shift(); if (i) t.unit = i; });
       [...here, ...bad].forEach(i => pool.D.push(Object.assign({}, i, { kind: 'D', place: null, moved: K })));
     }
     // the depot: the tabelle in the order of their first departure, the new trains admitted to service first
@@ -5457,7 +5459,9 @@ window.MTL_PACKS = {"M3": ["", "6", "7"], "M2": ["", "6", "7"]};
     // the others stand in the depot (the timelines without passenger runs; a solo one keeps its own train if it can)
     const rest = pool.D.filter(i => !T.some(t => t.unit === i)), others = T.filter(t => !t.tab);
     others.forEach(t => { const d = (t.tr.duties0 || t.tr.duties || []).find(x => x[2] >= 0), own = d && rest.find(i => U(i) === d[2]); if (own) { t.unit = own; rest.splice(rest.indexOf(own), 1); } });
-    others.filter(t => !t.unit).forEach(t => { const i = rest.shift(); if (i) t.unit = i; });
+    others.filter(t => !t.unit).forEach(t => { const i = rest.shift(); if (!i) return; t.unit = i;
+      // (none there: the DCT sends one empty from the depot to Comasina after the closing of the line)
+      if (t.kind !== 'D') msgs.push(tx('dct.notte.verso_capolinea', { treno: i.units, capolinea: t.kind === 'C' ? 'Comasina' : 'San Donato' })); });
     T.forEach(t => { if (t.unit && t.unit.moved && (!t.tab || t.kind === 'D')) msgs.push(tx('dct.notte.verso_deposito', { treno: t.unit.units, capolinea: t.unit.moved === 'C' ? 'Comasina' : 'San Donato' })); });
     APPLIED.clear();
     T.forEach(t => {
