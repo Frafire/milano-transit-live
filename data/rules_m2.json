@@ -829,8 +829,8 @@
    ],
    "offset_m": 0.3,
    "side": "right",
-   "heading": 215,
-   "dir": 1,
+   "heading": 35,
+   "dir": -1,
    "type": "main",
    "name": "B31b",
    "env": "superficie",
@@ -838,7 +838,8 @@
    "p": "nessuna",
    "legal": false,
    "vela": "quadra",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026",
+   "dir_from": "Giovanni 5/11/2026: rivolto dall'altra parte, sul binario di servizio verso l'incrocio"
   },
   {
    "line": "M2",
