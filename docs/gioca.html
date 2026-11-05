@@ -1244,6 +1244,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <div class="row"><button class="skvele" data-v="1" aria-pressed="false">1 vela</button><button class="skvele" data-v="2" aria-pressed="true">2 vele</button></div></div>
       <div id="skPRow"><span class="label">Lettera P (dalla stessa parte del segnale)</span>
       <div class="row"><button class="skp" data-v="luminosa" aria-pressed="true">Luminosa</button><button class="skp" data-v="fissa" aria-pressed="false">Fissa</button><button class="skp" data-v="nessuna" aria-pressed="false">Nessuna</button></div></div>
+      <div id="skKmhRow" hidden><span class="label">Velocità mostrata (km/h)</span>
+      <div class="row"><input type="text" id="skKmh" inputmode="numeric" placeholder="es. 45" style="flex:1"></div></div>
       <div id="skDirRow"><span class="label">Indicatore di direzione (bivio: destra, sinistra o dritto)</span>
       <div class="row"><button class="skdirind" data-v="0" aria-pressed="true">Nessuno</button><button class="skdirind" data-v="1" aria-pressed="false">Presente</button></div></div>
       <div id="skLegalRow"><span class="label">Legale o illegale</span>
@@ -7197,7 +7199,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // Superficie: one or two velas on a striped pole, round legale (on the right), square illegale (on the left).
   // P: a fixed plate or a digital screen, on the same side as the signal. Names: galleria S + 3 digits + a (legale) or
   // b (illegale); superficie POSTO + number + a or b, so they never clash with the M3's #A numbers.
-  const SIGKIT = { M2: { types: [['main', 'Semaforo'], ['shunt', 'Manovra (basso: rosso, rosso + giallo)'], ['stop', 'Fermata'],
+  const SIGKIT = { M2: { types: [['main', 'Semaforo'], ['shunt', 'Manovra (basso: rosso, rosso + giallo)'], ['speedind', 'Indicatore di velocità (schermo a pixel)'], ['stop', 'Fermata'],
     ['nose', 'Bandiera: arresto del muso'], ['nose2', 'Bandiera 2: secondo treno sullo stesso binario'], ['cut', 'Taglio: nessun treno passa su questo pezzo']] } };
   const KLAMP = { R: ['#d60012', '#ff3c4e'], Y: ['#e8a800', '#ffe066'], V: ['#00a14b', '#6dffa8'] }, KOFF = '#3a3a3a';
   function kitCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); return [c, x, (i, j, col) => { x.fillStyle = col; x.fillRect(i, j, 1, 1); }]; }
@@ -7250,9 +7252,20 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     for (let j = 13; j < 16; j++) { px(3, j, '#4f5559'); px(4, j, '#6c7378'); px(5, j, '#4f5559'); }
     for (let i = 2; i < 7; i++) px(i, 16, '#3c4144');
     return c; }
+  // the speed indicator (Giovanni's video of 5 Nov 2026, outside before Famagosta): a black pixel screen on its own, no
+  // signal, showing the top speed of the stretch (45 there; it may depend on the route). Digits 3 x 5 pixels
+  const KDIG = { 0: ['111', '101', '101', '101', '111'], 1: ['010', '110', '010', '010', '111'], 2: ['111', '001', '111', '100', '111'], 3: ['111', '001', '111', '001', '111'],
+    4: ['101', '101', '111', '001', '001'], 5: ['111', '100', '111', '001', '111'], 6: ['111', '100', '111', '101', '111'], 7: ['111', '001', '010', '010', '010'],
+    8: ['111', '101', '111', '101', '111'], 9: ['111', '101', '111', '001', '111'] };
+  function kitSpeedInd(kmh) { const t = String(kmh == null ? '' : kmh).replace(/\D/g, '').slice(0, 3), W = Math.max(11, t.length * 4 + 3), [c, x, px] = kitCanvas(W, 13);
+    for (let j = 0; j < 9; j++) for (let i = 0; i < W; i++) { const e = j === 0 || j === 8 || i === 0 || i === W - 1; px(i, j, e ? '#5a6064' : '#050505'); }
+    const x0 = Math.floor((W - (t.length * 4 - 1)) / 2);
+    [...t].forEach((d, n) => KDIG[d].forEach((row, r) => [...row].forEach((ch, i) => { if (ch === '1') px(x0 + n * 4 + i, 2 + r, '#ffffff'); })));
+    for (let j = 9; j < 13; j++) { px(Math.floor(W / 2) - 1, j, '#6c7378'); px(Math.floor(W / 2), j, '#9aa1a6'); }
+    return c; }
   const KITURL = {};
-  const kitUrl = sg => { const k = [sg.type, sg.env, sg.vele, sg.p, sg.legal, sg.dirind].join('|');
-    return KITURL[k] || (KITURL[k] = (sg.type === 'shunt' ? kitShunt() : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa', dirOn: 'R' })).toDataURL()); };
+  const kitUrl = sg => { const k = [sg.type, sg.env, sg.vele, sg.p, sg.legal, sg.dirind, sg.kmh].join('|');
+    return KITURL[k] || (KITURL[k] = (sg.type === 'shunt' ? kitShunt() : sg.type === 'speedind' ? kitSpeedInd(sg.kmh) : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa', dirOn: 'R' })).toDataURL()); };
   // on the map: the signal as it looks (red), a small arrow for the way it faces, the name
   const kitIcon = (sg, current) => L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="kitsig${current ? ' cur' : ''}"><img alt="" src="${kitUrl(sg)}"><svg width="12" height="12" viewBox="0 0 14 14" style="transform:rotate(${sg.heading}deg)"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="#ffcf3f" stroke="#000" stroke-width="1"/></svg>${sg.name ? `<span>${sg.name}</span>` : ''}</div>` });
   // the signals already in the line's file (data/rules_<line>.json, packed with the fleet): shown with the ones of this browser
@@ -7302,7 +7315,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (mode === 'signal' && pickSig) {
       if (pickSig.click && pickSig.off > 1) L.polyline([pickSig.click, pickSig.ll], { color: '#fff', weight: 1, dashArray: '2 3', interactive: false }).addTo(currentLayer);
       const ktk = kitTrack(), kh = (pickSig.brg + (sigDir < 0 ? 180 : 0)) % 360, kt = document.getElementById('sigType').value;
-      L.marker(pickSig.click || pickSig.ll, { interactive: false, icon: ktk && (kt === 'main' || kt === 'shunt') ? kitIcon({ ...kitSignal(ktk), heading: kh }, true) : sigIcon(kh, kt, document.getElementById('sigName').value.trim()) }).addTo(currentLayer);
+      L.marker(pickSig.click || pickSig.ll, { interactive: false, icon: ktk && (kt === 'main' || kt === 'shunt' || kt === 'speedind') ? kitIcon({ ...kitSignal(ktk), heading: kh }, true) : sigIcon(kh, kt, document.getElementById('sigName').value.trim()) }).addTo(currentLayer);
     }
     if (mode === 'signal') syncKit();
     ptCount.textContent = pts.length + (pts.length === 1 ? ' point' : ' points');
@@ -7319,7 +7332,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       if (tk) { L.polyline(tk.pts, { color: '#ff4fd8', weight: 4, interactive: false }).addTo(savedLayer); wayArrows(tk, m.dir, '#ff4fd8', savedLayer); }
       add(m.role + ' · ' + m.line + (m.note ? ' · ' + m.note : ''), () => { ED.marks.splice(i, 1); persist(); redrawSaved(); });
     });
-    const kitDraw = sg => SIGKIT[sg.line] && (sg.type === 'main' || sg.type === 'shunt');
+    const kitDraw = sg => SIGKIT[sg.line] && (sg.type === 'main' || sg.type === 'shunt' || sg.type === 'speedind');
     FILE_SIGNALS.forEach(sg => { if (ED.signals.some(x => Math.abs(x.lat - sg.lat) < 2e-6 && Math.abs(x.lon - sg.lon) < 2e-6)) return;
       L.marker([sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer); });
     if (FILE_SIGNALS.length) { add(`Nel file della linea: ${FILE_SIGNALS.length} segnali (per cambiarli: piazzali di nuovo e mandami l'export)`, () => {}); trkList.lastChild.lastChild.remove(); }
@@ -7555,6 +7568,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   function kitSignal(tk) {        // what the signal being placed carries, as it is saved
     const type = sigTypeSel.value, main = type === 'main';
     if (type === 'shunt') return { type, vela: 'tonda', name: kitName() };       // a low shunting signal: only round, named S + number
+    if (type === 'speedind') { const v = document.getElementById('skKmh').value.trim(); return { type, kmh: /^\d+$/.test(v) ? +v : null }; }   // null: not known yet
     return { type, env: KS.env, vele: KS.env === 'superficie' && main ? KS.vele : undefined, p: main ? KS.p : undefined,
       dirind: main && KS.dirind ? true : undefined, legal: KS.legal, vela: KS.legal ? 'tonda' : 'quadra', name: main || type === 'shunt' ? kitName() : '' };
   }
@@ -7568,8 +7582,10 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const main = sigTypeSel.value === 'main';
     kitPress('.skenv', KS.env); kitPress('.skvele', KS.vele); kitPress('.skp', KS.p); kitPress('.sklegal', KS.legal ? 1 : 0); kitPress('.skdirind', KS.dirind ? 1 : 0);
     document.getElementById('skDirRow').hidden = !main;
-    const shunt = sigTypeSel.value === 'shunt';
-    ['skEnvRow', 'skPRow', 'skLegalRow'].forEach(id => document.getElementById(id).hidden = shunt);
+    const shunt = sigTypeSel.value === 'shunt', spd = sigTypeSel.value === 'speedind';
+    ['skEnvRow', 'skPRow', 'skLegalRow'].forEach(id => document.getElementById(id).hidden = shunt || spd);
+    document.getElementById('skKmhRow').hidden = !spd;
+    document.getElementById('skNum').parentNode.hidden = spd;
     document.getElementById('skVeleRow').hidden = KS.env !== 'superficie' || !main;
     document.querySelectorAll('.skp').forEach(b => b.disabled = !main);
     document.getElementById('skPrefix').textContent = shunt ? 'S' : KS.env === 'superficie' ? 'POSTO' : 'S';
@@ -7577,16 +7593,17 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     // warnings: trains run on the right. A legale signal faces the way the track is run and stands on its right
     const warn = [];
     if (!tk) warn.push('Clicca dove sta il segnale.');
+    else if (spd) warn.push('Indicatore di velocità: schermo a pixel da solo, senza segnale. Se la velocità cambia con l\'itinerario, scrivi quella che vedi e dimmelo.');
     else if (shunt) warn.push('Segnale basso di manovra: rosso, o rosso + giallo per la manovra. Nome S + numero (es. S 5).');
     else if (tk.d === 1 || tk.d === -1) { if (KS.legal !== (sigDir === tk.d)) warn.push(KS.legal ? 'Attenzione: questo binario si percorre nell\'altro verso, il segnale sarebbe illegale.' : 'Attenzione: il segnale guarda i treni nel verso normale del binario, di solito è legale.'); }
     else warn.push('Binario senza verso fisso (' + (tk.c === 'main' ? 'linea' : tk.c) + '): scegli tu legale o illegale.');
-    if (tk && !shunt && pickSig.off > 1) { const right = (pickSig.side === 'right') === (sigDir === 1); if (right !== KS.legal) warn.push(KS.legal ? 'Attenzione: il segnale legale di solito sta a destra del binario, tu l\'hai messo a sinistra.' : 'Attenzione: il segnale illegale di solito sta a sinistra del binario, tu l\'hai messo a destra.'); }
+    if (tk && !shunt && !spd && pickSig.off > 1) { const right = (pickSig.side === 'right') === (sigDir === 1); if (right !== KS.legal) warn.push(KS.legal ? 'Attenzione: il segnale legale di solito sta a destra del binario, tu l\'hai messo a sinistra.' : 'Attenzione: il segnale illegale di solito sta a sinistra del binario, tu l\'hai messo a destra.'); }
     const num = document.getElementById('skNum').value.trim();
     if (main && KS.env === 'galleria' && num && !/^\d{3}$/.test(num.replace(/^S/i, '').replace(/[ab]$/i, ''))) warn.push('In galleria il nome è S + 3 cifre (es. S123a).');
-    document.getElementById('skInfo').textContent = (shunt ? '' : KS.legal ? 'Legale: vela tonda, nome con a. ' : 'Illegale: vela quadra, nome con b. ') + (kitName() ? 'Nome: ' + kitName() + '. ' : '') + warn.join(' ');
-    const pv = document.getElementById('skPreview'), spr = sigTypeSel.value === 'shunt' ? kitShunt() : kitSprite({ ...kitSignal(tk), lit: ['R'], pOn: KS.p === 'luminosa', dirOn: 'R' });
+    document.getElementById('skInfo').textContent = (shunt || spd ? '' : KS.legal ? 'Legale: vela tonda, nome con a. ' : 'Illegale: vela quadra, nome con b. ') + (kitName() ? 'Nome: ' + kitName() + '. ' : '') + warn.join(' ');
+    const pv = document.getElementById('skPreview'), spr = sigTypeSel.value === 'shunt' ? kitShunt() : spd ? kitSpeedInd(document.getElementById('skKmh').value || '45') : kitSprite({ ...kitSignal(tk), lit: ['R'], pOn: KS.p === 'luminosa', dirOn: 'R' });
     pv.width = spr.width; pv.height = spr.height; pv.style.width = spr.width * 3 + 'px'; pv.style.height = spr.height * 3 + 'px'; pv.getContext('2d').drawImage(spr, 0, 0);
-    pv.hidden = !(main || sigTypeSel.value === 'shunt');
+    pv.hidden = !(main || shunt || spd);
   }
   const kitSet = (k, v) => () => { KS[k] = v; if (k === 'legal') KS.legalAuto = false; if (k === 'env') KS.envAuto = false; redrawCurrent(); };
   document.querySelectorAll('.skenv').forEach(b => b.onclick = kitSet('env', b.dataset.v));
@@ -7595,6 +7612,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   document.querySelectorAll('.sklegal').forEach(b => b.onclick = kitSet('legal', b.dataset.v === '1'));
   document.querySelectorAll('.skdirind').forEach(b => b.onclick = kitSet('dirind', b.dataset.v === '1'));
   document.getElementById('skNum').oninput = redrawCurrent;
+  document.getElementById('skKmh').oninput = redrawCurrent;
 
   function setDrawing(on) {
     drawing = on; drawer.hidden = !on; drawBtn.setAttribute('aria-pressed', on);

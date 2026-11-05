@@ -4,7 +4,8 @@
   with the vela that goes with it (legale tonda, illegale quadra); a semaforo also the lettera P, and in superficie
   1 or 2 vele; the indicatore di direzione (dirind, at a junction: right, left or straight) true or absent;
 - a name, when it has one, in the M2 form: galleria S + 3 digits + a / b, superficie POSTO + number + a / b, a for a
-  legale signal and b for an illegale one; a low shunting signal (manovra, only round) S + number (S 5).
+  legale signal and b for an illegale one; a low shunting signal (manovra, only round) S + number (S 5);
+- an indicatore di velocità (speedind: a pixel screen on its own) the speed it shows, km/h, or null while not known.
 Also: no M2 signal or mark in data/rules_m3.json (the M3's file). Warnings (not failures): a semaforo without a name,
 a legale signal on the left of its track or an illegale one on the right, a legale one facing against the track.
 Usage: python3 tests/m2_signals_check.py [repo root]. Exit code 1 if one fails."""
@@ -15,7 +16,7 @@ import osmparse
 R = json.load(open(os.path.join(ROOT, 'data', 'rules_m2.json')))
 R3 = json.load(open(os.path.join(ROOT, 'data', 'rules_m3.json')))
 W = osmparse.load(os.path.join(ROOT, 'data', 'osm_m2.txt'))
-TYPES = {'main', 'shunt', 'stop', 'nose', 'nose2', 'cut'}
+TYPES = {'main', 'shunt', 'speedind', 'stop', 'nose', 'nose2', 'cut'}
 bad, warn = [], []
 for k, sg in enumerate(R.get('signals', [])):
     who = '%s #%d (%s, %.6f %.6f)' % (sg.get('name') or 'senza nome', k, sg.get('type'), sg.get('lat', 0), sg.get('lon', 0))
@@ -31,6 +32,9 @@ for k, sg in enumerate(R.get('signals', [])):
         if sg.get('env') == 'superficie' and sg.get('vele') not in (1, 2): bad.append(who + ': vele missing')
         if not sg.get('name'): warn.append(who + ': no name yet')
         if 'dirind' in sg and sg['dirind'] is not True: bad.append(who + ': indicatore di direzione should be true or absent')
+    if sg.get('type') == 'speedind':
+        if sg.get('kmh') is not None and not (isinstance(sg['kmh'], int) and 0 < sg['kmh'] <= 120): bad.append(who + ': speed shown not a number of km/h')
+        if sg.get('kmh') is None: warn.append(who + ': speed shown not given yet')
     nm = sg.get('name') or ''
     if nm:
         form = r'^S \d+$' if sg.get('type') == 'shunt' else r'^S\d{3}[ab]$' if sg.get('env') == 'galleria' else r'^POSTO \d+[ab]$' if sg.get('env') == 'superficie' else r'.'
