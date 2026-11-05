@@ -1,0 +1,7 @@
+{
+  "_nota": "Correzioni di Giovanni alle banchine M2 (applicate da tools/build_trips.py con PLATFORM_EDITS). unisci: banchine OSM (id) che sono una sola, unite nel loro contorno. allunga: per una stazione con le banchine disegnate dalla build (110 m), il punto [lat, lon] fino a cui arrivano.",
+  "unisci": [[971662712, 971662713]],
+  "unisci_note": {"971662712": "Famagosta: in OSM due metà della stessa banchina a isola (Giovanni 5/11/2026)"},
+  "allunga": {"ASSAGO MILANOFIORI FORUM": [45.402292, 9.145794]},
+  "allunga_note": {"ASSAGO MILANOFIORI FORUM": "verso nord fino all'altezza dei segnali (Giovanni 5/11/2026)"}
+}

@@ -23,6 +23,8 @@ if os.path.exists('m2.json'):
     check(len(drawn) == len(F['tracks']), 'M2 %s: %d tracks drawn for the editor, each once' % (T['day'], len(F['tracks'])))
     if os.path.exists('osm_m2_platforms.json'):
         O = json.load(open('osm_m2_platforms.json'))['platforms']
+        E = json.load(open('banchine_m2.json')) if os.path.exists('banchine_m2.json') else {}
+        merged = sum(len(g) - 1 for g in E.get('unisci', []))
         got = sum(1 for p in F['platforms'] if 'osm' in p)
-        check(got == len(O), 'M2 %s: the platforms from OpenStreetMap on the map (%d of %d)' % (T['day'], got, len(O)))
+        check(got == len(O) - merged, 'M2 %s: the platforms from OpenStreetMap on the map (%d of %d, %d merged by Giovanni)' % (T['day'], got, len(O), merged))
 sys.exit(1 if bad else 0)

@@ -131,11 +131,31 @@ platforms = []
 # the platforms from OpenStreetMap where there are (PLATFORMS: data/osm_<line>_platforms.json, tools/osm_platforms.py):
 # those stations get the real ones, the others the 110 m platforms drawn here
 OSM_PLAT = json.load(open(os.environ['PLATFORMS'])).get('platforms', []) if os.environ.get('PLATFORMS') else []
+# Giovanni's corrections (PLATFORM_EDITS, the M2: data/banchine_m2.json): platforms that are one (merged into their outline)
+# and stations whose drawn platforms reach a given point
+PLAT_EDITS = json.load(open(os.environ['PLATFORM_EDITS'])) if os.environ.get('PLATFORM_EDITS') else {}
+def _hull(P):
+    P = sorted(set(P))
+    if len(P) < 3: return P
+    cr = lambda o, a, b: (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+    lo, up = [], []
+    for p in P:
+        while len(lo) >= 2 and cr(lo[-2], lo[-1], p) <= 0: lo.pop()
+        lo.append(p)
+    for p in reversed(P):
+        while len(up) >= 2 and cr(up[-2], up[-1], p) <= 0: up.pop()
+        up.append(p)
+    return lo[:-1] + up[:-1]
+for grp in PLAT_EDITS.get('unisci', []):
+    ms = [op for op in OSM_PLAT if op['osm'] in grp]
+    if len(ms) < 2: continue
+    pts = [ll(*q) for q in _hull([xy(a, b) for op in ms for a, b in op['p']])]
+    OSM_PLAT = [op for op in OSM_PLAT if op['osm'] not in grp] + [dict(ms[0], p=pts + [pts[0]], merged=grp)]
 for op in OSM_PLAT:
     flat, pa, pb = [], 0, 0
     for a_, b_ in op['p']:
         A, B = round(a_ * 1e6), round(b_ * 1e6); flat += [A - pa, B - pb]; pa, pb = A, B
-    platforms.append({'n': op['station'].title(), 'p': flat, 'osm': op['osm'], 'ref': op.get('ref', '')})
+    platforms.append({'n': op['station'].title(), 'p': flat, 'osm': op['osm'], 'ref': op.get('ref', ''), **({'merged': op['merged']} if op.get('merged') else {})})
 OSM_ST = {op['station'].upper() for op in OSM_PLAT}
 for name, sts in station_tracks.items():
     if name in OSM_ST: continue
@@ -155,8 +175,11 @@ for name, sts in station_tracks.items():
             return x, y, tx / L, ty / L
         side = -1 * d     # right of travel direction = outer side for right-hand running
         inner, outer = [], []
+        s0, s1 = along - PLAT_LEN / 2, along + PLAT_LEN / 2
+        if name in PLAT_EDITS.get('allunga', {}):          # longer, up to a point (the M2: Assago Forum, to its signals)
+            _, a_to, _, _ = closest_on_edge(ei, *xy(*PLAT_EDITS['allunga'][name])); s0, s1 = min(s0, a_to), max(s1, a_to)
         for k in range(12):
-            s = along - PLAT_LEN / 2 + PLAT_LEN * k / 11
+            s = s0 + (s1 - s0) * k / 11
             x, y, tx, ty = at(s); nx, ny = ty * side, -tx * side
             inner.append(ll(x + nx * GAP, y + ny * GAP)); outer.append(ll(x + nx * (GAP + PLAT_W), y + ny * (GAP + PLAT_W)))
         poly = inner + outer[::-1]

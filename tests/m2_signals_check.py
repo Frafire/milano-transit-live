@@ -38,7 +38,8 @@ for k, sg in enumerate(R.get('signals', [])):
         if sg.get('kmh') is None: warn.append(who + ': speed shown not given yet')
     nm = sg.get('name') or ''
     if nm:
-        form = r'^S \d+$' if sg.get('type') == 'shunt' else r'^(S\d+|POSTO \d+)[ab]$'     # at Assago the surface signals are S49a, S57 too
+        form = r'^S \d+$' if sg.get('type') == 'shunt' else r'^(S\d+|POSTO \d+|B\d+)[ab]$'     # at Assago the surface signals are S49a, S57 too; B: provisional
+        if re.match(r'^B\d+[ab]$', nm): warn.append(who + ': provisional name (B), to be changed')
         if not re.match(form, nm): bad.append(who + ': name not in the M2 form (S123a or POSTO 12a, b for illegale; manovra S 5)')
         elif sg.get('type') == 'main' and sg.get('legal') is not None and nm[-1] != ('a' if sg['legal'] else 'b'): bad.append(who + ': name ends with %s but the signal is %s' % (nm[-1], 'legale' if sg['legal'] else 'illegale'))
     if sg.get('type') == 'main' and sg.get('offset_m', 0) > 1 and sg.get('side') in ('left', 'right') and isinstance(sg.get('legal'), bool):

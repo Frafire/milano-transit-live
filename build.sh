@@ -60,11 +60,11 @@ echo "== M2: signals placed in the editor (data/rules_m2.json)"
 python3 "$ROOT/tests/m2_signals_check.py" "$ROOT"
 for pair in "1:$DAY" "6:$SAT_DAY" "7:$SUN_DAY"; do
   n="${pair%%:*}"; d="${pair##*:}"; BD="$ROOT/build_m2/$n"; mkdir -p "$BD"
-  cp "$ROOT/data/operations_m2.json" "$ROOT/data/osm_m2.txt" "$ROOT/data/osm_m2_platforms.json" "$BD"/
+  cp "$ROOT/data/operations_m2.json" "$ROOT/data/osm_m2.txt" "$ROOT/data/osm_m2_platforms.json" "$ROOT/data/banchine_m2.json" "$BD"/
   echo "== M2 ($n): timetable for service day $d, turni, runs on the real tracks"
   # the runs on the tracks: the M1's builder (tools/build_trips.py); PICK_DOT 0.3: see the note there (Garibaldi)
   (cd "$BD" && python3 "$ROOT/tools/build_data.py" "$GTFS_M2" "$d" data.json 2> bd.log && gzip -9 -kf data.json && \
-    python3 "$ROOT/tools/turni_m2.py" && LINE=M2 TRACKS=osm_m2.txt PICK_DOT=0.3 PLATFORMS=osm_m2_platforms.json TRACK_DIRS=1 python3 "$ROOT/tools/build_trips.py" > trips.log && \
+    python3 "$ROOT/tools/turni_m2.py" && LINE=M2 TRACKS=osm_m2.txt PICK_DOT=0.3 PLATFORMS=osm_m2_platforms.json PLATFORM_EDITS=banchine_m2.json TRACK_DIRS=1 python3 "$ROOT/tools/build_trips.py" > trips.log && \
     grep -h "^patterns\|written" trips.log && python3 "$ROOT/tests/m2_check.py")
 done
 cd "$B"

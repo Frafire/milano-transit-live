@@ -418,6 +418,11 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div class="label">Allarmi DCT</div>
     <ul class="m3list" id="pcAlarms"></ul>
   </section>
+  <section class="m3panel" data-cap="segnali_kit" aria-label="Segnali della linea">
+    <div class="label">Segnali</div>
+    <div class="row"><button id="kitSigBtn" aria-pressed="false">Mostra i segnali</button></div>
+    <p class="note" id="kitSigNote">I segnali piazzati nell'editor, quelli nel file della linea e quelli di questo browser. Per ora tutti a rosso: gli aspetti arriveranno con il motore della linea.</p>
+  </section>
   <section class="m3panel" data-cap="bivi" aria-label="Bivi">
     <div class="label">Bivi</div>
     <div class="row" id="biviRow"></div>
@@ -2639,6 +2644,20 @@ window.MTL_CAPS = __CAPS__;
   const kitIcon = (sg, current) => L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="kitsig${current ? ' cur' : ''}"><img alt="" src="${kitUrl(sg).u}" style="width:${kitUrl(sg).w * 2}px;height:${kitUrl(sg).h * 2}px"><svg width="18" height="18" viewBox="0 0 14 14" style="transform:rotate(${sg.heading}deg)"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="${sg.legal === false ? '#ff8a3d' : '#ffcf3f'}" stroke="#000" stroke-width="1"/></svg>${sg.name ? `<span>${sg.name}</span>` : ''}</div>` });
   // the signals already in the line's file (data/rules_<line>.json, packed with the fleet): shown with the ones of this browser
   const FILE_SIGNALS = (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => ((F.edits || {}).signals || []).map(sg => ({ ...sg, line: sg.line || F.line })));
+  // the button Mostra i segnali (capability segnali_kit): the line's placed signals on the map, out of the editor
+  const kitSigLayer = L.layerGroup(); let kitSigOn = false;
+  try { kitSigOn = localStorage.getItem('mtl-kitsig-' + LINE) === '1'; } catch (e) {}
+  function drawKitSigs() {
+    kitSigLayer.clearLayers(); const btn = document.getElementById('kitSigBtn'); if (btn) btn.setAttribute('aria-pressed', String(kitSigOn));
+    if (!kitSigOn) { map.removeLayer(kitSigLayer); return; }
+    let local = []; try { local = (JSON.parse(localStorage.getItem('mtl-edit') || 'null') || {}).signals || []; } catch (e) {}
+    const all = FILE_SIGNALS.filter(sg => sg.line === LINE && !local.some(x => Math.abs(x.lat - sg.lat) < 2e-6 && Math.abs(x.lon - sg.lon) < 2e-6 && x.dir === sg.dir)).concat(local.filter(sg => sg.line === LINE));
+    all.filter(sg => SIGKIT[sg.line] && (sg.type === 'main' || sg.type === 'shunt' || sg.type === 'speedind')).forEach(sg => L.marker([sg.lat, sg.lon], { interactive: false, keyboard: false, icon: kitIcon(sg) }).addTo(kitSigLayer));
+    kitSigLayer.addTo(map);
+    const n = document.getElementById('kitSigNote'); if (n) n.textContent = `${kitSigLayer.getLayers().length} segnali sulla mappa. Per ora tutti a rosso: gli aspetti arriveranno con il motore della linea.`;
+  }
+  { const btn = document.getElementById('kitSigBtn'); if (btn) btn.onclick = () => { kitSigOn = !kitSigOn; try { localStorage.setItem('mtl-kitsig-' + LINE, kitSigOn ? '1' : '0'); } catch (e) {} drawKitSigs(); }; }
+  drawKitSigs();
 
   // nearest track to a click, with the point on it and the track's own direction there
   function snap(latlng, tol = 18) {
@@ -2936,9 +2955,10 @@ window.MTL_CAPS = __CAPS__;
   // the name: the number, with S or POSTO from galleria / superficie, or the prefix typed (at Assago the surface signals
   // are called S49a, S57: Giovanni 5 Nov 2026), then a (legale) or b (illegale); a low shunting signal S + number
   function kitName() { const shunt = sigTypeSel.value === 'shunt', raw = document.getElementById('skNum').value.trim();
-    const m = raw.match(/^(S|POSTO)?\s*(\d+)\s*[ab]?$/i); if (!m) return '';
+    const m = raw.match(/^(S|POSTO|B)?\s*(\d+)\s*[ab]?$/i); if (!m) return '';     // B: a provisional name, to be changed
     if (shunt) return 'S ' + m[2];
     const pre = m[1] ? m[1].toUpperCase() : KS.env === 'superficie' ? 'POSTO' : 'S';
+    if (pre === 'B') return 'B' + m[2] + (KS.legal ? 'a' : 'b');
     return (pre === 'POSTO' ? 'POSTO ' : 'S') + m[2] + (KS.legal ? 'a' : 'b'); }
   function kitSignal(tk) {        // what the signal being placed carries, as it is saved
     const type = sigTypeSel.value, main = type === 'main';

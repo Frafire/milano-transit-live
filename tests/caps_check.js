@@ -20,7 +20,7 @@ const CAPS = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../data/capacit
     console.log(`     ${line} shows: ${shown.join(' | ') || '-'}`);
     console.log(`     ${line} hides: ${hidden.join(' | ') || '-'}`);
     check(R.every(r => r.shown === want(r)), `${line}: every panel shown or hidden as data/capacita.json says (${shown.length} shown, ${hidden.length} hidden)`);
-    if (line === 'M3') check(R.filter(r => !r.shown).every(r => /bivi|aspetti_codici/.test(r.cap)), 'M3: only the new M2 panels hidden, all of its own shown (the M3 page as before)');
+    if (line === 'M3') check(R.filter(r => !r.shown).every(r => /bivi|aspetti_codici|segnali_kit/.test(r.cap)), 'M3: only the new M2 panels hidden, all of its own shown (the M3 page as before)');
     if (line === 'M2') {
       const t = await p.evaluate(() => ({ rows: document.querySelectorAll('#aspTab tr').length, bivi: [...document.querySelectorAll('#biviRow button')].map(x => x.textContent) }));
       check(t.rows > 1, `M2: Aspetti e codici from Regole_M2.xlsx (${t.rows - 1} aspects)`);

@@ -3,90 +3,6 @@
  "signals": [
   {
    "line": "M2",
-   "w": 382,
-   "lat": 45.408007,
-   "lon": 9.149267,
-   "on_track": [
-    45.408018,
-    9.14923
-   ],
-   "offset_m": 3.1,
-   "side": "right",
-   "heading": 22,
-   "dir": 1,
-   "type": "main",
-   "name": "POSTO 126a",
-   "env": "superficie",
-   "vele": 1,
-   "p": "fissa",
-   "legal": true,
-   "vela": "tonda"
-  },
-  {
-   "line": "M2",
-   "w": 91,
-   "lat": 45.404153,
-   "lon": 9.147033,
-   "on_track": [
-    45.404168,
-    9.146979
-   ],
-   "offset_m": 4.5,
-   "side": "right",
-   "heading": 22,
-   "dir": 1,
-   "type": "main",
-   "name": "POSTO 800011a",
-   "env": "superficie",
-   "vele": 2,
-   "p": "fissa",
-   "legal": true,
-   "vela": "tonda"
-  },
-  {
-   "line": "M2",
-   "w": 90,
-   "lat": 45.403802,
-   "lon": 9.146655,
-   "on_track": [
-    45.403787,
-    9.146707
-   ],
-   "offset_m": 4.4,
-   "side": "right",
-   "heading": 202,
-   "dir": 1,
-   "type": "main",
-   "name": "POSTO 8001a",
-   "env": "superficie",
-   "vele": 2,
-   "p": "luminosa",
-   "legal": true,
-   "vela": "tonda"
-  },
-  {
-   "line": "M2",
-   "w": 377,
-   "lat": 45.40225,
-   "lon": 9.145922,
-   "on_track": [
-    45.402266,
-    9.145868
-   ],
-   "offset_m": 4.6,
-   "side": "right",
-   "heading": 22,
-   "dir": 1,
-   "type": "main",
-   "name": "POSTO 800a",
-   "env": "superficie",
-   "vele": 1,
-   "p": "luminosa",
-   "legal": true,
-   "vela": "tonda"
-  },
-  {
-   "line": "M2",
    "w": 113,
    "lat": 45.400185,
    "lon": 9.144742,
@@ -138,28 +54,6 @@
   },
   {
    "line": "M2",
-   "w": 236,
-   "lat": 45.401311,
-   "lon": 9.145212,
-   "on_track": [
-    45.401299,
-    9.145252
-   ],
-   "offset_m": 3.5,
-   "side": "right",
-   "heading": 202,
-   "dir": 1,
-   "type": "main",
-   "name": "S49a",
-   "env": "superficie",
-   "vele": 1,
-   "p": "nessuna",
-   "legal": true,
-   "vela": "tonda",
-   "name_from": "Giovanni 5/11/2026: segnale a sud di Assago Forum, legale"
-  },
-  {
-   "line": "M2",
    "w": 83,
    "lat": 45.401277,
    "lon": 9.145338,
@@ -182,6 +76,50 @@
   },
   {
    "line": "M2",
+   "w": 236,
+   "lat": 45.401311,
+   "lon": 9.145212,
+   "on_track": [
+    45.401299,
+    9.145252
+   ],
+   "offset_m": 3.5,
+   "side": "right",
+   "heading": 202,
+   "dir": 1,
+   "type": "main",
+   "name": "S49a",
+   "env": "superficie",
+   "vele": 1,
+   "p": "nessuna",
+   "legal": true,
+   "vela": "tonda",
+   "name_from": "Giovanni 5/11/2026: segnale a sud di Assago Forum, legale"
+  },
+  {
+   "line": "M2",
+   "w": 377,
+   "lat": 45.40225,
+   "lon": 9.145922,
+   "on_track": [
+    45.402266,
+    9.145868
+   ],
+   "offset_m": 4.6,
+   "side": "right",
+   "heading": 22,
+   "dir": 1,
+   "type": "main",
+   "name": "B01a",
+   "env": "superficie",
+   "vele": 1,
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026 (era POSTO 800a)"
+  },
+  {
+   "line": "M2",
    "w": 376,
    "lat": 45.402292,
    "lon": 9.145794,
@@ -194,12 +132,57 @@
    "heading": 22,
    "dir": -1,
    "type": "main",
-   "name": "",
+   "name": "B02b",
    "env": "superficie",
    "vele": 1,
    "p": "nessuna",
    "legal": false,
-   "vela": "quadra"
+   "vela": "quadra",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+  },
+  {
+   "line": "M2",
+   "w": 90,
+   "lat": 45.403802,
+   "lon": 9.146655,
+   "on_track": [
+    45.403787,
+    9.146707
+   ],
+   "offset_m": 4.4,
+   "side": "right",
+   "heading": 202,
+   "dir": 1,
+   "type": "main",
+   "name": "B03a",
+   "env": "superficie",
+   "vele": 2,
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026 (era POSTO 8001a)"
+  },
+  {
+   "line": "M2",
+   "w": 91,
+   "lat": 45.404153,
+   "lon": 9.147033,
+   "on_track": [
+    45.404168,
+    9.146979
+   ],
+   "offset_m": 4.5,
+   "side": "right",
+   "heading": 22,
+   "dir": 1,
+   "type": "main",
+   "name": "B04a",
+   "env": "superficie",
+   "vele": 2,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026 (era POSTO 800011a)"
   },
   {
    "line": "M2",
@@ -215,12 +198,13 @@
    "heading": 202,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B05a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -236,12 +220,13 @@
    "heading": 22,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B06a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -257,7 +242,29 @@
    "heading": 202,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B07a",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+  },
+  {
+   "line": "M2",
+   "w": 382,
+   "lat": 45.408007,
+   "lon": 9.149267,
+   "on_track": [
+    45.408018,
+    9.14923
+   ],
+   "offset_m": 3.1,
+   "side": "right",
+   "heading": 22,
+   "dir": 1,
+   "type": "main",
+   "name": "POSTO 126a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
@@ -278,12 +285,13 @@
    "heading": 202,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B08a",
    "env": "superficie",
    "vele": 1,
    "p": "luminosa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -299,12 +307,13 @@
    "heading": 23,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "S57a",
    "env": "superficie",
    "vele": 1,
    "p": "luminosa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "Giovanni 5/11/2026: partenza da Assago Nord verso Famagosta"
   },
   {
    "line": "M2",
@@ -320,12 +329,13 @@
    "heading": 202,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B09a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -341,12 +351,13 @@
    "heading": 22,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B10a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -362,12 +373,13 @@
    "heading": 22,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B11a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -383,12 +395,13 @@
    "heading": 246,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B12a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -404,12 +417,13 @@
    "heading": 77,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B13a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -425,12 +439,13 @@
    "heading": 248,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B14a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -446,12 +461,13 @@
    "heading": 57,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B15a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -467,12 +483,13 @@
    "heading": 213,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B16a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -488,12 +505,13 @@
    "heading": 20,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B17a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -509,12 +527,13 @@
    "heading": 176,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B18a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -530,12 +549,13 @@
    "heading": 355,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B19a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -551,12 +571,13 @@
    "heading": 175,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B20a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -572,12 +593,13 @@
    "heading": 356,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B21a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -593,12 +615,13 @@
    "heading": 192,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B22a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -614,13 +637,14 @@
    "heading": 14,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B23a",
    "env": "superficie",
    "vele": 2,
    "p": "luminosa",
    "dirind": true,
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -636,12 +660,13 @@
    "heading": 206,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B24a",
    "env": "superficie",
    "vele": 2,
    "p": "nessuna",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -657,12 +682,13 @@
    "heading": 200,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B25a",
    "env": "superficie",
    "vele": 1,
    "p": "luminosa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -678,12 +704,13 @@
    "heading": 20,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B26a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -699,12 +726,13 @@
    "heading": 203,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B27a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -720,12 +748,13 @@
    "heading": 27,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B28a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -741,12 +770,13 @@
    "heading": 42,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B29a",
    "env": "superficie",
    "vele": 1,
    "p": "luminosa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -762,12 +792,13 @@
    "heading": 223,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B30a",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -801,12 +832,13 @@
    "heading": 215,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B31b",
    "env": "superficie",
    "vele": 2,
    "p": "nessuna",
    "legal": false,
-   "vela": "quadra"
+   "vela": "quadra",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -822,11 +854,12 @@
    "heading": 11,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B32a",
    "env": "galleria",
    "p": "luminosa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -842,11 +875,12 @@
    "heading": 6,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B33a",
    "env": "galleria",
    "p": "luminosa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
    "line": "M2",
@@ -862,11 +896,12 @@
    "heading": 3,
    "dir": 1,
    "type": "main",
-   "name": "",
+   "name": "B34a",
    "env": "galleria",
    "p": "luminosa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   }
  ],
  "marks": [],
