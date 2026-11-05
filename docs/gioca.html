@@ -1238,16 +1238,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <option value="cut">Taglio: nessun treno passa su questo pezzo di binario (tra i due scambi)</option>
     </select>
     <div id="sigKit" hidden>
-      <span class="label">Galleria o superficie</span>
-      <div class="row"><button class="skenv" data-v="galleria" aria-pressed="true">Galleria</button><button class="skenv" data-v="superficie" aria-pressed="false">Superficie</button></div>
+      <div id="skEnvRow"><span class="label">Galleria o superficie</span>
+      <div class="row"><button class="skenv" data-v="galleria" aria-pressed="true">Galleria</button><button class="skenv" data-v="superficie" aria-pressed="false">Superficie</button></div></div>
       <div id="skVeleRow"><span class="label">Vele (superficie)</span>
       <div class="row"><button class="skvele" data-v="1" aria-pressed="false">1 vela</button><button class="skvele" data-v="2" aria-pressed="true">2 vele</button></div></div>
-      <span class="label">Lettera P (dalla stessa parte del segnale)</span>
-      <div class="row"><button class="skp" data-v="luminosa" aria-pressed="true">Luminosa</button><button class="skp" data-v="fissa" aria-pressed="false">Fissa</button><button class="skp" data-v="nessuna" aria-pressed="false">Nessuna</button></div>
+      <div id="skPRow"><span class="label">Lettera P (dalla stessa parte del segnale)</span>
+      <div class="row"><button class="skp" data-v="luminosa" aria-pressed="true">Luminosa</button><button class="skp" data-v="fissa" aria-pressed="false">Fissa</button><button class="skp" data-v="nessuna" aria-pressed="false">Nessuna</button></div></div>
       <div id="skDirRow"><span class="label">Indicatore di direzione (bivio)</span>
       <div class="row"><button class="skdirind" data-v="0" aria-pressed="true">Nessuno</button><button class="skdirind" data-v="1" aria-pressed="false">Presente</button></div></div>
-      <span class="label">Legale o illegale</span>
-      <div class="row"><button class="sklegal" data-v="1" aria-pressed="true">Legale (vela tonda, a)</button><button class="sklegal" data-v="0" aria-pressed="false">Illegale (vela quadra, b)</button></div>
+      <div id="skLegalRow"><span class="label">Legale o illegale</span>
+      <div class="row"><button class="sklegal" data-v="1" aria-pressed="true">Legale (vela tonda, a)</button><button class="sklegal" data-v="0" aria-pressed="false">Illegale (vela quadra, b)</button></div></div>
       <p class="note" id="skInfo"></p>
       <div class="row" style="align-items:center;gap:8px"><span id="skPrefix" style="font:700 13px var(--body)">S</span><input type="text" id="skNum" inputmode="numeric" placeholder="Numero, es. 123" style="flex:1"><span id="skSuffix" style="font:700 13px var(--body)">a</span></div>
       <canvas id="skPreview" width="11" height="44" style="image-rendering:pixelated;width:33px;height:132px"></canvas>
@@ -7197,7 +7197,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // Superficie: one or two velas on a striped pole, round legale (on the right), square illegale (on the left).
   // P: a fixed plate or a digital screen, on the same side as the signal. Names: galleria S + 3 digits + a (legale) or
   // b (illegale); superficie POSTO + number + a or b, so they never clash with the M3's #A numbers.
-  const SIGKIT = { M2: { types: [['main', 'Semaforo'], ['shunt', 'Manovra (basso, come San Donato)'], ['stop', 'Fermata'],
+  const SIGKIT = { M2: { types: [['main', 'Semaforo'], ['shunt', 'Manovra (basso: rosso, rosso + giallo)'], ['stop', 'Fermata'],
     ['nose', 'Bandiera: arresto del muso'], ['nose2', 'Bandiera 2: secondo treno sullo stesso binario'], ['cut', 'Taglio: nessun treno passa su questo pezzo']] } };
   const KLAMP = { R: ['#d60012', '#ff3c4e'], Y: ['#e8a800', '#ffe066'], V: ['#00a14b', '#6dffa8'] }, KOFF = '#3a3a3a';
   function kitCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); return [c, x, (i, j, col) => { x.fillStyle = col; x.fillRect(i, j, 1, 1); }]; }
@@ -7240,9 +7240,15 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     for (let i = 2; i < 9; i++) px(i, H - 1, '#55595c');
     return c;
   }
-  // the low shunting signal, as at San Donato (the two bottom lamps lit: stop)
-  function kitShunt() { const [c, x] = kitCanvas(9, 10); x.fillStyle = '#101010'; x.fillRect(0, 1, 9, 9); x.fillRect(0, 0, 5, 1); x.fillRect(5, 1, 4, 3);
-    x.fillStyle = '#8a8a8a'; x.fillRect(0, 9, 9, 1); [[1, 1, false], [1, 5, true], [5, 5, true]].forEach(([i, j, on]) => { x.fillStyle = on ? '#ffffff' : '#3a3a3a'; x.fillRect(i, j, 3, 3); }); return c; }
+  // the low shunting signal of the M2 (Giovanni's photo, 5 Nov 2026): small, round, on a short post, red on top and yellow
+  // below; red = stop, red + yellow = proceed with the shunting movement. Only round (no illegale form)
+  function kitShunt(go) { const [c, x, px] = kitCanvas(9, 17);
+    const B = ['..wwwww..', '.wkkkkkw.', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', '.wkkkkkw.', '..wwwww..'];
+    B.forEach((row, r) => [...row].forEach((ch, i) => { if (ch !== '.') px(i, r, ch === 'w' ? '#d9dcdf' : '#101010'); }));
+    kitLamp(px, 2, 1, 'R', true); kitLamp(px, 2, 7, 'Y', !!go);
+    for (let j = 13; j < 16; j++) { px(3, j, '#4f5559'); px(4, j, '#6c7378'); px(5, j, '#4f5559'); }
+    for (let i = 2; i < 7; i++) px(i, 16, '#3c4144');
+    return c; }
   const KITURL = {};
   const kitUrl = sg => { const k = [sg.type, sg.env, sg.vele, sg.p, sg.legal, sg.dirind].join('|');
     return KITURL[k] || (KITURL[k] = (sg.type === 'shunt' ? kitShunt() : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa', dirOn: 'R' })).toDataURL()); };
@@ -7543,10 +7549,11 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   const KS = { env: 'galleria', vele: 2, p: 'luminosa', dirind: false, legal: true, legalAuto: true, envAuto: true };
   const kitTrack = () => pickSig && ALLTRACKS[pickSig.ti] && SIGKIT[ALLTRACKS[pickSig.ti].line] ? ALLTRACKS[pickSig.ti] : null;
   const kitPress = (sel, v) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === String(v)));
-  function kitName() { const num = document.getElementById('skNum').value.trim().replace(/^(S|POSTO)\s*/i, '').replace(/[ab]$/i, '');
-    return num ? (KS.env === 'superficie' ? 'POSTO ' : 'S') + num + (KS.legal ? 'a' : 'b') : ''; }
+  function kitName() { const shunt = sigTypeSel.value === 'shunt', num = document.getElementById('skNum').value.trim().replace(/^(S|POSTO)\s*/i, '').replace(shunt ? /$^/ : /[ab]$/i, '');
+    return !num ? '' : shunt ? 'S ' + num : (KS.env === 'superficie' ? 'POSTO ' : 'S') + num + (KS.legal ? 'a' : 'b'); }
   function kitSignal(tk) {        // what the signal being placed carries, as it is saved
     const type = sigTypeSel.value, main = type === 'main';
+    if (type === 'shunt') return { type, vela: 'tonda', name: kitName() };       // a low shunting signal: only round, named S + number
     return { type, env: KS.env, vele: KS.env === 'superficie' && main ? KS.vele : undefined, p: main ? KS.p : undefined,
       dirind: main && KS.dirind ? true : undefined, legal: KS.legal, vela: KS.legal ? 'tonda' : 'quadra', name: main || type === 'shunt' ? kitName() : '' };
   }
@@ -7560,19 +7567,22 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const main = sigTypeSel.value === 'main';
     kitPress('.skenv', KS.env); kitPress('.skvele', KS.vele); kitPress('.skp', KS.p); kitPress('.sklegal', KS.legal ? 1 : 0); kitPress('.skdirind', KS.dirind ? 1 : 0);
     document.getElementById('skDirRow').hidden = !main;
+    const shunt = sigTypeSel.value === 'shunt';
+    ['skEnvRow', 'skPRow', 'skLegalRow'].forEach(id => document.getElementById(id).hidden = shunt);
     document.getElementById('skVeleRow').hidden = KS.env !== 'superficie' || !main;
     document.querySelectorAll('.skp').forEach(b => b.disabled = !main);
-    document.getElementById('skPrefix').textContent = KS.env === 'superficie' ? 'POSTO' : 'S';
-    document.getElementById('skSuffix').textContent = KS.legal ? 'a' : 'b';
+    document.getElementById('skPrefix').textContent = shunt ? 'S' : KS.env === 'superficie' ? 'POSTO' : 'S';
+    document.getElementById('skSuffix').textContent = shunt ? '' : KS.legal ? 'a' : 'b';
     // warnings: trains run on the right. A legale signal faces the way the track is run and stands on its right
     const warn = [];
     if (!tk) warn.push('Clicca dove sta il segnale.');
+    else if (shunt) warn.push('Segnale basso di manovra: rosso, o rosso + giallo per la manovra. Nome S + numero (es. S 5).');
     else if (tk.d === 1 || tk.d === -1) { if (KS.legal !== (sigDir === tk.d)) warn.push(KS.legal ? 'Attenzione: questo binario si percorre nell\'altro verso, il segnale sarebbe illegale.' : 'Attenzione: il segnale guarda i treni nel verso normale del binario, di solito è legale.'); }
     else warn.push('Binario senza verso fisso (' + (tk.c === 'main' ? 'linea' : tk.c) + '): scegli tu legale o illegale.');
-    if (tk && pickSig.off > 1) { const right = (pickSig.side === 'right') === (sigDir === 1); if (right !== KS.legal) warn.push(KS.legal ? 'Attenzione: il segnale legale di solito sta a destra del binario, tu l\'hai messo a sinistra.' : 'Attenzione: il segnale illegale di solito sta a sinistra del binario, tu l\'hai messo a destra.'); }
+    if (tk && !shunt && pickSig.off > 1) { const right = (pickSig.side === 'right') === (sigDir === 1); if (right !== KS.legal) warn.push(KS.legal ? 'Attenzione: il segnale legale di solito sta a destra del binario, tu l\'hai messo a sinistra.' : 'Attenzione: il segnale illegale di solito sta a sinistra del binario, tu l\'hai messo a destra.'); }
     const num = document.getElementById('skNum').value.trim();
     if (main && KS.env === 'galleria' && num && !/^\d{3}$/.test(num.replace(/^S/i, '').replace(/[ab]$/i, ''))) warn.push('In galleria il nome è S + 3 cifre (es. S123a).');
-    document.getElementById('skInfo').textContent = (KS.legal ? 'Legale: vela tonda, nome con a. ' : 'Illegale: vela quadra, nome con b. ') + (kitName() ? 'Nome: ' + kitName() + '. ' : '') + warn.join(' ');
+    document.getElementById('skInfo').textContent = (shunt ? '' : KS.legal ? 'Legale: vela tonda, nome con a. ' : 'Illegale: vela quadra, nome con b. ') + (kitName() ? 'Nome: ' + kitName() + '. ' : '') + warn.join(' ');
     const pv = document.getElementById('skPreview'), spr = sigTypeSel.value === 'shunt' ? kitShunt() : kitSprite({ ...kitSignal(tk), lit: ['R'], pOn: KS.p === 'luminosa', dirOn: 'R' });
     pv.width = spr.width; pv.height = spr.height; pv.style.width = spr.width * 3 + 'px'; pv.style.height = spr.height * 3 + 'px'; pv.getContext('2d').drawImage(spr, 0, 0);
     pv.hidden = !(main || sigTypeSel.value === 'shunt');
