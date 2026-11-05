@@ -1244,7 +1244,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <div class="row"><button class="skvele" data-v="1" aria-pressed="false">1 vela</button><button class="skvele" data-v="2" aria-pressed="true">2 vele</button></div></div>
       <div id="skPRow"><span class="label">Lettera P (dalla stessa parte del segnale)</span>
       <div class="row"><button class="skp" data-v="luminosa" aria-pressed="true">Luminosa</button><button class="skp" data-v="fissa" aria-pressed="false">Fissa</button><button class="skp" data-v="nessuna" aria-pressed="false">Nessuna</button></div></div>
-      <div id="skDirRow"><span class="label">Indicatore di direzione (bivio)</span>
+      <div id="skDirRow"><span class="label">Indicatore di direzione (bivio: destra, sinistra o dritto)</span>
       <div class="row"><button class="skdirind" data-v="0" aria-pressed="true">Nessuno</button><button class="skdirind" data-v="1" aria-pressed="false">Presente</button></div></div>
       <div id="skLegalRow"><span class="label">Legale o illegale</span>
       <div class="row"><button class="sklegal" data-v="1" aria-pressed="true">Legale (vela tonda, a)</button><button class="sklegal" data-v="0" aria-pressed="false">Illegale (vela quadra, b)</button></div></div>
@@ -7208,11 +7208,12 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     ['111', '101', '111', '100', '100'].forEach((row, r) => [...row].forEach((ch, i) => { if (ch === '1') px(x0 + 2 + i, y0 + 1 + r, type === 'fissa' ? '#101010' : on ? '#ffffff' : '#262626'); }));
   }
   const DISC = ['...wwwww...', '..wkkkkkw..', '.wkkkkkkkw.', 'wkkkkkkkkkw', 'wkkkkkkkkkw', 'wkkkkkkkkkw', 'wkkkkkkkkkw', 'wkkkkkkkkkw', '.wkkkkkkkw.', '..wkkkkkw..', '...wwwww...'];
-  // the direction indicator at a junction (Cascina Gobba, Giovanni's photo of 4 Nov 2026): a black screen, a diagonal of
-  // white dots towards the way the route goes, right (Gessate) or left (Cologno Nord); it is never straight
+  // the direction indicator at a junction (Cascina Gobba, Giovanni's photo of 4 Nov 2026): a black screen, white dots
+  // towards the way the route goes: a diagonal to the right (at Gobba: Gessate) or to the left (Cologno Nord), or a
+  // vertical row for straight on (Giovanni, 5 Nov: at least one before Famagosta). on: 'R', 'L', 'D' (dritto) or off
   function kitDirInd(px, x0, y0, on) {
     for (let j = 0; j < 9; j++) for (let i = 0; i < 9; i++) { const e = j === 0 || j === 8 || i === 0 || i === 8; px(x0 + i, y0 + j, e ? '#5a6064' : '#050505'); }
-    for (let k = 0; k < 6; k++) { const i = on === 'L' ? 7 - k : 1 + k, j = 7 - k; px(x0 + i, y0 + j, on ? '#ffffff' : '#262626'); }
+    for (let k = 0; k < 6; k++) { const i = on === 'D' ? 4 : on === 'L' ? 7 - k : 1 + k, j = 7 - k; px(x0 + i, y0 + j, on ? '#ffffff' : '#262626'); }
   }
   // o: { env: 'galleria' | 'superficie', vele: 1 | 2, p: 'luminosa' | 'fissa' | 'nessuna', dirind, dirOn: 'R' | 'L' | null, legal, lit: ['R'...], pOn }
   function kitSprite(o) {

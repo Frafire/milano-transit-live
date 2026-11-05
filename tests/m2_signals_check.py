@@ -2,7 +2,7 @@
 - a type the M2 editor offers, the line M2 and a track of data/osm_m2.txt;
 - the way it faces (dir 1 or -1, heading) and, for a semaforo, galleria / superficie and legale / illegale
   with the vela that goes with it (legale tonda, illegale quadra); a semaforo also the lettera P, and in superficie
-  1 or 2 vele; the indicatore di direzione (dirind, at a junction: right or left, never straight) true or absent;
+  1 or 2 vele; the indicatore di direzione (dirind, at a junction: right, left or straight) true or absent;
 - a name, when it has one, in the M2 form: galleria S + 3 digits + a / b, superficie POSTO + number + a / b, a for a
   legale signal and b for an illegale one; a low shunting signal (manovra, only round) S + number (S 5).
 Also: no M2 signal or mark in data/rules_m3.json (the M3's file). Warnings (not failures): a semaforo without a name,
