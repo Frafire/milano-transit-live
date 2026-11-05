@@ -6,7 +6,9 @@
 - a name, when it has one, in the M2 form: S + number + a / b (galleria, and some surface signals: S49a at Assago) or
   POSTO + number + a / b (superficie), a for a
   legale signal and b for an illegale one; a low shunting signal (manovra, only round) S + number (S 5);
-- an indicatore di velocità (speedind: a pixel screen on its own) the speed it shows, km/h, or null while not known;
+- an indicatore di velocità (speedind: a pixel screen on its own) and a rallentamento (rall: yellow board) the speed they
+  show, km/h, or null while not known; a low signal with two lamps side by side (shunt2) a name S + number;
+- a description (desc) not empty when given;
 - its own code (id, M2-...), unique; the support (mount: alto, corto, parete) when not the usual one; a shunting signal
   under a semaforo (manovra: true, manovra_name S + number) only on a semaforo.
 Also: no M2 signal or mark in data/rules_m3.json (the M3's file). Warnings (not failures): a semaforo without a name,
@@ -19,7 +21,13 @@ import osmparse
 R = json.load(open(os.path.join(ROOT, 'data', 'rules_m2.json')))
 R3 = json.load(open(os.path.join(ROOT, 'data', 'rules_m3.json')))
 W = osmparse.load(os.path.join(ROOT, 'data', 'osm_m2.txt'))
-TYPES = {'main', 'shunt', 'speedind', 'stop', 'nose', 'nose2', 'cut'}
+TYPES = {'main', 'shunt', 'shunt2', 'speedind', 'rall', 'stop', 'nose', 'nose2', 'cut'}
+def mounts(sg):        # the supports each type can have (the editor's mountOpts); galleria: no pole, a short stem or none
+    t = sg.get('type')
+    if t == 'main': return ('corto', 'parete') if sg.get('env') == 'superficie' else ('parete',)
+    if t in ('shunt', 'shunt2'): return ('alto', 'parete')
+    if t == 'rall': return ('corto', 'parete')
+    return ()
 bad, warn = [], []
 ids = [sg.get('id') for sg in R.get('signals', [])]
 if not all(isinstance(i, str) and re.match(r'^M2-\w+$', i) for i in ids): bad.append('a signal without its code (id M2-...)')
@@ -38,15 +46,16 @@ for k, sg in enumerate(R.get('signals', [])):
         if sg.get('env') == 'superficie' and sg.get('vele') not in (1, 2): bad.append(who + ': vele missing')
         if not sg.get('name'): warn.append(who + ': no name yet')
         if 'dirind' in sg and sg['dirind'] is not True: bad.append(who + ': indicatore di direzione should be true or absent')
-    if 'mount' in sg and sg['mount'] not in (('alto', 'parete') if sg.get('type') == 'shunt' else ('alto', 'corto', 'parete')): bad.append(who + ': support (mount) not alto, corto or parete')
+    if 'mount' in sg and sg['mount'] not in mounts(sg): bad.append(who + ': support (mount) %r not one this type can have %s' % (sg['mount'], mounts(sg)))
+    if 'desc' in sg and not (isinstance(sg['desc'], str) and sg['desc'].strip()): bad.append(who + ': empty description')
     if 'manovra' in sg and (sg['manovra'] is not True or sg.get('type') != 'main'): bad.append(who + ': shunting signal under it only on a semaforo, true or absent')
     if sg.get('manovra_name') and not (sg.get('manovra') and re.match(r'^S \d+$', sg['manovra_name'])): bad.append(who + ': name of the shunting signal under it not S + number')
-    if sg.get('type') == 'speedind':
+    if sg.get('type') in ('speedind', 'rall'):
         if sg.get('kmh') is not None and not (isinstance(sg['kmh'], int) and 0 < sg['kmh'] <= 120): bad.append(who + ': speed shown not a number of km/h')
         if sg.get('kmh') is None: warn.append(who + ': speed shown not given yet')
     nm = sg.get('name') or ''
     if nm:
-        form = r'^S \d+$' if sg.get('type') == 'shunt' else r'^(S\d+|POSTO \d+|B\d+)[ab]$'     # at Assago the surface signals are S49a, S57 too; B: provisional
+        form = r'^S \d+$' if sg.get('type') in ('shunt', 'shunt2') else r'^(S\d+|POSTO \d+|B\d+)[ab]$'     # at Assago the surface signals are S49a, S57 too; B: provisional
         if re.match(r'^B\d+[ab]$', nm): warn.append(who + ': provisional name (B), to be changed')
         if not re.match(form, nm): bad.append(who + ': name not in the M2 form (S123a or POSTO 12a, b for illegale; manovra S 5)')
         elif sg.get('type') == 'main' and sg.get('legal') is not None and nm[-1] != ('a' if sg['legal'] else 'b'): bad.append(who + ': name ends with %s but the signal is %s' % (nm[-1], 'legale' if sg['legal'] else 'illegale'))

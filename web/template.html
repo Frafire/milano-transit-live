@@ -601,13 +601,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       <div id="skDirRow"><span class="label">Indicatore di direzione (bivio: destra, sinistra o dritto)</span>
       <div class="row"><button class="skdirind" data-v="0" aria-pressed="true">Nessuno</button><button class="skdirind" data-v="1" aria-pressed="false">Presente</button></div></div>
       <div id="skMountRow"><span class="label">Supporto</span>
-      <div class="row"><button class="skmount" data-v="" aria-pressed="true">Solito</button><button class="skmount" data-v="alto" aria-pressed="false">Palo alto</button><button class="skmount" data-v="corto" aria-pressed="false">Palo corto</button><button class="skmount" data-v="parete" aria-pressed="false">Senza palo</button></div></div>
+      <div class="row" id="skMountBtns"></div></div>
       <div id="skManRow"><span class="label">Segnale di manovra sotto (stesso supporto)</span>
       <div class="row"><button class="skman" data-v="0" aria-pressed="true">No</button><button class="skman" data-v="1" aria-pressed="false">Sì</button><input type="text" id="skManNum" inputmode="numeric" placeholder="Numero manovra, es. 51" style="flex:1"></div></div>
       <div id="skLegalRow"><span class="label">Legale o illegale</span>
       <div class="row"><button class="sklegal" data-v="1" aria-pressed="true">Legale (vela tonda, a)</button><button class="sklegal" data-v="0" aria-pressed="false">Illegale (vela quadra, b)</button></div></div>
       <p class="note" id="skInfo"></p>
       <div class="row" style="align-items:center;gap:8px"><span id="skPrefix" style="font:700 13px var(--body)">S</span><input type="text" id="skNum" inputmode="numeric" placeholder="Numero, es. 123" style="flex:1"><span id="skSuffix" style="font:700 13px var(--body)">a</span></div>
+      <label class="label" for="skDesc">Descrizione (facoltativa)</label>
+      <input type="text" id="skDesc" placeholder="es. uscita deposito, lato banchina, sotto la pensilina">
       <canvas id="skPreview" width="11" height="44" style="image-rendering:pixelated;width:33px;height:132px"></canvas>
     </div>
     <input type="text" id="sigName" placeholder="Name (optional), e.g. S12">
@@ -622,12 +624,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     <div id="mvEdit" hidden>
       <label class="label" for="mvName">Nome (matricola)</label>
       <input type="text" id="mvName" placeholder="es. S123a, POSTO 12a, S 5">
+      <label class="label" for="mvDesc">Descrizione</label>
+      <input type="text" id="mvDesc" placeholder="es. uscita deposito, lato banchina">
       <span class="label">Verso</span>
       <div class="row"><button id="mvFlip">Gira il segnale (l'altro verso)</button></div>
       <div id="mvLegalRow"><span class="label">Legale o illegale</span>
       <div class="row"><button class="mvlegal" data-v="1">Legale (tonda, a)</button><button class="mvlegal" data-v="0">Illegale (quadra, b)</button></div></div>
       <div id="mvMountRow"><span class="label">Supporto</span>
-      <div class="row"><button class="mvmount" data-v="">Solito</button><button class="mvmount" data-v="alto">Palo alto</button><button class="mvmount" data-v="corto">Palo corto</button><button class="mvmount" data-v="parete">Senza palo</button></div></div>
+      <div class="row" id="mvMountBtns"></div></div>
       <div id="mvManRow"><span class="label">Segnale di manovra sotto</span>
       <div class="row"><button class="mvman" data-v="0">No</button><button class="mvman" data-v="1">Sì</button><input type="text" id="mvManNum" inputmode="numeric" placeholder="Numero, es. 51" style="flex:1"></div></div>
       <div class="row"><button id="mvUndo">Rimetti com'era</button><button id="mvDel">Elimina il segnale</button></div>
@@ -2601,9 +2605,17 @@ window.MTL_CAPS = __CAPS__;
   // Superficie: one or two velas on a striped pole, round legale (on the right), square illegale (on the left).
   // P: a fixed plate or a digital screen, on the same side as the signal. Names: galleria S + 3 digits + a (legale) or
   // b (illegale); superficie POSTO + number + a or b, so they never clash with the M3's #A numbers.
-  const SIGKIT = { M2: { types: [['main', 'Semaforo'], ['shunt', 'Manovra (basso: rosso, rosso + giallo)'], ['speedind', 'Indicatore di velocità (schermo a pixel)'], ['stop', 'Fermata'],
+  const SIGKIT = { M2: { types: [['main', 'Semaforo'], ['shunt', 'Manovra (basso: rosso, rosso + giallo)'], ['shunt2', 'Basso a due luci affiancate (bianche)'], ['speedind', 'Indicatore di velocità (schermo a pixel)'],
+    ['rall', 'Rallentamento (cartello giallo con la velocità)'], ['stop', 'Fermata'],
     ['nose', 'Bandiera: arresto del muso'], ['nose2', 'Bandiera 2: secondo treno sullo stesso binario'], ['cut', 'Taglio: nessun treno passa su questo pezzo']] } };
-  const KLAMP = { R: ['#d60012', '#ff3c4e'], Y: ['#e8a800', '#ffe066'], V: ['#00a14b', '#6dffa8'] }, KOFF = '#3a3a3a';
+  const KLAMP = { R: ['#d60012', '#ff3c4e'], Y: ['#e8a800', '#ffe066'], V: ['#00a14b', '#6dffa8'], W: ['#e6e6e6', '#ffffff'] }, KOFF = '#3a3a3a';
+  // the types drawn as they look (the others as the editor's small marks)
+  const KITTYPES = ['main', 'shunt', 'shunt2', 'speedind', 'rall'], isKit = sg => KITTYPES.includes(sg.type);
+  // the supports each type can have (mount; '' the usual one). In galleria there is no pole: the signal is on the wall, with a
+  // short stem or none (Giovanni 5 Nov 2026)
+  const mountOpts = (type, env) => type === 'main' ? (env === 'superficie' ? [['', 'Palo alto (solito)'], ['corto', 'Palo corto'], ['parete', 'Senza palo']] : [['', 'Gambo corto (solito)'], ['parete', 'Senza gambo']])
+    : type === 'shunt' || type === 'shunt2' ? [['', 'Paletto (solito)'], ['alto', 'Palo alto'], ['parete', 'Senza palo']]
+    : type === 'rall' ? [['', 'Palo (solito)'], ['corto', 'Palo corto'], ['parete', 'Senza palo']] : [];
   function kitCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); return [c, x, (i, j, col) => { x.fillStyle = col; x.fillRect(i, j, 1, 1); }]; }
   function kitLamp(px, x0, y0, L, on) { ['.XXX.', 'XXXXX', 'XXXXX', 'XXXXX', '.XXX.'].forEach((row, r) => [...row].forEach((ch, i) => { if (ch === 'X') px(x0 + i, y0 + r, on ? KLAMP[L][0] : KOFF); }));
     if (on) { px(x0 + 1, y0 + 1, KLAMP[L][1]); px(x0 + 2, y0 + 1, KLAMP[L][1]); px(x0 + 1, y0 + 2, KLAMP[L][1]); } }
@@ -2620,13 +2632,35 @@ window.MTL_CAPS = __CAPS__;
     for (let k = 0; k < 6; k++) { const i = on === 'D' ? 4 : on === 'L' ? 7 - k : 1 + k, j = 7 - k; px(x0 + i, y0 + j, on ? '#ffffff' : '#262626'); }
   }
   // the support (mount, Giovanni 5 Nov 2026: with a pole, a shorter pole or none): 'alto', 'corto' or 'parete' (no pole, on
-  // the wall or a bracket). Not given: the usual one, a tall pole in superficie, none in galleria, a short post for a shunt.
-  // The pole is the same striped one for all (a proposal: the look of a pole in galleria is to be confirmed)
+  // the wall or a bracket). Not given: the usual one, a tall pole in superficie, a short post for a shunt.
+  // In galleria there is no pole (Giovanni): a short grey stem to the wall, the usual, or none (kitStem)
   const KPOLE = { alto: 16, corto: 6, parete: 0 };
   const kitPoleLen = (o, def) => KPOLE[o.mount] != null ? KPOLE[o.mount] : def;
   function kitPole(px, y, len, W) { const m = Math.floor(W / 2);
     for (let j = y; j < y + len; j++) { const b = Math.floor((j - y) / 3) % 2; px(m - 1, j, b ? '#111' : '#d8d8d8'); px(m, j, b ? '#222' : '#f4f4f4'); px(m + 1, j, b ? '#0a0a0a' : '#bdbdbd'); }
     if (len) for (let i = m - 3; i <= m + 3; i++) px(i, y + len, '#55595c'); }
+  // the short stem of a galleria signal to the wall (no pole), plain grey
+  function kitStem(px, y, len, W) { const m = Math.floor(W / 2); for (let j = y; j < y + len; j++) { px(m - 1, j, '#5b6165'); px(m, j, '#7d8489'); }
+    if (len) for (let i = m - 2; i <= m + 2; i++) px(i, y + len, '#4a4f52'); }
+  // a low signal with two lamps side by side (Giovanni's photos S01, S02 of 5 Nov 2026): both white; the aspects to come
+  function kitShunt2(mount) { const POST = mount === 'alto' ? 16 : mount === 'parete' ? 0 : 3, [c, x, px] = kitCanvas(15, 9 + POST + (POST ? 1 : 0));
+    for (let j = 0; j < 9; j++) for (let i = 0; i < 15; i++) { const e = j === 0 || j === 8 || i === 0 || i === 14, k = (j === 0 || j === 8) && (i === 0 || i === 14); if (!k) px(i, j, e ? '#d9dcdf' : '#101010'); }
+    kitLamp(px, 2, 2, 'W', true); kitLamp(px, 8, 2, 'W', true);
+    for (let j = 9; j < 9 + POST; j++) { px(6, j, '#4f5559'); px(7, j, '#6c7378'); px(8, j, '#4f5559'); }
+    if (POST) for (let i = 5; i < 10; i++) px(i, 9 + POST, '#3c4144');
+    return c; }
+  // a rallentamento (Giovanni's photos of 5 Nov 2026): a yellow square with a black border, a small white square on it with the
+  // speed, two small white marks at the sides, on a plain pole
+  function kitRall(kmh, mount) { const t = String(kmh == null ? '' : kmh).replace(/\D/g, '').slice(0, 3), PW = Math.max(7, t.length * 4 + 1), W = Math.max(15, PW + 6),
+      POLE = KPOLE[mount] != null ? KPOLE[mount] : 16, [c, x, px] = kitCanvas(W, W + POLE + (POLE ? 1 : 0));
+    for (let j = 0; j < W; j++) for (let i = 0; i < W; i++) px(i, j, j === 0 || j === W - 1 || i === 0 || i === W - 1 ? '#0c0c0c' : '#f2c200');
+    const p0 = Math.floor((W - PW) / 2); for (let j = 2; j < 9; j++) for (let i = p0; i < p0 + PW; i++) px(i, j, '#ffffff');
+    const x0 = Math.floor((W - (t.length * 4 - 1)) / 2);
+    [...t].forEach((d, n) => KDIG[d].forEach((row, r) => [...row].forEach((ch, i) => { if (ch === '1') px(x0 + n * 4 + i, 3 + r, '#0c0c0c'); })));
+    const ym = Math.floor(W * 0.75); px(2, ym, '#fff'); px(3, ym, '#fff'); px(W - 4, ym, '#fff'); px(W - 3, ym, '#fff');
+    const m = Math.floor(W / 2); for (let j = W; j < W + POLE; j++) { px(m - 1, j, '#7d8489'); px(m, j, '#a8afb4'); }
+    if (POLE) for (let i = m - 2; i <= m + 2; i++) px(i, W + POLE, '#55595c');
+    return c; }
   // the head of a low shunting signal (13 rows, 9 wide): red on top, yellow below
   function kitShuntHead(px, x0, y0, go) {
     ['..wwwww..', '.wkkkkkw.', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', 'wkkkkkkkw', '.wkkkkkw.', '..wwwww..']
@@ -2637,7 +2671,7 @@ window.MTL_CAPS = __CAPS__;
   function kitSprite(o) {
     const P = o.p && o.p !== 'nessuna', lit = o.lit || ['R'], MAN = o.manovra ? 14 : 0;
     if (o.env !== 'superficie') {
-      const W = 11, HH = 4 + 3 * 6 + 1, POLE = kitPoleLen(o, 0), H = HH + (P ? 8 : 0) + (o.dirind ? 10 : 0) + MAN + POLE + (POLE ? 1 : 0), [c, x, px] = kitCanvas(W, H), round = o.legal !== false;
+      const W = 11, HH = 4 + 3 * 6 + 1, POLE = o.mount === 'parete' ? 0 : 4, H = HH + (P ? 8 : 0) + (o.dirind ? 10 : 0) + MAN + POLE + (POLE ? 1 : 0), [c, x, px] = kitCanvas(W, H), round = o.legal !== false;
       for (let j = 0; j < HH; j++) for (let i = 0; i < W; i++) { const e = i === 0 || i === W - 1 || j === 0 || j === HH - 1, n = i === 1 || i === W - 2 || j === 1 || j === HH - 2; px(i, j, e ? '#a0a0a0' : n ? '#dedede' : '#101010'); }
       if (round) { for (const [i, j] of [[0, 0], [1, 0], [0, 1], [W - 1, 0], [W - 2, 0], [W - 1, 1], [0, HH - 1], [1, HH - 1], [0, HH - 2], [W - 1, HH - 1], [W - 2, HH - 1], [W - 1, HH - 2]]) x.clearRect(i, j, 1, 1);
         px(1, 1, '#a0a0a0'); px(W - 2, 1, '#a0a0a0'); px(1, HH - 2, '#a0a0a0'); px(W - 2, HH - 2, '#a0a0a0'); }
@@ -2646,7 +2680,7 @@ window.MTL_CAPS = __CAPS__;
       if (o.dirind) kitDirInd(px, 1, HH + (P ? 9 : 1), o.dirOn);
       let y = HH + (P ? 8 : 0) + (o.dirind ? 10 : 0);
       if (MAN) { kitShuntHead(px, 1, y + 1, false); y += MAN; }
-      kitPole(px, y, POLE, W);
+      kitStem(px, y, POLE, W);
       return c;
     }
     const n = o.vele === 1 ? 1 : 2, VH = 12, POLE = kitPoleLen(o, 16), H = n * VH + (P ? 8 : 0) + (o.dirind ? 10 : 0) + MAN + POLE + (POLE ? 1 : 0), [c, x, px] = kitCanvas(11, H);
@@ -2682,7 +2716,7 @@ window.MTL_CAPS = __CAPS__;
     return c; }
   const KITURL = {};
   const kitUrl = sg => { const k = [sg.type, sg.env, sg.vele, sg.p, sg.legal, sg.dirind, sg.kmh, sg.mount, sg.manovra].join('|');
-    if (!KITURL[k]) { const c = sg.type === 'shunt' ? kitShunt(false, sg.mount) : sg.type === 'speedind' ? kitSpeedInd(sg.kmh) : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa', dirOn: 'R' }); KITURL[k] = { u: c.toDataURL(), w: c.width, h: c.height }; }
+    if (!KITURL[k]) { const c = sg.type === 'shunt' ? kitShunt(false, sg.mount) : sg.type === 'shunt2' ? kitShunt2(sg.mount) : sg.type === 'rall' ? kitRall(sg.kmh, sg.mount) : sg.type === 'speedind' ? kitSpeedInd(sg.kmh) : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa', dirOn: 'R' }); KITURL[k] = { u: c.toDataURL(), w: c.width, h: c.height }; }
     return KITURL[k]; };
   // on the map: the signal as it looks (red), a small arrow for the way it faces, the name
   // where a signal is drawn: where it was clicked, but one clicked on its track (under 2 m) is drawn 4 m to the side where it
@@ -2705,7 +2739,7 @@ window.MTL_CAPS = __CAPS__;
   function drawKitSigs() {
     kitSigLayer.clearLayers(); const btn = document.getElementById('kitSigBtn'); if (btn) btn.setAttribute('aria-pressed', String(kitSigOn));
     if (!kitSigOn || (drawing && mode === 'move')) { map.removeLayer(kitSigLayer); return; }    // Sposta segnali draws them itself
-    lineSigs(LINE).filter(sg => SIGKIT[sg.line] && (sg.type === 'main' || sg.type === 'shunt' || sg.type === 'speedind')).forEach(sg => L.marker(kitPos(sg), { interactive: false, keyboard: false, icon: kitIcon(sg) }).addTo(kitSigLayer));
+    lineSigs(LINE).filter(sg => SIGKIT[sg.line] && isKit(sg)).forEach(sg => L.marker(kitPos(sg), { interactive: false, keyboard: false, icon: kitIcon(sg) }).addTo(kitSigLayer));
     kitSigLayer.addTo(map);
     const n = document.getElementById('kitSigNote'); if (n) n.textContent = `${kitSigLayer.getLayers().length} segnali sulla mappa. Per ora tutti a rosso: gli aspetti arriveranno con il motore della linea.`;
   }
@@ -2756,7 +2790,7 @@ window.MTL_CAPS = __CAPS__;
     if (mode === 'signal' && pickSig) {
       if (pickSig.click && pickSig.off > 1) L.polyline([pickSig.click, pickSig.ll], { color: '#fff', weight: 1, dashArray: '2 3', interactive: false }).addTo(currentLayer);
       const ktk = kitTrack(), kh = (pickSig.brg + (sigDir < 0 ? 180 : 0)) % 360, kt = document.getElementById('sigType').value;
-      L.marker(pickSig.click || pickSig.ll, { interactive: false, icon: ktk && (kt === 'main' || kt === 'shunt' || kt === 'speedind') ? kitIcon({ ...kitSignal(ktk), heading: kh }, true) : sigIcon(kh, kt, document.getElementById('sigName').value.trim()) }).addTo(currentLayer);
+      L.marker(pickSig.click || pickSig.ll, { interactive: false, icon: ktk && KITTYPES.includes(kt) ? kitIcon({ ...kitSignal(ktk), heading: kh }, true) : sigIcon(kh, kt, document.getElementById('sigName').value.trim()) }).addTo(currentLayer);
     }
     if (mode === 'signal' && pickSig && kitTrack()) wayArrows(ALLTRACKS[pickSig.ti], sigDir, '#ffcf3f', currentLayer);   // the way it faces, on the track
     if (mode === 'signal') syncKit();
@@ -2774,15 +2808,17 @@ window.MTL_CAPS = __CAPS__;
       if (tk) { L.polyline(tk.pts, { color: '#ff4fd8', weight: 4, interactive: false }).addTo(savedLayer); wayArrows(tk, m.dir, '#ff4fd8', savedLayer); }
       add(m.role + ' · ' + m.line + (m.note ? ' · ' + m.note : ''), () => { ED.marks.splice(i, 1); persist(); redrawSaved(); });
     });
-    const kitDraw = sg => SIGKIT[sg.line] && (sg.type === 'main' || sg.type === 'shunt' || sg.type === 'speedind');
+    const kitDraw = sg => SIGKIT[sg.line] && isKit(sg);
+    // with Mostra segnali on, that layer draws the line's signals (not twice here)
+    const shown = sg => kitSigOn && kitDraw(sg) && sg.line === LINE && !(drawing && mode === 'move');
     const moving = sg => mode === 'move' && sg.line === LINE && SIGKIT[sg.line];
-    FILE_SIGNALS.forEach(sg => { if (sigOverridden(sg) || (ED.sigdel || []).includes(sg.id) || moving(sg)) return;
+    FILE_SIGNALS.forEach(sg => { if (sigOverridden(sg) || (ED.sigdel || []).includes(sg.id) || moving(sg) || shown(sg)) return;
       L.marker(kitDraw(sg) ? kitPos(sg) : [sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer); });
     if (FILE_SIGNALS.length) { add(`Nel file della linea: ${FILE_SIGNALS.length} segnali (per spostarli o cambiarli: Sposta segnali)`, () => {}); trkList.lastChild.lastChild.remove(); }
     if ((ED.sigdel || []).length) add(`Segnali del file eliminati: ${ED.sigdel.length}`, () => { ED.sigdel = []; persist(); redrawSaved(); drawMove(); drawKitSigs(); });
     ED.signals.forEach((sg, i) => {
-      if (!moving(sg)) L.marker(kitDraw(sg) ? kitPos(sg) : [sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer);
-      add((FILE_SIGNALS.some(x => x.id && x.id === sg.id) ? 'Spostato/cambiato: ' : 'Signal ') + (sg.name || '') + ' · ' + sg.type + ' · ' + sg.line, () => { ED.signals.splice(i, 1); persist(); redrawSaved(); drawMove(); drawKitSigs(); });
+      if (!moving(sg) && !shown(sg)) L.marker(kitDraw(sg) ? kitPos(sg) : [sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer);
+      add((FILE_SIGNALS.some(x => x.id && x.id === sg.id) ? 'Spostato/cambiato: ' : 'Signal ') + (sg.name || '') + ' · ' + sg.type + ' · ' + sg.line + (sg.desc ? ' · ' + sg.desc : ''), () => { ED.signals.splice(i, 1); persist(); redrawSaved(); drawMove(); drawKitSigs(); });
     });
     ED.tracks.forEach((tk, i) => {
       L.polyline(tk.points, { color: '#ff4fd8', weight: 4, dashArray: '5 4', interactive: false }).addTo(savedLayer);
@@ -3013,7 +3049,7 @@ window.MTL_CAPS = __CAPS__;
   const kitPress = (sel, v) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === String(v)));
   // the name: the number, with S or POSTO from galleria / superficie, or the prefix typed (at Assago the surface signals
   // are called S49a, S57: Giovanni 5 Nov 2026), then a (legale) or b (illegale); a low shunting signal S + number
-  function kitName() { const shunt = sigTypeSel.value === 'shunt', raw = document.getElementById('skNum').value.trim();
+  function kitName() { const shunt = sigTypeSel.value === 'shunt' || sigTypeSel.value === 'shunt2', raw = document.getElementById('skNum').value.trim();
     const m = raw.match(/^(S|POSTO|B)?\s*(\d+)\s*[ab]?$/i); if (!m) return '';     // B: a provisional name, to be changed
     if (shunt) return 'S ' + m[2];
     const pre = m[1] ? m[1].toUpperCase() : KS.env === 'superficie' ? 'POSTO' : 'S';
@@ -3021,11 +3057,13 @@ window.MTL_CAPS = __CAPS__;
     return (pre === 'POSTO' ? 'POSTO ' : 'S') + m[2] + (KS.legal ? 'a' : 'b'); }
   function kitSignal(tk) {        // what the signal being placed carries, as it is saved
     const type = sigTypeSel.value, main = type === 'main';
-    if (type === 'shunt') return { type, vela: 'tonda', name: kitName(), mount: KS.mount === 'alto' || KS.mount === 'parete' ? KS.mount : undefined };       // a low shunting signal: only round, named S + number
-    if (type === 'speedind') { const v = document.getElementById('skKmh').value.trim(); return { type, kmh: /^\d+$/.test(v) ? +v : null }; }   // null: not known yet
+    const desc = document.getElementById('skDesc').value.trim() || undefined, mount = mountOpts(type, KS.env).some(o => o[0] && o[0] === KS.mount) ? KS.mount : undefined;
+    if (type === 'shunt') return { type, vela: 'tonda', name: kitName(), mount, desc };       // a low shunting signal: only round, named S + number
+    if (type === 'shunt2') return { type, name: kitName(), mount, desc };                    // two white lamps side by side; aspects to come
+    if (type === 'speedind' || type === 'rall') { const v = document.getElementById('skKmh').value.trim(); return { type, kmh: /^\d+$/.test(v) ? +v : null, mount: type === 'rall' ? mount : undefined, desc }; }   // null: not known yet
     return { type, env: KS.env, vele: KS.env === 'superficie' && main ? KS.vele : undefined, p: main ? KS.p : undefined,
       dirind: main && KS.dirind ? true : undefined, legal: KS.legal, vela: KS.legal ? 'tonda' : 'quadra', name: main || type === 'shunt' ? kitName() : '',
-      mount: main && KS.mount ? KS.mount : undefined, manovra: main && KS.manovra ? true : undefined,
+      mount: main ? mount : undefined, desc, manovra: main && KS.manovra ? true : undefined,
       manovra_name: main && KS.manovra && kitManName(document.getElementById('skManNum').value) || undefined };
   }
   function syncKit() {
@@ -3038,13 +3076,14 @@ window.MTL_CAPS = __CAPS__;
     document.querySelectorAll('.sdir').forEach(b => { if (b.dataset.m3 == null) b.dataset.m3 = b.textContent;
       const v = +b.dataset.dir; b.textContent = b.dataset.m3 + (tk && (tk.d === 1 || tk.d === -1) ? (v === tk.d ? ' · verso normale' : ' · contromano') : ''); });
     const main = sigTypeSel.value === 'main';
-    kitPress('.skmount', KS.mount); kitPress('.skman', KS.manovra ? 1 : 0);
-    document.getElementById('skManRow').hidden = !main; document.getElementById('skMountRow').hidden = !(main || sigTypeSel.value === 'shunt');
-    document.querySelector('.skmount[data-v="corto"]').hidden = sigTypeSel.value === 'shunt';
+    const mo = mountOpts(sigTypeSel.value, KS.env); if (!mo.some(o => o[0] === KS.mount)) KS.mount = '';
+    mountButtons('skMountBtns', mo, KS.mount, v => { KS.mount = v; redrawCurrent(); });
+    kitPress('.skman', KS.manovra ? 1 : 0);
+    document.getElementById('skManRow').hidden = !main; document.getElementById('skMountRow').hidden = !mo.length;
     document.getElementById('skManNum').hidden = !KS.manovra;
     kitPress('.skenv', KS.env); kitPress('.skvele', KS.vele); kitPress('.skp', KS.p); kitPress('.sklegal', KS.legal ? 1 : 0); kitPress('.skdirind', KS.dirind ? 1 : 0);
     document.getElementById('skDirRow').hidden = !main;
-    const shunt = sigTypeSel.value === 'shunt', spd = sigTypeSel.value === 'speedind';
+    const shunt = sigTypeSel.value === 'shunt' || sigTypeSel.value === 'shunt2', rall = sigTypeSel.value === 'rall', spd = sigTypeSel.value === 'speedind' || rall;
     ['skEnvRow', 'skPRow', 'skLegalRow'].forEach(id => document.getElementById(id).hidden = shunt || spd);
     document.getElementById('skKmhRow').hidden = !spd;
     document.getElementById('skNum').parentNode.hidden = spd;
@@ -3055,6 +3094,8 @@ window.MTL_CAPS = __CAPS__;
     // warnings: trains run on the right. A legale signal faces the way the track is run and stands on its right
     const warn = [];
     if (!tk) warn.push('Clicca dove sta il segnale.');
+    else if (rall) warn.push('Rallentamento: cartello giallo con la velocità; scrivi quella del cartello.');
+    else if (sigTypeSel.value === 'shunt2') warn.push('Basso a due luci affiancate, bianche: gli aspetti arriveranno. Nome S + numero (es. S 01).');
     else if (spd) warn.push('Indicatore di velocità: schermo a pixel da solo, senza segnale. Se la velocità cambia con l\'itinerario, scrivi quella che vedi e dimmelo.');
     else if (shunt) warn.push('Segnale basso di manovra: rosso, o rosso + giallo per la manovra. Nome S + numero (es. S 5).');
     else if (tk.d === 1 || tk.d === -1) { if (KS.legal !== (sigDir === tk.d)) warn.push(KS.legal ? 'Attenzione: questo binario si percorre nell\'altro verso, il segnale sarebbe illegale.' : 'Attenzione: il segnale guarda i treni nel verso normale del binario, di solito è legale.'); }
@@ -3064,17 +3105,21 @@ window.MTL_CAPS = __CAPS__;
     if (main && KS.env === 'galleria' && num && !/^\d{3}$/.test(num.replace(/^S\s*/i, '').replace(/[ab]$/i, ''))) warn.push('In galleria di solito il nome è S + 3 cifre (es. S123a).');
     if (main && num && !kitName()) warn.push('Scrivi il numero, eventualmente con S o POSTO davanti (es. 57, S49, POSTO 12).');
     document.getElementById('skInfo').textContent = (shunt || spd ? '' : KS.legal ? 'Legale: vela tonda, nome con a. ' : 'Illegale: vela quadra, nome con b. ') + (kitName() ? 'Nome: ' + kitName() + '. ' : '') + warn.join(' ');
-    const pv = document.getElementById('skPreview'), spr = sigTypeSel.value === 'shunt' ? kitShunt(false, KS.mount) : spd ? kitSpeedInd(document.getElementById('skKmh').value || '45') : kitSprite({ ...kitSignal(tk), lit: ['R'], pOn: KS.p === 'luminosa', dirOn: 'R' });
+    const pv = document.getElementById('skPreview'), spr = sigTypeSel.value === 'shunt' ? kitShunt(false, KS.mount) : sigTypeSel.value === 'shunt2' ? kitShunt2(KS.mount) : rall ? kitRall(document.getElementById('skKmh').value || '20', KS.mount) : spd ? kitSpeedInd(document.getElementById('skKmh').value || '45') : kitSprite({ ...kitSignal(tk), lit: ['R'], pOn: KS.p === 'luminosa', dirOn: 'R' });
     pv.width = spr.width; pv.height = spr.height; pv.style.width = spr.width * 3 + 'px'; pv.style.height = spr.height * 3 + 'px'; pv.getContext('2d').drawImage(spr, 0, 0);
     pv.hidden = !(main || shunt || spd);
   }
+  // the support buttons of a type, built again when the type or galleria / superficie changes
+  function mountButtons(id, opts, cur, set) { const box = document.getElementById(id), key = opts.map(o => o[0] + o[1]).join('|');
+    if (box.dataset.k !== key) { box.innerHTML = opts.map(([v, t]) => `<button data-v="${v}">${t}</button>`).join(''); box.dataset.k = key; }
+    box.querySelectorAll('button').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.v === (cur || ''))); b.onclick = () => set(b.dataset.v); }); }
   const kitSet = (k, v) => () => { KS[k] = v; if (k === 'legal') KS.legalAuto = false; if (k === 'env') KS.envAuto = false; redrawCurrent(); };
   document.querySelectorAll('.skenv').forEach(b => b.onclick = kitSet('env', b.dataset.v));
   document.querySelectorAll('.skvele').forEach(b => b.onclick = kitSet('vele', +b.dataset.v));
   document.querySelectorAll('.skp').forEach(b => b.onclick = kitSet('p', b.dataset.v));
   document.querySelectorAll('.sklegal').forEach(b => b.onclick = kitSet('legal', b.dataset.v === '1'));
   document.querySelectorAll('.skdirind').forEach(b => b.onclick = kitSet('dirind', b.dataset.v === '1'));
-  document.querySelectorAll('.skmount').forEach(b => b.onclick = kitSet('mount', b.dataset.v));
+  document.getElementById('skDesc').oninput = redrawCurrent;
   document.querySelectorAll('.skman').forEach(b => b.onclick = kitSet('manovra', b.dataset.v === '1'));
   document.getElementById('skManNum').oninput = redrawCurrent;
   document.getElementById('skNum').oninput = redrawCurrent;
@@ -3087,9 +3132,9 @@ window.MTL_CAPS = __CAPS__;
   const mvSigs = () => { ED.signals.forEach(x => { if (SIGKIT[x.line] && !x.id) { x.id = newSigId(x.line); persist(); } }); return lineSigs(LINE).filter(sg => SIGKIT[sg.line]); };
   const mvFindSig = id => mvSigs().find(sg => (sg.id || '') === id);
   const mvLocal = sg => { let x = ED.signals.find(y => y === sg || (y.id && y.id === sg.id)); if (!x) { x = JSON.parse(JSON.stringify(sg)); ED.signals.push(x); } return x; };
-  const mvKit = sg => sg.type === 'main' || sg.type === 'shunt' || sg.type === 'speedind';
-  const mvNameOk = sg => !sg.name || (sg.type === 'shunt' ? /^S \d+$/ : /^(S\d+|POSTO \d+|B\d+)[ab]$/).test(sg.name);
-  function mvChanged(sg, f) { const x = mvLocal(sg); f(x); x.moved = true; persist(); mvSel = x.id; drawMove(); redrawSaved(); }
+  const mvKit = isKit;
+  const mvNameOk = sg => !sg.name || (sg.type === 'shunt' || sg.type === 'shunt2' ? /^S \d+$/ : /^(S\d+|POSTO \d+|B\d+)[ab]$/).test(sg.name);
+  function mvChanged(sg, f) { const x = mvLocal(sg); f(x); x.moved = true; persist(); mvSel = x.id; drawMove(); redrawSaved(); drawKitSigs(); }
   function drawMove() {
     moveLayer.clearLayers();
     const panel = document.getElementById('mvEdit'); if (!panel) return;
@@ -3114,7 +3159,7 @@ window.MTL_CAPS = __CAPS__;
       if (tk) { L.polyline(tk.pts, { color: '#ffcf3f', weight: 5, opacity: .8, interactive: false }).addTo(moveLayer); wayArrows(tk, sel.dir, '#ffcf3f', moveLayer); } }
     // the panel
     const find = document.getElementById('mvFind'), named = sigs.slice().sort((p, q) => (p.name || '~').localeCompare(q.name || '~', 'it', { numeric: true }));
-    find.innerHTML = '<option value="">— scegli —</option>' + named.map(sg => `<option value="${sg.id || ''}"${sg === sel ? ' selected' : ''}>${(sg.name || 'senza nome') + (sg.manovra_name ? ' · ' + sg.manovra_name : '')} · ${{ main: 'semaforo', shunt: 'manovra', speedind: 'velocità', stop: 'fermata', nose: 'bandiera', nose2: 'bandiera 2', cut: 'taglio' }[sg.type] || sg.type}</option>`).join('');
+    find.innerHTML = '<option value="">— scegli —</option>' + named.map(sg => `<option value="${sg.id || ''}"${sg === sel ? ' selected' : ''}>${(sg.name || 'senza nome') + (sg.manovra_name ? ' · ' + sg.manovra_name : '')} · ${{ main: 'semaforo', shunt: 'manovra', shunt2: 'basso a 2 luci', rall: 'rallentamento', speedind: 'velocità', stop: 'fermata', nose: 'bandiera', nose2: 'bandiera 2', cut: 'taglio' }[sg.type] || sg.type}</option>`).join('');
     panel.hidden = !sel;
     const nMoved = ED.signals.filter(x => x.line === LINE && FILE_SIGNALS.some(y => y.id && y.id === x.id)).length, nNew = ED.signals.filter(x => x.line === LINE && !FILE_SIGNALS.some(y => y.id && y.id === x.id)).length, nDel = (ED.sigdel || []).length;
     document.getElementById('mvCount').textContent = `${sigs.length} segnali. In questo browser: ${nMoved} spostati o cambiati, ${nNew} nuovi, ${nDel} eliminati. Per mandarmeli: Copy all qui sotto e incolla il testo in chat.`;
@@ -3124,11 +3169,13 @@ window.MTL_CAPS = __CAPS__;
     if (!mvNameOk(sel)) warn.push(sel.type === 'shunt' ? 'Nome di manovra: S + numero (es. S 5).' : 'Nome: S123a, POSTO 12a o B01a (provvisorio), con b se illegale.');
     if (main && tk && (tk.d === 1 || tk.d === -1) && sel.legal !== (sel.dir === tk.d)) warn.push(sel.legal ? 'Attenzione: guarda i treni contromano, di solito è illegale.' : 'Attenzione: guarda i treni nel verso normale, di solito è legale.');
     if (main && tk && tk.g != null && (tk.g ? 'galleria' : 'superficie') !== sel.env) warn.push('Il binario è in ' + (tk.g ? 'galleria' : 'superficie') + ', il segnale è disegnato da ' + sel.env + '.');
-    document.getElementById('mvPick').textContent = `${sel.name || 'senza nome'} · ${tk ? describeTrack(tk) : 'binario w' + sel.w} · ${sel.offset_m > 1 ? sel.offset_m + ' m dal binario' : 'sul binario'} · codice ${sel.id || '—'}` + (FILE_SIGNALS.some(y => y.id && y.id === sel.id) && ED.signals.some(y => y.id === sel.id) ? ' · cambiato qui' : '') + (warn.length ? '. ' + warn.join(' ') : '');
+    document.getElementById('mvPick').textContent = `${sel.name || 'senza nome'} · ${tk ? describeTrack(tk) : 'binario w' + sel.w} · ${sel.offset_m > 1 ? sel.offset_m + ' m dal binario' : 'sul binario'} · codice ${sel.id || '—'}` + (sel.desc ? ' · ' + sel.desc : '') + (FILE_SIGNALS.some(y => y.id && y.id === sel.id) && ED.signals.some(y => y.id === sel.id) ? ' · cambiato qui' : '') + (warn.length ? '. ' + warn.join(' ') : '');
     const nm = document.getElementById('mvName'); if (document.activeElement !== nm) nm.value = sel.name || '';
-    document.getElementById('mvLegalRow').hidden = !main; document.getElementById('mvManRow').hidden = !main; document.getElementById('mvMountRow').hidden = !(main || sel.type === 'shunt');
-    document.querySelector('.mvmount[data-v="corto"]').hidden = sel.type === 'shunt';
-    kitPress('.mvlegal', sel.legal === false ? 0 : 1); kitPress('.mvmount', sel.mount || ''); kitPress('.mvman', sel.manovra ? 1 : 0);
+    const mo = mountOpts(sel.type, sel.env);
+    document.getElementById('mvLegalRow').hidden = !main; document.getElementById('mvManRow').hidden = !main; document.getElementById('mvMountRow').hidden = !mo.length;
+    mountButtons('mvMountBtns', mo, mo.some(o => o[0] === sel.mount) ? sel.mount : '', v => mvChanged(sel, x => { if (v) x.mount = v; else delete x.mount; }));
+    const ds = document.getElementById('mvDesc'); if (document.activeElement !== ds) ds.value = sel.desc || '';
+    kitPress('.mvlegal', sel.legal === false ? 0 : 1); kitPress('.mvman', sel.manovra ? 1 : 0);
     const mn = document.getElementById('mvManNum'); mn.hidden = !sel.manovra; if (document.activeElement !== mn) mn.value = (sel.manovra_name || '').replace(/^S /, '');
     document.getElementById('mvUndo').hidden = !(FILE_SIGNALS.some(y => y.id && y.id === sel.id) && ED.signals.some(y => y.id === sel.id));
   }
@@ -3137,7 +3184,7 @@ window.MTL_CAPS = __CAPS__;
     document.getElementById('mvName').oninput = e => { const sg = cur(); if (sg) mvChanged(sg, x => { x.name = e.target.value.trim(); }); };
     document.getElementById('mvFlip').onclick = () => { const sg = cur(); if (sg) mvChanged(sg, x => { x.dir = -x.dir; x.heading = Math.round(((x.heading || 0) + 180) % 360); }); };
     document.querySelectorAll('.mvlegal').forEach(b => b.onclick = () => { const sg = cur(); if (sg) mvChanged(sg, x => { x.legal = b.dataset.v === '1'; x.vela = x.legal ? 'tonda' : 'quadra'; if (/[ab]$/.test(x.name || '')) x.name = x.name.slice(0, -1) + (x.legal ? 'a' : 'b'); }); });
-    document.querySelectorAll('.mvmount').forEach(b => b.onclick = () => { const sg = cur(); if (sg) mvChanged(sg, x => { if (b.dataset.v) x.mount = b.dataset.v; else delete x.mount; }); });
+    document.getElementById('mvDesc').oninput = e => { const sg = cur(); if (sg) mvChanged(sg, x => { const v = e.target.value.trim(); if (v) x.desc = v; else delete x.desc; }); };
     document.querySelectorAll('.mvman').forEach(b => b.onclick = () => { const sg = cur(); if (sg) mvChanged(sg, x => { if (b.dataset.v === '1') x.manovra = true; else { delete x.manovra; delete x.manovra_name; } }); });
     document.getElementById('mvManNum').oninput = e => { const sg = cur(); if (sg) mvChanged(sg, x => { const n = kitManName(e.target.value); if (n) x.manovra_name = n; else delete x.manovra_name; }); };
     document.getElementById('mvUndo').onclick = () => { const sg = cur(); if (!sg) return; ED.signals = ED.signals.filter(y => y.id !== sg.id); persist(); drawMove(); redrawSaved(); };
@@ -3229,10 +3276,10 @@ window.MTL_CAPS = __CAPS__;
     ED.signals.push({ id: SIGKIT[tk.line] ? newSigId(tk.line) : undefined, line: tk.line, w: tk.w, lat: +at[0].toFixed(6), lon: +at[1].toFixed(6), on_track: pickSig.ll.map(x => +x.toFixed(6)),
       offset_m: pickSig.off || 0, side: pickSig.side || 'on track', heading,
       dir: sigDir, type: document.getElementById('sigType').value, name: document.getElementById('sigName').value.trim() });
-    if (SIGKIT[tk.line]) { const k = kitSignal(tk); Object.keys(k).forEach(x => k[x] === undefined && delete k[x]); Object.assign(ED.signals[ED.signals.length - 1], k); document.getElementById('skNum').value = ''; document.getElementById('skManNum').value = ''; }
+    if (SIGKIT[tk.line]) { const k = kitSignal(tk); Object.keys(k).forEach(x => k[x] === undefined && delete k[x]); Object.assign(ED.signals[ED.signals.length - 1], k); document.getElementById('skNum').value = ''; document.getElementById('skManNum').value = ''; document.getElementById('skDesc').value = ''; }
     else delete ED.signals[ED.signals.length - 1].id;
     document.getElementById('sigName').value = ''; pickSig = null; sigPick.textContent = 'Placed. Click where the next signal stands.';
-    persist(); redrawSaved(); redrawCurrent();
+    persist(); redrawSaved(); redrawCurrent(); drawKitSigs();     // Giovanni 5 Nov 2026: with Mostra segnali on it vanished
   };
   document.getElementById('undoPt').onclick = () => { pts.pop(); redrawCurrent(); };
   document.getElementById('clearPt').onclick = () => { pts = []; redrawCurrent(); };
