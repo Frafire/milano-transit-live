@@ -190,14 +190,13 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .m2clock { width: 64px; height: 64px; flex: 0 0 auto; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 .asptab table { width: 100%; border-collapse: collapse; font-size: 12px; } .asptab th, .asptab td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .asptab td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; } .asptab th { color: var(--muted); font-weight: 600; }
-.kitsig { position: relative; transform: translate(-50%, -100%); display: flex; align-items: flex-end; gap: 2px; pointer-events: none; width: max-content; }
+/* the foot of the pole on the point (--hw: half the drawing), not the middle of drawing, arrow and name */
+.kitsig { position: relative; transform: translate(calc(-1 * var(--hw, 50%)), -100%); display: flex; align-items: flex-end; gap: 2px; pointer-events: none; width: max-content; }
 .kitsig img, .kitsig svg { flex: 0 0 auto; }
 .kitsig img { image-rendering: pixelated; filter: drop-shadow(0 0 1px #000); }
 .kitsig svg { margin-left: 2px; align-self: flex-start; filter: drop-shadow(0 0 1px #000); }
 .kitsig span { position: absolute; left: 100%; top: -14px; margin-left: 4px; font: 700 11px var(--body); color: #fff; background: rgba(0,0,0,.75); padding: 0 4px; border-radius: 3px; white-space: nowrap; }
 .kitsig.cur img { outline: 1px dashed #ffcf3f; }
-.kitsig.south { transform: translate(-50%, -100%) rotate(180deg); transform-origin: 50% 100%; }
-.kitsig.south span { transform: rotate(180deg); }
 .sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
@@ -2643,10 +2642,14 @@ window.MTL_CAPS = __CAPS__;
     if (!KITURL[k]) { const c = sg.type === 'shunt' ? kitShunt() : sg.type === 'speedind' ? kitSpeedInd(sg.kmh) : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa', dirOn: 'R' }); KITURL[k] = { u: c.toDataURL(), w: c.width, h: c.height }; }
     return KITURL[k]; };
   // on the map: the signal as it looks (red), a small arrow for the way it faces, the name
-  // a signal faced by trains going south (heading between 90 and 270) is drawn upside down, so its direction shows
-  // (Giovanni, 5 Nov 2026: "specchia i segnali dal lato opposto rispetto a nord"); the arrow is the way the trains go
-  const kitSouth = sg => { const h = ((sg.heading || 0) % 360 + 360) % 360; return h > 90 && h < 270; };
-  const kitIcon = (sg, current) => L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="kitsig${current ? ' cur' : ''}${kitSouth(sg) ? ' south' : ''}"><img alt="" src="${kitUrl(sg).u}" style="width:${kitUrl(sg).w * 2}px;height:${kitUrl(sg).h * 2}px"><svg width="18" height="18" viewBox="0 0 14 14" style="transform:rotate(${kitSouth(sg) ? sg.heading - 180 : sg.heading}deg)"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="${sg.legal === false ? '#ff8a3d' : '#ffcf3f'}" stroke="#000" stroke-width="1"/></svg>${sg.name ? `<span>${sg.name}</span>` : ''}</div>` });
+  // where a signal is drawn: where it was clicked, but one clicked on its track (under 2 m) is drawn 4 m to the side where it
+  // stands, right of the way trains go if legale, left if illegale (Giovanni, 5 Nov 2026: it looked tied to the other track)
+  const kitPos = sg => {
+    if (!(sg.offset_m < 2) || sg.type === 'stop' || sg.type === 'nose' || sg.type === 'nose2' || sg.type === 'cut') return [sg.lat, sg.lon];
+    const o = sg.on_track || [sg.lat, sg.lon], a = ((sg.heading || 0) + (sg.legal === false ? -90 : 90)) * Math.PI / 180, d = 4;
+    return [o[0] + Math.cos(a) * d / 110540, o[1] + Math.sin(a) * d / (111320 * Math.cos(o[0] * Math.PI / 180))];
+  };
+  const kitIcon = (sg, current) => L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="kitsig${current ? ' cur' : ''}" style="--hw:${kitUrl(sg).w}px"><img alt="" src="${kitUrl(sg).u}" style="width:${kitUrl(sg).w * 2}px;height:${kitUrl(sg).h * 2}px"><svg width="18" height="18" viewBox="0 0 14 14" style="transform:rotate(${sg.heading}deg)"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="${sg.legal === false ? '#ff8a3d' : '#ffcf3f'}" stroke="#000" stroke-width="1"/></svg>${sg.name ? `<span>${sg.name}</span>` : ''}</div>` });
   // the signals already in the line's file (data/rules_<line>.json, packed with the fleet): shown with the ones of this browser
   const FILE_SIGNALS = (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => ((F.edits || {}).signals || []).map(sg => ({ ...sg, line: sg.line || F.line })));
   // the button Mostra i segnali (capability segnali_kit): the line's placed signals on the map, out of the editor
@@ -2657,7 +2660,7 @@ window.MTL_CAPS = __CAPS__;
     if (!kitSigOn) { map.removeLayer(kitSigLayer); return; }
     let local = []; try { local = (JSON.parse(localStorage.getItem('mtl-edit') || 'null') || {}).signals || []; } catch (e) {}
     const all = FILE_SIGNALS.filter(sg => sg.line === LINE && !local.some(x => Math.abs(x.lat - sg.lat) < 2e-6 && Math.abs(x.lon - sg.lon) < 2e-6 && x.dir === sg.dir)).concat(local.filter(sg => sg.line === LINE));
-    all.filter(sg => SIGKIT[sg.line] && (sg.type === 'main' || sg.type === 'shunt' || sg.type === 'speedind')).forEach(sg => L.marker([sg.lat, sg.lon], { interactive: false, keyboard: false, icon: kitIcon(sg) }).addTo(kitSigLayer));
+    all.filter(sg => SIGKIT[sg.line] && (sg.type === 'main' || sg.type === 'shunt' || sg.type === 'speedind')).forEach(sg => L.marker(kitPos(sg), { interactive: false, keyboard: false, icon: kitIcon(sg) }).addTo(kitSigLayer));
     kitSigLayer.addTo(map);
     const n = document.getElementById('kitSigNote'); if (n) n.textContent = `${kitSigLayer.getLayers().length} segnali sulla mappa. Per ora tutti a rosso: gli aspetti arriveranno con il motore della linea.`;
   }
@@ -2728,10 +2731,10 @@ window.MTL_CAPS = __CAPS__;
     });
     const kitDraw = sg => SIGKIT[sg.line] && (sg.type === 'main' || sg.type === 'shunt' || sg.type === 'speedind');
     FILE_SIGNALS.forEach(sg => { if (ED.signals.some(x => Math.abs(x.lat - sg.lat) < 2e-6 && Math.abs(x.lon - sg.lon) < 2e-6)) return;
-      L.marker([sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer); });
+      L.marker(kitDraw(sg) ? kitPos(sg) : [sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer); });
     if (FILE_SIGNALS.length) { add(`Nel file della linea: ${FILE_SIGNALS.length} segnali (per cambiarli: piazzali di nuovo e mandami l'export)`, () => {}); trkList.lastChild.lastChild.remove(); }
     ED.signals.forEach((sg, i) => {
-      L.marker([sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer);
+      L.marker(kitDraw(sg) ? kitPos(sg) : [sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer);
       add('Signal ' + (sg.name || '') + ' · ' + sg.type + ' · ' + sg.line, () => { ED.signals.splice(i, 1); persist(); redrawSaved(); });
     });
     ED.tracks.forEach((tk, i) => {

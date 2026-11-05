@@ -843,16 +843,16 @@
   },
   {
    "line": "M2",
-   "w": 219,
-   "lat": 45.433509,
-   "lon": 9.16771,
+   "w": 256,
+   "lat": 45.433518,
+   "lon": 9.167781,
    "on_track": [
-    45.433509,
-    9.167709
+    45.433518,
+    9.167781
    ],
-   "offset_m": 0.1,
-   "side": "right",
-   "heading": 11,
+   "offset_m": 0,
+   "side": "on track",
+   "heading": 350,
    "dir": 1,
    "type": "main",
    "name": "B32a",
@@ -860,7 +860,8 @@
    "p": "luminosa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026",
+   "track_from": "Giovanni 5/11/2026: collegato al binario di destra (w256), non a w219"
   },
   {
    "line": "M2",
