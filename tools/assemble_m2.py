@@ -26,6 +26,15 @@ def write(dati):
             # the aspects and codes for the page's panel (data/codici_m2.json, from the Codici sheet of Regole_M2.xlsx)
             cp = os.path.join(ROOT, 'data', 'codici_m2.json')
             if os.path.exists(cp): F['codici'] = json.load(open(cp))
+            # the station cards (data/stazioni_m2.json): where the stations are, from the GTFS stops of the line
+            sp = os.path.join(ROOT, 'data', 'stazioni_m2.json')
+            if os.path.exists(sp):
+                import csv
+                pos = {}
+                for r in csv.DictReader(open(os.path.join(ROOT, 'data', 'gtfs_m2', 'stops.txt'), encoding='utf-8-sig')):
+                    pos.setdefault(r['stop_name'], []).append((float(r['stop_lat']), float(r['stop_lon'])))
+                F['stcards'] = [dict(st, la=round(sum(p[0] for p in pos[st['gtfs']]) / len(pos[st['gtfs']]), 6), lo=round(sum(p[1] for p in pos[st['gtfs']]) / len(pos[st['gtfs']]), 6))
+                                for st in json.load(open(sp))['stazioni'] if st['gtfs'] in pos]
             fleet = base64.b64encode(gzip.compress(json.dumps({'fleets': [F]}, separators=(',', ':')).encode(), 9)).decode()
         name = 'm2_%s.js' % folder
         js = '(window.MTL_PACK = window.MTL_PACK || {})[%s] = %s;\n' % (json.dumps('M2' + sfx), json.dumps({'data': data, 'fleet': fleet, 'live': '', 'turni': turni}))

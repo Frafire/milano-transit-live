@@ -185,11 +185,15 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .sigtag { position: absolute; left: 7px; top: -16px; font: 600 10px/1 system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.72); padding: 1px 3px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
 .sigpx.sh { width: 9px; height: 10px; }
 .nocap { display: none !important; }
+.m2sign { margin: -2px 0 8px; padding: 6px 8px; background: linear-gradient(#3fae3b, #2f9a2d); border-top: 3px solid #e9efe6; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.4); text-align: center; }
+.m2sign b { color: #fff; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 600; letter-spacing: .02em; }
+.m2clock { width: 64px; height: 64px; flex: 0 0 auto; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 .asptab table { width: 100%; border-collapse: collapse; font-size: 12px; } .asptab th, .asptab td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .asptab td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; } .asptab th { color: var(--muted); font-weight: 600; }
-.kitsig { position: relative; transform: translate(-50%, -100%); display: flex; align-items: flex-end; gap: 2px; pointer-events: none; }
-.kitsig img { image-rendering: pixelated; width: auto; height: auto; transform: scale(2); transform-origin: bottom center; filter: drop-shadow(0 0 1px #000); }
-.kitsig svg { margin-left: 6px; }
+.kitsig { position: relative; transform: translate(-50%, -100%); display: flex; align-items: flex-end; gap: 2px; pointer-events: none; width: max-content; }
+.kitsig img, .kitsig svg { flex: 0 0 auto; }
+.kitsig img { image-rendering: pixelated; filter: drop-shadow(0 0 1px #000); }
+.kitsig svg { margin-left: 2px; align-self: flex-start; filter: drop-shadow(0 0 1px #000); }
 .kitsig span { position: absolute; left: 100%; top: -14px; margin-left: 4px; font: 700 11px var(--body); color: #fff; background: rgba(0,0,0,.75); padding: 0 4px; border-radius: 3px; white-space: nowrap; }
 .kitsig.cur img { outline: 1px dashed #ffcf3f; }
 .sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
@@ -979,6 +983,14 @@ window.MTL_CAPS = __CAPS__;
       L.marker([b.la, b.lo], { icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<button class="stname" style="--c:${look.color}">${b.n}</button>` }) })
         .on('click', open).addTo(nameLayer);
     });
+    // the station cards of a line with data/stazioni_<line>.json (the M2: only the look for now)
+    if (draw) (F.stcards || []).forEach((sc, qi) => {
+      const open = () => { state.sel = 'q' + fiHere + ':' + qi; state.follow = false; renderCard(); };
+      L.circleMarker([sc.la, sc.lo], { radius: 18, stroke: false, fillOpacity: 0, bubblingMouseEvents: false }).on('click', open).addTo(g);
+      L.circleMarker([sc.la, sc.lo], { radius: 7, color: look.color, weight: 3, fillColor: '#fff', fillOpacity: 1, bubblingMouseEvents: false })
+        .bindTooltip(sc.nome, { className: 'st', direction: 'top', offset: [0, -8] }).on('click', open).addTo(g);
+      L.marker([sc.la, sc.lo], { icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<button class="stname" style="--c:${look.color}">${sc.nome}</button>` }) }).on('click', open).addTo(nameLayer);
+    });
     if (draw && F.tracks.length) routeLayers[li] = g;
     // bus stops: an H like on OpenStreetMap, shown when zoomed in
     const busStops = (F.stops || []).map((st, si) => {
@@ -1036,6 +1048,7 @@ window.MTL_CAPS = __CAPS__;
         fleet.holds = live.held;
       } else reliveFleet(fleet);
     }
+    if (F.stcards) fleet.stcards = F.stcards;       // the station cards (the M2)
     return fleet;
   }
   (FLEETDATA ? FLEETDATA.fleets : []).forEach(F => {
@@ -1410,10 +1423,11 @@ window.MTL_CAPS = __CAPS__;
   // ---------- selection card ----------
   const card = document.getElementById('card');
   function renderCard() {
-    card.classList.toggle('stcard', typeof state.sel === 'string' && state.sel[0] === 'b');
+    card.classList.toggle('stcard', typeof state.sel === 'string' && (state.sel[0] === 'b' || state.sel[0] === 'q'));
     card.classList.toggle('trcard', typeof state.sel === 'string' && state.sel[0] === 'f');
     if (state.sel == null) { card.hidden = true; return; }
     if (typeof state.sel === 'string' && state.sel[0] === 'b') return renderBoard();
+    if (typeof state.sel === 'string' && state.sel[0] === 'q') return renderM2Station();
     if (typeof state.sel === 'string' && state.sel[0] === 's') return renderStop();
     if (typeof state.sel === 'string' && state.sel[0] === 'g') return renderSignalCard();
     if (state.sel === 'turni') return renderTurni();
@@ -2224,6 +2238,48 @@ window.MTL_CAPS = __CAPS__;
     return F.ag.FX.list().filter(f => f.kind === 'prefettura' && (f.ph === 'announced' || f.ph === 'closed') && f.st != null && f.from != null).map(f =>
       [F.engine.G.names[f.st].replace(/\s+M\d$/i, '').toUpperCase() + ' CHIUSA', 'DALLE ' + h(f.from) + ' ALLE ' + h(f.until), why]);
   }
+  // ---- the M2 station card (Giovanni's photos, 5 Nov 2026): the green band with the name, the analog clock (white face, hours
+  // and seconds black, minutes red), the platform screens without the time. Only the look for now: the screens show an
+  // example, not the trains (the second train is usually not shown: to be checked) ----
+  function m2ScrImage(key, lines) {     // the M3 screen without its clock
+    if (SCR.cache.has(key)) return SCR.cache.get(key);
+    const W = SCR.W, H = SCR.H, dots = new Array(W * H).fill(null);
+    lines.forEach(L => { let x0 = L.right ? L.x - txtW(L.text, L.size) + 1 : L.x;
+      for (const ch of L.text) { const g = glyph(ch, L.size || 'small'), up = L.size === 'big' && g.length > 14 ? g.length - 14 : 0, gap = GAP[L.size] != null ? GAP[L.size] : 1;
+        for (let r = 0; r < g.length; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') { const X = x0 + i, Y = L.y + r - up; if (X >= 0 && X < W && Y >= 0 && Y < H) dots[Y * W + X] = L.color; }
+        x0 += g[0].length + gap; } });
+    const P = SCR.P, FR = SCR.FR, c = document.createElement('canvas'); c.width = (2 * FR + W) * P; c.height = (2 * FR + H) * P; const x = c.getContext('2d');
+    x.fillStyle = '#2e2e2e'; x.fillRect(0, 0, c.width, c.height); x.fillStyle = '#0a0a0a'; x.fillRect(P * 0.7, P * 0.7, c.width - P * 1.4, c.height - P * 1.4);
+    x.fillStyle = '#171716'; x.fillRect(FR * P, FR * P, W * P, H * P);
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) { const col = dots[j * W + i]; x.shadowBlur = col ? P * 1.2 : 0; x.shadowColor = col || '#000'; x.fillStyle = col || '#262624'; x.beginPath(); x.arc((FR + i + 0.5) * P, (FR + j + 0.5) * P, P * 0.42, 0, 7); x.fill(); }
+    const url = c.toDataURL(); SCR.cache.set(key, url); return url;
+  }
+  function m2Screen(dest, page) {        // page 0: 1°Treno : DEST, attesa min 7½ (an example); page 1: Treno per DEST (arriving)
+    const W = SCR.W, X0 = 12, L = [], fitBig = (t, room) => X0 + txtW(t, 'big') <= room ? 'big' : X0 - 2 + txtW(t, 'thin') <= room ? 'thin' : 'small';
+    if (page === 0) { const num = '7½', xn = W - 2 - txtW(num, 'big') + 1, xm = xn - 2, room = xm - txtW('min') - 2;
+      L.push({ text: '1°', x: 1, y: 2, color: SCR_G, size: 'mid' }, { text: 'Treno :', x: X0, y: 2, color: SCR_G }, { text: 'attesa', x: W - 2, y: 2, color: SCR_G, right: true },
+        { text: dest, x: X0, y: 14, color: SCR_A, size: fitBig(dest, room) }, { text: num, x: W - 2, y: 14, color: SCR_A, size: 'big', right: true }, { text: 'min', x: xm, y: 21, color: SCR_G, right: true });
+    } else L.push({ text: 'Treno per', x: X0, y: 2, color: SCR_G }, { text: dest, x: X0, y: 14, color: SCR_A, size: fitBig(dest, W - 2) });
+    return `<img class="scr" alt="${page ? 'Treno per ' : '1° treno: '}${dest}" src="${m2ScrImage('m2|' + page + '|' + dest, L)}">`;
+  }
+  function analogClock(t) {
+    const s = ((t % 86400) + 86400) % 86400, sec = s % 60, min = (s / 60) % 60, hr = (s / 3600) % 12;
+    const hand = (deg, len, w, col, back) => { const a = (deg - 90) * Math.PI / 180; return `<line x1="${(50 - Math.cos(a) * back).toFixed(1)}" y1="${(50 - Math.sin(a) * back).toFixed(1)}" x2="${(50 + Math.cos(a) * len).toFixed(1)}" y2="${(50 + Math.sin(a) * len).toFixed(1)}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`; };
+    let ticks = '', nums = '';
+    for (let i = 0; i < 60; i++) { const a = i * 6 * Math.PI / 180, r1 = i % 5 ? 41 : 38; ticks += `<line x1="${(50 + Math.sin(a) * r1).toFixed(1)}" y1="${(50 - Math.cos(a) * r1).toFixed(1)}" x2="${(50 + Math.sin(a) * 43).toFixed(1)}" y2="${(50 - Math.cos(a) * 43).toFixed(1)}" stroke="#111" stroke-width="${i % 5 ? .6 : 1.6}"/>`; }
+    for (let h = 1; h <= 12; h++) { const a = h * 30 * Math.PI / 180; nums += `<text x="${(50 + Math.sin(a) * 31).toFixed(1)}" y="${(50 - Math.cos(a) * 31 + 3.6).toFixed(1)}" text-anchor="middle" font-size="10" font-family="Helvetica, Arial, sans-serif" fill="#111">${h}</text>`; }
+    return `<svg class="m2clock" viewBox="0 0 100 100" role="img" aria-label="Orologio della stazione"><circle cx="50" cy="50" r="48" fill="#3a2a22"/><circle cx="50" cy="50" r="45" fill="#f7f7f4"/>${ticks}${nums}
+      ${hand(hr * 30 + min / 2, 22, 3.6, '#111', 5)}${hand(min * 6, 34, 2.6, '#d01818', 6)}${hand(sec * 6, 37, 1, '#111', 9)}<circle cx="50" cy="50" r="2.4" fill="#111"/></svg>`;
+  }
+  function renderM2Station() {
+    const [fi, qi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], sc = F && F.stcards && F.stcards[qi]; if (!sc) { state.sel = null; card.hidden = true; return; }
+    const page = Math.floor(Date.now() / 10000) % 2, nm = sc.nome;
+    card.innerHTML = `<div class="m2sign" role="heading" aria-level="2"><b style="font-size:${nm.length > 20 ? 17 : 21}px">${nm}</b></div>
+      <div class="screens">${(sc.schermi || []).map(([lab, dest]) => `<div class="scrbox"><div class="scrlab">${lab} · esempio, non attivo</div>${m2Screen(dest, page)}</div>`).join('')}</div>
+      <div class="stfoot"><span class="note">Scheda grafica: gli schermi non seguono ancora i treni.</span>${analogClock(state.t)}<button id="cardClose">Chiudi</button></div>`;
+    card.hidden = false;
+    document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
+  }
   function renderBoard() {
     const [fi, bi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], b = F.boards[bi], t = state.t;
     const soon = F.line === 'M4' ? 30 : 90;          // 'in arrivo' under 1:30 (M3); driverless M4 under 30 s
@@ -2577,9 +2633,10 @@ window.MTL_CAPS = __CAPS__;
     return c; }
   const KITURL = {};
   const kitUrl = sg => { const k = [sg.type, sg.env, sg.vele, sg.p, sg.legal, sg.dirind, sg.kmh].join('|');
-    return KITURL[k] || (KITURL[k] = (sg.type === 'shunt' ? kitShunt() : sg.type === 'speedind' ? kitSpeedInd(sg.kmh) : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa', dirOn: 'R' })).toDataURL()); };
+    if (!KITURL[k]) { const c = sg.type === 'shunt' ? kitShunt() : sg.type === 'speedind' ? kitSpeedInd(sg.kmh) : kitSprite({ ...sg, lit: ['R'], pOn: sg.p === 'luminosa', dirOn: 'R' }); KITURL[k] = { u: c.toDataURL(), w: c.width, h: c.height }; }
+    return KITURL[k]; };
   // on the map: the signal as it looks (red), a small arrow for the way it faces, the name
-  const kitIcon = (sg, current) => L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="kitsig${current ? ' cur' : ''}"><img alt="" src="${kitUrl(sg)}"><svg width="12" height="12" viewBox="0 0 14 14" style="transform:rotate(${sg.heading}deg)"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="#ffcf3f" stroke="#000" stroke-width="1"/></svg>${sg.name ? `<span>${sg.name}</span>` : ''}</div>` });
+  const kitIcon = (sg, current) => L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="kitsig${current ? ' cur' : ''}"><img alt="" src="${kitUrl(sg).u}" style="width:${kitUrl(sg).w * 2}px;height:${kitUrl(sg).h * 2}px"><svg width="18" height="18" viewBox="0 0 14 14" style="transform:rotate(${sg.heading}deg)"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="${sg.legal === false ? '#ff8a3d' : '#ffcf3f'}" stroke="#000" stroke-width="1"/></svg>${sg.name ? `<span>${sg.name}</span>` : ''}</div>` });
   // the signals already in the line's file (data/rules_<line>.json, packed with the fleet): shown with the ones of this browser
   const FILE_SIGNALS = (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => ((F.edits || {}).signals || []).map(sg => ({ ...sg, line: sg.line || F.line })));
 
@@ -2629,6 +2686,7 @@ window.MTL_CAPS = __CAPS__;
       const ktk = kitTrack(), kh = (pickSig.brg + (sigDir < 0 ? 180 : 0)) % 360, kt = document.getElementById('sigType').value;
       L.marker(pickSig.click || pickSig.ll, { interactive: false, icon: ktk && (kt === 'main' || kt === 'shunt' || kt === 'speedind') ? kitIcon({ ...kitSignal(ktk), heading: kh }, true) : sigIcon(kh, kt, document.getElementById('sigName').value.trim()) }).addTo(currentLayer);
     }
+    if (mode === 'signal' && pickSig && kitTrack()) wayArrows(ALLTRACKS[pickSig.ti], sigDir, '#ffcf3f', currentLayer);   // the way it faces, on the track
     if (mode === 'signal') syncKit();
     ptCount.textContent = pts.length + (pts.length === 1 ? ' point' : ' points');
   }
@@ -2875,8 +2933,13 @@ window.MTL_CAPS = __CAPS__;
   const KS = { env: 'galleria', vele: 2, p: 'luminosa', dirind: false, legal: true, legalAuto: true, envAuto: true };
   const kitTrack = () => pickSig && ALLTRACKS[pickSig.ti] && SIGKIT[ALLTRACKS[pickSig.ti].line] ? ALLTRACKS[pickSig.ti] : null;
   const kitPress = (sel, v) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === String(v)));
-  function kitName() { const shunt = sigTypeSel.value === 'shunt', num = document.getElementById('skNum').value.trim().replace(/^(S|POSTO)\s*/i, '').replace(shunt ? /$^/ : /[ab]$/i, '');
-    return !num ? '' : shunt ? 'S ' + num : (KS.env === 'superficie' ? 'POSTO ' : 'S') + num + (KS.legal ? 'a' : 'b'); }
+  // the name: the number, with S or POSTO from galleria / superficie, or the prefix typed (at Assago the surface signals
+  // are called S49a, S57: Giovanni 5 Nov 2026), then a (legale) or b (illegale); a low shunting signal S + number
+  function kitName() { const shunt = sigTypeSel.value === 'shunt', raw = document.getElementById('skNum').value.trim();
+    const m = raw.match(/^(S|POSTO)?\s*(\d+)\s*[ab]?$/i); if (!m) return '';
+    if (shunt) return 'S ' + m[2];
+    const pre = m[1] ? m[1].toUpperCase() : KS.env === 'superficie' ? 'POSTO' : 'S';
+    return (pre === 'POSTO' ? 'POSTO ' : 'S') + m[2] + (KS.legal ? 'a' : 'b'); }
   function kitSignal(tk) {        // what the signal being placed carries, as it is saved
     const type = sigTypeSel.value, main = type === 'main';
     if (type === 'shunt') return { type, vela: 'tonda', name: kitName() };       // a low shunting signal: only round, named S + number
@@ -2891,6 +2954,8 @@ window.MTL_CAPS = __CAPS__;
     if (sigTypeSel.dataset.kit !== want) { sigTypeSel.innerHTML = want ? SIGKIT[want].types.map(([v, t]) => `<option value="${v}">${t}</option>`).join('') : M3TYPES; sigTypeSel.dataset.kit = want; }
     if (!want) return;
     if (tk && KS.legalAuto && (tk.d === 1 || tk.d === -1)) KS.legal = sigDir === tk.d;
+    document.querySelectorAll('.sdir').forEach(b => { if (b.dataset.m3 == null) b.dataset.m3 = b.textContent;
+      const v = +b.dataset.dir; b.textContent = b.dataset.m3 + (tk && (tk.d === 1 || tk.d === -1) ? (v === tk.d ? ' · verso normale' : ' · contromano') : ''); });
     const main = sigTypeSel.value === 'main';
     kitPress('.skenv', KS.env); kitPress('.skvele', KS.vele); kitPress('.skp', KS.p); kitPress('.sklegal', KS.legal ? 1 : 0); kitPress('.skdirind', KS.dirind ? 1 : 0);
     document.getElementById('skDirRow').hidden = !main;
@@ -2911,7 +2976,8 @@ window.MTL_CAPS = __CAPS__;
     else warn.push('Binario senza verso fisso (' + (tk.c === 'main' ? 'linea' : tk.c) + '): scegli tu legale o illegale.');
     if (tk && !shunt && !spd && pickSig.off > 1) { const right = (pickSig.side === 'right') === (sigDir === 1); if (right !== KS.legal) warn.push(KS.legal ? 'Attenzione: il segnale legale di solito sta a destra del binario, tu l\'hai messo a sinistra.' : 'Attenzione: il segnale illegale di solito sta a sinistra del binario, tu l\'hai messo a destra.'); }
     const num = document.getElementById('skNum').value.trim();
-    if (main && KS.env === 'galleria' && num && !/^\d{3}$/.test(num.replace(/^S/i, '').replace(/[ab]$/i, ''))) warn.push('In galleria il nome è S + 3 cifre (es. S123a).');
+    if (main && KS.env === 'galleria' && num && !/^\d{3}$/.test(num.replace(/^S\s*/i, '').replace(/[ab]$/i, ''))) warn.push('In galleria di solito il nome è S + 3 cifre (es. S123a).');
+    if (main && num && !kitName()) warn.push('Scrivi il numero, eventualmente con S o POSTO davanti (es. 57, S49, POSTO 12).');
     document.getElementById('skInfo').textContent = (shunt || spd ? '' : KS.legal ? 'Legale: vela tonda, nome con a. ' : 'Illegale: vela quadra, nome con b. ') + (kitName() ? 'Nome: ' + kitName() + '. ' : '') + warn.join(' ');
     const pv = document.getElementById('skPreview'), spr = sigTypeSel.value === 'shunt' ? kitShunt() : spd ? kitSpeedInd(document.getElementById('skKmh').value || '45') : kitSprite({ ...kitSignal(tk), lit: ['R'], pOn: KS.p === 'luminosa', dirOn: 'R' });
     pv.width = spr.width; pv.height = spr.height; pv.style.width = spr.width * 3 + 'px'; pv.style.height = spr.height * 3 + 'px'; pv.getContext('2d').drawImage(spr, 0, 0);
@@ -4126,7 +4192,7 @@ window.MTL_CAPS = __CAPS__;
     draw();
     if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); osTick(); comInvioTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
-    if (now - lastCard > (typeof state.sel === 'string' && state.sel[0] === 'b' ? 500 : 1000)) { lastCard = now; const ae = document.activeElement; if (state.sel != null && !(ae && ae.tagName === 'SELECT' && card.contains(ae))) renderCard(); }     // (not while the player is choosing in a menu of the card)
+    if (now - lastCard > (typeof state.sel === 'string' && (state.sel[0] === 'b' || state.sel[0] === 'q') ? 500 : 1000)) { lastCard = now; const ae = document.activeElement; if (state.sel != null && !(ae && ae.tagName === 'SELECT' && card.contains(ae))) renderCard(); }     // (not while the player is choosing in a menu of the card)
     requestAnimationFrame(frame);
   }
   // ---- the radio and the telephone can be moved: drag them by their bar (double click: back to their place); the place

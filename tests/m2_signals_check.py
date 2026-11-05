@@ -3,7 +3,8 @@
 - the way it faces (dir 1 or -1, heading) and, for a semaforo, galleria / superficie and legale / illegale
   with the vela that goes with it (legale tonda, illegale quadra); a semaforo also the lettera P, and in superficie
   1 or 2 vele; the indicatore di direzione (dirind, at a junction: right, left or straight) true or absent;
-- a name, when it has one, in the M2 form: galleria S + 3 digits + a / b, superficie POSTO + number + a / b, a for a
+- a name, when it has one, in the M2 form: S + number + a / b (galleria, and some surface signals: S49a at Assago) or
+  POSTO + number + a / b (superficie), a for a
   legale signal and b for an illegale one; a low shunting signal (manovra, only round) S + number (S 5);
 - an indicatore di velocità (speedind: a pixel screen on its own) the speed it shows, km/h, or null while not known.
 Also: no M2 signal or mark in data/rules_m3.json (the M3's file). Warnings (not failures): a semaforo without a name,
@@ -37,8 +38,8 @@ for k, sg in enumerate(R.get('signals', [])):
         if sg.get('kmh') is None: warn.append(who + ': speed shown not given yet')
     nm = sg.get('name') or ''
     if nm:
-        form = r'^S \d+$' if sg.get('type') == 'shunt' else r'^S\d{3}[ab]$' if sg.get('env') == 'galleria' else r'^POSTO \d+[ab]$' if sg.get('env') == 'superficie' else r'.'
-        if not re.match(form, nm): bad.append(who + ': name not in the M2 form (galleria S123a, superficie POSTO 12a, manovra S 5)')
+        form = r'^S \d+$' if sg.get('type') == 'shunt' else r'^(S\d+|POSTO \d+)[ab]$'     # at Assago the surface signals are S49a, S57 too
+        if not re.match(form, nm): bad.append(who + ': name not in the M2 form (S123a or POSTO 12a, b for illegale; manovra S 5)')
         elif sg.get('type') == 'main' and sg.get('legal') is not None and nm[-1] != ('a' if sg['legal'] else 'b'): bad.append(who + ': name ends with %s but the signal is %s' % (nm[-1], 'legale' if sg['legal'] else 'illegale'))
     if sg.get('type') == 'main' and sg.get('offset_m', 0) > 1 and sg.get('side') in ('left', 'right') and isinstance(sg.get('legal'), bool):
         right = (sg['side'] == 'right') == (sg.get('dir') == 1)

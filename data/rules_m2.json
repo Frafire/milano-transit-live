@@ -1,6 +1,874 @@
 {
-  "_nota": "Semafori e segni della M2 piazzati da Giovanni nell'editor del tracciato (export MTL-EDIT, solo le voci con line M2: tools/import_edit_m2.py). Il file della M3 è data/rules_m3.json e questa chat non lo tocca. Ogni semaforo: type (main semaforo, shunt manovra basso, speedind indicatore di velocità con kmh, stop, nose, nose2, cut), env (galleria / superficie), vele (1 o 2, superficie), p (luminosa / fissa / nessuna), dirind (true: indicatore di direzione al bivio, punti in diagonale a destra o a sinistra, o in verticale per il dritto), legal (true legale: vela tonda, nome con a; false illegale: vela quadra, nome con b), dir e heading (verso di marcia), w (binario di data/osm_m2.txt), name (galleria S + 3 cifre + a/b, superficie POSTO + numero + a/b, manovra S + numero: basso, solo tondo, rosso o rosso + giallo). Il ruolo (blocco, partenza, protezione...) si decide dopo con data/Regole_M2.xlsx.",
-  "signals": [],
-  "marks": [],
-  "tracks": []
+ "_nota": "Semafori e segni della M2 piazzati da Giovanni nell'editor del tracciato (export MTL-EDIT, solo le voci con line M2: tools/import_edit_m2.py). Il file della M3 è data/rules_m3.json e questa chat non lo tocca. Ogni semaforo: type (main semaforo, shunt manovra basso, speedind indicatore di velocità con kmh, stop, nose, nose2, cut), env (galleria / superficie), vele (1 o 2, superficie), p (luminosa / fissa / nessuna), dirind (true: indicatore di direzione al bivio, punti in diagonale a destra o a sinistra, o in verticale per il dritto), legal (true legale: vela tonda, nome con a; false illegale: vela quadra, nome con b), dir e heading (verso di marcia), w (binario di data/osm_m2.txt), name (galleria S + 3 cifre + a/b, superficie POSTO + numero + a/b, manovra S + numero: basso, solo tondo, rosso o rosso + giallo). Il ruolo (blocco, partenza, protezione...) si decide dopo con data/Regole_M2.xlsx.",
+ "signals": [
+  {
+   "line": "M2",
+   "w": 382,
+   "lat": 45.408007,
+   "lon": 9.149267,
+   "on_track": [
+    45.408018,
+    9.14923
+   ],
+   "offset_m": 3.1,
+   "side": "right",
+   "heading": 22,
+   "dir": 1,
+   "type": "main",
+   "name": "POSTO 126a",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 91,
+   "lat": 45.404153,
+   "lon": 9.147033,
+   "on_track": [
+    45.404168,
+    9.146979
+   ],
+   "offset_m": 4.5,
+   "side": "right",
+   "heading": 22,
+   "dir": 1,
+   "type": "main",
+   "name": "POSTO 800011a",
+   "env": "superficie",
+   "vele": 2,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 90,
+   "lat": 45.403802,
+   "lon": 9.146655,
+   "on_track": [
+    45.403787,
+    9.146707
+   ],
+   "offset_m": 4.4,
+   "side": "right",
+   "heading": 202,
+   "dir": 1,
+   "type": "main",
+   "name": "POSTO 8001a",
+   "env": "superficie",
+   "vele": 2,
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 377,
+   "lat": 45.40225,
+   "lon": 9.145922,
+   "on_track": [
+    45.402266,
+    9.145868
+   ],
+   "offset_m": 4.6,
+   "side": "right",
+   "heading": 22,
+   "dir": 1,
+   "type": "main",
+   "name": "POSTO 800a",
+   "env": "superficie",
+   "vele": 1,
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 113,
+   "lat": 45.400185,
+   "lon": 9.144742,
+   "on_track": [
+    45.400191,
+    9.144708
+   ],
+   "offset_m": 2.8,
+   "side": "right",
+   "heading": 16,
+   "dir": 1,
+   "type": "shunt",
+   "name": "S 3",
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 83,
+   "lat": 45.400205,
+   "lon": 9.144662,
+   "on_track": [
+    45.400205,
+    9.144663
+   ],
+   "offset_m": 0.1,
+   "side": "left",
+   "heading": 22,
+   "dir": 1,
+   "type": "shunt",
+   "name": "S 4",
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 236,
+   "lat": 45.400213,
+   "lon": 9.144573,
+   "on_track": [
+    45.400202,
+    9.144612
+   ],
+   "offset_m": 3.2,
+   "side": "right",
+   "heading": 202,
+   "dir": 1,
+   "type": "shunt",
+   "name": "S 5",
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 236,
+   "lat": 45.401311,
+   "lon": 9.145212,
+   "on_track": [
+    45.401299,
+    9.145252
+   ],
+   "offset_m": 3.5,
+   "side": "right",
+   "heading": 202,
+   "dir": 1,
+   "type": "main",
+   "name": "S49a",
+   "env": "superficie",
+   "vele": 1,
+   "p": "nessuna",
+   "legal": true,
+   "vela": "tonda",
+   "name_from": "Giovanni 5/11/2026: segnale a sud di Assago Forum, legale"
+  },
+  {
+   "line": "M2",
+   "w": 83,
+   "lat": 45.401277,
+   "lon": 9.145338,
+   "on_track": [
+    45.401288,
+    9.145297
+   ],
+   "offset_m": 3.4,
+   "side": "right",
+   "heading": 202,
+   "dir": -1,
+   "type": "main",
+   "name": "S49b",
+   "env": "superficie",
+   "vele": 1,
+   "p": "nessuna",
+   "legal": false,
+   "vela": "quadra",
+   "name_from": "Giovanni 5/11/2026: segnale a sud di Assago Forum, illegale"
+  },
+  {
+   "line": "M2",
+   "w": 376,
+   "lat": 45.402292,
+   "lon": 9.145794,
+   "on_track": [
+    45.402282,
+    9.145826
+   ],
+   "offset_m": 2.8,
+   "side": "right",
+   "heading": 22,
+   "dir": -1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "nessuna",
+   "legal": false,
+   "vela": "quadra"
+  },
+  {
+   "line": "M2",
+   "w": 374,
+   "lat": 45.40587,
+   "lon": 9.14788,
+   "on_track": [
+    45.405859,
+    9.147918
+   ],
+   "offset_m": 3.2,
+   "side": "right",
+   "heading": 202,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 375,
+   "lat": 45.406058,
+   "lon": 9.148103,
+   "on_track": [
+    45.406063,
+    9.148087
+   ],
+   "offset_m": 1.4,
+   "side": "right",
+   "heading": 22,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 159,
+   "lat": 45.407452,
+   "lon": 9.148803,
+   "on_track": [
+    45.40744,
+    9.148842
+   ],
+   "offset_m": 3.3,
+   "side": "right",
+   "heading": 202,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 379,
+   "lat": 45.408981,
+   "lon": 9.149702,
+   "on_track": [
+    45.40897,
+    9.149737
+   ],
+   "offset_m": 3,
+   "side": "right",
+   "heading": 202,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 158,
+   "lat": 45.409888,
+   "lon": 9.150353,
+   "on_track": [
+    45.409897,
+    9.150327
+   ],
+   "offset_m": 2.3,
+   "side": "right",
+   "heading": 23,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 380,
+   "lat": 45.410845,
+   "lon": 9.150756,
+   "on_track": [
+    45.410827,
+    9.150822
+   ],
+   "offset_m": 5.6,
+   "side": "right",
+   "heading": 202,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 160,
+   "lat": 45.411779,
+   "lon": 9.151488,
+   "on_track": [
+    45.411794,
+    9.151437
+   ],
+   "offset_m": 4.3,
+   "side": "right",
+   "heading": 22,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 93,
+   "lat": 45.413978,
+   "lon": 9.152775,
+   "on_track": [
+    45.413994,
+    9.152723
+   ],
+   "offset_m": 4.4,
+   "side": "right",
+   "heading": 22,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 95,
+   "lat": 45.416311,
+   "lon": 9.155305,
+   "on_track": [
+    45.416287,
+    9.15532
+   ],
+   "offset_m": 2.9,
+   "side": "right",
+   "heading": 246,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 86,
+   "lat": 45.416445,
+   "lon": 9.156359,
+   "on_track": [
+    45.416488,
+    9.156346
+   ],
+   "offset_m": 4.9,
+   "side": "right",
+   "heading": 77,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 95,
+   "lat": 45.416834,
+   "lon": 9.158261,
+   "on_track": [
+    45.416814,
+    9.158272
+   ],
+   "offset_m": 2.5,
+   "side": "right",
+   "heading": 248,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 86,
+   "lat": 45.417051,
+   "lon": 9.159205,
+   "on_track": [
+    45.417097,
+    9.159161
+   ],
+   "offset_m": 6.2,
+   "side": "right",
+   "heading": 57,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 95,
+   "lat": 45.41813,
+   "lon": 9.160471,
+   "on_track": [
+    45.418114,
+    9.160503
+   ],
+   "offset_m": 3.1,
+   "side": "right",
+   "heading": 213,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 86,
+   "lat": 45.418698,
+   "lon": 9.161012,
+   "on_track": [
+    45.418715,
+    9.16095
+   ],
+   "offset_m": 5.2,
+   "side": "right",
+   "heading": 20,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 95,
+   "lat": 45.420122,
+   "lon": 9.161058,
+   "on_track": [
+    45.420125,
+    9.161133
+   ],
+   "offset_m": 5.8,
+   "side": "right",
+   "heading": 176,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 86,
+   "lat": 45.42072,
+   "lon": 9.161149,
+   "on_track": [
+    45.420718,
+    9.161103
+   ],
+   "offset_m": 3.6,
+   "side": "right",
+   "heading": 355,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 95,
+   "lat": 45.422226,
+   "lon": 9.160784,
+   "on_track": [
+    45.422232,
+    9.160863
+   ],
+   "offset_m": 6.1,
+   "side": "right",
+   "heading": 175,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 86,
+   "lat": 45.422727,
+   "lon": 9.160924,
+   "on_track": [
+    45.422723,
+    9.160848
+   ],
+   "offset_m": 6,
+   "side": "right",
+   "heading": 356,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 95,
+   "lat": 45.424322,
+   "lon": 9.160908,
+   "on_track": [
+    45.424314,
+    9.16096
+   ],
+   "offset_m": 4.2,
+   "side": "right",
+   "heading": 192,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 86,
+   "lat": 45.424649,
+   "lon": 9.16116,
+   "on_track": [
+    45.424656,
+    9.161119
+   ],
+   "offset_m": 3.3,
+   "side": "right",
+   "heading": 14,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 2,
+   "p": "luminosa",
+   "dirind": true,
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 118,
+   "lat": 45.426394,
+   "lon": 9.162088,
+   "on_track": [
+    45.426389,
+    9.162099
+   ],
+   "offset_m": 1,
+   "side": "right",
+   "heading": 206,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 2,
+   "p": "nessuna",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 98,
+   "lat": 45.426437,
+   "lon": 9.161906,
+   "on_track": [
+    45.426427,
+    9.161945
+   ],
+   "offset_m": 3.3,
+   "side": "right",
+   "heading": 200,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 94,
+   "lat": 45.426904,
+   "lon": 9.162273,
+   "on_track": [
+    45.426912,
+    9.162242
+   ],
+   "offset_m": 2.6,
+   "side": "right",
+   "heading": 20,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 98,
+   "lat": 45.427674,
+   "lon": 9.162565,
+   "on_track": [
+    45.427665,
+    9.162597
+   ],
+   "offset_m": 2.7,
+   "side": "right",
+   "heading": 203,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 94,
+   "lat": 45.428043,
+   "lon": 9.162944,
+   "on_track": [
+    45.428057,
+    9.162907
+   ],
+   "offset_m": 3.2,
+   "side": "right",
+   "heading": 27,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 94,
+   "lat": 45.429525,
+   "lon": 9.164379,
+   "on_track": [
+    45.429537,
+    9.164357
+   ],
+   "offset_m": 2.2,
+   "side": "right",
+   "heading": 42,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 98,
+   "lat": 45.429698,
+   "lon": 9.164448,
+   "on_track": [
+    45.429677,
+    9.164479
+   ],
+   "offset_m": 3.3,
+   "side": "right",
+   "heading": 223,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 1,
+   "p": "fissa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 94,
+   "lat": 45.430598,
+   "lon": 9.165937,
+   "on_track": [
+    45.430615,
+    9.165912
+   ],
+   "offset_m": 2.7,
+   "side": "right",
+   "heading": 46,
+   "dir": 1,
+   "type": "speedind",
+   "name": "",
+   "kmh": 45,
+   "kmh_from": "Giovanni 5/11/2026: lo schermo prima di Famagosta segna 45"
+  },
+  {
+   "line": "M2",
+   "w": 221,
+   "lat": 45.431044,
+   "lon": 9.166632,
+   "on_track": [
+    45.431042,
+    9.166635
+   ],
+   "offset_m": 0.3,
+   "side": "right",
+   "heading": 215,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "superficie",
+   "vele": 2,
+   "p": "nessuna",
+   "legal": false,
+   "vela": "quadra"
+  },
+  {
+   "line": "M2",
+   "w": 219,
+   "lat": 45.433509,
+   "lon": 9.16771,
+   "on_track": [
+    45.433509,
+    9.167709
+   ],
+   "offset_m": 0.1,
+   "side": "right",
+   "heading": 11,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "galleria",
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 213,
+   "lat": 45.434949,
+   "lon": 9.168018,
+   "on_track": [
+    45.43495,
+    9.168008
+   ],
+   "offset_m": 0.9,
+   "side": "right",
+   "heading": 6,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "galleria",
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda"
+  },
+  {
+   "line": "M2",
+   "w": 279,
+   "lat": 45.437737,
+   "lon": 9.168246,
+   "on_track": [
+    45.437735,
+    9.168314
+   ],
+   "offset_m": 5.3,
+   "side": "left",
+   "heading": 3,
+   "dir": 1,
+   "type": "main",
+   "name": "",
+   "env": "galleria",
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda"
+  }
+ ],
+ "marks": [],
+ "tracks": []
 }
