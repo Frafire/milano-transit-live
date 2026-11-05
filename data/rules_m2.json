@@ -2,6 +2,7 @@
  "_nota": "Semafori e segni della M2 piazzati da Giovanni nell'editor del tracciato (export MTL-EDIT, solo le voci con line M2: tools/import_edit_m2.py). Il file della M3 è data/rules_m3.json e questa chat non lo tocca. Ogni semaforo: type (main semaforo, shunt manovra basso, speedind indicatore di velocità con kmh, stop, nose, nose2, cut), env (galleria / superficie), vele (1 o 2, superficie), p (luminosa / fissa / nessuna), dirind (true: indicatore di direzione al bivio, punti in diagonale a destra o a sinistra, o in verticale per il dritto), legal (true legale: vela tonda, nome con a; false illegale: vela quadra, nome con b), dir e heading (verso di marcia), w (binario di data/osm_m2.txt), name (galleria S + 3 cifre + a/b, superficie POSTO + numero + a/b, manovra S + numero: basso, solo tondo, rosso o rosso + giallo). Il ruolo (blocco, partenza, protezione...) si decide dopo con data/Regole_M2.xlsx.",
  "signals": [
   {
+   "id": "M2-s001",
    "line": "M2",
    "w": 113,
    "lat": 45.400185,
@@ -19,6 +20,7 @@
    "vela": "tonda"
   },
   {
+   "id": "M2-s002",
    "line": "M2",
    "w": 83,
    "lat": 45.400205,
@@ -36,6 +38,7 @@
    "vela": "tonda"
   },
   {
+   "id": "M2-s003",
    "line": "M2",
    "w": 236,
    "lat": 45.400213,
@@ -53,6 +56,7 @@
    "vela": "tonda"
   },
   {
+   "id": "M2-s004",
    "line": "M2",
    "w": 83,
    "lat": 45.401277,
@@ -75,6 +79,7 @@
    "name_from": "Giovanni 5/11/2026: segnale a sud di Assago Forum, illegale"
   },
   {
+   "id": "M2-s005",
    "line": "M2",
    "w": 236,
    "lat": 45.401311,
@@ -97,6 +102,7 @@
    "name_from": "Giovanni 5/11/2026: segnale a sud di Assago Forum, legale"
   },
   {
+   "id": "M2-s006",
    "line": "M2",
    "w": 377,
    "lat": 45.40225,
@@ -119,6 +125,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026 (era POSTO 800a)"
   },
   {
+   "id": "M2-s007",
    "line": "M2",
    "w": 376,
    "lat": 45.402292,
@@ -141,6 +148,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s008",
    "line": "M2",
    "w": 90,
    "lat": 45.403802,
@@ -163,6 +171,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026 (era POSTO 8001a)"
   },
   {
+   "id": "M2-s009",
    "line": "M2",
    "w": 91,
    "lat": 45.404153,
@@ -185,6 +194,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026 (era POSTO 800011a)"
   },
   {
+   "id": "M2-s010",
    "line": "M2",
    "w": 374,
    "lat": 45.40587,
@@ -207,6 +217,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s011",
    "line": "M2",
    "w": 375,
    "lat": 45.406058,
@@ -229,6 +240,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s012",
    "line": "M2",
    "w": 159,
    "lat": 45.407452,
@@ -251,6 +263,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s013",
    "line": "M2",
    "w": 382,
    "lat": 45.408007,
@@ -272,6 +285,7 @@
    "vela": "tonda"
   },
   {
+   "id": "M2-s014",
    "line": "M2",
    "w": 379,
    "lat": 45.408981,
@@ -294,6 +308,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s015",
    "line": "M2",
    "w": 158,
    "lat": 45.409888,
@@ -316,6 +331,7 @@
    "name_from": "Giovanni 5/11/2026: partenza da Assago Nord verso Famagosta"
   },
   {
+   "id": "M2-s016",
    "line": "M2",
    "w": 380,
    "lat": 45.410845,
@@ -338,6 +354,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s017",
    "line": "M2",
    "w": 160,
    "lat": 45.411779,
@@ -360,6 +377,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s018",
    "line": "M2",
    "w": 93,
    "lat": 45.413978,
@@ -382,6 +400,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s019",
    "line": "M2",
    "w": 95,
    "lat": 45.416311,
@@ -404,6 +423,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s020",
    "line": "M2",
    "w": 86,
    "lat": 45.416445,
@@ -426,6 +446,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s021",
    "line": "M2",
    "w": 95,
    "lat": 45.416834,
@@ -448,6 +469,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s022",
    "line": "M2",
    "w": 86,
    "lat": 45.417051,
@@ -470,6 +492,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s023",
    "line": "M2",
    "w": 95,
    "lat": 45.41813,
@@ -492,6 +515,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s024",
    "line": "M2",
    "w": 86,
    "lat": 45.418698,
@@ -514,6 +538,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s025",
    "line": "M2",
    "w": 95,
    "lat": 45.420122,
@@ -536,6 +561,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s026",
    "line": "M2",
    "w": 86,
    "lat": 45.42072,
@@ -558,6 +584,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s027",
    "line": "M2",
    "w": 95,
    "lat": 45.422226,
@@ -580,6 +607,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s028",
    "line": "M2",
    "w": 86,
    "lat": 45.422727,
@@ -602,6 +630,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s029",
    "line": "M2",
    "w": 95,
    "lat": 45.424322,
@@ -624,6 +653,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s030",
    "line": "M2",
    "w": 86,
    "lat": 45.424649,
@@ -647,6 +677,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s031",
    "line": "M2",
    "w": 118,
    "lat": 45.426394,
@@ -669,6 +700,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s032",
    "line": "M2",
    "w": 98,
    "lat": 45.426437,
@@ -691,6 +723,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s033",
    "line": "M2",
    "w": 94,
    "lat": 45.426904,
@@ -713,6 +746,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s034",
    "line": "M2",
    "w": 98,
    "lat": 45.427674,
@@ -735,6 +769,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s035",
    "line": "M2",
    "w": 94,
    "lat": 45.428043,
@@ -757,6 +792,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s036",
    "line": "M2",
    "w": 94,
    "lat": 45.429525,
@@ -779,6 +815,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s037",
    "line": "M2",
    "w": 98,
    "lat": 45.429698,
@@ -801,6 +838,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s038",
    "line": "M2",
    "w": 94,
    "lat": 45.430598,
@@ -819,6 +857,7 @@
    "kmh_from": "Giovanni 5/11/2026: lo schermo prima di Famagosta segna 45"
   },
   {
+   "id": "M2-s039",
    "line": "M2",
    "w": 221,
    "lat": 45.431044,
@@ -842,6 +881,7 @@
    "dir_from": "Giovanni 5/11/2026: rivolto dall'altra parte, sul binario di servizio verso l'incrocio"
   },
   {
+   "id": "M2-s040",
    "line": "M2",
    "w": 256,
    "lat": 45.433518,
@@ -864,6 +904,7 @@
    "track_from": "Giovanni 5/11/2026: collegato al binario di destra (w256), non a w219"
   },
   {
+   "id": "M2-s041",
    "line": "M2",
    "w": 213,
    "lat": 45.434949,
@@ -885,6 +926,7 @@
    "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
   },
   {
+   "id": "M2-s042",
    "line": "M2",
    "w": 279,
    "lat": 45.437737,
@@ -907,5 +949,6 @@
   }
  ],
  "marks": [],
- "tracks": []
+ "tracks": [],
+ "_nota_id": "id: il codice fisso di ogni segnale (M2-s001...), resta uguale quando il segnale si sposta o cambia nome; l'export dell'editor (Sposta segnali) sostituisce il segnale con lo stesso id e toglie quelli in sigdel."
 }
