@@ -2,7 +2,7 @@
 // (c) the track choice gives the way (dir, heading) and the side Giovanni placed on two known signals;
 // (d) with two tracks about as near it takes the one with the signal on its side; one clearly by a track stays on it;
 // (e) by zoom: nothing under 15, simple symbols 15-17 (no manovra, marmotta), the head turned along the track at 18, the
-//     whole drawing exactly where it was placed at 19, never higher than KITMAX (64 px); by its track, a lead to it.
+//     whole drawing exactly where it was placed at 19, 15% bigger (Giovanni 6 Nov: up to 64 x 1.15 = 73.6 px); by its track, a lead to it.
 // Run from the repo (docs/gioca.html built). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
@@ -53,7 +53,7 @@ const page = 'file://' + path.resolve(__dirname, '..', 'docs', 'gioca.html') + '
   check(z14.kz === 'none' && !z14.simp && !z14.track.length && !z14.place.length, 'zoom 14: no signals');
   check(z16.kz === 'simple' && z16.simp > 0 && !z16.track.length && !z16.place.length && !z16.lowSimple, `zoom 16: simple symbols only (${z16.simp}), no manovra or marmotta`);
   check(z18.kz === 'head' && z18.track.length > 0 && !z18.place.length && Math.max(...z18.track) <= 64.5, `zoom 18: the heads by their track (${z18.track.length}), highest ${Math.max(...z18.track).toFixed(1)} px`);
-  check(z19.kz === 'full' && z19.place.length > 0 && !z19.track.length && Math.max(...z19.place) <= 64.5, `zoom 19: the whole drawings where they were placed (${z19.place.length}), highest ${Math.max(...z19.place).toFixed(1)} px (max 64)`);
+  check(z19.kz === 'full' && z19.place.length > 0 && !z19.track.length && Math.max(...z19.place) <= 74.1 && Math.max(...z19.place) > 64.5, `zoom 19: the whole drawings where they were placed (${z19.place.length}), highest ${Math.max(...z19.place).toFixed(1)} px (15% over 64: max 73.6)`);
   const placed = await p.evaluate(() => window.__mtlKit.placed());
   check(placed.length > 0 && placed.every(q => Math.abs(q.lat - q.mlat) < 1e-9 && Math.abs(q.lon - q.mlon) < 1e-9), `zoom 19: every signal drawn exactly at the point where it was placed (${placed.length})`);
   check(z16.leads && z18.leads, 'by their track: each with its lead to the track');

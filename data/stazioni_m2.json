@@ -1,7 +1,17 @@
 {
-  "_nota": "Le schede stazione della M2 (clic sulla stazione nella pagina M2). Per ora solo la parte grafica, non funzionanti: fascia verde con il nome, orologio analogico (sfondo bianco, ore e secondi neri, minuti rossi: foto di Giovanni del 5/11/2026), schermi di banchina senza l'ora (come nelle foto). Gli schermi mostrano un esempio di testo; il secondo treno di solito non c'è (da verificare). Le stazioni si aggiungono qui; coordinate dalle fermate GTFS (data/gtfs_m2). 'schermi': per ogni schermo l'etichetta e la destinazione di esempio, come nelle foto.",
+  "_nota": "Le schede stazione della M2 (clic sulla stazione nella pagina M2). Per ora solo la parte grafica, non funzionanti: fascia verde con il nome, orologio analogico (sfondo bianco, ore e secondi neri, minuti rossi: foto di Giovanni del 5/11/2026), schermi di banchina senza l'ora (come nelle foto). Gli schermi mostrano un esempio di testo; il secondo treno di solito non c'è (da verificare). Le stazioni si aggiungono qui; coordinate dalle fermate GTFS (data/gtfs_m2). 'schermi': per ogni schermo l'etichetta e la destinazione di esempio, come nelle foto. Gessate - Vimodrone (Giovanni 6/11/2026): niente schermi, ci sono cartelloni di plastica che si illuminano quando arriva un treno (non simulati); stessa scheda di Assago, ma la fascia in alto, bianca ad Assago, è azzurra ('fascia': 'azzurra'). Nomi come nel GTFS, da correggere con le foto se il cartello dice altro.",
   "stazioni": [
     {"nome": "ASSAGO MILANOFIORI FORUM", "gtfs": "ASSAGO MILANOFIORI FORUM", "schermi": [["Partenze", "COLOGNO N."], ["Partenze", "GESSATE"]]},
-    {"nome": "ASSAGO MILANOFIORI NORD", "gtfs": "ASSAGO MILANOFIORI NORD", "schermi": [["Verso Famagosta", "COLOGNO N."], ["Verso Assago Forum", "ASSAGO FORUM"]]}
+    {"nome": "ASSAGO MILANOFIORI NORD", "gtfs": "ASSAGO MILANOFIORI NORD", "schermi": [["Verso Famagosta", "COLOGNO N."], ["Verso Assago Forum", "ASSAGO FORUM"]]},
+    {"nome": "GESSATE", "gtfs": "GESSATE", "fascia": "azzurra", "cartelloni": true},
+    {"nome": "CASCINA ANTONIETTA", "gtfs": "CASCINA ANTONIETTA", "fascia": "azzurra", "cartelloni": true},
+    {"nome": "GORGONZOLA", "gtfs": "GORGONZOLA", "fascia": "azzurra", "cartelloni": true},
+    {"nome": "VILLA POMPEA", "gtfs": "VILLA POMPEA", "fascia": "azzurra", "cartelloni": true},
+    {"nome": "BUSSERO", "gtfs": "BUSSERO", "fascia": "azzurra", "cartelloni": true},
+    {"nome": "CASSINA DE PECCHI", "gtfs": "CASSINA DE PECCHI", "fascia": "azzurra", "cartelloni": true},
+    {"nome": "VILLA FIORITA", "gtfs": "VILLA FIORITA", "fascia": "azzurra", "cartelloni": true},
+    {"nome": "CERNUSCO SUL NAVIGLIO", "gtfs": "CERNUSCO SUL NAVIGLIO", "fascia": "azzurra", "cartelloni": true},
+    {"nome": "CASCINA BURRONA", "gtfs": "CASCINA BURRONA", "fascia": "azzurra", "cartelloni": true},
+    {"nome": "VIMODRONE", "gtfs": "VIMODRONE", "fascia": "azzurra", "cartelloni": true}
   ]
 }

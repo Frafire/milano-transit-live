@@ -847,6 +847,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .sigpx.sh { width: 9px; height: 10px; }
 .nocap { display: none !important; }
 .m2sign { margin: -2px 0 8px; padding: 6px 8px; background: linear-gradient(#3fae3b, #2f9a2d); border-top: 3px solid #e9efe6; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.4); text-align: center; }
+.m2sign.azz { border-top-color: #4aa8e0; }     /* Gessate - Vimodrone: azure where Assago is white (colour a proposal until the photos) */
 .m2sign b { color: #fff; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 600; letter-spacing: .02em; }
 .m2clock { width: 64px; height: 64px; flex: 0 0 auto; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 .asptab table { width: 100%; border-collapse: collapse; font-size: 12px; } .asptab th, .asptab td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -855,6 +856,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .dposto { color: #111; background: #ff9f1c; }
 .dposto.dlav { background: #4db3ff; }
 .dbin { color: #fff; background: #1d2226; border: 1px solid #ff9f1c; }
+.deptab { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; } .deptab th, .deptab td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.deptab th { color: var(--muted); font-weight: 600; } .deptab .muted { color: var(--muted); } .deptab td.n { text-align: right; font-variant-numeric: tabular-nums; } .deptab td:last-child { white-space: nowrap; } .deptab small { display: block; color: var(--muted); font-size: 11px; }
+.depscroll { max-height: 42vh; overflow: auto; } .deprules { margin: 8px 0 0; padding-left: 18px; font-size: 12px; color: var(--muted); } .deprules li { margin: 2px 0; }
+.card.depcard { width: 420px; } @media (max-width: 600px) { .card.depcard { width: auto; } }
 /* the M2 signals on the map (Giovanni 6 Nov 2026), by zoom (data-kz on the map, set by kitZoom):
    19 and over (full): the whole drawing exactly where Giovanni placed it (lat, lon), turned along the track with its head
    the way the trains go; the low signals (manovra, marmotta) smaller. 18 (head): only the head, turned the same way, a
@@ -6180,9 +6185,11 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   function renderCard() {
     card.classList.toggle('stcard', typeof state.sel === 'string' && (state.sel[0] === 'b' || state.sel[0] === 'q'));
     card.classList.toggle('trcard', typeof state.sel === 'string' && state.sel[0] === 'f');
+    card.classList.toggle('depcard', typeof state.sel === 'string' && state.sel[0] === 'D');
     if (state.sel == null) { card.hidden = true; return; }
     if (typeof state.sel === 'string' && state.sel[0] === 'b') return renderBoard();
     if (typeof state.sel === 'string' && state.sel[0] === 'q') return renderM2Station();
+    if (typeof state.sel === 'string' && state.sel[0] === 'D') return renderM2Depot();
     if (typeof state.sel === 'string' && state.sel[0] === 's') return renderStop();
     if (typeof state.sel === 'string' && state.sel[0] === 'g') return renderSignalCard();
     if (state.sel === 'turni') return renderTurni();
@@ -7029,9 +7036,11 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   function renderM2Station() {
     const [fi, qi] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], sc = F && F.stcards && F.stcards[qi]; if (!sc) { state.sel = null; card.hidden = true; return; }
     const page = Math.floor(Date.now() / 10000) % 2, nm = sc.nome;
-    card.innerHTML = `<div class="m2sign" role="heading" aria-level="2"><b style="font-size:${nm.length > 20 ? 17 : 21}px">${nm}</b></div>
-      <div class="screens">${(sc.schermi || []).map(([lab, dest]) => `<div class="scrbox"><div class="scrlab">${lab} · esempio, non attivo</div>${m2Screen(dest, page)}</div>`).join('')}</div>
-      <div class="stfoot"><span class="note">Scheda grafica: gli schermi non seguono ancora i treni.</span>${analogClock(state.t)}<button id="cardClose">Chiudi</button></div>`;
+    // Gessate - Vimodrone (Giovanni 6 Nov): no screens, plastic boards that light up when a train comes (not simulated);
+    // the strip at the top of the sign azure where Assago's is white
+    card.innerHTML = `<div class="m2sign${sc.fascia === 'azzurra' ? ' azz' : ''}" role="heading" aria-level="2"><b style="font-size:${nm.length > 20 ? 17 : 21}px">${nm}</b></div>
+      ${sc.cartelloni ? '' : `<div class="screens">${(sc.schermi || []).map(([lab, dest]) => `<div class="scrbox"><div class="scrlab">${lab} · esempio, non attivo</div>${m2Screen(dest, page)}</div>`).join('')}</div>`}
+      <div class="stfoot"><span class="note">${sc.cartelloni ? 'Qui non ci sono schermi: cartelloni che si illuminano all\'arrivo del treno (non simulati).' : 'Scheda grafica: gli schermi non seguono ancora i treni.'}</span>${analogClock(state.t)}<button id="cardClose">Chiudi</button></div>`;
     card.hidden = false;
     document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
   }
@@ -7458,12 +7467,14 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   const kitHead = sg => kitUrl(sg.type === 'main' ? { ...sg, mount: 'parete', manovra: undefined, marmotta: undefined } : sg.type === 'marm' ? sg : { ...sg, mount: 'parete' });
   const KITMAX = 64, kitLow = sg => sg.type === 'shunt' || sg.type === 'marm';
   const kitScale = (k, sg) => (Math.min(1, KITMAX / k.h) * (kitLow(sg) ? .7 : 1)).toFixed(3);
+  // at 19 and over (where it was placed) 15% bigger than by its track (Giovanni 6 Nov: "un 15% più grandi al massimo"): up to KITMAX_FULL
+  const KITBIG = 1.15, KITMAX_FULL = KITMAX * KITBIG, kitScaleFull = (k, sg) => (kitScale(k, sg) * KITBIG).toFixed(3);
   // the signal by its track (levels 18 and 15-17): the marker is its point on the track, the drawing --kd pixels to its side
   const kitIcon = (sg, current, movable) => { const k = kitHead(sg), b = kitSide(sg) * Math.PI / 180, ux = Math.sin(b), uy = -Math.cos(b), t = 't-' + sg.type + (sg.legal === false ? ' ill' : '');
     return L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="ksw at-track${kitLow(sg) ? ' low' : ''}${movable ? ' mvw' : ''}${current ? ' cur' : ''}" style="--ux:${ux.toFixed(3)};--uy:${uy.toFixed(3)};--a:${(Math.atan2(uy, ux) * 180 / Math.PI).toFixed(1)}deg;--w:${k.w};--h:${k.h};--s:${kitScale(k, sg)};--r:${sg.heading || 0}deg"><i class="klead"></i><div class="kpos"><i class="ksimp ${t}"></i><div class="kturn"><img alt="" src="${k.u}"></div></div></div>` }); };
   // the signal where it was placed (level 19, and the one being moved): the whole drawing, its foot on the point
   const kitPlaceIcon = (sg, current, movable) => { const k = kitUrl(sg);
-    return L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="ksw at-place${kitLow(sg) ? ' low' : ''}${movable ? ' mvw' : ''}${current ? ' cur' : ''}" style="--w:${k.w};--h:${k.h};--s:${kitScale(k, sg)};--r:${sg.heading || 0}deg"><div class="kturn"><img alt="" src="${k.u}"></div>${sg.name || sg.marmotta_name ? `<span class="kname">${[sg.name, sg.marmotta_name].filter(Boolean).join(' · ')}</span>` : ''}</div>` }); };
+    return L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="ksw at-place${kitLow(sg) ? ' low' : ''}${movable ? ' mvw' : ''}${current ? ' cur' : ''}" style="--w:${k.w};--h:${k.h};--s:${kitScaleFull(k, sg)};--r:${sg.heading || 0}deg"><div class="kturn"><img alt="" src="${k.u}"></div>${sg.name || sg.marmotta_name ? `<span class="kname">${[sg.name, sg.marmotta_name].filter(Boolean).join(' · ')}</span>` : ''}</div>` }); };
   // both markers of a signal on a layer (CSS shows the one of the zoom)
   const kitMarkers = (sg, layer) => { L.marker(kitAnchor(sg), { interactive: false, keyboard: false, icon: kitIcon(sg) }).addTo(layer);
     const m = L.marker([sg.lat, sg.lon], { interactive: false, keyboard: false, icon: kitPlaceIcon(sg) }).addTo(layer); return m; };
@@ -7494,6 +7505,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // the M2 depots (tools/depositi_m2.py, data/depositi_m2.json): the places, 115 m per train, numbered binario.posto
   // (posto 1 at the far end: the first in leaves last), the track number at the way in; from zoom 16
   const DEPOTS = (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => F.depots || []);
+  const M2DEPS = [...new Set(DEPOTS.map(d => d.dep))];
   if (DEPOTS.length) {
     const depotLayer = L.layerGroup();
     (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => F.sheds || []).forEach(sh => L.polygon(sh.pts, { color: '#ff9f1c', weight: 1, opacity: .7, fillOpacity: .06, interactive: false }).addTo(depotLayer));
@@ -7511,6 +7523,42 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     });
     const dz = () => { if (map.getZoom() >= 16) depotLayer.addTo(map); else map.removeLayer(depotLayer); };
     map.on('zoomend', dz); dz();
+    // the depot card (Giovanni 6 Nov): a click on the depot (at the middle of its sheds, like a station) opens it
+    M2DEPS.forEach(dep => { const at = depCentre(dep); if (!at) return;
+      const open = () => { state.sel = 'D' + dep; state.follow = false; renderCard(); };
+      L.circleMarker(at, { radius: 18, stroke: false, fillOpacity: 0, bubblingMouseEvents: false }).on('click', open).addTo(map);
+      L.circleMarker(at, { radius: 7, color: '#ff9f1c', weight: 3, fillColor: '#1f3a5f', fillOpacity: 1, bubblingMouseEvents: false })
+        .bindTooltip('Deposito ' + dep, { className: 'st', direction: 'top', offset: [0, -8] }).on('click', open).addTo(map);
+      L.marker(at, { icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<button class="stname rodname" style="--c:#ff9f1c">Deposito ${dep}</button>` }), zIndexOffset: 900 }).on('click', open).addTo(nameLayer); });
+  }
+  // ---- the M2 depot cards: Famagosta, Gorgonzola, Cologno Nord (data/depositi_m2.json, places from tools/depositi_m2.py) ----
+  function M2DEPOT_INFO() { const F = (FLEETDATA ? FLEETDATA.fleets : []).find(f => f.depinfo); return F ? F.depinfo : null; }
+  function depCentre(dep) { const P = (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => F.sheds || []).filter(sh => sh.dep === dep).flatMap(sh => sh.pts);
+    if (!P.length) { const Q = DEPOTS.filter(d => d.dep === dep).flatMap(d => d.posti.flatMap(p => p.pts)); if (!Q.length) return null; P.push(...Q); }
+    return [P.reduce((a, p) => a + p[0], 0) / P.length, P.reduce((a, p) => a + p[1], 0) / P.length]; }
+  function renderM2Depot() {
+    const dep = state.sel.slice(1), T = DEPOTS.filter(d => d.dep === dep).sort((a, b) => a.n - b.n), I = M2DEPOT_INFO() || {};
+    if (!T.length) { state.sel = null; card.hidden = true; return; }
+    const cfg = {}; ((I.depositi || {})[dep] || []).forEach(b => { cfg[b.n] = b; });
+    const esc = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const posti = T.reduce((a, d) => a + d.posti.length, 0), byUse = {};
+    T.forEach(d => { const u = /officina/.test(d.uso) ? 'officina' : /lavaggio/.test(d.uso) ? 'lavaggio' : /^ex /.test(d.uso) ? 'non usati' : 'ricovero'; byUse[u] = (byUse[u] || 0) + d.posti.length; });
+    const rows = T.map(d => { const c = cfg[d.n] || {}, nota = c.nota || '';
+      const where = d.capannone === 'edificio' ? 'capannone' : 'all\'aperto';
+      return `<tr><td class="n"><b>${d.n}</b></td><td>${esc(d.uso)} <span class="muted">· ${where}</span>${nota ? `<small>${esc(nota)}</small>` : ''}</td><td class="n">${d.posti.length || '—'}</td><td>${d.posti.map(p => p.id).join(' ') || '—'}</td></tr>`; }).join('');
+    const lav = (I.lavaggio || {})[dep], ask = v => v == null ? '<em>da chiedere</em>' : esc(v);
+    const others = M2DEPS.filter(x => x !== dep);
+    const rules = (I.regole_giovanni || []).filter(r => r.includes(dep) || !others.some(o => r.includes(o.split(' ')[0])));
+    card.innerHTML = `<div class="hd"><div><h2>Deposito ${esc(dep)}</h2><div class="sub">M2 · scheda dei binari e dei posti · i treni non ci sono ancora</div></div></div>
+      <ul class="pclist"><li><span><b>${posti}</b><small>posti treno (${I.posto_m || 115} m ciascuno, posto 1 in fondo)</small></span><span><b>${T.length}</b><small>binari</small></span></li>
+      <li><span><small>${Object.entries(byUse).filter(([, n]) => n).map(([u, n]) => `${u} ${n}`).join(' · ')}</small></span></li></ul>
+      <div class="depscroll"><table class="deptab"><thead><tr><th>Bin.</th><th>Uso</th><th>Treni</th><th>Posti</th></tr></thead><tbody>${rows}</tbody></table>
+      ${lav ? `<p class="note" style="margin-top:8px"><b>Lavaggio</b>: binario ${lav.binario}, ${esc(lav.impianto)}, ${lav.lunghezza_m} m di capannone; ricovero ${esc(lav.ricovero)}. Velocità ${ask(lav.velocita_kmh)}, durata ${ask(lav.durata_min)}, quando ${ask(lav.quando)}.</p>` : ''}
+      ${rules.length ? `<ul class="deprules">${rules.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}</div>
+      <div class="foot"><button id="depGo">Mostra sulla mappa</button><button id="cardClose">Chiudi</button></div>`;
+    card.hidden = false;
+    document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
+    document.getElementById('depGo').onclick = () => { const P = T.flatMap(d => d.posti.flatMap(p => p.pts)); if (P.length) map.fitBounds(P, { padding: [30, 30], maxZoom: 18 }); };
   }
 
   // the track a signal belongs to. Among the tracks of its line within 12 m of where it stands and running the way it faces
