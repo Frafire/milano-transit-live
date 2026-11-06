@@ -1,5 +1,5 @@
 {
- "_nota": "Depositi della M2 (Giovanni e il collega macchinista, 6/11/2026; disposizioni dal foglio Depositi di Regole_M2.xlsx). Per ogni binario: numero, way OSM (osm; w è solo un promemoria dell'export), uso, treni completi (treni), dove comincia il capannone (capannone). Un posto = posto_m metri per treno, contati dall'inizio del capannone alla fine; posto 1 = in fondo (entra per primo, esce per ultimo), poi verso l'ingresso. tools/depositi_m2.py allunga oltre il tronco i binari troppo corti e calcola i posti. PROPOSTE da confermare: numerazione dei binari da est (a Famagosta e Gorgonzola i binari 1 sono a est, a Cologno non detto), il binario 19 di Famagosta (non trovato tra i binari OSM), il binario 14 di Gorgonzola.",
+ "_nota": "Depositi della M2 (Giovanni e il collega macchinista, 6/11/2026; disposizioni dal foglio Depositi di Regole_M2.xlsx). Per ogni binario: numero, way OSM (osm; w è solo un promemoria dell'export), uso, treni completi (treni), dove comincia il capannone (capannone). Un posto = posto_m metri per treno, contati dall'inizio del capannone alla fine; posto 1 = in fondo (entra per primo, esce per ultimo), poi verso l'ingresso. tools/depositi_m2.py allunga oltre il tronco i binari troppo corti e calcola i posti. PROPOSTE da confermare: numerazione dei binari da est (a Famagosta e Gorgonzola i binari 1 sono a est, a Cologno non detto), il binario 16 di Famagosta (non c'è in OpenStreetMap, disegnato dentro il capannone).",
  "capannone_valori": {
   "edificio": "il capannone è l'edificio OSM del deposito (capannoni): i posti vanno dal suo inizio (lato ventaglio) al fondo; dove il binario OSM finisce prima, si allunga lungo l'asse del capannone",
   "esterno": "binario all'aperto (o fuori dagli edifici OSM): i posti si contano dal tronco verso il ventaglio"
@@ -10,7 +10,12 @@
   "Due treni sullo stesso binario: il primo che entra esce per ultimo; non serve chiamare il DCT; serve solo il giusto spazio tra i due e fermarsi esattamente nel proprio posto.",
   "Al mattino esce prima quello verso l'ingresso; l'altro, al suo turno, esce in avanti dalla stessa parte da cui è entrato.",
   "Gorgonzola 1-2: si entra con l'UdT di testa a pantografi abbassati; al mattino si alzano solo i pantografi dell'UdT di testa dal lato della partenza.",
-  "Famagosta 19 (lavaggio): un treno solo in caso di estrema necessità."
+  "Famagosta 19 (lavaggio): un treno solo in caso di estrema necessità.",
+  "Il secondo treno di un binario esce facendo il cambio banco in deposito.",
+  "Il posto lo decide il DCT; ma l'ordine sul binario segue la fine dei turni: un treno che rientra presto (davanti, in fondo) non potrà mai fare un turno che parte prima di quello che gli sta davanti.",
+  "I 115 m del posto comprendono già lo spazio tra un treno e l'altro: il treno si ferma con il suo centro al centro del posto, con un margine del 4% (manovra manuale).",
+  "Famagosta 19, lavaggio: il treno passa nel lavaggio (90 m di capannone), arriva in fondo al tronchetto, cambia banco e torna in deposito o in linea.",
+  "Gorgonzola 1-2: un treno ciascuno; la linea aerea è staccata per un tratto, non tutto il binario è elettrificato."
  ],
  "lavaggio": {
   "Famagosta": {
@@ -21,7 +26,8 @@
    "velocita_kmh": null,
    "durata_min": null,
    "quando": null,
-   "_nota": "Base dell'autolavaggio: i valori null sono da chiedere a Giovanni (velocità di passaggio, durata, quando si lava un treno)."
+   "_nota": "Base dell'autolavaggio: la zona di lavaggio sono i primi 90 m del binario 19 nel capannone; poi il tronchetto. Velocità di passaggio, durata e quando si lava un treno: da chiedere a Giovanni (null).",
+   "lunghezza_m": 90
   }
  },
  "depositi": {
@@ -148,6 +154,21 @@
    },
    {
     "n": 16,
+    "osm": null,
+    "w": null,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio",
+    "nuovo": {
+     "tra": [
+      15,
+      17
+     ]
+    },
+    "nota": "Binario che in OpenStreetMap non c'è (Giovanni 6/11/2026, dal satellite): disegnato dentro il capannone tra il 15 e il 17, PROPOSTA; il collegamento al ventaglio è da disegnare"
+   },
+   {
+    "n": 17,
     "osm": 136409445,
     "w": 25,
     "uso": "ricovero",
@@ -155,7 +176,7 @@
     "capannone": "edificio"
    },
    {
-    "n": 17,
+    "n": 18,
     "osm": 136409436,
     "w": 21,
     "uso": "ricovero",
@@ -163,22 +184,15 @@
     "capannone": "edificio"
    },
    {
-    "n": 18,
+    "n": 19,
     "osm": 136409574,
     "w": 27,
-    "uso": "ricovero",
-    "treni": 2,
-    "capannone": "edificio",
-    "capannone_come": 17,
-    "nota": "PROPOSTA: in OpenStreetMap la parete nord-ovest del capannone rientra a 90 m dai tronchi; i posti come il binario 17 (Giovanni: 2 treni)"
-   },
-   {
-    "n": 19,
-    "osm": null,
-    "w": null,
     "uso": "lavaggio",
     "treni": 1,
-    "capannone": "edificio"
+    "capannone": "edificio",
+    "capannone_come": 17,
+    "lavaggio": true,
+    "nota": "Lavaggio (Giovanni 6/11/2026): 90 m di capannone con il lavaggio, poi il treno arriva in fondo al tronchetto, cambia banco e torna in deposito o in linea; il posto è in fondo al tronchetto (ricovero solo in caso di estrema necessità)"
    }
   ],
   "Gorgonzola": [
@@ -187,16 +201,18 @@
     "osm": 1204361874,
     "w": 397,
     "uso": "ricovero (in parte senza linea aerea)",
-    "treni": null,
-    "capannone": "edificio"
+    "treni": 1,
+    "capannone": "esterno",
+    "nota": "Un treno (Giovanni 6/11/2026); la linea aerea è staccata per un tratto: non tutto il binario è elettrificato; in OpenStreetMap coperto per 147 m ma fuori dalla sagoma del capannone: il posto si conta dal tronco"
    },
    {
     "n": 2,
     "osm": 1204361873,
     "w": 396,
     "uso": "ricovero (in parte senza linea aerea)",
-    "treni": null,
-    "capannone": "edificio"
+    "treni": 1,
+    "capannone": "esterno",
+    "nota": "Un treno (Giovanni 6/11/2026); la linea aerea è staccata per un tratto: non tutto il binario è elettrificato; in OpenStreetMap coperto per 147 m ma fuori dalla sagoma del capannone: il posto si conta dal tronco"
    },
    {
     "n": 3,
@@ -292,7 +308,8 @@
     "w": 121,
     "uso": "ex ricovero dei treni tradizionali",
     "treni": 0,
-    "capannone": "esterno"
+    "capannone": "esterno",
+    "nota": "Il binario corto dei treni tradizionali della M2 (Giovanni 6/11/2026)"
    }
   ],
   "Cologno Nord": [
@@ -656,5 +673,9 @@
     ]
    }
   ]
+ },
+ "fermata": {
+  "dove": "centro del posto",
+  "margine_pct": 4
  }
 }

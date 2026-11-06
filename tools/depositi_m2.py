@@ -109,6 +109,7 @@ for dep, binari in CFG['depositi'].items():
     near = (sum(p[0] for p in ends0) / len(ends0), sum(p[1] for p in ends0) / len(ends0)) if ends0 else None
     for b in binari:
         rec = dict(dep=dep, n=b['n'], uso=b['uso'], treni=b['treni'], capannone=b['capannone'], posti=[], allunga_m=0)
+        if b.get('nuovo'): rec['nuovo'] = b['nuovo']; depots.append(rec); continue      # drawn after its neighbours (below)
         if str(b.get('osm')) not in BYREF:
             rec['manca'] = 'binario non trovato in OpenStreetMap'; depots.append(rec); notes.append('%s %d: not in OpenStreetMap' % (dep, b['n'])); continue
         w = BYREF[str(b['osm'])]; e = dead_end(w, near)
@@ -142,11 +143,33 @@ for dep, binari in CFG['depositi'].items():
         ext = max(0.0, FAR - start) if n else 0.0
         if inside and n and start < FAR: ext = FAR - start
         for k in range(n):
-            rec['posti'].append(dict(id='%d.%d' % (b['n'], k + 1), pts=along(Q, start + k * POSTO, start + (k + 1) * POSTO)))
+            rec['posti'].append(dict(id='%d.%d' % (b['n'], k + 1), pts=along(Q, start + k * POSTO, start + (k + 1) * POSTO),
+                                     centro=point_at(Q, start + (k + 0.5) * POSTO)))
+        if b.get('lavaggio') and inside:                  # the washing: the first metres of the track in the shed
+            Lw = CFG.get('lavaggio', {}).get(dep, {}).get('lunghezza_m') or 0
+            if Lw: rec['lavaggio'] = along(Q, inside[1] - Lw, inside[1])
         tip = point_at(Q, FAR - ext); rec['allunga_m'] = round(ext, 1); rec['tronco'] = tip; far = tip
         depots.append(rec)
         if ext > 0.05 and w['i'] in TR:        # the track on the map, lengthened at its dead end
             T = decode(TR[w['i']]['p']); T = ([far] + T) if e == 0 else (T + [far]); TR[w['i']]['p'] = encode(T); TR[w['i']]['x'] = round(ext, 1)
+# a track OpenStreetMap does not have (nuovo: between two numbered tracks): straight in the middle of them, from the way in
+# to the back of the shed, as long as theirs; drawn as a new depot track (a proposal: its link to the throat is to be drawn)
+nextw = max(t['w'] for t in F['tracks']) + 1
+for rec in depots:
+    if not rec.get('nuovo'): continue
+    a, c = [next((r for r in depots if r['dep'] == rec['dep'] and r['n'] == n and r.get('posti')), None) for n in rec['nuovo']['tra']]
+    if not (a and c): rec['manca'] = 'vicini senza posti'; continue
+    mid = lambda p, q: [round((p[0] + q[0]) / 2, 6), round((p[1] + q[1]) / 2, 6)]
+    door, back = mid(a['inizio'], c['inizio']), mid(a['posti'][0]['pts'][0], c['posti'][0]['pts'][0])
+    Q = [tuple(back), tuple(door)]; n = rec['treni'] or 0
+    rec['posti'] = [dict(id='%d.%d' % (rec['n'], k + 1), pts=along(Q, k * POSTO, (k + 1) * POSTO), centro=point_at(Q, (k + 0.5) * POSTO)) for k in range(n)]
+    rec.update(w=nextw, inizio=door, tronco=back, capannone_m=round(dist(back, door), 1))
+    F['tracks'].append(dict(c='yard', p=encode([door, back]), w=nextw, g=0, nuovo=True)); nextw += 1
+    notes.append('%s %d: drawn between %d and %d (not in OpenStreetMap)' % (rec['dep'], rec['n'], rec['nuovo']['tra'][0], rec['nuovo']['tra'][1]))
+# the stop: the centre of the place, give or take margine_pct of it (manual driving)
+MARG = round(POSTO * CFG.get('fermata', {}).get('margine_pct', 0) / 100, 1)
+for rec in depots:
+    for p in rec['posti']: p['margine_m'] = MARG
 # a lengthened track that runs into the main line: the place is shown as to be checked (tocca_linea) and listed
 def segd(p, a, b):
     ax, ay = (a[1] - p[1]) * kx(p[0]), (a[0] - p[0]) * KY; bx, by = (b[1] - p[1]) * kx(p[0]), (b[0] - p[0]) * KY

@@ -851,41 +851,35 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .m2clock { width: 64px; height: 64px; flex: 0 0 auto; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 .asptab table { width: 100%; border-collapse: collapse; font-size: 12px; } .asptab th, .asptab td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .asptab td.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; } .asptab th { color: var(--muted); font-weight: 600; }
-/* the foot of the pole on the point (--hw: half the drawing), not the middle of drawing, arrow and name */
-.kitsig { position: absolute; left: 0; top: 0; transform: translate(calc(var(--w) * var(--s) * -0.5px), -100%); display: flex; align-items: flex-end; gap: 2px; pointer-events: none; width: max-content; }
-.kitsig img, .kitsig svg { flex: 0 0 auto; }
 .dposto, .dbin { display: inline-block; transform: translate(-50%, -50%); font: 700 10px var(--body); white-space: nowrap; padding: 0 3px; border-radius: 2px; pointer-events: none; }
 .dposto { color: #111; background: #ff9f1c; }
+.dposto.dlav { background: #4db3ff; }
 .dbin { color: #fff; background: #1d2226; border: 1px solid #ff9f1c; }
-.kitsig.mv { pointer-events: auto; cursor: grab; }
-.kitsig.mv.cur span { background: #ffcf3f; color: #000; }
-.kitsig img { image-rendering: pixelated; filter: drop-shadow(0 0 1px #000); width: calc(var(--w) * var(--s) * 1px); height: calc(var(--h) * var(--s) * 1px); }
-/* the M2 signals on the map (Giovanni 6 Nov 2026): drawn at the point of their track, a fixed distance in pixels to the side
-   where they stand, with a thin lead to the track. By zoom (data-kz on the map, set by kitZoom; the stations' threshold, 15):
-   under 13 nothing, 13-14 a coloured dot, 15-17 a simple symbol, from 18 the full drawing, growing with the zoom (--ks) up
-   to KITMAX pixels high; the low signals (manovra, marmotta) a little smaller (--kf) */
-.ksw { position: relative; width: 0; height: 0; --s: calc(min(var(--ks, 1.5), calc(var(--kmax, 64) / var(--h, 20))) * var(--kf, 1)); }
-.ksw.sm { --kf: .8; }
-.klead { position: absolute; left: 0; top: 0; width: calc(var(--kd, 14) * 1px); height: 1px; background: rgba(255,255,255,.8); box-shadow: 0 0 1px #000; transform-origin: 0 50%; transform: rotate(var(--a)); pointer-events: none; }
-.kpos { position: absolute; left: 0; top: 0; transform: translate(calc(var(--ux) * var(--kd, 14) * 1px), calc(var(--uy) * var(--kd, 14) * 1px)); }
-.kdot, .ksimp { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: block; pointer-events: none; }
-.kdot { width: 6px; height: 6px; border-radius: 50%; background: #e0192f; box-shadow: 0 0 0 1px #000; }
-.kdot.t-shunt { background: #ffcf3f; } .kdot.t-marm { background: #fff; } .kdot.t-speedind { background: #8fb7d6; } .kdot.t-rall { background: #f2c200; }
-.ksimp { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #f2f2f2; background: radial-gradient(circle, #e0192f 0 34%, #101010 38%); box-shadow: 0 0 1px #000; }
+/* the M2 signals on the map (Giovanni 6 Nov 2026), by zoom (data-kz on the map, set by kitZoom):
+   19 and over (full): the whole drawing exactly where Giovanni placed it (lat, lon), turned along the track with its head
+   the way the trains go; the low signals (manovra, marmotta) smaller. 18 (head): only the head, turned the same way, a
+   fixed distance in pixels to the side of its track, with a lead to it. 15-17 (simple): a small round (legale) or square
+   (illegale) symbol by the track, no manovra or marmotta. Under 15: nothing. --s: the drawing's scale, at most KITMAX px */
+.ksw { position: relative; width: 0; height: 0; }
+.kturn { position: absolute; left: 0; top: 0; transform: rotate(var(--r)); transform-origin: 0 0; pointer-events: none; }
+.kturn img { position: absolute; left: calc(var(--w) * var(--s) * -0.5px); top: calc(var(--h) * var(--s) * -1px); width: calc(var(--w) * var(--s) * 1px); height: calc(var(--h) * var(--s) * 1px); image-rendering: pixelated; filter: drop-shadow(0 0 1px #000); }
+.kname { position: absolute; left: 7px; top: -7px; font: 700 9px var(--body); color: #fff; background: rgba(0,0,0,.6); padding: 0 3px; border-radius: 2px; white-space: nowrap; pointer-events: none; }
+.klead { position: absolute; left: 0; top: 0; width: calc(var(--kd, 10) * 1px); height: 1px; background: rgba(255,255,255,.8); box-shadow: 0 0 1px #000; transform-origin: 0 50%; transform: rotate(var(--a)); pointer-events: none; }
+.kpos { position: absolute; left: 0; top: 0; transform: translate(calc(var(--ux) * var(--kd, 10) * 1px), calc(var(--uy) * var(--kd, 10) * 1px)); }
+.ksimp { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: block; pointer-events: none; width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #f2f2f2; background: radial-gradient(circle, #e0192f 0 34%, #101010 38%); box-shadow: 0 0 1px #000; }
 .ksimp.ill { border-radius: 1px; }
-.ksimp.t-shunt { width: 7px; height: 7px; border-color: #d9dcdf; }
-.ksimp.t-marm { width: 7px; height: 6px; border-radius: 1px; border: 1px solid #8a8a8a; background: #101010; }
 .ksimp.t-speedind { width: 10px; height: 7px; border-radius: 1px; border: 1px solid #5d6468; background: #050505; }
 .ksimp.t-rall { width: 9px; height: 9px; border-radius: 0; border: 1px solid #0c0c0c; background: #f2c200; }
-.leaflet-container[data-kz="none"] .ksw { display: none; }
-.leaflet-container[data-kz="dot"] .ksimp, .leaflet-container[data-kz="dot"] .kitsig { display: none; }
-.leaflet-container[data-kz="simple"] .kdot, .leaflet-container[data-kz="simple"] .kitsig { display: none; }
-.leaflet-container[data-kz="full"] .kdot, .leaflet-container[data-kz="full"] .ksimp { display: none; }
-.ksw.mvw .ksimp, .ksw.mvw .kdot { pointer-events: auto; cursor: grab; }
-.ksw.cur .ksimp, .ksw.cur .kdot { outline: 1px dashed #ffcf3f; outline-offset: 1px; }
-.kitsig svg { margin-left: 2px; align-self: flex-start; filter: drop-shadow(0 0 1px #000); }
-.kitsig span { position: absolute; left: 100%; top: -14px; margin-left: 4px; font: 700 11px var(--body); color: #fff; background: rgba(0,0,0,.75); padding: 0 4px; border-radius: 3px; white-space: nowrap; }
-.kitsig.cur img { outline: 1px dashed #ffcf3f; }
+.leaflet-container[data-kz="none"] .ksw:not(.mvw) { display: none; }
+.leaflet-container:not([data-kz="full"]) .ksw.at-place:not(.mvw) { display: none; }
+.leaflet-container[data-kz="full"] .ksw.at-track { display: none; }
+.leaflet-container[data-kz="simple"] .ksw.at-track .kturn { display: none; }
+.leaflet-container[data-kz="simple"] .ksw.at-track.low { display: none; }
+.leaflet-container[data-kz="head"] .ksw.at-track .ksimp { display: none; }
+.leaflet-container:not([data-kz="full"]) .ksw.at-place .kname { display: none; }
+.ksw.mvw .kturn, .ksw.mvw .kturn img { pointer-events: auto; cursor: grab; }
+.ksw.cur .kturn img { outline: 1px dashed #ffcf3f; outline-offset: 1px; }
+.ksw.cur .kname { background: #ffcf3f; color: #000; }
 .sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
@@ -7449,15 +7443,25 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // on its track (on_track); the drawing stands a fixed distance in pixels to the side where the signal is: the side it was
   // placed on (side, offset_m), or for one placed on the track right of the way trains go if legale, left if illegale
   const kitAnchor = sg => sg.on_track || [sg.lat, sg.lon];
+  const KITPLACED = [];
   const kitSide = sg => { const right = sg.offset_m >= 1 && (sg.side === 'left' || sg.side === 'right') ? (sg.side === 'right') === (sg.dir !== -1) : sg.legal !== false;
     return ((sg.heading || 0) + (right ? 90 : 270)) % 360; };
-  const kitIcon = (sg, current, movable) => { const k = kitUrl(sg), b = kitSide(sg) * Math.PI / 180, ux = Math.sin(b), uy = -Math.cos(b), t = 't-' + sg.type + (sg.legal === false ? ' ill' : '');
-    return L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="ksw${sg.type === 'shunt' || sg.type === 'marm' ? ' sm' : ''}${movable ? ' mvw' : ''}${current ? ' cur' : ''}" style="--ux:${ux.toFixed(3)};--uy:${uy.toFixed(3)};--a:${(Math.atan2(uy, ux) * 180 / Math.PI).toFixed(1)}deg;--w:${k.w};--h:${k.h}"><i class="klead"></i><div class="kpos"><i class="kdot ${t}"></i><i class="ksimp ${t}"></i><div class="kitsig${current ? ' cur' : ''}${movable ? ' mv' : ''}"><img alt="" src="${k.u}"><svg width="18" height="18" viewBox="0 0 14 14" style="transform:rotate(${sg.heading}deg)"><path d="M7 1 L12 12 L7 9 L2 12 Z" fill="${sg.legal === false ? '#ff8a3d' : '#ffcf3f'}" stroke="#000" stroke-width="1"/></svg>${sg.name || sg.marmotta_name ? `<span>${[sg.name, sg.marmotta_name].filter(Boolean).join(' · ')}</span>` : ''}</div></div></div>` }); };
-  // the level of detail by zoom, on the map's container (CSS above)
-  const KITMAX = 64;
+  // the head only (no pole, nothing under it): the drawing of level 18
+  const kitHead = sg => kitUrl(sg.type === 'main' ? { ...sg, mount: 'parete', manovra: undefined, marmotta: undefined } : sg.type === 'marm' ? sg : { ...sg, mount: 'parete' });
+  const KITMAX = 64, kitLow = sg => sg.type === 'shunt' || sg.type === 'marm';
+  const kitScale = (k, sg) => (Math.min(1, KITMAX / k.h) * (kitLow(sg) ? .7 : 1)).toFixed(3);
+  // the signal by its track (levels 18 and 15-17): the marker is its point on the track, the drawing --kd pixels to its side
+  const kitIcon = (sg, current, movable) => { const k = kitHead(sg), b = kitSide(sg) * Math.PI / 180, ux = Math.sin(b), uy = -Math.cos(b), t = 't-' + sg.type + (sg.legal === false ? ' ill' : '');
+    return L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="ksw at-track${kitLow(sg) ? ' low' : ''}${movable ? ' mvw' : ''}${current ? ' cur' : ''}" style="--ux:${ux.toFixed(3)};--uy:${uy.toFixed(3)};--a:${(Math.atan2(uy, ux) * 180 / Math.PI).toFixed(1)}deg;--w:${k.w};--h:${k.h};--s:${kitScale(k, sg)};--r:${sg.heading || 0}deg"><i class="klead"></i><div class="kpos"><i class="ksimp ${t}"></i><div class="kturn"><img alt="" src="${k.u}"></div></div></div>` }); };
+  // the signal where it was placed (level 19, and the one being moved): the whole drawing, its foot on the point
+  const kitPlaceIcon = (sg, current, movable) => { const k = kitUrl(sg);
+    return L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="ksw at-place${kitLow(sg) ? ' low' : ''}${movable ? ' mvw' : ''}${current ? ' cur' : ''}" style="--w:${k.w};--h:${k.h};--s:${kitScale(k, sg)};--r:${sg.heading || 0}deg"><div class="kturn"><img alt="" src="${k.u}"></div>${sg.name || sg.marmotta_name ? `<span class="kname">${[sg.name, sg.marmotta_name].filter(Boolean).join(' · ')}</span>` : ''}</div>` }); };
+  // both markers of a signal on a layer (CSS shows the one of the zoom)
+  const kitMarkers = (sg, layer) => { L.marker(kitAnchor(sg), { interactive: false, keyboard: false, icon: kitIcon(sg) }).addTo(layer);
+    const m = L.marker([sg.lat, sg.lon], { interactive: false, keyboard: false, icon: kitPlaceIcon(sg) }).addTo(layer); return m; };
   function kitZoom() { const z = map.getZoom(), el = map.getContainer();
-    el.dataset.kz = z < 13 ? 'none' : z < 15 ? 'dot' : z < 18 ? 'simple' : 'full';
-    el.style.setProperty('--kd', z < 15 ? 6 : z < 18 ? 10 : 14); el.style.setProperty('--ks', z >= 19 ? 2 : 1.5); el.style.setProperty('--kmax', KITMAX); }
+    el.dataset.kz = z < 15 ? 'none' : z < 18 ? 'simple' : z < 19 ? 'head' : 'full';
+    el.style.setProperty('--kd', z < 18 ? 8 : 10); }
   map.on('zoomend', kitZoom); kitZoom();
   // the signals already in the line's file (data/rules_<line>.json, packed with the fleet): shown with the ones of this browser
   const FILE_SIGNALS = (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => ((F.edits || {}).signals || []).map(sg => ({ ...sg, line: sg.line || F.line })));
@@ -7471,7 +7475,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   function drawKitSigs() {
     kitSigLayer.clearLayers(); const btn = document.getElementById('kitSigBtn'); if (btn) btn.setAttribute('aria-pressed', String(kitSigOn));
     if (!kitSigOn || (drawing && mode === 'move')) { map.removeLayer(kitSigLayer); return; }    // Sposta segnali draws them itself
-    lineSigs(LINE).filter(sg => SIGKIT[sg.line] && isKit(sg)).forEach(sg => L.marker(kitAnchor(sg), { interactive: false, keyboard: false, icon: kitIcon(sg) }).addTo(kitSigLayer));
+    KITPLACED.length = 0;
+    lineSigs(LINE).filter(sg => SIGKIT[sg.line] && isKit(sg)).forEach(sg => KITPLACED.push([sg, kitMarkers(sg, kitSigLayer)]));
     kitSigLayer.addTo(map);
     const n = document.getElementById('kitSigNote'); if (n) n.textContent = `${kitSigLayer.getLayers().length} segnali sulla mappa. Per ora tutti a rosso: gli aspetti arriveranno con il motore della linea.`;
   }
@@ -7487,8 +7492,13 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     DEPOTS.forEach(d => {
       d.posti.forEach(p => { if (p.pts.length < 2) return;
         L.polyline(p.pts, p.tocca_linea ? { color: '#ff4d4d', weight: 4, opacity: .8, dashArray: '4 4', interactive: false } : { color: '#ff9f1c', weight: 7, opacity: .45, interactive: false }).addTo(depotLayer);     // tocca_linea: to be checked
+        // the stop: the centre of the place (margine_m: give or take, manual driving)
+        if (p.centro) L.circleMarker(p.centro, { radius: 2, color: '#111', weight: 1, fillColor: '#fff', fillOpacity: 1, interactive: false }).addTo(depotLayer);
         const a = p.pts[0], b = p.pts[p.pts.length - 1];
         L.marker([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="dposto">${p.id}</span>` }) }).addTo(depotLayer); });
+      if (d.lavaggio && d.lavaggio.length > 1) { L.polyline(d.lavaggio, { color: '#4db3ff', weight: 7, opacity: .6, interactive: false }).addTo(depotLayer);
+        const a = d.lavaggio[0], b = d.lavaggio[d.lavaggio.length - 1];
+        L.marker([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: '<span class="dposto dlav">lavaggio</span>' }) }).addTo(depotLayer); }
       if (d.inizio) L.marker(d.inizio, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="dbin" title="${d.dep}, binario ${d.n}: ${d.uso}">${d.n}</span>` }) }).addTo(depotLayer);
     });
     const dz = () => { if (map.getZoom() >= 16) depotLayer.addTo(map); else map.removeLayer(depotLayer); };
@@ -7517,8 +7527,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         if (!any || d < any.d) any = c;
         if ((d < 1 || onRight === right) && (!best || d < best.d)) best = c; } });
     return best || any; }
-  // the tests' way in (tests/m2_editor_check.js): no state, only the tracks of the page
-  window.__mtlKit = { trackFor: (lat, lon, heading, right, line) => { const c = kitTrackFor([lat, lon], heading, right, line || 'M2'); return c && { w: c.w, dir: c.dir, heading: c.heading, side: c.side, d: c.d }; } };
+  // the tests' way in (tests/m2_editor_check.js): no state, only the tracks of the page, and where the signals are drawn at level 19
+  window.__mtlKit = { placed: () => KITPLACED.map(([sg, m]) => ({ lat: sg.lat, lon: sg.lon, mlat: m.getLatLng().lat, mlon: m.getLatLng().lng })), trackFor: (lat, lon, heading, right, line) => { const c = kitTrackFor([lat, lon], heading, right, line || 'M2'); return c && { w: c.w, dir: c.dir, heading: c.heading, side: c.side, d: c.d }; } };
   // nearest track to a click, with the point on it and the track's own direction there
   function snap(latlng, tol = 18) {
     const P = map.latLngToContainerPoint(latlng); let best = null;
@@ -7563,7 +7573,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (mode === 'signal' && pickSig) {
       if (pickSig.click && pickSig.off > 1) L.polyline([pickSig.click, pickSig.ll], { color: '#fff', weight: 1, dashArray: '2 3', interactive: false }).addTo(currentLayer);
       const ktk = kitTrack(), kh = (pickSig.brg + (sigDir < 0 ? 180 : 0)) % 360, kt = document.getElementById('sigType').value;
-      L.marker(ktk && KITTYPES.includes(kt) ? pickSig.ll : pickSig.click || pickSig.ll, { interactive: false, icon: ktk && KITTYPES.includes(kt) ? kitIcon({ ...kitSignal(ktk), heading: kh, offset_m: pickSig.off, side: pickSig.side, dir: sigDir }, true) : sigIcon(kh, kt, document.getElementById('sigName').value.trim()) }).addTo(currentLayer);
+      L.marker(pickSig.click || pickSig.ll, { interactive: false, icon: ktk && KITTYPES.includes(kt) ? kitPlaceIcon({ ...kitSignal(ktk), heading: kh }, true, true) : sigIcon(kh, kt, document.getElementById('sigName').value.trim()) }).addTo(currentLayer);
     }
     if (mode === 'signal' && pickSig && kitTrack()) wayArrows(ALLTRACKS[pickSig.ti], sigDir, '#ffcf3f', currentLayer);   // the way it faces, on the track
     if (mode === 'signal') syncKit();
@@ -7586,11 +7596,11 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const shown = sg => kitSigOn && kitDraw(sg) && sg.line === LINE && !(drawing && mode === 'move');
     const moving = sg => mode === 'move' && sg.line === LINE && SIGKIT[sg.line];
     FILE_SIGNALS.forEach(sg => { if (sigOverridden(sg) || (ED.sigdel || []).includes(sg.id) || moving(sg) || shown(sg)) return;
-      L.marker(kitDraw(sg) ? kitAnchor(sg) : [sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer); });
+      if (kitDraw(sg)) kitMarkers(sg, savedLayer); else L.marker([sg.lat, sg.lon], { interactive: false, icon: sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer); });
     if (FILE_SIGNALS.length) { add(`Nel file della linea: ${FILE_SIGNALS.length} segnali (per spostarli o cambiarli: Sposta segnali)`, () => {}); trkList.lastChild.lastChild.remove(); }
     if ((ED.sigdel || []).length) add(`Segnali del file eliminati: ${ED.sigdel.length}`, () => { ED.sigdel = []; persist(); redrawSaved(); drawMove(); drawKitSigs(); });
     ED.signals.forEach((sg, i) => {
-      if (!moving(sg) && !shown(sg)) L.marker(kitDraw(sg) ? kitAnchor(sg) : [sg.lat, sg.lon], { interactive: false, icon: kitDraw(sg) ? kitIcon(sg) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer);
+      if (!moving(sg) && !shown(sg)) { if (kitDraw(sg)) kitMarkers(sg, savedLayer); else L.marker([sg.lat, sg.lon], { interactive: false, icon: sigIcon(sg.heading, sg.type, sg.name) }).addTo(savedLayer); }
       add((FILE_SIGNALS.some(x => x.id && x.id === sg.id) ? 'Spostato/cambiato: ' : 'Signal ') + (sg.name || '') + ' · ' + sg.type + ' · ' + sg.line + (sg.desc ? ' · ' + sg.desc : ''), () => { ED.signals.splice(i, 1); persist(); redrawSaved(); drawMove(); drawKitSigs(); });
     });
     ED.tracks.forEach((tk, i) => {
@@ -7927,14 +7937,10 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (!(drawing && mode === 'move')) return;
     const sigs = mvSigs(), sel = mvSel ? sigs.find(sg => sg.id === mvSel) : null;
     sigs.forEach(sg => {
-      const pos = mvKit(sg) ? kitAnchor(sg) : [sg.lat, sg.lon];
-      const m = L.marker(pos, { draggable: true, icon: mvKit(sg) ? kitIcon(sg, sg === sel, true) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(moveLayer);
+      const m = L.marker([sg.lat, sg.lon], { draggable: true, icon: mvKit(sg) ? kitPlaceIcon(sg, sg === sel, true) : sigIcon(sg.heading, sg.type, sg.name) }).addTo(moveLayer);
       m.on('click', () => { mvSel = sg.id; drawMove(); });
       m.on('dragend', () => {
-        // where the drawing was dropped: the marker is its track point, the drawing --kd pixels to its side
-        let ll = m.getLatLng();
-        if (mvKit(sg)) { const b = kitSide(sg) * Math.PI / 180, kd = +getComputedStyle(map.getContainer()).getPropertyValue('--kd') || 14, q = map.latLngToContainerPoint(ll);
-          ll = map.containerPointToLatLng([q.x + Math.sin(b) * kd, q.y - Math.cos(b) * kd]); }
+        const ll = m.getLatLng();          // where the signal stands: the marker is its foot
         const s = snap(ll, 80);
         if (!s) { document.getElementById('mvPick').textContent = 'Nessun binario lì vicino: il segnale resta dov\'era.'; drawMove(); return; }
         const tk = ALLTRACKS[s.ti], turn = Math.abs(((s.brg - (sg.heading || 0)) % 360 + 540) % 360 - 180) > 90, h0 = Math.round((s.brg + (turn ? 180 : 0)) % 360);
@@ -7969,7 +7975,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     document.getElementById('mvUndo').hidden = !(FILE_SIGNALS.some(y => y.id && y.id === sel.id) && ED.signals.some(y => y.id === sel.id));
   }
   { const cur = () => mvSel && mvSigs().find(sg => sg.id === mvSel);
-    document.getElementById('mvFind').onchange = e => { mvSel = e.target.value || null; const sg = cur(); if (sg) map.setView(mvKit(sg) ? kitAnchor(sg) : [sg.lat, sg.lon], Math.max(map.getZoom(), 19)); drawMove(); };
+    document.getElementById('mvFind').onchange = e => { mvSel = e.target.value || null; const sg = cur(); if (sg) map.setView([sg.lat, sg.lon], Math.max(map.getZoom(), 19)); drawMove(); };
     document.getElementById('mvName').oninput = e => { const sg = cur(); if (sg) mvChanged(sg, x => { x.name = e.target.value.trim(); }); };
     document.getElementById('mvFlip').onclick = () => { const sg = cur(); if (sg) mvChanged(sg, x => { x.dir = -x.dir; x.heading = Math.round(((x.heading || 0) + 180) % 360); }); };
     document.querySelectorAll('.mvlegal').forEach(b => b.onclick = () => { const sg = cur(); if (sg) mvChanged(sg, x => { x.legal = b.dataset.v === '1'; x.vela = x.legal ? 'tonda' : 'quadra'; if (/\d[ab]$/.test(x.name || '')) x.name = x.name.slice(0, -1) + (x.legal ? 'a' : 'b'); }); });

@@ -25,6 +25,12 @@ got = {(d['dep'], d['n']): d for d in DEP}
 check(set(want) == set(got), 'depots: every track of data/depositi_m2.json built (%d)' % len(got))
 missing = [k for k, d in got.items() if d.get('manca')]
 check(all(want[k].get('osm') is None for k in missing), 'tracks not in OpenStreetMap only where the file does not know them yet: %s' % (', '.join('%s %d' % k for k in missing) or 'none'))
+new = [k for k, d in got.items() if d.get('nuovo')]
+check(all(got[k].get('posti') or not want[k]['treni'] for k in new), 'tracks drawn because OpenStreetMap lacks them (between two numbered ones): %s' % (', '.join('%s %d' % k for k in new) or 'none'))
+wash = [d for d in DEP if want[(d['dep'], d['n'])].get('lavaggio')]
+check(all(d.get('lavaggio') and abs(plen(d['lavaggio']) - CFG['lavaggio'][d['dep']]['lunghezza_m']) < 0.5 for d in wash), 'washing: its stretch of %s m on the washing track (%d)' % ('/'.join(str(CFG['lavaggio'][d['dep']]['lunghezza_m']) for d in wash), len(wash)))
+ctr = [p for d in DEP for p in d['posti'] if not p.get('centro') or abs(dist(p['centro'], p['pts'][0]) - P / 2) > 0.5]
+check(not ctr, 'each place has its stop at its centre, give or take %s%%' % CFG['fermata']['margine_pct'])
 wrong = []
 for k, d in got.items():
     if d.get('manca'): continue
@@ -36,7 +42,7 @@ for k, d in got.items():
     for a, b in zip(d['posti'], d['posti'][1:]):
         if dist(a['pts'][-1], b['pts'][0]) > 0.5: wrong.append('%s %d: gap or overlap between %s and %s' % (k + (a['id'], b['id'])))
 check(not wrong, 'each track: one place of %d m per train, numbered from the far end, one after the other%s' % (P, ': ' + '; '.join(wrong[:4]) if wrong else ''))
-for dep, n in (('Famagosta', 24 + 12), ('Gorgonzola', 17 + 3), ('Cologno Nord', 9)):
+for dep, n in (('Famagosta', 24 + 12 + 1), ('Gorgonzola', 17 + 3 + 2), ('Cologno Nord', 9)):
     tot = sum(len(d['posti']) for d in DEP if d['dep'] == dep)
     check(tot == n, '%s: %d places (%d expected)' % (dep, tot, n))
 ends = []
@@ -46,7 +52,7 @@ for d in DEP:
     if min(dist(T[0], far), dist(T[-1], far)) > 0.5 or abs(TR[d['w']].get('x', 0) - d['allunga_m']) > 0.05: ends.append('%s %d' % (d['dep'], d['n']))
 check(not ends, 'lengthened tracks: only at their dead end (%d tracks%s)' % (sum(1 for d in DEP if d.get('allunga_m')), ': ' + ', '.join(ends) if ends else ''))
 # every place of a shed track inside the shed's outline (capannoni), except the ones listed here, with the reason
-KNOWN = {('Famagosta', 18): "in OpenStreetMap the shed's north-west wall steps in 90 m from the dead ends: 2 trains by Giovanni, to be checked"}
+KNOWN = {('Famagosta', 19): "the washing track: 90 m of shed with the washing, then the stub out of the shed (Giovanni, 6 Nov); its place is at the end of the stub"}
 def inpoly(p, poly):
     x, y, c = p[1], p[0], False
     for (y1, x1), (y2, x2) in zip(poly, poly[1:] + poly[:1]):

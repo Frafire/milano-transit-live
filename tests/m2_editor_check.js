@@ -1,8 +1,8 @@
 // M2 signals editor and map (Giovanni, 6 Nov 2026), in a browser:
 // (c) the track choice gives the way (dir, heading) and the side Giovanni placed on two known signals;
 // (d) with more tracks close by it takes the right one (the one with the signal on its side), not just the nearest;
-// (e) at high zoom no drawn signal is higher than the largest size (KITMAX, 64 px); by zoom: dots, simple symbols, full;
-//     every drawn signal has its lead to the track.
+// (e) by zoom: nothing under 15, simple symbols 15-17 (no manovra, marmotta), the head turned along the track at 18, the
+//     whole drawing exactly where it was placed at 19, never higher than KITMAX (64 px); by its track, a lead to it.
 // Run from the repo (docs/gioca.html built). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
@@ -34,19 +34,24 @@ const page = 'file://' + path.resolve(__dirname, '..', 'docs', 'gioca.html') + '
   const ill = await p.evaluate(m => window.__mtlKit.trackFor(m[0], m[1], 65, false), mid);
   check(nearest && nearest.w === 259 && chosen && chosen.w === 61 && chosen.side === 'right' && ill && ill.w === 259,
     `between w61 and w259, nearer w${nearest && nearest.w}: legale -> w${chosen && chosen.w} (${chosen && chosen.side}), illegale -> w${ill && ill.w}`);
-  // (e) sizes by zoom
-  const at = async z => { await p.evaluate(z => { window.__m.setView([45.5160, 9.2710], z); }, z); await p.waitForTimeout(1200);
-    return p.evaluate(() => ({ kz: window.__m.getContainer().dataset.kz,
-      img: [...document.querySelectorAll('.kitsig img')].map(i => i.getBoundingClientRect()).filter(r => r.width).map(r => r.height),
-      simp: [...document.querySelectorAll('.ksimp')].map(i => i.getBoundingClientRect()).filter(r => r.width).map(r => r.width),
-      dots: [...document.querySelectorAll('.kdot')].filter(i => i.getBoundingClientRect().width).length,
-      leads: [...document.querySelectorAll('.ksw')].filter(i => getComputedStyle(i).display !== 'none').every(w => w.querySelector('.klead')) })); };
+  // (e) by zoom (Giovanni 6 Nov): under 15 nothing; 15-17 simple symbols, no manovra or marmotta; 18 the head, turned along
+  // the track; 19 the whole drawing exactly where it was placed; never higher than KITMAX (64 px)
+  const at = async z => { await p.evaluate(z => { window.__m.setView([45.5160, 9.2692], z); }, z); await p.waitForTimeout(1200);
+    return p.evaluate(() => { const vis = e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+      return { kz: window.__m.getContainer().dataset.kz,
+        track: [...document.querySelectorAll('.ksw.at-track .kturn img')].filter(vis).map(i => Math.max(i.getBoundingClientRect().width, i.getBoundingClientRect().height)),
+        place: [...document.querySelectorAll('.ksw.at-place .kturn img')].filter(vis).map(i => Math.max(i.getBoundingClientRect().width, i.getBoundingClientRect().height)),
+        simp: [...document.querySelectorAll('.ksimp')].filter(vis).length,
+        lowSimple: [...document.querySelectorAll('.ksw.at-track.low .ksimp')].filter(vis).length,
+        leads: [...document.querySelectorAll('.ksw.at-track')].filter(w => getComputedStyle(w).display !== 'none').every(w => w.querySelector('.klead')) }; }); };
   const z14 = await at(14), z16 = await at(16), z18 = await at(18), z19 = await at(19);
-  check(z14.kz === 'dot' && z14.dots > 0 && !z14.img.length, `zoom 14: coloured dots only (${z14.dots})`);
-  check(z16.kz === 'simple' && z16.simp.length > 0 && !z16.img.length && Math.min(...z16.simp) >= 6, `zoom 16: simple symbols, at least 6 px (${z16.simp.length})`);
-  check(z18.kz === 'full' && z18.img.length > 0 && Math.max(...z18.img) <= 64.5, `zoom 18: full drawings, highest ${Math.max(...z18.img).toFixed(1)} px (max 64)`);
-  check(z19.img.length > 0 && Math.max(...z19.img) <= 64.5 && Math.min(...z19.img) >= 10, `zoom 19: no drawing higher than 64 px (highest ${Math.max(...z19.img).toFixed(1)}, lowest ${Math.min(...z19.img).toFixed(1)})`);
-  check(z14.leads && z16.leads && z18.leads, 'every drawn signal has its lead to the track');
+  check(z14.kz === 'none' && !z14.simp && !z14.track.length && !z14.place.length, 'zoom 14: no signals');
+  check(z16.kz === 'simple' && z16.simp > 0 && !z16.track.length && !z16.place.length && !z16.lowSimple, `zoom 16: simple symbols only (${z16.simp}), no manovra or marmotta`);
+  check(z18.kz === 'head' && z18.track.length > 0 && !z18.place.length && Math.max(...z18.track) <= 64.5, `zoom 18: the heads by their track (${z18.track.length}), highest ${Math.max(...z18.track).toFixed(1)} px`);
+  check(z19.kz === 'full' && z19.place.length > 0 && !z19.track.length && Math.max(...z19.place) <= 64.5, `zoom 19: the whole drawings where they were placed (${z19.place.length}), highest ${Math.max(...z19.place).toFixed(1)} px (max 64)`);
+  const placed = await p.evaluate(() => window.__mtlKit.placed());
+  check(placed.length > 0 && placed.every(q => Math.abs(q.lat - q.mlat) < 1e-9 && Math.abs(q.lon - q.mlon) < 1e-9), `zoom 19: every signal drawn exactly at the point where it was placed (${placed.length})`);
+  check(z16.leads && z18.leads, 'by their track: each with its lead to the track');
   check(!errs.length, 'no page errors' + (errs.length ? ': ' + errs[0] : ''));
   await b.close();
   console.log(bad ? 'M2 editor: FAILED' : 'M2 editor: all ok'); process.exit(bad ? 1 : 0);
