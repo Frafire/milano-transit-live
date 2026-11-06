@@ -9,7 +9,8 @@ writes m2.json again with
 - speeds and cuts: as Giovanni set them in the editor (keys "a-b", "a-b#i" for the parts after cuts, "J<node>" for the
   diverging side of a junction).
 The base limits: main line the line's top speed, crossovers the diverging speed (editable, some are 50), depot tracks
-the depot speed (fixed); sidings (tails, platform tracks) the line's top speed until Giovanni sets them (shown with ?).
+the depot speed (editable: Giovanni 6 Nov 2026, the Velocita sheet gives 15 on the depot switches and 5 in the parking
+area, set per piece in the tab); sidings (tails, platform tracks) the line's top speed until Giovanni sets them (shown with ?).
 No path of the trains yet (path_edges): the tab shows and edits the limits; nothing drives with them for now.
 Usage: python3 tools/net_m2.py [path/to/data]"""
 import json, math, os, sys
@@ -65,7 +66,7 @@ for t in F['tracks']:
         cat = t['c'] if t['c'] in ('main', 'siding', 'crossover', 'yard') else 'main'
         kmh = {'main': OPS['line_max_kmh'], 'siding': OPS['line_max_kmh'], 'crossover': OPS['diverging_kmh'], 'yard': OPS['depot_speed_kmh']}[cat]
         edges.append({'a': a, 'b': b, 'key': '%s-%s' % (a, b), 'len': round(sum(dist(x, y) for x, y in zip(pts, pts[1:])), 1), 'cat': cat,
-                      'kmh': kmh, 'fixed': cat == 'yard', 'p': encode(pts), 'w': t['w']})
+                      'kmh': kmh, 'fixed': False, 'p': encode(pts), 'w': t['w']})
 # the same key twice (two pieces between the same two junctions): the second gets the track's number
 seen = {}
 for e in edges:

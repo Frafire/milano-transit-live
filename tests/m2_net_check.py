@@ -2,7 +2,7 @@
 - every piece has the fields of the M3's net (a, b, key, len, cat, kmh, fixed, p), its key unique, its nodes in nodes;
 - the pieces cover the tracks: the same length in all;
 - the base limits by kind from ops (data/operations_m2.json): main and sidings the line's top speed, crossovers the
-  diverging speed, depot tracks the depot speed and fixed, nothing else fixed;
+  diverging speed, depot tracks the depot speed; none fixed (Giovanni 6 Nov: the depot tracks too are set in the tab);
 - the limits and cuts of data/rules_m2.json are on pieces (or junctions) of the net, each cut inside its piece.
 Exit code 1 if one fails."""
 import json, math, sys
@@ -23,8 +23,8 @@ def tlen(p):
 lt, le = sum(tlen(t['p']) for t in F['tracks']), sum(e['len'] for e in E)
 check(abs(lt - le) < 0.005 * lt, 'M2 net: the pieces cover the tracks (%.1f km of %.1f km)' % (le / 1000, lt / 1000))
 base = {'main': O['line_max_kmh'], 'siding': O['line_max_kmh'], 'crossover': O['diverging_kmh'], 'yard': O['depot_speed_kmh']}
-check(all(e['kmh'] == base[e['cat']] and e['fixed'] == (e['cat'] == 'yard') for e in E),
-      'M2 net: base limits main/siding %d, crossover %d, depot %d (fixed) km/h' % (O['line_max_kmh'], O['diverging_kmh'], O['depot_speed_kmh']))
+check(all(e['kmh'] == base[e['cat']] and not e['fixed'] for e in E),
+      'M2 net: base limits main/siding %d, crossover %d, depot %d km/h, all editable' % (O['line_max_kmh'], O['diverging_kmh'], O['depot_speed_kmh']))
 ek = {e['key']: e for e in E}
 sp = F.get('speeds', {}); cu = F.get('cuts', {})
 off = [k for k in sp if not (k.startswith('J') and k[1:] in N['nodes']) and k.split('#')[0] not in ek]
