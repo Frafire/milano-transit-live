@@ -1,6 +1,6 @@
 // M2 signals editor and map (Giovanni, 6 Nov 2026), in a browser:
 // (c) the track choice gives the way (dir, heading) and the side Giovanni placed on two known signals;
-// (d) with more tracks close by it takes the right one (the one with the signal on its side), not just the nearest;
+// (d) with two tracks about as near it takes the one with the signal on its side; one clearly by a track stays on it;
 // (e) by zoom: nothing under 15, simple symbols 15-17 (no manovra, marmotta), the head turned along the track at 18, the
 //     whole drawing exactly where it was placed at 19, never higher than KITMAX (64 px); by its track, a lead to it.
 // Run from the repo (docs/gioca.html built). Exit code 1 if one fails.
@@ -28,12 +28,17 @@ const page = 'file://' + path.resolve(__dirname, '..', 'docs', 'gioca.html') + '
   // (d) two parallel tracks at Cascina Gobba, w61 and w259 (POSTO 248a and POSTO 14a stand by them, both legale, facing 65°):
   // w259 is on the right of w61. A legale signal between them, nearer to w259, stands on the right of w61 and on the left
   // of w259: it belongs to w61, not to the nearest track
-  const A = [45.51604, 9.268928], B = [45.516006, 9.269008], mid = [A[0] + (B[0] - A[0]) * 0.62, A[1] + (B[1] - A[1]) * 0.62];
+  const A = [45.51604, 9.268928], B = [45.516006, 9.269008], mid = [A[0] + (B[0] - A[0]) * 0.55, A[1] + (B[1] - A[1]) * 0.55];
   const nearest = await p.evaluate(m => window.__mtlKit.trackFor(m[0], m[1], 65, null), mid);
   const chosen = await p.evaluate(m => window.__mtlKit.trackFor(m[0], m[1], 65, true), mid);
   const ill = await p.evaluate(m => window.__mtlKit.trackFor(m[0], m[1], 65, false), mid);
   check(nearest && nearest.w === 259 && chosen && chosen.w === 61 && chosen.side === 'right' && ill && ill.w === 259,
-    `between w61 and w259, nearer w${nearest && nearest.w}: legale -> w${chosen && chosen.w} (${chosen && chosen.side}), illegale -> w${ill && ill.w}`);
+    `about midway between w61 and w259 (nearer w${nearest && nearest.w}): legale -> w${chosen && chosen.w} (${chosen && chosen.side}), illegale -> w${ill && ill.w}`);
+  // ... but a signal clearly by one track stays on it, on whichever side it was placed (Giovanni 6 Nov: one on the left
+  // of its track was moved to the track beside it)
+  const by = [A[0] + (B[0] - A[0]) * 0.8, A[1] + (B[1] - A[1]) * 0.8];
+  const keep = await p.evaluate(m => window.__mtlKit.trackFor(m[0], m[1], 65, true), by);
+  check(keep && keep.w === 259 && keep.side === 'left', `clearly by w259, on its left: stays on w259 (got w${keep && keep.w}, ${keep && keep.side})`);
   // (e) by zoom (Giovanni 6 Nov): under 15 nothing; 15-17 simple symbols, no manovra or marmotta; 18 the head, turned along
   // the track; 19 the whole drawing exactly where it was placed; never higher than KITMAX (64 px)
   const at = async z => { await p.evaluate(z => { window.__m.setView([45.5160, 9.2692], z); }, z); await p.waitForTimeout(1200);

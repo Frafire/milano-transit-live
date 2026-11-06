@@ -2817,10 +2817,10 @@ window.MTL_CAPS = __CAPS__;
     map.on('zoomend', dz); dz();
   }
 
-  // the track a signal belongs to (Giovanni 6 Nov 2026: saved signals drifted onto the next track). Among the tracks of its
-  // line within 12 m of where it stands and running the way it faces (within 40 degrees), the nearest one that has the signal
-  // on the side where it stands: right of the way trains go if legale (and the low signals), left if illegale; a signal
-  // under 1 m from a track is on it. None such: the nearest. Returns the track, the point on it, dir (to its OSM way),
+  // the track a signal belongs to. Among the tracks of its line within 12 m of where it stands and running the way it faces
+  // (within 40 degrees): the nearest; only when another is about as near (within 1.5 m) the one that has the signal on the
+  // side where it should stand: right of the way trains go if legale (and the low signals), left if illegale; a signal
+  // under 1 m from a track is on it. Returns the track, the point on it, dir (to its OSM way),
   // the travel heading, the distance and the side (left / right of the way, as the editor stores it)
   function kitTrackFor(at, heading, right, line) {
     const kx = 111320 * Math.cos(at[0] * Math.PI / 180), ky = 110540, hr = heading * Math.PI / 180, tx = Math.sin(hr), ty = Math.cos(hr);
@@ -2838,7 +2838,9 @@ window.MTL_CAPS = __CAPS__;
           side: d < 1 ? 'on track' : onRight === (dir === 1) ? 'right' : 'left' };
         if (!any || d < any.d) any = c;
         if ((d < 1 || onRight === right) && (!best || d < best.d)) best = c; } });
-    return best || any; }
+    // the side decides only between tracks about as near (within 1.5 m): otherwise the nearest one, the track Giovanni
+    // clicked by (6 Nov 2026: a signal he placed on the left of its track was moved to the track beside it)
+    return best && any && best.d - any.d <= 1.5 ? best : any; }
   // the tests' way in (tests/m2_editor_check.js): no state, only the tracks of the page, and where the signals are drawn at level 19
   window.__mtlKit = { placed: () => KITPLACED.map(([sg, m]) => ({ lat: sg.lat, lon: sg.lon, mlat: m.getLatLng().lat, mlon: m.getLatLng().lng })), trackFor: (lat, lon, heading, right, line) => { const c = kitTrackFor([lat, lon], heading, right, line || 'M2'); return c && { w: c.w, dir: c.dir, heading: c.heading, side: c.side, d: c.d }; } };
   // nearest track to a click, with the point on it and the track's own direction there
