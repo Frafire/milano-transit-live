@@ -14,6 +14,7 @@ txt = open(os.path.join(F, 'm2_export_2026-11-06.txt')).read()
 EXP = json.loads(txt[txt.index('{'):])['signals']
 OLD = json.load(open(os.path.join(F, 'm2_signals_42.json')))
 CHANGED = {}          # id -> the fields Giovanni changed afterwards in the first 42 (none yet)
+DELETED = {'M2-s040': 'B32a, Giovanni 6 Nov: drifted far from its track, deleted'}   # of the first 42
 # signals of the export Giovanni changed afterwards (not compared): id -> what he asked
 CHANGED_EXPORT = {'M2-mw46zpmvnp': 'a marmotta (photo of 6 Nov), same place, track and way'}
 bad = 0
@@ -39,9 +40,16 @@ check(len([e for e in EXP if e.get('manovra')]) == len(man) == 6, 'vela + manovr
 byid = {s.get('id'): s for s in R}
 d42 = []
 for o in OLD:
+    if o['id'] in DELETED:
+        if o['id'] in byid: d42.append((o['id'], 'should be deleted'))
+        continue
     s = byid.get(o['id'])
     if s is None: d42.append((o['id'], 'missing')); continue
     want = dict(o, **CHANGED.get(o['id'], {}))
     if s != want: d42.append((o['id'], sorted(k for k in set(s) | set(want) if s.get(k) != want.get(k))))
-check(not d42, 'the first 42 (Assago - Famagosta) unchanged (%d differ%s)' % (len(d42), ': ' + str(d42[:3]) if d42 else ''))
+check(not d42, 'the first 42 (Assago - Famagosta) unchanged, %d deleted by Giovanni (%d differ%s)' % (len(DELETED), len(d42), ': ' + str(d42[:3]) if d42 else ''))
+# the export of 6 Nov, 11:44 (Famagosta: shunts, galleria signals, S01 and S02 with their marmotta): in the file as given
+txt2 = open(os.path.join(F, 'm2_export_2026-11-06b.txt')).read(); EXP2 = json.loads(txt2[txt2.index('{'):])['signals']
+bad2 = [e['id'] for e in EXP2 if byid.get(e['id']) != {k: v for k, v in e.items() if k != 'moved'}]
+check(not bad2, 'export of 6 Nov 11:44: %d signals in the file, each field identical%s' % (len(EXP2) - len(bad2), ': ' + ', '.join(bad2) if bad2 else ''))
 sys.exit(1 if bad else 0)
