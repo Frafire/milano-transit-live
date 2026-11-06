@@ -4,7 +4,8 @@ Only the entries with "line": "M2" are taken (signals, marks, drawn tracks with 
 included, is left out and counted, and data/rules_m3.json is never opened. A signal with the id (code) of one already in
 the file replaces it (moved or changed in Sposta segnali); one without an id replaces the one at the same place (within
 0.5 m) facing the same way, so the same export can be imported twice. The ids in "sigdel" (deleted in Sposta segnali) are
-taken out of the file. A new signal without an id gets the next free M2-s code.
+taken out of the file. A new signal keeps its own id; one without an id gets the next free M2-s code. Nothing
+else of a signal is changed (only the editor's "moved" flag is left out).
 
 Usage: python3 tools/import_edit_m2.py export.txt [data/rules_m2.json]"""
 import json, math, os, sys
@@ -28,7 +29,9 @@ for sg in ED.get('signals', []):
     else:
         old = [x for x in R['signals'] if same(x, sg)]
         R['signals'] = [x for x in R['signals'] if not same(x, sg)]
-        sg = dict(id=old[0]['id'] if old and old[0].get('id') else next_id(), **{k: v for k, v in sg.items() if k != 'id'})
+        # its own id when it has one (kept as it is), the replaced one's, or the next free M2-s code
+        nid = sg.get('id') or (old[0]['id'] if old and old[0].get('id') else next_id()); ids.add(nid)
+        sg = dict(id=nid, **{k: v for k, v in sg.items() if k != 'id'})
         R['signals'].append(sg)
     got['signals'] += 1
 gone = set(ED.get('sigdel', []))

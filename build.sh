@@ -58,6 +58,8 @@ done
 GTFS_M2="$ROOT/data/gtfs_m2"
 echo "== M2: signals placed in the editor (data/rules_m2.json)"
 python3 "$ROOT/tests/m2_signals_check.py" "$ROOT"
+# the signals Giovanni gave are kept field by field (his export of 6 Nov, the first 42)
+python3 "$ROOT/tests/m2_restore_check.py" "$ROOT"
 for pair in "1:$DAY" "6:$SAT_DAY" "7:$SUN_DAY"; do
   n="${pair%%:*}"; d="${pair##*:}"; BD="$ROOT/build_m2/$n"; mkdir -p "$BD"
   cp "$ROOT/data/operations_m2.json" "$ROOT/data/osm_m2.txt" "$ROOT/data/osm_m2_platforms.json" "$ROOT/data/banchine_m2.json" "$BD"/
@@ -76,3 +78,5 @@ echo "== the menu in a browser (only the chosen line is loaded)"
 if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/home_check.js"; else echo "(skipped: Playwright not installed)"; fi
 echo "== the panels of each line (data/capacita.json)"
 if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/caps_check.js"; else echo "(skipped: Playwright not installed)"; fi
+echo "== the M2 signals on the map and in the editor (track choice, sizes by zoom)"
+if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/m2_editor_check.js"; else echo "(skipped: Playwright not installed)"; fi
