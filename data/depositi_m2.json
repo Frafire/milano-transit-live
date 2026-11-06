@@ -1,5 +1,5 @@
 {
- "_nota": "Depositi della M2 (Giovanni e il collega macchinista, 6/11/2026; disposizioni dal foglio Depositi di Regole_M2.xlsx). Per ogni binario: numero, way OSM (osm; w è solo un promemoria dell'export), uso, treni completi (treni), dove comincia il capannone (capannone). Un posto = posto_m metri per treno, contati dall'inizio del capannone alla fine; posto 1 = in fondo (entra per primo, esce per ultimo), poi verso l'ingresso. tools/depositi_m2.py allunga oltre il tronco i binari troppo corti e calcola i posti. PROPOSTE da confermare: numerazione dei binari da est (a Famagosta e Gorgonzola i binari 1 sono a est, a Cologno non detto), il binario 16 di Famagosta (non c'è in OpenStreetMap, disegnato dentro il capannone).",
+ "_nota": "Depositi della M2 (Giovanni e il collega macchinista, 6/11/2026; disposizioni dal foglio Depositi di Regole_M2.xlsx). Per ogni binario: numero, way OSM (osm; w è solo un promemoria dell'export), uso, treni completi (treni), dove comincia il capannone (capannone). Un posto = posto_m metri per treno, contati dall'inizio del capannone alla fine; posto 1 = in fondo (entra per primo, esce per ultimo), poi verso l'ingresso. tools/depositi_m2.py allunga oltre il tronco i binari troppo corti e calcola i posti. PROPOSTE da confermare: numerazione dei binari da est (a Famagosta e Gorgonzola i binari 1 sono a est, a Cologno non detto), il binario 16 di Famagosta (non c'è in OpenStreetMap, disegnato dentro il capannone; il collegamento al ventaglio da Giovanni).",
  "capannone_valori": {
   "edificio": "il capannone è l'edificio OSM del deposito (capannoni): i posti vanno dal suo inizio (lato ventaglio) al fondo; dove il binario OSM finisce prima, si allunga lungo l'asse del capannone",
   "esterno": "binario all'aperto (o fuori dagli edifici OSM): i posti si contano dal tronco verso il ventaglio"
@@ -165,7 +165,44 @@
       17
      ]
     },
-    "nota": "Binario che in OpenStreetMap non c'è (Giovanni 6/11/2026, dal satellite): disegnato dentro il capannone tra il 15 e il 17, PROPOSTA; il collegamento al ventaglio è da disegnare"
+    "nota": "Binario che in OpenStreetMap non c'è (Giovanni 6/11/2026, dal satellite): disegnato dentro il capannone tra il 15 e il 17; il collegamento al ventaglio è quello disegnato da Giovanni nell'editor (6/11/2026)",
+    "collegamento": {
+     "pts": [
+      [
+       45.428435,
+       9.16392
+      ],
+      [
+       45.428566,
+       9.164033
+      ],
+      [
+       45.428632,
+       9.164081
+      ],
+      [
+       45.428685,
+       9.164127
+      ],
+      [
+       45.428845,
+       9.164242
+      ],
+      [
+       45.428952,
+       9.164341
+      ],
+      [
+       45.428981,
+       9.164368
+      ],
+      [
+       45.429001,
+       9.164384
+      ]
+     ],
+     "fonte": "Giovanni, editor, 6/11/2026: il pezzo che mancava, dall'ingresso del 16 al ventaglio"
+    }
    },
    {
     "n": 17,

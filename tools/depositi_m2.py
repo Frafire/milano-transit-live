@@ -153,8 +153,10 @@ for dep, binari in CFG['depositi'].items():
         if ext > 0.05 and w['i'] in TR:        # the track on the map, lengthened at its dead end
             T = decode(TR[w['i']]['p']); T = ([far] + T) if e == 0 else (T + [far]); TR[w['i']]['p'] = encode(T); TR[w['i']]['x'] = round(ext, 1)
 # a track OpenStreetMap does not have (nuovo: between two numbered tracks): straight in the middle of them, from the way in
-# to the back of the shed, as long as theirs; drawn as a new depot track (a proposal: its link to the throat is to be drawn)
+# to the back of the shed, as long as theirs; drawn as a new depot track (a proposal); with 'collegamento' (Giovanni's drawing) linked to the fan, its far end on the
+# nearest point of a track
 nextw = max(t['w'] for t in F['tracks']) + 1
+CFG_TRACK = {(dep, b['n']): b for dep, bs in CFG['depositi'].items() for b in bs}
 for rec in depots:
     if not rec.get('nuovo'): continue
     a, c = [next((r for r in depots if r['dep'] == rec['dep'] and r['n'] == n and r.get('posti')), None) for n in rec['nuovo']['tra']]
@@ -164,7 +166,17 @@ for rec in depots:
     Q = [tuple(back), tuple(door)]; n = rec['treni'] or 0
     rec['posti'] = [dict(id='%d.%d' % (rec['n'], k + 1), pts=along(Q, k * POSTO, (k + 1) * POSTO), centro=point_at(Q, (k + 0.5) * POSTO)) for k in range(n)]
     rec.update(w=nextw, inizio=door, tronco=back, capannone_m=round(dist(back, door), 1))
-    F['tracks'].append(dict(c='yard', p=encode([door, back]), w=nextw, g=0, nuovo=True)); nextw += 1
+    path = [door, back]
+    link = (CFG_TRACK.get((rec['dep'], rec['n'])) or {}).get('collegamento')
+    if link:        # its link to the throat, as Giovanni drew it (from the way in to the fan): its far end on the nearest point of a track
+        L = [list(q) for q in link['pts']]
+        if dist(L[-1], door) < dist(L[0], door): L = L[::-1]
+        fan = min((tuple(q) for t in F['tracks'] for q in decode(t['p'])), key=lambda q: dist(q, L[-1]))
+        if dist(fan, L[-1]) < 3: L[-1] = [fan[0], fan[1]]
+        rec['collegamento_m'] = round(sum(dist(x, y) for x, y in zip(L, L[1:])), 1)
+        path = L[:0:-1] + [door, back]
+        notes.append('%s %d: linked to the fan as Giovanni drew it (%.0f m)' % (rec['dep'], rec['n'], rec['collegamento_m']))
+    F['tracks'].append(dict(c='yard', p=encode(path), w=nextw, g=0, nuovo=True)); nextw += 1
     notes.append('%s %d: drawn between %d and %d (not in OpenStreetMap)' % (rec['dep'], rec['n'], rec['nuovo']['tra'][0], rec['nuovo']['tra'][1]))
 # the stop: the centre of the place, give or take margine_pct of it (manual driving)
 MARG = round(POSTO * CFG.get('fermata', {}).get('margine_pct', 0) / 100, 1)
