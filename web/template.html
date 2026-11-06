@@ -2898,7 +2898,7 @@ window.MTL_CAPS = __CAPS__;
     // clicked by (6 Nov 2026: a signal he placed on the left of its track was moved to the track beside it)
     return best && any && best.d - any.d <= 1.5 ? best : any; }
   // the tests' way in (tests/m2_editor_check.js): no state, only the tracks of the page, and where the signals are drawn at level 19
-  window.__mtlKit = { placed: () => KITPLACED.map(([sg, m]) => ({ lat: sg.lat, lon: sg.lon, mlat: m.getLatLng().lat, mlon: m.getLatLng().lng })), trackFor: (lat, lon, heading, right, line) => { const c = kitTrackFor([lat, lon], heading, right, line || 'M2'); return c && { w: c.w, dir: c.dir, heading: c.heading, side: c.side, d: c.d }; } };
+  window.__mtlKit = { draw: o => { const c = o.type === 'shunt' ? kitShunt(!!o.go, o.mount) : o.type === 'marm' ? kitMarm(o.go ? 'via' : 'stop') : o.type === 'rall' ? kitRall(o.kmh, o.mount) : o.type === 'speedind' ? kitSpeedInd(o.kmh) : kitSprite({ ...o, lit: o.lit || ['R'], pOn: o.p === 'luminosa', dirOn: 'R' }); return [c.toDataURL(), c.width, c.height]; }, placed: () => KITPLACED.map(([sg, m]) => ({ lat: sg.lat, lon: sg.lon, mlat: m.getLatLng().lat, mlon: m.getLatLng().lng })), trackFor: (lat, lon, heading, right, line) => { const c = kitTrackFor([lat, lon], heading, right, line || 'M2'); return c && { w: c.w, dir: c.dir, heading: c.heading, side: c.side, d: c.d }; } };
   // nearest track to a click, with the point on it and the track's own direction there
   function snap(latlng, tol = 18) {
     const P = map.latLngToContainerPoint(latlng); let best = null;
