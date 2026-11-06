@@ -1,0 +1,660 @@
+{
+ "_nota": "Depositi della M2 (Giovanni e il collega macchinista, 6/11/2026; disposizioni dal foglio Depositi di Regole_M2.xlsx). Per ogni binario: numero, way OSM (osm; w è solo un promemoria dell'export), uso, treni completi (treni), dove comincia il capannone (capannone). Un posto = posto_m metri per treno, contati dall'inizio del capannone alla fine; posto 1 = in fondo (entra per primo, esce per ultimo), poi verso l'ingresso. tools/depositi_m2.py allunga oltre il tronco i binari troppo corti e calcola i posti. PROPOSTE da confermare: numerazione dei binari da est (a Famagosta e Gorgonzola i binari 1 sono a est, a Cologno non detto), il binario 19 di Famagosta (non trovato tra i binari OSM), il binario 14 di Gorgonzola.",
+ "capannone_valori": {
+  "edificio": "il capannone è l'edificio OSM del deposito (capannoni): i posti vanno dal suo inizio (lato ventaglio) al fondo; dove il binario OSM finisce prima, si allunga lungo l'asse del capannone",
+  "esterno": "binario all'aperto (o fuori dagli edifici OSM): i posti si contano dal tronco verso il ventaglio"
+ },
+ "posto_m": 115,
+ "regole_giovanni": [
+  "Dentro l'area di parcheggio del deposito i treni sono in manovra manuale: massimo 5 km/h, marcia a vista, nessun semaforo.",
+  "Due treni sullo stesso binario: il primo che entra esce per ultimo; non serve chiamare il DCT; serve solo il giusto spazio tra i due e fermarsi esattamente nel proprio posto.",
+  "Al mattino esce prima quello verso l'ingresso; l'altro, al suo turno, esce in avanti dalla stessa parte da cui è entrato.",
+  "Gorgonzola 1-2: si entra con l'UdT di testa a pantografi abbassati; al mattino si alzano solo i pantografi dell'UdT di testa dal lato della partenza.",
+  "Famagosta 19 (lavaggio): un treno solo in caso di estrema necessità."
+ ],
+ "lavaggio": {
+  "Famagosta": {
+   "binario": 19,
+   "impianto": "autolavaggio",
+   "posti": 1,
+   "ricovero": "solo in caso di estrema necessità",
+   "velocita_kmh": null,
+   "durata_min": null,
+   "quando": null,
+   "_nota": "Base dell'autolavaggio: i valori null sono da chiedere a Giovanni (velocità di passaggio, durata, quando si lava un treno)."
+  }
+ },
+ "depositi": {
+  "Famagosta": [
+   {
+    "n": 1,
+    "osm": 136408048,
+    "w": 7,
+    "uso": "officina",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 2,
+    "osm": 136408055,
+    "w": 11,
+    "uso": "officina",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 3,
+    "osm": 136408050,
+    "w": 8,
+    "uso": "officina",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 4,
+    "osm": 136408046,
+    "w": 6,
+    "uso": "officina",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 5,
+    "osm": 136408041,
+    "w": 4,
+    "uso": "officina",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 6,
+    "osm": 136408051,
+    "w": 9,
+    "uso": "officina",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 7,
+    "osm": 136408054,
+    "w": 10,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 8,
+    "osm": 136408044,
+    "w": 5,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 9,
+    "osm": 136409423,
+    "w": 13,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 10,
+    "osm": 136409441,
+    "w": 24,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 11,
+    "osm": 136409433,
+    "w": 19,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 12,
+    "osm": 136409424,
+    "w": 14,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 13,
+    "osm": 136409427,
+    "w": 16,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 14,
+    "osm": 136409439,
+    "w": 22,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 15,
+    "osm": 136409430,
+    "w": 18,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 16,
+    "osm": 136409445,
+    "w": 25,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 17,
+    "osm": 136409436,
+    "w": 21,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 18,
+    "osm": 136409574,
+    "w": 27,
+    "uso": "ricovero",
+    "treni": 2,
+    "capannone": "edificio",
+    "capannone_come": 17,
+    "nota": "PROPOSTA: in OpenStreetMap la parete nord-ovest del capannone rientra a 90 m dai tronchi; i posti come il binario 17 (Giovanni: 2 treni)"
+   },
+   {
+    "n": 19,
+    "osm": null,
+    "w": null,
+    "uso": "lavaggio",
+    "treni": 1,
+    "capannone": "edificio"
+   }
+  ],
+  "Gorgonzola": [
+   {
+    "n": 1,
+    "osm": 1204361874,
+    "w": 397,
+    "uso": "ricovero (in parte senza linea aerea)",
+    "treni": null,
+    "capannone": "edificio"
+   },
+   {
+    "n": 2,
+    "osm": 1204361873,
+    "w": 396,
+    "uso": "ricovero (in parte senza linea aerea)",
+    "treni": null,
+    "capannone": "edificio"
+   },
+   {
+    "n": 3,
+    "osm": 175727779,
+    "w": 143,
+    "uso": "ricovero interno",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 4,
+    "osm": 572313048,
+    "w": 287,
+    "uso": "ricovero interno",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 5,
+    "osm": 572313047,
+    "w": 286,
+    "uso": "ricovero interno",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 6,
+    "osm": 175727749,
+    "w": 136,
+    "uso": "ricovero interno",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 7,
+    "osm": 175727765,
+    "w": 139,
+    "uso": "ricovero interno",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 8,
+    "osm": 572313044,
+    "w": 283,
+    "uso": "ricovero interno",
+    "treni": 1,
+    "capannone": "edificio"
+   },
+   {
+    "n": 9,
+    "osm": 175727679,
+    "w": 125,
+    "uso": "ricovero interno",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 10,
+    "osm": 572313042,
+    "w": 281,
+    "uso": "ricovero interno",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 11,
+    "osm": 175727736,
+    "w": 133,
+    "uso": "ricovero interno",
+    "treni": 2,
+    "capannone": "edificio"
+   },
+   {
+    "n": 12,
+    "osm": 175709602,
+    "w": 122,
+    "uso": "ricovero esterno",
+    "treni": 2,
+    "capannone": "esterno"
+   },
+   {
+    "n": 13,
+    "osm": 175709600,
+    "w": 120,
+    "uso": "ricovero esterno",
+    "treni": 1,
+    "capannone": "esterno"
+   },
+   {
+    "n": 14,
+    "osm": 175709601,
+    "w": 121,
+    "uso": "ex ricovero dei treni tradizionali",
+    "treni": 0,
+    "capannone": "esterno"
+   }
+  ],
+  "Cologno Nord": [
+   {
+    "n": 1,
+    "osm": 311788958,
+    "w": 245,
+    "uso": "ricovero",
+    "treni": 1,
+    "capannone": "edificio"
+   },
+   {
+    "n": 2,
+    "osm": 311788959,
+    "w": 246,
+    "uso": "ricovero",
+    "treni": 1,
+    "capannone": "edificio"
+   },
+   {
+    "n": 3,
+    "osm": 311788960,
+    "w": 247,
+    "uso": "ricovero",
+    "treni": 1,
+    "capannone": "edificio"
+   },
+   {
+    "n": 4,
+    "osm": 311788954,
+    "w": 242,
+    "uso": "ricovero",
+    "treni": 1,
+    "capannone": "edificio"
+   },
+   {
+    "n": 5,
+    "osm": 311788951,
+    "w": 239,
+    "uso": "ricovero",
+    "treni": 1,
+    "capannone": "edificio"
+   },
+   {
+    "n": 6,
+    "osm": 311788957,
+    "w": 244,
+    "uso": "ricovero",
+    "treni": 1,
+    "capannone": "edificio"
+   },
+   {
+    "n": 7,
+    "osm": 311788955,
+    "w": 243,
+    "uso": "ricovero",
+    "treni": 1,
+    "capannone": "edificio"
+   },
+   {
+    "n": 8,
+    "osm": 311788952,
+    "w": 240,
+    "uso": "ricovero",
+    "treni": 1,
+    "capannone": "edificio"
+   },
+   {
+    "n": 9,
+    "osm": 352776785,
+    "w": 258,
+    "uso": "ricovero",
+    "treni": 1,
+    "capannone": "edificio"
+   }
+  ]
+ },
+ "capannoni": {
+  "_nota": "Sagome dei capannoni da OpenStreetMap (api.openstreetmap.org, 06/11/2026), per id OSM dell'edificio: i posti si contano dentro il capannone, dal suo inizio (lato ventaglio) verso il fondo; un binario che in OSM finisce prima del fondo si allunga lungo l'asse del capannone.",
+  "Famagosta": [
+   {
+    "osm": 91260819,
+    "pts": [
+     [
+      45.428527,
+      9.163709
+     ],
+     [
+      45.428512,
+      9.16375
+     ],
+     [
+      45.428489,
+      9.163816
+     ],
+     [
+      45.42847,
+      9.16387
+     ],
+     [
+      45.428427,
+      9.163989
+     ],
+     [
+      45.428406,
+      9.164042
+     ],
+     [
+      45.428387,
+      9.164093
+     ],
+     [
+      45.428363,
+      9.164162
+     ],
+     [
+      45.428342,
+      9.164216
+     ],
+     [
+      45.428324,
+      9.164266
+     ],
+     [
+      45.428299,
+      9.164331
+     ],
+     [
+      45.428281,
+      9.16438
+     ],
+     [
+      45.428262,
+      9.164432
+     ],
+     [
+      45.428241,
+      9.16449
+     ],
+     [
+      45.428218,
+      9.164553
+     ],
+     [
+      45.428197,
+      9.164607
+     ],
+     [
+      45.428173,
+      9.164673
+     ],
+     [
+      45.428148,
+      9.164739
+     ],
+     [
+      45.428111,
+      9.164827
+     ],
+     [
+      45.428061,
+      9.164977
+     ],
+     [
+      45.426185,
+      9.163577
+     ],
+     [
+      45.426627,
+      9.162382
+     ],
+     [
+      45.427777,
+      9.163238
+     ],
+     [
+      45.427787,
+      9.163207
+     ],
+     [
+      45.427802,
+      9.163167
+     ],
+     [
+      45.428527,
+      9.163709
+     ]
+    ]
+   }
+  ],
+  "Cologno Nord": [
+   {
+    "osm": 311788956,
+    "nome": "Deposito ATM Cologno",
+    "pts": [
+     [
+      45.536684,
+      9.294263
+     ],
+     [
+      45.536594,
+      9.294409
+     ],
+     [
+      45.536691,
+      9.294528
+     ],
+     [
+      45.536478,
+      9.29489
+     ],
+     [
+      45.535662,
+      9.293864
+     ],
+     [
+      45.535715,
+      9.293774
+     ],
+     [
+      45.535747,
+      9.29372
+     ],
+     [
+      45.535771,
+      9.293679
+     ],
+     [
+      45.535801,
+      9.29363
+     ],
+     [
+      45.535831,
+      9.293579
+     ],
+     [
+      45.535858,
+      9.293532
+     ],
+     [
+      45.535869,
+      9.293514
+     ],
+     [
+      45.53575,
+      9.293364
+     ],
+     [
+      45.535772,
+      9.293327
+     ],
+     [
+      45.535801,
+      9.293281
+     ],
+     [
+      45.535828,
+      9.293238
+     ],
+     [
+      45.535847,
+      9.293207
+     ],
+     [
+      45.536684,
+      9.294263
+     ]
+    ]
+   }
+  ],
+  "Gorgonzola": [
+   {
+    "osm": 1420908673,
+    "nome": "Deposito ATM Gorgonzola MM2",
+    "pts": [
+     [
+      45.535426,
+      9.418138
+     ],
+     [
+      45.535302,
+      9.417761
+     ],
+     [
+      45.537196,
+      9.416492
+     ],
+     [
+      45.53722,
+      9.416564
+     ],
+     [
+      45.537238,
+      9.416617
+     ],
+     [
+      45.537255,
+      9.41667
+     ],
+     [
+      45.537274,
+      9.416726
+     ],
+     [
+      45.537292,
+      9.416779
+     ],
+     [
+      45.537309,
+      9.416833
+     ],
+     [
+      45.537321,
+      9.416868
+     ],
+     [
+      45.536655,
+      9.417314
+     ],
+     [
+      45.535426,
+      9.418138
+     ]
+    ]
+   },
+   {
+    "osm": 1420908674,
+    "pts": [
+     [
+      45.535302,
+      9.417761
+     ],
+     [
+      45.535236,
+      9.417558
+     ],
+     [
+      45.537128,
+      9.416289
+     ],
+     [
+      45.53715,
+      9.416353
+     ],
+     [
+      45.537167,
+      9.416407
+     ],
+     [
+      45.537186,
+      9.416463
+     ],
+     [
+      45.537196,
+      9.416492
+     ],
+     [
+      45.535302,
+      9.417761
+     ]
+    ]
+   }
+  ]
+ }
+}

@@ -854,6 +854,9 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 /* the foot of the pole on the point (--hw: half the drawing), not the middle of drawing, arrow and name */
 .kitsig { position: absolute; left: 0; top: 0; transform: translate(calc(var(--w) * var(--s) * -0.5px), -100%); display: flex; align-items: flex-end; gap: 2px; pointer-events: none; width: max-content; }
 .kitsig img, .kitsig svg { flex: 0 0 auto; }
+.dposto, .dbin { display: inline-block; transform: translate(-50%, -50%); font: 700 10px var(--body); white-space: nowrap; padding: 0 3px; border-radius: 2px; pointer-events: none; }
+.dposto { color: #111; background: #ff9f1c; }
+.dbin { color: #fff; background: #1d2226; border: 1px solid #ff9f1c; }
 .kitsig.mv { pointer-events: auto; cursor: grab; }
 .kitsig.mv.cur span { background: #ffcf3f; color: #000; }
 .kitsig img { image-rendering: pixelated; filter: drop-shadow(0 0 1px #000); width: calc(var(--w) * var(--s) * 1px); height: calc(var(--h) * var(--s) * 1px); }
@@ -7474,6 +7477,23 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   }
   { const btn = document.getElementById('kitSigBtn'); if (btn) btn.onclick = () => { kitSigOn = !kitSigOn; try { localStorage.setItem('mtl-kitsig-' + LINE, kitSigOn ? '1' : '0'); } catch (e) {} drawKitSigs(); }; }
   drawKitSigs();
+
+  // the M2 depots (tools/depositi_m2.py, data/depositi_m2.json): the places, 115 m per train, numbered binario.posto
+  // (posto 1 at the far end: the first in leaves last), the track number at the way in; from zoom 16
+  const DEPOTS = (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => F.depots || []);
+  if (DEPOTS.length) {
+    const depotLayer = L.layerGroup();
+    (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => F.sheds || []).forEach(sh => L.polygon(sh.pts, { color: '#ff9f1c', weight: 1, opacity: .7, fillOpacity: .06, interactive: false }).addTo(depotLayer));
+    DEPOTS.forEach(d => {
+      d.posti.forEach(p => { if (p.pts.length < 2) return;
+        L.polyline(p.pts, p.tocca_linea ? { color: '#ff4d4d', weight: 4, opacity: .8, dashArray: '4 4', interactive: false } : { color: '#ff9f1c', weight: 7, opacity: .45, interactive: false }).addTo(depotLayer);     // tocca_linea: to be checked
+        const a = p.pts[0], b = p.pts[p.pts.length - 1];
+        L.marker([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="dposto">${p.id}</span>` }) }).addTo(depotLayer); });
+      if (d.inizio) L.marker(d.inizio, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="dbin" title="${d.dep}, binario ${d.n}: ${d.uso}">${d.n}</span>` }) }).addTo(depotLayer);
+    });
+    const dz = () => { if (map.getZoom() >= 16) depotLayer.addTo(map); else map.removeLayer(depotLayer); };
+    map.on('zoomend', dz); dz();
+  }
 
   // the track a signal belongs to (Giovanni 6 Nov 2026: saved signals drifted onto the next track). Among the tracks of its
   // line within 12 m of where it stands and running the way it faces (within 40 degrees), the nearest one that has the signal
