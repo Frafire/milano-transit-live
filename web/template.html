@@ -4122,6 +4122,37 @@ window.MTL_CAPS = __CAPS__;
     if (a && a.mode !== 'plan') return a.status === 'service' ? 'Servizio passeggeri ridotto' : a.status === 'stopped' ? 'Fermo in stazione' : 'Senza passeggeri';
     return st.trip >= 0 ? st.label : 'Not in passenger service';
   }
+  // ---- where a moving train is drawn between two steps of the engine (Giovanni 6 Nov 2026: the "effetto radar") ----
+  // the agents move in steps of 0.5 s (agents.js DT): drawn as they are, at x1 a train at 70 km/h jumps about 10 m twice
+  // a second. Between two steps it is drawn ahead by the step the engine will make: v + a·DT (a = the change of speed of
+  // the last step: braking or accelerating) times the time since the step. Never past its stop, the end of its leg or
+  // of its path, never further than it can still brake (it may be braking for a red), never back on the same path
+  // (a step that comes out shorter than drawn: it stays where drawn until the train gets there). Standing trains: as they
+  // are. Every view (map, follow, card, cab panel) draws from here: trainState -> agentState.
+  const AG_DT = 0.5, VIEW = new Map();      // agentK -> { t: the step seen last, v: its speed, a: its change, pid, d: last drawn, tv }
+  function viewD(F, k, s) {
+    const S = F.ag.S, a = F.ag.agents()[k], w0 = VIEW.get(k), dt = Math.max(0, Math.min(AG_DT, state.t - S.t));
+    let w = w0;
+    if (!w || w.pid !== s.pid || S.t < w.t || state.t < w.tv) w = { t: S.t, v: s.v, a: 0, pid: s.pid, d: s.d, tv: state.t };
+    else if (S.t !== w.t) { w = { ...w, a: S.t - w.t <= AG_DT + 1e-6 ? (s.v - w.v) / AG_DT : 0, t: S.t, v: s.v }; }
+    let d = s.d;
+    if (a && s.v > 0.05 && dt > 0 && s.stopAt == null && !s.waiting) {
+      const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null, B = a.brk || F.engine.ops.braking_ms2 || 1.2;
+      const vn = Math.max(0, s.v + Math.min(w.a, (F.engine.ops.acceleration_ms2 || 1.1)) * AG_DT);   // the speed of the next step
+      let lim = s.d + vn * dt;
+      if (!(w.a > 0.05)) lim = Math.min(lim, s.d + Math.max(0, s.v * s.v / (2 * B) - s.v * AG_DT));     // not speeding up: what it can still brake in
+      if (leg && leg.pid === s.pid) {
+        if (leg.stops && leg.stops.length && leg.stops[0].d >= s.d) lim = Math.min(lim, leg.stops[0].d);
+        if (leg.end != null && leg.end >= s.d) lim = Math.min(lim, leg.end);
+      }
+      const pe = F.engine.pathEdges[s.pid]; if (pe && pe.e.length) lim = Math.min(lim, Math.max(s.d, pe.e[pe.e.length - 1][3]));
+      d = Math.max(s.d, lim);
+    }
+    // never back on the same path while it moves (a step shorter than drawn, at most one step: it waits there for the train)
+    if (w0 && w0.pid === s.pid && state.t >= w0.tv && s.v > 0.05 && w0.d > d && w0.d - d < s.v * AG_DT + 2) d = w0.d;
+    w.d = d; w.tv = state.t; VIEW.set(k, w);
+    return d;
+  }
   function agentState(F, tr) {
     const s = F.ag.state(tr.agentK), G = F.engine.G;
     if (s.hidden || s.status === 'parked') return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: 0, status: 'parked', label: s.hidden ? AGLABEL.depot : parkedLabel(F, 'depot'), trip: -1, seg: s.seg, store: tr.segs[s.seg] && tr.segs[s.seg][5] };
@@ -4133,7 +4164,8 @@ window.MTL_CAPS = __CAPS__;
     // the movements of the table (Regole_interlocking_M3, foglio Itinerari) set for it now
     const ids = [...new Set((F.ag.rt().routes[tr.agentK] || []).map(r => r.id).filter(Boolean))];
     if (ids.length) label += ' · itinerario ' + ids.join(', ');
-    return { pos: trackAt(F, s.pid, s.d), pid: s.pid, d: s.d, v: s.v, status: s.status, label, trip: s.mode === 'plan' ? s.trip : -1, seg: s.mode === 'plan' ? s.seg : -1, agent: s };
+    const dv = viewD(F, tr.agentK, s);
+    return { pos: trackAt(F, s.pid, dv), pid: s.pid, d: dv, v: s.v, status: s.status, label, trip: s.mode === 'plan' ? s.trip : -1, seg: s.mode === 'plan' ? s.seg : -1, agent: s };
   }
   // ================= RADIO TERRA-TRENO (M3): web/radio.js =================
   // the way a train will go when the DCT sends it (Pannello DCT): drawn on the map before confirming
@@ -4612,7 +4644,7 @@ window.MTL_CAPS = __CAPS__;
     bar.addEventListener('dblclick', e => { if (e.target.closest('button')) return; el.style.left = el.style.top = el.style.bottom = ''; el.classList.remove('moved'); try { localStorage.removeItem(key); } catch (e2) {} });
   }
   ['radio', 'phone'].forEach(id => { const el = document.getElementById(id); if (el) movable(el); });
-  window.mtl = { map, state, fleets, setView, rego: { comReserves: F => comReserves(F), insertComReserve: (F, k, m) => insertComReserve(F, k, m), withdraw: (F, k) => withdraw(F, k), uncovered: (F, m) => uncovered(F, m), runsOf: (F, m) => runsOf(F, m) }, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), phone: { conv: X => MR.phoneConv(X), pending: () => MR.phonePending() }, osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
+  window.mtl = { map, state, fleets, setView, trainState: (F, tr, t) => trainState(F, tr, t), rego: { comReserves: F => comReserves(F), insertComReserve: (F, k, m) => insertComReserve(F, k, m), withdraw: (F, k) => withdraw(F, k), uncovered: (F, m) => uncovered(F, m), runsOf: (F, m) => runsOf(F, m) }, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), phone: { conv: X => MR.phoneConv(X), pending: () => MR.phonePending() }, osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
 </script>

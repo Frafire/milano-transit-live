@@ -28,6 +28,8 @@
 //   stations with calls keep their own conversations; a later message of the same OS goes into the same conversation
 // - riservacomasina: Friday -> Saturday -> Sunday: a reserve train stands at Comasina in position 3 of a tail all day
 //   (Saturday it is the 17), with its train
+// - fluido: between two steps of the engine a moving train is drawn ahead, growing, never past its stop or the next
+//   step; standing trains do not move (the \"effetto radar\", Giovanni 6 Nov 2026)
 // - riservausata: Saturday, the reserve of Comasina covers a tabella; that night its tail is full (3 trains) and an
 //   empty run from the depot stops on the arrival platform of Comasina
 // - incendio: a fire at Corvetto: the OS has the station evacuated by himself and does not answer; 5 minutes later the
@@ -470,6 +472,43 @@ const SCENARIOS = {
         days.push({ day: document.getElementById('day').textContent.split(' · ')[1], k, n: k >= 0 ? F.trains[k].n : null, units: r && r.units, missing: !r || !!r.missing || !!r.none, hidden: a && a.hidden, v: a && a.v, tail });
       }
       return { ok: window.__stay === 1 && days.length === 2 && days.every(x => x.k >= 0 && !x.missing && !x.hidden && x.v === 0 && x.tail.length > 0) && days[0].n === 17 && days[0].units === days[1].units, days };      // (Saturday the 17; the same train on Sunday)
+    });
+  },
+  async fluido(p) {   // Giovanni 6 Nov 2026, "effetto radar": between two steps of the engine (0.5 s) a moving train is drawn
+    // ahead (monotonic, never past its stop or beyond what the next step gives); standing trains do not move
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      const A = () => F.ag.agents(), DT = 0.5;
+      const pick = test => A().find(a => !a.hidden && a.legs[0] && !a.legs[0].kind && test(a, a.legs[0]));
+      let run, brake, stand;
+      for (let m = 0; m < 12 && !(run && brake && stand); m++) {       // a moment with a train running, one braking into a station, one standing
+        st.playing = false; st.t = 8 * 3600 + m * 37; await sleep(m ? 400 : 2500);
+        run = pick((a, l) => a.v > 10 && a.stopAt == null && l.stops && l.stops.length && l.stops[0].d - a.d > 300 && l.end - a.d > 300);
+        brake = pick((a, l) => a.v > 1 && a.stopAt == null && l.stops && l.stops.length && l.stops[0].d - a.d < 40 && l.stops[0].d - a.d > 0);
+        stand = A().find(a => !a.hidden && a.v === 0 && a.stopAt != null); }
+      const S0 = F.ag.S.t;
+      if (!run || !stand) return { ok: false, why: 'no train to look at', run: !!run, stand: !!stand };
+      const view = a => M.trainState(F, F.trains[a.k], st.t).d;
+      const d0 = { run: run.d, brake: brake && brake.d, stand: stand.d }, v0 = run.v, stopB = brake && brake.legs[0].stops[0].d, out = { run: [], brake: [], stand: [] };
+      for (const dt of [0.1, 0.25, 0.45]) { st.t = S0 + dt; await sleep(60);
+        if (F.ag.S.t !== S0) return { ok: false, why: 'the engine stepped while looking' };
+        out.run.push(view(run)); if (brake) out.brake.push(view(brake)); out.stand.push(view(stand)); }
+      const inc = xs => xs.every((x, i) => i === 0 || x > xs[i - 1]);
+      const runOk = out.run[0] > d0.run && inc(out.run) && out.run[2] <= d0.run + v0 * DT + 0.5;
+      const brakeOk = !brake || out.brake.every(x => x <= stopB + 0.01 && x >= d0.brake);
+      const standOk = out.stand.every(x => x === d0.stand);
+      // the next step: where the engine puts it, against the last drawn (no jump back, no jump ahead beyond a metre)
+      st.t = S0 + DT + 0.01; await sleep(150); const d1 = run.d, after = view(run);
+      const stepOk = F.ag.S.t > S0 && d1 >= out.run[2] - 1 && Math.abs(after - d1) < 1.5 && after >= out.run[2] - 1e-6;
+      // played at x1 for 3 s: the distance drawn frame by frame, for the train running (no frame standing still, no jump)
+      const k = run.k, fr = []; st.speed = 1; st.playing = true;
+      await new Promise(res => { const t0 = performance.now(), go = () => { const a = A()[k]; if (a.v > 1 && a.stopAt == null) fr.push(view(a)); if (performance.now() - t0 < 3000) requestAnimationFrame(go); else res(); }; requestAnimationFrame(go); });
+      st.playing = false;
+      const mv = fr.slice(1).map((x, i) => x - fr[i]), mean = mv.reduce((p, q) => p + q, 0) / (mv.length || 1);
+      const still = mv.filter(x => x <= 1e-6).length / (mv.length || 1), jump = Math.max(...mv) / (mean || 1);
+      const x1Ok = mv.length > 30 && still < 0.1 && jump < 4 && Math.min(...mv) > -1e-6;
+      return { ok: runOk && brakeOk && standOk && stepOk && x1Ok && !!brake, runOk, brakeOk, braking: !!brake, standOk, stepOk, x1: { frames: mv.length, still: +still.toFixed(3), jump: +jump.toFixed(2), mean: +mean.toFixed(3) }, d0, v0, out, d1, after, stopB };
     });
   },
   async riservausata(p) {   // B-016: Saturday, a Comasina tabella left without its train: the DCT sends the reserve of Comasina;
