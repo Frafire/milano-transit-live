@@ -662,10 +662,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   </section>
 
   <section data-panel="speed" hidden>
-    <p class="note">Pick a speed, then click the M3 track pieces (from one junction to the next) that have that limit. The trains use it straight away. To give a limit to only part of a piece, press ✂ and click where the limit changes; click a white cut mark again to remove it.</p>
+    <p class="note">Pick a speed, then click the track pieces (from one junction to the next) that have that limit. On the M3 the trains use it straight away. To give a limit to only part of a piece, press ✂ and click where the limit changes; click a white cut mark again to remove it.</p>
+    <div class="row" id="spdLineRow" hidden><label for="spdLine" class="label">Linea</label><select id="spdLine"></select></div>
     <div class="row spdbtns" id="spdBtns"></div>
     <div class="row"><button id="cutBtn" aria-pressed="false">✂ Cut a piece</button></div>
     <div id="spdPick" class="note picked">Click a track piece</div>
+    <div id="rtBox">
     <div class="label" style="margin-top:6px">Measured run time</div>
     <p class="note">From the moment the train starts to the moment it stops at the next station.</p>
     <div class="row">
@@ -674,6 +676,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     </div>
     <div class="row"><input type="number" id="rtSec" min="10" max="600" placeholder="seconds" aria-label="Measured seconds" style="width:90px"><button id="rtGo">Calculate</button></div>
     <div id="rtOut" class="note picked">Pick a stretch and type the seconds</div>
+    </div>
+    <p class="note" id="spdNoteLine" hidden>M2: base limits from Regole_M2.xlsx, Velocità: line 85, diverging 30 (some junctions 50: click them), depot tracks 15 (fixed, grey dashed). Sidings and tail tracks start at 85 with a ? until you set them. No trains run with these limits yet: they are kept for later.</p>
     <p class="note">Junctions (squares): the speed for trains taking the diverging side, 15 km/h unless you click one and give it another value. Fixed, not editable: 15 km/h over crossovers, in the depot and in the tail tracks (grey dashed). Going straight through a junction uses the limit of the track.</p>
   </section>
 
@@ -1082,7 +1086,10 @@ window.MTL_CAPS = __CAPS__;
     const cp = x => x == null ? x : JSON.parse(JSON.stringify(x));
     fleet.trains = cp(F.trains).map((segs, i) => ({ n: (F.tab_no || [])[i] || i + 1, segs,     // (the numbers of the tabelle: tools/build_line.py, Tempi sheet)
  starts: segs.map(s => s[3][0]), where: (F.where || [])[i] || ['depot', 'depot'], alts: cp((F.alts || [])[i] || []), arr2: cp((F.arr2 || [])[i] || []), calts: cp((F.calts || [])[i] || []), carr1: cp((F.carr1 || [])[i] || []), duties: cp((F.duties || [])[i] || null) }));
-    if (F.net && F.ops && window.MTLEngine) {
+    // a line with its track pieces but no paths of the trains yet (the M2, tools/net_m2.py): only the speed limits tab uses
+    // them (fleet.spd); the engine, the agents and the day stay off for it
+    if (F.net && F.ops && !F.path_edges) fleet.spd = { ops: F.ops, net: F.net, fileSpeeds: F.speeds || {}, fileCuts: F.cuts || {} };
+    if (F.net && F.ops && F.path_edges && window.MTLEngine) {
       fleet.engine = { ops: { ...F.ops, train_half: F.half }, rev: F.reverse_s, net: F.net, S: F.section, half: F.half, pathEdges: F.path_edges, fileSpeeds: F.speeds || {} };
       fleet.engine.fileCuts = F.cuts || {};
       if (F.dwell) {                 // real station stop times (dwell_m3.json): which station is the train at?
@@ -2592,6 +2599,7 @@ window.MTL_CAPS = __CAPS__;
   try {
     const raw = JSON.parse(localStorage.getItem('mtl-edit') || 'null');
     if (raw) ED = { tracks: raw.tracks || [], marks: raw.marks || [], signals: raw.signals || [], speeds: raw.speeds || {}, cuts: raw.cuts || {}, points: raw.points || {}, removed: raw.removed || [], sigdel: raw.sigdel || [] };
+    if (raw) Object.keys(raw).filter(k => /^(speeds|cuts)_[A-Z0-9]+$/.test(k)).forEach(k => { ED[k] = raw[k]; });
     else ED.tracks = JSON.parse(localStorage.getItem('mtl-tracks') || '[]');
   } catch (e) {}
   const persist = () => { try { localStorage.setItem('mtl-edit', JSON.stringify(ED)); } catch (e) {} };
@@ -2923,9 +2931,11 @@ window.MTL_CAPS = __CAPS__;
     });
     const nSp = Object.keys(ED.speeds || {}).length, nCut = Object.values(ED.cuts || {}).reduce((a, c) => a + c.length, 0);
     if (nSp || nCut) add(`Speed limits: ${nSp} set, ${nCut} cut${nCut === 1 ? '' : 's'}`, () => { ED.speeds = {}; ED.cuts = {}; persist(); redrawSaved(); drawSpeeds(); applySpeeds(); });
+    Object.keys(ED).filter(k => /^speeds_[A-Z0-9]+$/.test(k)).forEach(k => { const ln = k.slice(7), c = ED['cuts_' + ln] || {}, n1 = Object.keys(ED[k]).length, n2 = Object.values(c).reduce((a, x) => a + x.length, 0);
+      if (n1 || n2) add(`Speed limits ${ln}: ${n1} set, ${n2} cut${n2 === 1 ? '' : 's'}`, () => { ED[k] = {}; ED['cuts_' + ln] = {}; persist(); redrawSaved(); drawSpeeds(); }); });
     if (!trkList.children.length) trkList.innerHTML = '<li class="note">Nothing saved yet</li>';
   }
-  // ---- speed limits tool (M3) ----
+  // ---- speed limits tool (every line with track pieces: the M3, with its engine; the M2, fleet.spd) ----
   const SPEEDS = [5, 10, 15, 20, 30, 40, 50, 60, 70, 80];     // 5 km/h: covered parts of the depot (capannone)
   const SPCOL = k => k <= 15 ? '#ff3b3b' : k <= 30 ? '#ff8a3b' : k <= 40 ? '#ffcf3f' : k <= 50 ? '#c6f03b' : k <= 60 ? '#3bd16f' : k <= 70 ? '#3bd1c6' : '#4f9bff';
   let spdPickV = 60;
@@ -2934,10 +2944,27 @@ window.MTL_CAPS = __CAPS__;
   spdBtns.querySelectorAll('button').forEach(b => b.onclick = () => { spdPickV = +b.dataset.v; spdBtns.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); });
   const speedLayer = L.layerGroup().addTo(map);
   const m3eng = () => fleets.find(f => f.engine && f.engine.pathEdges);
+  // the lines the tab can edit, the one chosen (#spdLine), its data (SE: the engine of the M3, fleet.spd of the M2) and
+  // where its limits are kept in this browser: ED.speeds / ED.cuts for the M3 (data/rules_m3.json), ED.speeds_<line> /
+  // ED.cuts_<line> for the others (data/rules_<line>.json), so that one line's export never carries the other's
+  const spdFleets = () => fleets.filter(f => (f.engine && f.engine.pathEdges) || f.spd);
+  let spdLine = null;
+  const spdEng = () => { const L_ = spdFleets(); return L_.find(f => f.line === spdLine) || L_[0]; };
+  const SE = F => (F.engine && F.engine.pathEdges) ? F.engine : F.spd;
+  const spS = F => F.spd ? (ED['speeds_' + F.line] = ED['speeds_' + F.line] || {}) : ED.speeds;
+  const spC = F => F.spd ? (ED['cuts_' + F.line] = ED['cuts_' + F.line] || {}) : ED.cuts;
+  function fillSpdLine() {         // when the tab opens: the lines loaded now
+    const sel = document.getElementById('spdLine'), L_ = spdFleets();
+    sel.innerHTML = L_.map(f => `<option value="${f.line}"${f.line === (spdEng() || {}).line ? ' selected' : ''}>${f.line}</option>`).join(''); document.getElementById('spdLineRow').hidden = L_.length < 2;
+    sel.onchange = () => { spdLine = sel.value; drawSpeeds(); spdNotes(); }; spdNotes(); }
+  // the measured run time and the M3's note only for a line whose trains run on the limits; the M2's own note
+  function spdNotes() { const F = spdEng(), full = !!(F && F.engine && F.engine.pathEdges);
+    document.getElementById('rtBox').hidden = !full; document.getElementById('spdNoteLine').hidden = full || !F || F.line !== 'M2';
+    const n3 = document.getElementById('spdNoteLine').nextElementSibling; if (n3 && n3.classList.contains('note')) n3.hidden = !full; }
   const NETPTS = {};
-  function netPts(F) { if (!NETPTS[F.line]) NETPTS[F.line] = F.engine.net.edges.map(e => decodeFlat(e.p)); return NETPTS[F.line]; }
-  const allSpeeds = F => ({ ...F.engine.fileSpeeds, ...ED.speeds });
-  const allCuts = F => ({ ...(F.engine.fileCuts || {}), ...ED.cuts });
+  function netPts(F) { if (!NETPTS[F.line]) NETPTS[F.line] = SE(F).net.edges.map(e => decodeFlat(e.p)); return NETPTS[F.line]; }
+  const allSpeeds = F => ({ ...SE(F).fileSpeeds, ...spS(F) });
+  const allCuts = F => ({ ...(SE(F).fileCuts || {}), ...spC(F) });
   let cutMode = false;
   document.getElementById('cutBtn').onclick = () => { cutMode = !cutMode; document.getElementById('cutBtn').setAttribute('aria-pressed', cutMode);
     spdPick.textContent = cutMode ? 'Cut mode: click where the limit changes' : 'Click a track piece'; };
@@ -2966,16 +2993,16 @@ window.MTL_CAPS = __CAPS__;
   }
   let speedTimer = null;
   function applySpeeds() {        // new limits: rebuild the speed profiles and drive the day again
-    const F = m3eng(); if (!F) return;
+    const F = spdEng(); if (!F || !(F.engine && F.engine.pathEdges)) return;     // a line without paths: nothing drives with them yet
     F.engine.prof = MTLEngine.buildProfiles(F.engine.pathEdges, F.engine.net.edges, allSpeeds(F), F.engine.ops, allCuts(F));
     reliveFleet(F);
   }
   function drawSpeeds() {
     speedLayer.clearLayers();
-    const F = m3eng(); if (!F || !drawing || mode !== 'speed') return;
+    const F = spdEng(); if (!F || !drawing || mode !== 'speed') return;
     const sp = allSpeeds(F), cu = allCuts(F), P = netPts(F), z = map.getZoom();
     if (z >= 15) setTimeout(() => drawJunctions(F, sp), 0);
-    F.engine.net.edges.forEach((e, i) => {
+    SE(F).net.edges.forEach((e, i) => {
       if (e.fixed) { L.polyline(P[i], { color: '#9a9a9a', weight: 3, opacity: .95, dashArray: '4 4', interactive: false }).addTo(speedLayer); return; }
       const bd = MTLEngine.partBounds(e, cu), Lp = P[i].reduce((a, q, k) => k ? a + segLen(P[i][k - 1], q) : 0, 0), kk = Lp / (e.len || 1);
       for (let j = 0; j < bd.length - 1; j++) {
@@ -2993,17 +3020,23 @@ window.MTL_CAPS = __CAPS__;
     });
   }
   function junctions(F) {        // junction nodes where some route takes the diverging side
-    if (!F.engine.junc) {
-      const set = new Set(); F.engine.pathEdges.forEach(pe => pe && pe.div.forEach(x => Array.isArray(x) && set.add(x[1])));
+    const E_ = SE(F);
+    if (!E_.junc) {
+      const set = new Set();
+      if (E_.pathEdges) E_.pathEdges.forEach(pe => pe && pe.div.forEach(x => Array.isArray(x) && set.add(x[1])));
+      else {                     // no paths yet (M2): every node where three track pieces meet is a junction
+        const deg = {}; E_.net.edges.forEach(e => { deg[e.a] = (deg[e.a] || 0) + 1; deg[e.b] = (deg[e.b] || 0) + 1; });
+        Object.keys(deg).filter(n => deg[n] >= 3).forEach(n => set.add(n));
+      }
       // depot junctions are always 15 km/h: only show the ones on the line, platforms and tails
-      const onLine = n => F.engine.net.edges.some(e => (e.a === n || e.b === n) && !['yard', 'link'].includes(e.cat));
-      F.engine.junc = [...set].filter(onLine);
+      const onLine = n => E_.net.edges.some(e => (String(e.a) === String(n) || String(e.b) === String(n)) && !['yard', 'link'].includes(e.cat));
+      E_.junc = [...set].filter(onLine);
     }
-    return F.engine.junc;
+    return E_.junc;
   }
   function drawJunctions(F, sp) {
-    const dv = F.engine.ops.diverging_kmh || 15;
-    junctions(F).forEach(n => { const ll = F.engine.net.nodes[String(n)]; if (!ll) return; const v = sp['J' + n] != null ? sp['J' + n] : dv;
+    const dv = SE(F).ops.diverging_kmh || 15;
+    junctions(F).forEach(n => { const ll = SE(F).net.nodes[String(n)]; if (!ll) return; const v = sp['J' + n] != null ? sp['J' + n] : dv;
       L.marker(ll, { interactive: false, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="jmark" style="--c:${SPCOL(v)}">${v}</div>` }) }).addTo(speedLayer); });
   }
   // ---- measured run times: average speed, the top speed it needs, and what the simulation does now ----
@@ -3095,15 +3128,15 @@ window.MTL_CAPS = __CAPS__;
   map.on('zoomend', drawPlatforms);
   setTimeout(drawPlatforms, 0);
   function snapJunction(latlng) {
-    const F = m3eng(); if (!F) return null;
+    const F = spdEng(); if (!F) return null;
     const Pc = map.latLngToContainerPoint(latlng); let best = null;
-    junctions(F).forEach(n => { const ll = F.engine.net.nodes[String(n)]; if (!ll) return; const q = map.latLngToContainerPoint(ll), d = Math.hypot(q.x - Pc.x, q.y - Pc.y);
+    junctions(F).forEach(n => { const ll = SE(F).net.nodes[String(n)]; if (!ll) return; const q = map.latLngToContainerPoint(ll), d = Math.hypot(q.x - Pc.x, q.y - Pc.y);
       if (d < 11 && (!best || d < best.d)) best = { d, n }; });
     return best;
   }
   let lastSnap = null;
   function snapEdge(latlng) {
-    const F = m3eng(); if (!F) return null;
+    const F = spdEng(); if (!F) return null;
     const Pc = map.latLngToContainerPoint(latlng), P = netPts(F); let best = null;
     const hits = [];
     P.forEach((pts_, i) => { let bd = null; for (let k = 0; k < pts_.length - 1; k++) {
@@ -3119,12 +3152,13 @@ window.MTL_CAPS = __CAPS__;
     const k = same ? (lastSnap.k + 1) % hits.length : 0;
     lastSnap = { x: Pc.x, y: Pc.y, k };
     best = hits[k];
-    return { F, e: F.engine.net.edges[best.i], i: best.i, n: hits.length, k };
+    return { F, e: SE(F).net.edges[best.i], i: best.i, n: hits.length, k };
   }
   function setMode(m) {
     mode = m;
     document.querySelectorAll('.drawer .tab').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
     document.querySelectorAll('.drawer [data-panel]').forEach(p => p.hidden = p.dataset.panel !== m);
+    if (m === 'speed') fillSpdLine();
     redrawCurrent(); drawSpeeds(); if (m === 'speed') fillStretches();
     redrawSaved(); drawMove(); drawKitSigs();
     if (m !== 'schema' && typeof schEditOff === 'function') schEditOff();
@@ -3316,14 +3350,14 @@ window.MTL_CAPS = __CAPS__;
     if (mode === 'draw') { pts.push([+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)]); redrawCurrent(); return; }
     if (mode === 'move') { mvSel = null; drawMove(); return; }
     if (mode === 'speed') {
-      const jn = !cutMode && map.getZoom() >= 15 && snapJunction(e.latlng);
+      const jn = !cutMode && map.getZoom() >= 15 && snapJunction(e.latlng), SF = spdEng(), SS = SF && spS(SF), SC = SF && spC(SF);
       if (jn) {
-        if (spdPickV) ED.speeds['J' + jn.n] = spdPickV; else delete ED.speeds['J' + jn.n];
-        spdPick.textContent = `Junction: diverging side ${spdPickV ? spdPickV : (m3eng().engine.ops.diverging_kmh || 15)} km/h`;
+        if (spdPickV) SS['J' + jn.n] = spdPickV; else delete SS['J' + jn.n];
+        spdPick.textContent = `Junction: diverging side ${spdPickV ? spdPickV : (SE(SF).ops.diverging_kmh || 15)} km/h`;
         persist(); drawSpeeds(); redrawSaved(); clearTimeout(speedTimer); speedTimer = setTimeout(applySpeeds, 300); return;
       }
       const h = snapEdge(e.latlng);
-      if (!h) { spdPick.textContent = 'No M3 track there. Zoom in and click right on a track.'; return; }
+      if (!h) { spdPick.textContent = `No ${SF ? SF.line : ''} track there. Zoom in and click right on a track.`; return; }
       const kind = ({ main: 'main line', siding: 'siding / platform', test: 'test loop', crossover: 'crossover', yard: 'depot track', link: 'depot access' }[h.e.cat] || h.e.cat)
         + (h.n > 1 ? ` (track ${h.k + 1} of ${h.n} here: click again for the next)` : '');
       if (h.e.fixed) { spdPick.textContent = `${kind}, ${Math.round(h.e.len)} m: fixed at ${h.e.kmh} km/h`; return; }
@@ -3338,14 +3372,14 @@ window.MTL_CAPS = __CAPS__;
         if (near >= 0) { cuts.splice(near, 1); before.splice(near + 1, 1); }                                       // remove the cut: the parts join
         else if (at > 5 && at < h.e.len - 5) { const j = partOf(at); cuts.splice(j, 0, Math.round(at * 10) / 10); before.splice(j, 0, before[j]); }
         else { spdPick.textContent = 'Too close to the end of the piece'; return; }
-        Object.keys(ED.speeds).filter(k => k === key || k.startsWith(key + '#')).forEach(k => delete ED.speeds[k]);
-        if (cuts.length) { ED.cuts[key] = cuts; before.forEach((v, j) => { if (v !== h.e.kmh) ED.speeds[key + '#' + j] = v; }); }
-        else { delete ED.cuts[key]; if (before[0] !== h.e.kmh) ED.speeds[key] = before[0]; }
+        Object.keys(SS).filter(k => k === key || k.startsWith(key + '#')).forEach(k => delete SS[k]);
+        if (cuts.length) { SC[key] = cuts; before.forEach((v, j) => { if (v !== h.e.kmh) SS[key + '#' + j] = v; }); }
+        else { delete SC[key]; if (before[0] !== h.e.kmh) SS[key] = before[0]; }
         spdPick.textContent = `${kind}: ${cuts.length ? cuts.length + 1 + ' parts' : 'one piece again'}`;
       } else {
         const k = cuts.length ? key + '#' + partOf(at) : key;
-        if (spdPickV) ED.speeds[k] = spdPickV; else delete ED.speeds[k];
-        if (cuts.length) delete ED.speeds[key];
+        if (spdPickV) SS[k] = spdPickV; else delete SS[k];
+        if (cuts.length) delete SS[key];
         const bd = [0, ...cuts, h.e.len], j = partOf(at);
         spdPick.textContent = `${kind}, ${Math.round(bd[j + 1] - bd[j])} m: ${spdPickV ? spdPickV + ' km/h' : 'back to default (' + h.e.kmh + ' km/h)'}`;
       }
@@ -3411,7 +3445,7 @@ window.MTL_CAPS = __CAPS__;
   };
   redrawSaved(); setMode('mark');
   {
-    const F = m3eng(), same = (a, b) => { const k1 = Object.keys(a).sort(), k2 = Object.keys(b).sort(); return k1.length === k2.length && k1.every((k, i) => k === k2[i] && JSON.stringify(a[k]) === JSON.stringify(b[k])); };
+    const F = spdFleets().find(f => f.engine && f.engine.pathEdges), same = (a, b) => { const k1 = Object.keys(a).sort(), k2 = Object.keys(b).sort(); return k1.length === k2.length && k1.every((k, i) => k === k2[i] && JSON.stringify(a[k]) === JSON.stringify(b[k])); };
     const sp = F ? { ...F.engine.fileSpeeds, ...ED.speeds } : {}, cu = F ? { ...F.engine.fileCuts, ...ED.cuts } : {};
     if (F && (!same(sp, F.engine.fileSpeeds) || !same(cu, F.engine.fileCuts))) applySpeeds();   // only if they differ
   }

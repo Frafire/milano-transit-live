@@ -4,7 +4,8 @@ Only the entries with "line": "M2" are taken (signals, marks, drawn tracks with 
 included, is left out and counted, and data/rules_m3.json is never opened. A signal with the id (code) of one already in
 the file replaces it (moved or changed in Sposta segnali); one without an id replaces the one at the same place (within
 0.5 m) facing the same way, so the same export can be imported twice. The ids in "sigdel" (deleted in Sposta segnali) are
-taken out of the file. A new signal keeps its own id; one without an id gets the next free M2-s code. Nothing
+taken out of the file. The M2's speed limits (speeds_M2, cuts_M2 of the Speed limits tab) go into speeds and cuts; the
+M3's (speeds, cuts) are left out. A new signal keeps its own id; one without an id gets the next free M2-s code. Nothing
 else of a signal is changed (only the editor's "moved" flag is left out).
 
 Usage: python3 tools/import_edit_m2.py export.txt [data/rules_m2.json]"""
@@ -43,8 +44,17 @@ for m in ED.get('marks', []):
 for t in ED.get('tracks', []):
     if t.get('line') != 'M2': other += 1; continue          # a drawn track says its line only when the editor knows it
     R['tracks'].append(t); got['tracks'] += 1
+# the speed limits of the M2 (editor tab Speed limits, line M2: speeds_M2, cuts_M2): replace the file's ones they name
+# (the M3's speeds and cuts of the same export are left out); a cut list made empty in the editor is not in the export
+sp, cu = ED.get('speeds_M2', {}), ED.get('cuts_M2', {})
+R.setdefault('speeds', {}); R.setdefault('cuts', {})
+for k in list(R['speeds']):          # a piece re-cut in the editor: its old parts go
+    if k.split('#')[0] in cu or (k.split('#')[0] in sp and '#' in k): del R['speeds'][k]
+R['speeds'].update(sp); R['cuts'].update(cu)
+got['speeds'] = len(sp); got['cuts'] = len(cu)
+if ED.get('speeds') or ED.get('cuts'): other += len(ED.get('speeds', {})) + len(ED.get('cuts', {}))
 R['signals'].sort(key=lambda x: (x.get('name') or '~', x['lat'], x['lon']))
 json.dump(R, open(dst, 'w'), ensure_ascii=False, indent=1)
 open(dst, 'a').write('\n')
-print('%s: M2 signals %d, marks %d, tracks %d imported, %d deleted; %d entries of other lines left out (rules_m3.json untouched); '
-      'now %d signals in the file' % (dst, got['signals'], got['marks'], got['tracks'], got['deleted'], other, len(R['signals'])))
+print('%s: M2 signals %d, marks %d, tracks %d, speed limits %d, cut pieces %d imported, %d deleted; %d entries of other lines left out (rules_m3.json untouched); '
+      'now %d signals in the file' % (dst, got['signals'], got['marks'], got['tracks'], got['speeds'], got['cuts'], got['deleted'], other, len(R['signals'])))

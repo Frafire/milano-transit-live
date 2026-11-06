@@ -1,24 +1,25 @@
 {
-  "_nota": "Cosa ha ogni linea nella pagina del gioco: la pagina mostra un pannello solo se la linea ha la sua capacità (attributo data-cap in web/template.html). Comuni a tutte: mappa, orologio, scheda treno, allarmi. Proposta approvata da Giovanni il 4/11/2026, provvisoria: l'interfaccia verrà rifatta. Le capacità: segnali_itinerari (semafori della M3 con itinerari #A, Segnali, Segnali illegali, Togli semafori), aspetti_codici (legenda degli aspetti e dei codici), bivi (interruttore Bivi automatico / DCT), chiusure (chiudi tratta, chiusura totale), guasti_soccorso (emergenze e guasti con Badoni), deposito_sinottico (deposito automatico, scheda del deposito, Mappa / Sinottico, anello di prova), tronchetti (pannello di controllo con gli ordini ai capolinea), regolatore_turni (Regolatore, Turni del giorno), limiti_velocita (strumento dei limiti nell'editor), treni_nuovi (treni nuovi in prova), radio_telefono (radio al treno, telefono con le stazioni: oggi solo dove la linea ha il motore). M2_bivi: i bivi dell'interruttore Bivi automatico / DCT (Pannello PC M2-1 di Regole_M2.xlsx). segnali_kit: pulsante Mostra i segnali (i segnali piazzati nell'editor, con il disegno della linea).",
-  "M3": [
-    "radio_telefono",
-    "segnali_itinerari",
-    "chiusure",
-    "guasti_soccorso",
-    "deposito_sinottico",
-    "tronchetti",
-    "regolatore_turni",
-    "limiti_velocita",
-    "treni_nuovi"
-  ],
-  "M2": [
-    "radio_telefono",
-    "aspetti_codici",
-    "bivi",
-    "segnali_kit"
-  ],
-  "M2_bivi": [
-    "Famagosta",
-    "Cascina Gobba"
-  ]
+ "_nota": "Cosa ha ogni linea nella pagina del gioco: la pagina mostra un pannello solo se la linea ha la sua capacità (attributo data-cap in web/template.html). Comuni a tutte: mappa, orologio, scheda treno, allarmi. Proposta approvata da Giovanni il 4/11/2026, provvisoria: l'interfaccia verrà rifatta. Le capacità: segnali_itinerari (semafori della M3 con itinerari #A, Segnali, Segnali illegali, Togli semafori), aspetti_codici (legenda degli aspetti e dei codici), bivi (interruttore Bivi automatico / DCT), chiusure (chiudi tratta, chiusura totale), guasti_soccorso (emergenze e guasti con Badoni), deposito_sinottico (deposito automatico, scheda del deposito, Mappa / Sinottico, anello di prova), tronchetti (pannello di controllo con gli ordini ai capolinea), regolatore_turni (Regolatore, Turni del giorno), limiti_velocita (strumento dei limiti nell'editor), treni_nuovi (treni nuovi in prova), radio_telefono (radio al treno, telefono con le stazioni: oggi solo dove la linea ha il motore). M2_bivi: i bivi dell'interruttore Bivi automatico / DCT (Pannello PC M2-1 di Regole_M2.xlsx). segnali_kit: pulsante Mostra i segnali (i segnali piazzati nell'editor, con il disegno della linea).",
+ "M3": [
+  "radio_telefono",
+  "segnali_itinerari",
+  "chiusure",
+  "guasti_soccorso",
+  "deposito_sinottico",
+  "tronchetti",
+  "regolatore_turni",
+  "limiti_velocita",
+  "treni_nuovi"
+ ],
+ "M2": [
+  "radio_telefono",
+  "aspetti_codici",
+  "bivi",
+  "segnali_kit",
+  "limiti_velocita"
+ ],
+ "M2_bivi": [
+  "Famagosta",
+  "Cascina Gobba"
+ ]
 }

@@ -68,6 +68,7 @@ for pair in "1:$DAY" "6:$SAT_DAY" "7:$SUN_DAY"; do
   (cd "$BD" && python3 "$ROOT/tools/build_data.py" "$GTFS_M2" "$d" data.json 2> bd.log && gzip -9 -kf data.json && \
     python3 "$ROOT/tools/turni_m2.py" && LINE=M2 TRACKS=osm_m2.txt PICK_DOT=0.3 PLATFORMS=osm_m2_platforms.json PLATFORM_EDITS=banchine_m2.json TRACK_DIRS=1 python3 "$ROOT/tools/build_trips.py" > trips.log && \
     python3 "$ROOT/tools/depositi_m2.py" "$ROOT/data/depositi_m2.json" && python3 "$ROOT/tests/m2_depositi_check.py" "$ROOT/data/depositi_m2.json" && \
+    python3 "$ROOT/tools/net_m2.py" "$ROOT/data" && python3 "$ROOT/tests/m2_net_check.py" && \
     grep -h "^patterns\|written" trips.log && python3 "$ROOT/tests/m2_check.py")
 done
 cd "$B"
