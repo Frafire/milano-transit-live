@@ -2641,7 +2641,7 @@ window.MTL_CAPS = __CAPS__;
   // SIGKIT[line]: the kinds of signal the editor offers there and what each placed signal carries (galleria / superficie,
   // vele, lettera P, legale / illegale, the name). Roles (blocco, partenza, protezione...) come later from the Excel.
   // Galleria: one head with three lamps, red, yellow, green from the top; rounded corners legale, square illegale.
-  // Superficie: one or two velas on a striped pole, round legale (on the right), square illegale (on the left).
+  // Superficie: one or two velas on a white pole, round legale (on the right), square illegale (on the left).
   // P: a fixed plate or a digital screen, on the same side as the signal. Names: galleria S + 3 digits + a (legale) or
   // b (illegale); superficie POSTO + number + a or b, so they never clash with the M3's #A numbers.
   const SIGKIT = { M2: { types: [['main', 'Semaforo (vela)'], ['velaman', 'Semaforo con manovra sotto (vela + manovra, il tipo del vecchio editor)'], ['velam', 'Semaforo a vela singola con marmotta (marmotta + vela)'],
@@ -2677,7 +2677,8 @@ window.MTL_CAPS = __CAPS__;
   const KPOLE = { alto: 16, corto: 6, parete: 0 };
   const kitPoleLen = (o, def) => KPOLE[o.mount] != null ? KPOLE[o.mount] : def;
   function kitPole(px, y, len, W) { const m = Math.floor(W / 2);
-    for (let j = y; j < y + len; j++) { const b = Math.floor((j - y) / 3) % 2; px(m - 1, j, b ? '#111' : '#d8d8d8'); px(m, j, b ? '#222' : '#f4f4f4'); px(m + 1, j, b ? '#0a0a0a' : '#bdbdbd'); }
+    // all white (Giovanni 7 Nov 2026, from a M2 driver: the striped pole is the railway's mark of the pure warning signals)
+    for (let j = y; j < y + len; j++) { px(m - 1, j, '#d8d8d8'); px(m, j, '#f4f4f4'); px(m + 1, j, '#bdbdbd'); }
     if (len) for (let i = m - 3; i <= m + 3; i++) px(i, y + len, '#55595c'); }
   // the short stem of a galleria signal to the wall (no pole), plain grey
   function kitStem(px, y, len, W) { const m = Math.floor(W / 2); for (let j = y; j < y + len; j++) { px(m - 1, j, '#5b6165'); px(m, j, '#7d8489'); }
