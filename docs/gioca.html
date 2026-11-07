@@ -6376,6 +6376,11 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const key = kind + '|' + dest + '|' + lights + '|' + (no || '') + '|' + (car || ''); if (FRONT.cache.has(key)) return FRONT.cache.get(key);
     if (kind === 'hitachi') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(hitachiSVG(dest, lights, no)); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url; }
     if (kind === 'meneghino') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(meneghinoSVG(dest, lights, no)); FRONT.cache.set(key, url); return url; }
+    // M2 (data/flotta_m2.json): the Leonardo, car = its livery ('black' green profiles, 'green' white profiles); the Meneghino,
+    // car = the colour of its profiles ('green', 'yellow')
+    if (kind === 'leonardo' || kind === 'meneghinoM2') { if (FRONT.cache.size > 60) FRONT.cache.clear();
+      const svg = kind === 'leonardo' ? leonardoSVG(dest, lights, no, car === 'green' ? 'green' : 'black') : meneghinoM2SVG(dest, lights, no, car === 'yellow' ? ['#cf9c06', '#f9cf27', '#d9a70d'] : ['#077a39', '#16a552', '#0a8a42']);
+      const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); FRONT.cache.set(key, url); return url; }
     if (kind === 'lotto1' || kind === 'lotto2') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(tradSVG(kind === 'lotto2', dest, lights, no, car)); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url; }
     const S = 5, W = FRONT.W, H = FRONT.H, c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
     const x = c.getContext('2d'), R = (cx, cy, w, h, col) => { x.fillStyle = col; x.fillRect(cx * S, cy * S, w * S, h * S); };
@@ -6839,7 +6844,178 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // 2nd train, notice. From 10 s before the train comes in until it leaves: "Treno per ...". After the last train:
   // "TRENI PER ...". Minutes in halves down to 1 (Giovanni).
   const SCR_NOTICES = [['IN BANCHINA', 'NON SUPERARE LA RIGA', 'GIALLA DI SICUREZZA'], ['PER LA SALITA', 'UTILIZZARE TUTTE LE', 'PORTE DEL TRENO']];
-  const F57 = {
+  // a destination on a LED sign, between x0 and x1, its rows centred on yMid: shrunk a little if it does not fit, and if it
+  // still does not fit, running from right to left without end (Giovanni 7 Nov: "Assago Milanofiori Forum" does not fit)
+  let LEDN = 0;
+  function ledDest(txt, x0, x1, yMid, pMax, pMin, fill, filt) {
+    const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
+    const dots = (t, x, p) => { let out = ''; const y = yMid - 3.5 * p;
+      for (const ch of t) { const g = F57[ch] || F57[' '];
+        for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .43).toFixed(2)}"/>`;
+        x += (g[0].length + 1) * p; }
+      return out; };
+    const cols = colsOf(txt), room = x1 - x0, p = Math.min(pMax, room / cols);
+    if (p >= pMin) return `<g fill="${fill}" filter="url(#${filt})">${dots(txt, x0 + (room - cols * p) / 2, p)}</g>`;
+    const id = 'cl' + (++LEDN), w = cols * pMax, gap = 12 * pMax, d = ((w + gap) / (14 * pMax)).toFixed(1);
+    return `<clipPath id="${id}"><rect x="${x0}" y="${yMid - 6 * pMax}" width="${room}" height="${12 * pMax}"/></clipPath>
+      <g clip-path="url(#${id})"><g fill="${fill}" filter="url(#${filt})">${dots(txt, x0 + 4, pMax)}${dots(txt, x0 + 4 + w + gap, pMax)}
+      <animateTransform attributeName="transform" type="translate" from="0 0" to="${-(w + gap)} 0" dur="${d}s" repeatCount="indefinite"/></g></g>`;
+  }
+  // the Leonardo (Hitachi Rail), traced on the straight-on render Giovanni sent (7 Nov), in the render's own pixels (x3):
+  // the band is one tube, not symmetric: from the top it runs down both sides; on the right it bends down into the bar under
+  // the windscreen, which runs left and ends in a short hook down; on the left it bends down to the bottom under the
+  // nameplate, which runs right and ends in a short hook up. Inside the band the black face: the sign across the top (number
+  // white, destination amber, running when it does not fit), the two side panes and the door. Outside, on the lower corners,
+  // the half-disc light units with the lamp at their base (white running, red standing); below, the black lower part with
+  // the two grilles and the coupler, the grey underframe under it.
+  function leonardoSVG(dest, lights, no, livery, X) {
+    X = Object.assign({ comune: true, handle: true }, X || {});      // approved by Giovanni, 7 Nov 2026: handle and the Comune's small logo, no lettering
+    const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 3);
+    const L = { black: { body: ['#2c2d30', '#202124'], band: ['#86ef6d', '#4cc93a', '#2f9d27'] },
+                green: { body: ['#5cb64f', '#3f9a37'], band: ['#ffffff', '#e4e7ea', '#aeb5bc'] },
+                red: { body: ['#2c2d30', '#202124'], band: ['#ff8a78', '#e8392b', '#a8201a'] } }[livery] || {};
+    const red = lights === 'red';
+    let sign = '', nx = 262;
+    if (num) { let x = nx; for (const ch of num) { const g = F57[ch]; for (let r = 0; r < 7; r++) for (let i = 0; i < 5; i++) if (g[r][i] === '1') sign += `<circle cx="${(x + (i + .5) * 6.4).toFixed(1)}" cy="${(153 - 22.4 + (r + .5) * 6.4).toFixed(1)}" r="2.7" fill="#f4f6ff"/>`; x += 6 * 6.4; } nx = x + 22; }
+    if (txt) sign += ledDest(txt, nx, 748, 153, 6.4, 5.2, '#ffa31a', 'la');
+    const loop = 'M102 563 L102 212 Q102 196 112 184 L178 100 Q190 85 212 85 L798 85 Q820 85 832 100 L898 184 Q908 196 908 212 L908 545';
+    const BAND = loop + ' L815 650 L395 650 L318 718 M102 563 L300 750 L640 750 L702 688';
+    // light unit (photo of 7 Nov): the half-disc outside as it is; at its base two circles, the grey ring and the lamp's lens in
+    // it; running the lens is lit white, standing the half-disc is lit red
+    const unit = cx => `<path d="M${cx - 60} 727 A60 60 0 0 1 ${cx + 60} 727 Z" fill="${red ? '#ff4a3a' : '#eef0f2'}" stroke="${red ? '#a81e14' : '#9aa1a7'}" stroke-width="2"/>
+      <path d="M${cx - 44} 727 A44 44 0 0 1 ${cx + 44} 727" fill="none" stroke="${red ? '#c42a1f' : '#c9ced3'}" stroke-width="2"/>
+      ${red ? `<circle cx="${cx}" cy="705" r="44" fill="url(#lrd)" filter="url(#lbl)"/>` : `<circle cx="${cx}" cy="727" r="44" fill="url(#lwh)" filter="url(#lbl)"/>`}
+      <circle cx="${cx}" cy="727" r="27" fill="#b9bec3" stroke="#7d848a" stroke-width="2.5"/>
+      <circle cx="${cx}" cy="727" r="13" fill="${red ? '#3a3d41' : '#ffffff'}" stroke="${red ? '#1f2124' : '#c9ced3'}" stroke-width="3"/>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 30 1010 1000">
+      <defs>
+        <linearGradient id="lb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${L.body[0]}"/><stop offset="1" stop-color="${L.body[1]}"/></linearGradient>
+        <linearGradient id="lf" gradientUnits="userSpaceOnUse" x1="0" y1="70" x2="0" y2="770"><stop offset="0" stop-color="${L.band[0]}"/><stop offset=".25" stop-color="${L.band[1]}"/><stop offset="1" stop-color="${L.band[2]}"/></linearGradient>
+        <linearGradient id="lg" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#3a3f45"/><stop offset=".5" stop-color="#25282c"/><stop offset="1" stop-color="#1a1c1f"/></linearGradient>
+        <radialGradient id="lwh"><stop offset="0" stop-color="#fffbe8" stop-opacity=".95"/><stop offset="1" stop-color="#fffbe8" stop-opacity="0"/></radialGradient>
+        <radialGradient id="lrd"><stop offset="0" stop-color="#ff2a14" stop-opacity=".8"/><stop offset="1" stop-color="#ff2a14" stop-opacity="0"/></radialGradient>
+        <filter id="lbl" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="7"/></filter>
+        <filter id="la" x="-.1" y="-.8" width="1.2" height="2.6"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <!-- roof hatch, horns, mirrors -->
+      <rect x="345" y="44" width="330" height="26" rx="3" fill="#1b1c1e"/>
+      <path d="M232 70 l3 -24 l4 24 M776 70 l3 -24 l4 24" fill="#2a2b2e"/>
+      <rect x="34" y="270" width="42" height="130" rx="6" fill="#1b1c1e"/><rect x="934" y="275" width="42" height="126" rx="6" fill="#1b1c1e"/>
+      <!-- underframe (grey) and the bogie feet -->
+      <path d="M120 880 H890 L852 1015 H158 Z" fill="#5c5d61"/>
+            <rect x="180" y="955" width="650" height="60" rx="10" fill="#4f5054"/>
+      <!-- the body, the band's outline at the top; the lower part black -->
+      <path d="M80 220 L178 78 H832 L928 220 V760 H80 Z" fill="url(#lb)"/>
+      <rect x="80" y="756" width="848" height="150" fill="#1c1d1f"/>
+      <rect x="282" y="790" width="446" height="116" fill="#58595d"/>
+      <!-- the black face inside the band, with the nameplate field -->
+      <path d="M102 212 Q102 196 112 184 L178 100 Q190 85 212 85 H798 Q820 85 832 100 L898 184 Q908 196 908 212 V545 L815 650 L735 650 L640 750 H300 L102 563 Z" fill="#232427"/>
+      <!-- sign -->
+      <rect x="240" y="118" width="525" height="70" rx="5" fill="#141517" stroke="#6b6e72" stroke-width="5"/>
+      ${sign}
+      <!-- windscreen: two panes, the door between them -->
+      <rect x="138" y="228" width="232" height="312" rx="24" fill="url(#lg)" stroke="#6d7075" stroke-width="7"/>
+      <rect x="640" y="228" width="232" height="312" rx="24" fill="url(#lg)" stroke="#6d7075" stroke-width="7"/>
+      <path d="M402 214 V760 M606 214 V760" stroke="#4a4c50" stroke-width="5"/>
+      <rect x="420" y="228" width="168" height="328" rx="10" fill="url(#lg)"/>
+      <path d="M396 255 v40 M612 270 v20" stroke="#7a7d82" stroke-width="5" stroke-linecap="round"/>
+      <path d="M235 205 L330 375 M770 205 L680 375" stroke="#1a1b1d" stroke-width="7" stroke-linecap="round"/>
+      <!-- the band: one tube, with a light along its top -->
+      <path d="${BAND}" fill="none" stroke="url(#lf)" stroke-width="33" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="${BAND}" fill="none" stroke="#ffffff" stroke-opacity=".28" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" transform="translate(-3 -8)"/>
+      <!-- nameplate: dark, bright edge -->
+      <rect x="408" y="668" width="192" height="62" rx="4" fill="#202124" stroke="#8a8f95" stroke-width="2.5"/>
+      ${X.atm ? `<text x="504" y="716" text-anchor="middle" font-family="'Times New Roman', Times, serif" font-weight="700" font-size="46" letter-spacing="5" fill="#eceef0">ATM</text>` : ''}
+      ${X.comune ? `<g fill="none" stroke="#f2f4f5" stroke-width="2.2"><path d="M532 580 h16 v10 q0 9 -8 12 q-8 -3 -8 -12 z"/><path d="M540 583 v16 M534 590 h12"/></g>
+        <path d="M554 584 h22 M554 592 h28 M554 600 h18" stroke="#f2f4f5" stroke-width="2.4"/>` : ''}
+      ${X.handle ? `<rect x="418" y="574" width="44" height="40" rx="6" fill="#141517" stroke="#3e4145" stroke-width="2.5"/>
+        <rect x="426" y="586" width="28" height="9" rx="3" fill="#6f7378"/>` : ''}
+      <!-- light units -->
+      ${unit(150)}${unit(858)}
+      <!-- grilles and coupler -->
+      ${[130, 738].map(x => `<rect x="${x}" y="766" width="140" height="130" rx="12" fill="#151618" stroke="#2c2e31" stroke-width="3"/>
+        <path d="${[...Array(8)].map((_, i) => `M${x + 20} ${793 + i * 12} h100`).join(' ')}" stroke="#3b3e42" stroke-width="5"/>`).join('')}
+      <rect x="414" y="792" width="182" height="86" rx="7" fill="#2a2b2e" stroke="#47494d" stroke-width="3"/>
+      <rect x="443" y="809" width="124" height="50" rx="5" fill="#9ea2a7"/><circle cx="474" cy="834" r="14" fill="#2a2c2f"/><circle cx="536" cy="834" r="14" fill="#2a2c2f"/>
+      <path d="M505 878 q7 44 34 66" fill="none" stroke="#1d1e20" stroke-width="8" stroke-linecap="round"/>
+    </svg>`;
+  }  // the Meneghino of the M2 (approved by Giovanni, 7 Nov 2026): the M3's drawing with the edges in the colour of its profiles
+  // (green; yellow on 949-950), the light units the same distance from the edges, the destination running when it does not fit
+  function meneghinoM2SVG(dest, lights, no, edge) {
+    // (coordinates measured on the photos of 958, 956, 954, 941: the front is 255 wide; grey, yellow edges, the upper
+    // part black and narrowing towards the roof)
+    const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
+    // the sign, one display: the train number in green on the left, the destination in orange in the middle
+    const V = { x: 38, y: 12, w: 185, h: 21 };
+    const ledText = (t, x0, p, fill) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;
+      for (const ch of t) { const g = F57[ch] || F57[' '];
+        for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .43).toFixed(2)}"/>`;
+        x += (g[0].length + 1) * p; }
+      return `<g fill="${fill}" filter="url(#led)">${out}</g>`; };
+    const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
+    let sign = '';
+    const numEnd = num ? V.x + 5 + colsOf(num) * 2.3 + 5 : V.x + 4;
+    if (num) sign += ledText(num, V.x + 5, 2.3, '#3dff6e');
+    if (txt) sign += ledDest(txt, numEnd, V.x + V.w - 4, V.y + V.h / 2, 2.45, 2.0, '#ff8a1a', 'led');
+    // the two lamps of each unit are the same: white below when running, red above when standing
+    const red = lights === 'red', on = red ? '#ff3826' : '#fffaf0', glow = red ? '#ff2a14' : '#fff4c8';
+    const housing = (x, lx, sx) => `<rect x="${x}" y="139" width="47.5" height="40" rx="7" fill="url(#hsg)" stroke="#8e949a" stroke-width="1.3"/>
+      <rect x="${x + 2.5}" y="141.5" width="42.5" height="35" rx="5" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9"/>
+      <circle cx="${lx}" cy="${red ? 152 : 166}" r="10" fill="url(#lmp)" filter="url(#bl)"/>
+      <circle cx="${lx}" cy="152" r="5" fill="${red ? on : '#cfd3d6'}" stroke="#6f757b" stroke-width=".9"/>
+      <circle cx="${lx}" cy="166" r="5" fill="${red ? '#cfd3d6' : on}" stroke="#6f757b" stroke-width=".9"/>
+      <rect x="${sx}" y="155.5" width="20" height="3.6" rx="1.8" fill="#5f656b"/>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-16 -9 293 281">
+      <defs>
+        <linearGradient id="rf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c0d0e"/><stop offset="1" stop-color="#1a1c1f"/></linearGradient>
+        <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4d7da"/><stop offset=".5" stop-color="#c3c7cb"/><stop offset="1" stop-color="#a9aeb3"/></linearGradient>
+        <linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".1" stop-color="#000" stop-opacity="0"/><stop offset=".9" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+        <linearGradient id="up" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3d41"/><stop offset=".12" stop-color="#202225"/><stop offset="1" stop-color="#121315"/></linearGradient>
+        <linearGradient id="gl" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#46505a"/><stop offset=".35" stop-color="#20272e"/><stop offset="1" stop-color="#0c1014"/></linearGradient>
+        <linearGradient id="yl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${edge[0]}"/><stop offset=".55" stop-color="${edge[1]}"/><stop offset="1" stop-color="${edge[2]}"/></linearGradient>
+        <linearGradient id="hsg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9dcdf"/><stop offset="1" stop-color="#b9bec3"/></linearGradient>
+        <linearGradient id="bp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2e3135"/><stop offset=".3" stop-color="#1d1f22"/><stop offset="1" stop-color="#0f1012"/></linearGradient>
+        <radialGradient id="lmp"><stop offset="0" stop-color="${glow}" stop-opacity=".95"/><stop offset="1" stop-color="${glow}" stop-opacity="0"/></radialGradient>
+        <filter id="bl" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.2"/></filter>
+        <filter id="led" x="-.1" y="-.6" width="1.2" height="2.2"><feGaussianBlur stdDeviation=".8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <!-- mirrors (black, on their arms) -->
+      <path d="M3 26 h-4 l-3 -3 h-8 a3 3 0 0 0 -3 3 v54 a3 3 0 0 0 3 3 h8 l3 -3 h4 z" fill="#17181a"/><path d="M-13 29 h7 v48 h-7 z" fill="#25272a"/>
+      <path d="M258 26 h4 l3 -3 h8 a3 3 0 0 1 3 3 v54 a3 3 0 0 1 -3 3 h-8 l-3 -3 h-4 z" fill="#17181a"/><path d="M267 29 h7 v48 h-7 z" fill="#25272a"/>
+      <!-- the roof arching over the cab; the grey body and, above the light units, the black upper part, rounded with the roof -->
+      <path d="M5 34 Q9 -9 66 -8 H195 Q252 -9 256 34 Z" fill="url(#rf)"/>
+      <path d="M3 38 Q4 5 44 3 H217 Q257 5 258 38 V203 H3 Z" fill="url(#bd)"/>
+      <path d="M3 38 Q4 5 44 3 H217 Q257 5 258 38 V203 H3 Z" fill="url(#sd)"/>
+      <path d="M13 136 V38 H3 Q4 5 44 3 H217 Q257 5 258 38 H248 V136 Z" fill="url(#up)"/>
+      <rect x="${V.x - 1.5}" y="${V.y - 1.5}" width="${V.w + 3}" height="${V.h + 3}" rx="2" fill="#2c2e31"/><rect x="${V.x}" y="${V.y}" width="${V.w}" height="${V.h}" rx="1" fill="#040405"/>
+      ${sign}
+      <!-- the yellow edges, curving with the roof -->
+      <path d="M3 38 H13.5 V203 H3 Z" fill="url(#yl)"/><path d="M258 38 H247.5 V203 H258 Z" fill="url(#yl)"/>
+      <!-- windscreen: two panes and the door between them -->
+      <rect x="15" y="39.75" width="69" height="92.25" rx="2" fill="url(#gl)"/><rect x="162.75" y="39.75" width="75" height="92.25" rx="2" fill="url(#gl)"/>
+      <rect x="87.75" y="34.5" width="71.25" height="151.5" fill="#0f1012"/>
+      <rect x="97.5" y="42" width="54" height="85.5" rx="2" fill="url(#gl)"/>
+      <path d="M22 125 L48 44 L57 44 L31 125 Z M170 125 L196 44 L204 44 L178 125 Z M102 122 L122 46 L128 46 L108 122 Z" fill="#fff" opacity=".06"/>
+      <path d="M20 47 h24 M168 47 h26 M101 49 h18" stroke="#c7d1da" stroke-opacity=".35" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M15 120 H84 M162.75 120 H237.75" stroke="${edge[1]}" stroke-opacity=".5" stroke-width=".8"/>
+      <!-- the door's lower panel: the arms of Milan (no operator's logo) -->
+      <rect x="95" y="133" width="58" height="49" fill="url(#bd)"/>
+      <path d="M99 140 h16 l-4 6 h-12 z" fill="#3a3e43"/>
+      <g transform="translate(130 158) scale(.95)"><path d="M-8 -9 h16 v9 q0 8 -8 11 q-8 -3 -8 -11 z" fill="#fff" stroke="#7d848a" stroke-width=".8"/><path d="M-1.5 -8 h3 v6 h6 v3 h-6 v8.5 h-3 v-8.5 h-6 v-3 h6 z" fill="#d0141f"/>
+        <path d="M-11 -6 q-3.5 9 3 16 M11 -6 q3.5 9 -3 16" fill="none" stroke="#2f7d38" stroke-width="2.2"/><path d="M-5.5 -13.5 h11 l-1.5 3.5 h-8 z" fill="#c8a12a"/></g>
+      <!-- light units (the lamps on the outer side) -->
+      ${housing(12.75, 27.5, 36)}${housing(200.75, 233.5, 205)}
+      <path d="M3 200 H258" stroke="#000" stroke-opacity=".3" stroke-width="1"/>
+      <!-- bumper: two ribbed blocks, the coupler between them with its cables, the skirt below -->
+      <path d="M0 203 H261 V214 H0 Z" fill="#26292c"/>
+      <rect x="2" y="214" width="92" height="24" rx="4" fill="url(#bp)" stroke="#34383c"/><rect x="167" y="214" width="92" height="24" rx="4" fill="url(#bp)" stroke="#34383c"/>
+      <path d="M8 220 H88 M8 226 H88 M8 232 H88 M173 220 H253 M173 226 H253 M173 232 H253" stroke="#3a3e43" stroke-width="1.8"/>
+      <path d="M24 238 H237 V258 Q237 266 229 266 H32 Q24 266 24 258 Z" fill="url(#bp)"/>
+      <rect x="98" y="210" width="65" height="30" rx="3" fill="#1a1c1f" stroke="#33373b"/>
+      <rect x="112" y="226" width="37" height="32" rx="2" fill="#3b3e42" stroke="#4d5156"/><rect x="118" y="233" width="11" height="12" rx="1.5" fill="#101113"/><rect x="132" y="233" width="11" height="12" rx="1.5" fill="#101113"/>
+      <path d="M114 256 q-3 11 8 15 M146 256 q4 10 -5 15" fill="none" stroke="#b5221c" stroke-width="2"/><path d="M122 258 q4 9 16 10" fill="none" stroke="#2a1514" stroke-width="2"/>
+    </svg>`;
+  }  const F57 = {
 'A':['01110','10001','10001','11111','10001','10001','10001'],'B':['11110','10001','10001','11110','10001','10001','11110'],
 'C':['01110','10001','10000','10000','10000','10001','01110'],'D':['11100','10010','10001','10001','10001','10010','11100'],
 'E':['11111','10000','10000','11110','10000','10000','11111'],'F':['11111','10000','10000','11110','10000','10000','10000'],
@@ -7587,6 +7763,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     // clicked by (6 Nov 2026: a signal he placed on the left of its track was moved to the track beside it)
     return best && any && best.d - any.d <= 1.5 ? best : any; }
   // the tests' way in (tests/m2_editor_check.js): no state, only the tracks of the page, and where the signals are drawn at level 19
+  window.__mtlFronts = { leonardo: leonardoSVG, meneghinoM2: meneghinoM2SVG, url: trainFront };
   window.__mtlKit = { draw: o => { const c = o.type === 'shunt' ? kitShunt(!!o.go, o.mount) : o.type === 'marm' ? kitMarm(o.go ? 'via' : 'stop') : o.type === 'rall' ? kitRall(o.kmh, o.mount) : o.type === 'speedind' ? kitSpeedInd(o.kmh) : kitSprite({ ...o, lit: o.lit || ['R'], pOn: o.p === 'luminosa', dirOn: 'R' }); return [c.toDataURL(), c.width, c.height]; }, placed: () => KITPLACED.map(([sg, m]) => ({ lat: sg.lat, lon: sg.lon, mlat: m.getLatLng().lat, mlon: m.getLatLng().lng })), trackFor: (lat, lon, heading, right, line) => { const c = kitTrackFor([lat, lon], heading, right, line || 'M2'); return c && { w: c.w, dir: c.dir, heading: c.heading, side: c.side, d: c.d }; } };
   // nearest track to a click, with the point on it and the track's own direction there
   function snap(latlng, tol = 18) {
