@@ -1,18 +1,21 @@
 {
-  "_nota": "Flotta M2 dagli elenchi di Giovanni (Leonardo aggiornato al 14/07/2026, Meneghino al 28/11/2025). Livrea dal colore di fondo della numerazione, profili dal colore del numero (legenda degli elenchi). Treni con le due teste. Frontali approvati da Giovanni il 7/11/2026 (template: leonardoSVG, meneghinoM2SVG).",
+  "_nota": "Flotta M2 dagli elenchi di Giovanni (Leonardo aggiornato al 14/07/2026, Meneghino al 28/11/2025). Livrea dal colore di fondo della numerazione, profili dal colore del numero (legenda degli elenchi). Treni con le due teste. Frontali approvati da Giovanni il 7/11/2026 (template: leonardoSVG, meneghinoM2SVG). Risposte di Giovanni del 7/11/2026: sulla veletta il numero è quello della tabella, come sulla M3; la veletta del Meneghino M2 è come quella della M3 (numero verde, destinazione arancione); i Leonardo scrivono la destinazione completa e scorre se non ci sta, tranne i treni con 'velette' (abbreviazioni).",
   "treni": [
     {"tipo": "Leonardo", "da": 571, "a": 580, "lotto": "1°", "anno": 2015, "livrea": "black"},
     {"tipo": "Leonardo", "da": 581, "a": 590, "lotto": "1°", "anno": 2015, "livrea": "green", "nota": "581-584: porte interne grigie"},
     {"tipo": "Leonardo", "da": 5001, "a": 5020, "lotto": "2°", "anno": 2017, "livrea": "green"},
     {"tipo": "Leonardo", "da": 5021, "a": 5030, "lotto": "2°", "anno": 2017, "livrea": "black"},
     {"tipo": "Leonardo", "da": 5031, "a": 5048, "lotto": "3°", "anno": 2018, "livrea": "green"},
-    {"tipo": "Leonardo", "da": 5049, "a": 5066, "lotto": "4°", "anno": 2020, "livrea": "black", "nota": "5051-5052 e 5065-5066: velette ASSMFIORI e ABBIATEG"},
-    {"tipo": "Leonardo", "da": 5067, "a": 5068, "lotto": "4°", "anno": 2020, "livrea": "pubblicitaria", "nota": "livrea pubblicitaria Fineco: frontale da fare (serve una foto)"},
+    {"tipo": "Leonardo", "lotto": "4°", "anno": 2020, "livrea": "black", "da": 5049, "a": 5050},
+    {"tipo": "Leonardo", "lotto": "4°", "anno": 2020, "livrea": "black", "da": 5051, "a": 5052, "velette": {"ASSAGO MILANOFIORI FORUM": "ASSMFIORI", "ABBIATEGRASSO": "ABBIATEG"}, "nota": "velette ASSMFIORI e ABBIATEG (elenco)"},
+    {"tipo": "Leonardo", "lotto": "4°", "anno": 2020, "livrea": "black", "da": 5053, "a": 5064},
+    {"tipo": "Leonardo", "lotto": "4°", "anno": 2020, "livrea": "black", "da": 5065, "a": 5066, "velette": {"ASSAGO MILANOFIORI FORUM": "ASSMFIORI", "ABBIATEGRASSO": "ABBIATEG"}, "nota": "velette ASSMFIORI e ABBIATEG (elenco)"},
+    {"tipo": "Leonardo", "da": 5067, "a": 5068, "lotto": "4°", "anno": 2020, "livrea": "black", "nota": "livrea pubblicitaria Fineco sulle fiancate; il muso è come gli altri (Giovanni 7/11/2026): nera con profili verdi come il resto del 4° lotto, da confermare"},
     {"tipo": "Leonardo", "da": 5069, "a": 5070, "lotto": "4°", "anno": 2020, "livrea": "black"},
     {"tipo": "Leonardo", "da": 5091, "a": 5092, "lotto": "4°", "anno": 2020, "livrea": "black"},
     {"tipo": "Meneghino", "da": 901, "a": 904, "anno": 2008, "profili": "green", "nota": "dalla M1 nel 2011"},
     {"tipo": "Meneghino", "da": 921, "a": 938, "anno": 2008, "profili": "green"},
-    {"tipo": "Meneghino", "da": 949, "a": 950, "anno": 2009, "profili": "yellow", "nota": "profili gialli sulla M2: da confermare"},
+    {"tipo": "Meneghino", "da": 949, "a": 950, "anno": 2009, "profili": "yellow", "nota": "profili gialli sulla M2: sembra di sì (Giovanni 7/11/2026), conferma in arrivo"},
     {"tipo": "Meneghino", "da": 991, "a": 998, "anno": 2014, "profili": "green"}
   ]
 }
