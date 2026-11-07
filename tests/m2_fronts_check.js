@@ -11,7 +11,7 @@ const page = 'file://' + path.resolve(__dirname, '..', 'docs', 'gioca.html') + '
   let bad = 0; const check = (ok, what) => { console.log((ok ? 'ok   ' : 'FAIL ') + what); if (!ok) bad++; };
   const r = await p.evaluate(() => { const F = window.__mtlFronts, ok = s => !new DOMParser().parseFromString(s, 'image/svg+xml').querySelector('parsererror');
     const all = [];
-    for (const liv of ['black', 'green']) for (const l of ['white', 'red']) all.push(['Leonardo ' + liv + ' ' + l, F.leonardo('GESSATE', l, '14', liv)]);
+    for (const liv of ['black', 'green', 'fineco']) for (const l of ['white', 'red']) all.push(['Leonardo ' + liv + ' ' + l, F.leonardo('GESSATE', l, '14', liv)]);
     for (const e of [['#077a39', '#16a552', '#0a8a42'], ['#cf9c06', '#f9cf27', '#d9a70d']]) for (const l of ['white', 'red']) all.push(['Meneghino ' + e[1] + ' ' + l, F.meneghinoM2('COLOGNO NORD', l, '8', e)]);
     return { valid: all.filter(([, s]) => !ok(s)).map(x => x[0]), n: all.length,
       longL: /animateTransform/.test(F.leonardo('ASSAGO MILANOFIORI FORUM', 'white', '14', 'black')), shortL: /animateTransform/.test(F.leonardo('GESSATE', 'white', '14', 'black')),

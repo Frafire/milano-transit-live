@@ -6376,10 +6376,10 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const key = kind + '|' + dest + '|' + lights + '|' + (no || '') + '|' + (car || ''); if (FRONT.cache.has(key)) return FRONT.cache.get(key);
     if (kind === 'hitachi') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(hitachiSVG(dest, lights, no)); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url; }
     if (kind === 'meneghino') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(meneghinoSVG(dest, lights, no)); FRONT.cache.set(key, url); return url; }
-    // M2 (data/flotta_m2.json): the Leonardo, car = its livery ('black' green profiles, 'green' white profiles); the Meneghino,
+    // M2 (data/flotta_m2.json): the Leonardo, car = its livery ('black' green profiles, 'green' white profiles, 'fineco'); the Meneghino,
     // car = the colour of its profiles ('green', 'yellow')
     if (kind === 'leonardo' || kind === 'meneghinoM2') { if (FRONT.cache.size > 60) FRONT.cache.clear();
-      const svg = kind === 'leonardo' ? leonardoSVG(dest, lights, no, car === 'green' ? 'green' : 'black') : meneghinoM2SVG(dest, lights, no, car === 'yellow' ? ['#cf9c06', '#f9cf27', '#d9a70d'] : ['#077a39', '#16a552', '#0a8a42']);
+      const svg = kind === 'leonardo' ? leonardoSVG(dest, lights, no, car === 'green' || car === 'fineco' ? car : 'black') : meneghinoM2SVG(dest, lights, no, car === 'yellow' ? ['#cf9c06', '#f9cf27', '#d9a70d'] : ['#077a39', '#16a552', '#0a8a42']);
       const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); FRONT.cache.set(key, url); return url; }
     if (kind === 'lotto1' || kind === 'lotto2') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(tradSVG(kind === 'lotto2', dest, lights, no, car)); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url; }
     const S = 5, W = FRONT.W, H = FRONT.H, c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
@@ -6873,7 +6873,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 3);
     const L = { black: { body: ['#2c2d30', '#202124'], band: ['#86ef6d', '#4cc93a', '#2f9d27'] },
                 green: { body: ['#5cb64f', '#3f9a37'], band: ['#ffffff', '#e4e7ea', '#aeb5bc'] },
-                red: { body: ['#2c2d30', '#202124'], band: ['#ff8a78', '#e8392b', '#a8201a'] } }[livery] || {};
+                red: { body: ['#2c2d30', '#202124'], band: ['#ff8a78', '#e8392b', '#a8201a'] },
+                fineco: { body: ['#eef0f1', '#cfd3d6'], band: ['#86ef6d', '#4cc93a', '#2f9d27'] } }[livery] || {};   // 5067-5068: light body, green band (photo, 7 Nov)
     const red = lights === 'red';
     let sign = '', nx = 262;
     if (num) { let x = nx; for (const ch of num) { const g = F57[ch]; for (let r = 0; r < 7; r++) for (let i = 0; i < 5; i++) if (g[r][i] === '1') sign += `<circle cx="${(x + (i + .5) * 6.4).toFixed(1)}" cy="${(153 - 22.4 + (r + .5) * 6.4).toFixed(1)}" r="2.7" fill="#f4f6ff"/>`; x += 6 * 6.4; } nx = x + 22; }
