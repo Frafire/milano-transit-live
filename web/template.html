@@ -3030,6 +3030,10 @@ window.MTL_CAPS = __CAPS__;
   function renderM2Depot() {
     const dep = state.sel.slice(1), T = DEPOTS.filter(d => d.dep === dep).sort((a, b) => a.n - b.n), I = M2DEPOT_INFO() || {};
     if (!T.length) { state.sel = null; card.hidden = true; return; }
+    // the card is drawn again at every tick of the clock: nothing in it changes with the time, so once it is shown leave it as
+    // it is (drawing it again put its list back at the top: Giovanni 8 Nov, "non è possibile scrollare dentro la scheda")
+    if (!card.hidden && card.dataset.dep === dep && card.querySelector('.deptab')) return;
+    card.dataset.dep = dep;
     const cfg = {}; ((I.depositi || {})[dep] || []).forEach(b => { cfg[b.n] = b; });
     const esc = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const posti = T.reduce((a, d) => a + d.posti.length, 0), byUse = {};
