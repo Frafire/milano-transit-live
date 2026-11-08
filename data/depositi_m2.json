@@ -714,5 +714,20 @@
  "fermata": {
   "dove": "centro del posto",
   "margine_pct": 4
+ },
+ "punto": {
+  "_nota": "Dove sta il pallino del deposito sulla mappa (Giovanni 8/11/2026: 'alla fine del deposito, come a Gorgonzola'): Gorgonzola e Cologno Nord dove li ha segnati sugli screenshot (ricavati dalle etichette dei binari, +-3 m); Famagosta 25 m oltre la fine dei binari del capannone (lato posti 1), proposta.",
+  "Gorgonzola": [
+   45.535038,
+   9.418072
+  ],
+  "Cologno Nord": [
+   45.535759,
+   9.294373
+  ],
+  "Famagosta": [
+   45.426248,
+   9.162725
+  ]
  }
 }

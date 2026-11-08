@@ -7711,7 +7711,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   }
   // ---- the M2 depot cards: Famagosta, Gorgonzola, Cologno Nord (data/depositi_m2.json, places from tools/depositi_m2.py) ----
   function M2DEPOT_INFO() { const F = (FLEETDATA ? FLEETDATA.fleets : []).find(f => f.depinfo); return F ? F.depinfo : null; }
-  function depCentre(dep) { const P = (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => F.sheds || []).filter(sh => sh.dep === dep).flatMap(sh => sh.pts);
+  function depCentre(dep) { const I = M2DEPOT_INFO(), at = I && I.punto && I.punto[dep]; if (at) return at;      // where Giovanni wants the dot (data/depositi_m2.json)
+    const P = (FLEETDATA ? FLEETDATA.fleets : []).flatMap(F => F.sheds || []).filter(sh => sh.dep === dep).flatMap(sh => sh.pts);
     if (!P.length) { const Q = DEPOTS.filter(d => d.dep === dep).flatMap(d => d.posti.flatMap(p => p.pts)); if (!Q.length) return null; P.push(...Q); }
     return [P.reduce((a, p) => a + p[0], 0) / P.length, P.reduce((a, p) => a + p[1], 0) / P.length]; }
   function renderM2Depot() {

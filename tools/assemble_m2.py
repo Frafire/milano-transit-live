@@ -28,7 +28,7 @@ def write(dati):
             if os.path.exists(cp): F['codici'] = json.load(open(cp))
             # the depot cards (data/depositi_m2.json): the uses, notes, washing and Giovanni's rules of the depots, without the sheds' outlines
             dp = os.path.join(ROOT, 'data', 'depositi_m2.json')
-            if os.path.exists(dp): F['depinfo'] = {k: v for k, v in json.load(open(dp)).items() if k in ('posto_m', 'fermata', 'lavaggio', 'regole_giovanni', 'depositi')}
+            if os.path.exists(dp): F['depinfo'] = {k: v for k, v in json.load(open(dp)).items() if k in ('posto_m', 'fermata', 'lavaggio', 'regole_giovanni', 'depositi', 'punto')}
             # the station cards (data/stazioni_m2.json): where the stations are, from the GTFS stops of the line
             sp = os.path.join(ROOT, 'data', 'stazioni_m2.json')
             if os.path.exists(sp):
