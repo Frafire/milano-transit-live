@@ -6877,8 +6877,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
                 fineco: { body: ['#eef0f1', '#cfd3d6'], band: ['#86ef6d', '#4cc93a', '#2f9d27'] } }[livery] || {};   // 5067-5068: light body, green band (photo, 7 Nov)
     const red = lights === 'red';
     let sign = '', nx = 262;
-    if (num) { let x = nx; for (const ch of num) { const g = F57[ch]; for (let r = 0; r < 7; r++) for (let i = 0; i < 5; i++) if (g[r][i] === '1') sign += `<circle cx="${(x + (i + .5) * 6.4).toFixed(1)}" cy="${(153 - 22.4 + (r + .5) * 6.4).toFixed(1)}" r="2.7" fill="#f4f6ff"/>`; x += 6 * 6.4; } nx = x + 22; }
-    if (txt) sign += ledDest(txt, nx, 748, 153, 6.4, 5.2, '#ffa31a', 'la');
+    if (num) { let x = nx; for (const ch of num) { const g = F57[ch]; for (let r = 0; r < 7; r++) for (let i = 0; i < 5; i++) if (g[r][i] === '1') sign += `<circle cx="${(x + (i + .5) * 5.6).toFixed(1)}" cy="${(153 - 19.6 + (r + .5) * 5.6).toFixed(1)}" r="2.4" fill="#f4f6ff"/>`; x += 6 * 5.6; } nx = x + 14; }
+    if (txt) sign += ledDest(txt, nx, 750, 153, 6.4, 4.8, '#ffa31a', 'la');     // ABBIATEGRASSO, CASCINA GOBBA fit (photos); longer names run
     const loop = 'M102 563 L102 212 Q102 196 112 184 L178 100 Q190 85 212 85 L798 85 Q820 85 832 100 L898 184 Q908 196 908 212 L908 545';
     const BAND = loop + ' L815 650 L395 650 L318 718 M102 563 L300 750 L640 750 L702 688';
     // light unit (photo of 7 Nov): the half-disc outside as it is; at its base two circles, the grey ring and the lamp's lens in
@@ -6958,7 +6958,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     let sign = '';
     const numEnd = num ? V.x + 5 + colsOf(num) * 2.3 + 5 : V.x + 4;
     if (num) sign += ledText(num, V.x + 5, 2.3, '#3dff6e');
-    if (txt) sign += ledDest(txt, numEnd, V.x + V.w - 4, V.y + V.h / 2, 2.45, 2.0, '#ff8a1a', 'led');
+    if (txt) sign += ledDest(txt, numEnd, V.x + V.w - 4, V.y + V.h / 2, 2.45, 1.8, '#ff8a1a', 'led');     // ABBIATEGRASSO fits (photo of 930)
     // the two lamps of each unit are the same: white below when running, red above when standing
     const red = lights === 'red', on = red ? '#ff3826' : '#fffaf0', glow = red ? '#ff2a14' : '#fff4c8';
     const housing = (x, lx, sx) => `<rect x="${x}" y="139" width="47.5" height="40" rx="7" fill="url(#hsg)" stroke="#8e949a" stroke-width="1.3"/>
