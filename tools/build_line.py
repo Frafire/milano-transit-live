@@ -583,6 +583,67 @@ def move(tl, pid, d0, d1, t0, v, status):
     t1 = t0 + abs(d1 - d0) / v
     tl.add(pid, status, [t0, t1], [d0, d1]); return t1
 
+# the depot sheds (data/capannoni_<line>.json): inside them at most shed_speed_kmh, until the whole train is out (Giovanni,
+# 9 Nov 2026: "dentro rimessa e manutenzione 5 km/h massimo fino a quando il treno non è uscito interamente dal capannone")
+_cap = 'capannoni_%s.json' % LINE.lower()
+SHEDS = json.load(open(_cap))['capannoni'] if os.path.exists(_cap) else []
+SHED_XY = [[xy(la, lo) for la, lo in sh['pts']] for sh in SHEDS]
+V_SHED = OPS.get('shed_speed_kmh', OPS['depot_speed_kmh']) / 3.6
+def _inpoly(x, y, P):
+    c = False
+    for i in range(len(P)):
+        (x1, y1), (x2, y2) = P[i], P[i - 1]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1: c = not c
+    return c
+def _along(P, step=2.0):
+    """points every step metres along a polyline: [(s, x, y)]"""
+    out, acc = [], 0.0
+    for i in range(1, len(P)):
+        (x0, y0), (x1, y1) = P[i - 1], P[i]; L_ = math.hypot(x1 - x0, y1 - y0); k = max(1, int(L_ / step))
+        for j in range(k): f = (j + .5) / k; out.append((acc + f * L_, x0 + (x1 - x0) * f, y0 + (y1 - y0) * f))
+        acc += L_
+    return out
+_SHED_E = None
+def shed_edges():
+    """the track pieces of the sheds: more than half of the piece inside a shed. A piece that only clips a corner (the access
+    track along the rimessa: the outline is good to about 5 m) is not"""
+    global _SHED_E
+    if _SHED_E is None:
+        _SHED_E = set()
+        for ei, e in enumerate(edges):
+            S_ = _along(e['pts'])
+            if S_ and sum(any(_inpoly(x_, y_, P) for P in SHED_XY) for _, x_, y_ in S_) > len(S_) / 2: _SHED_E.add(ei)
+    return _SHED_E
+_shed_cache = {}
+def shed_spans(pid):
+    """the stretches of a path (metres along it) inside a shed, on the sheds' own tracks: [[from, to], ...]"""
+    if pid in _shed_cache: return _shed_cache[pid]
+    out, run, d0 = [], None, 0.0
+    if SHED_XY:
+        SE = shed_edges()
+        for ei, dr in PATH_STATES.get(pid, []):
+            P = poly(ei, dr); L_ = plen(P)
+            for s_, x_, y_ in (_along(P) if ei in SE else []):
+                ins = any(_inpoly(x_, y_, Q) for Q in SHED_XY)
+                if ins and run is None: run = d0 + s_ - 1
+                if not ins and run is not None: out.append([round(max(0.0, run), 1), round(d0 + s_, 1)]); run = None
+            if ei not in SE and run is not None: out.append([round(max(0.0, run), 1), round(d0, 1)]); run = None
+            d0 += L_
+        if run is not None: out.append([round(max(0.0, run), 1), round(d0, 1)])
+    # pieces next to each other: one stretch
+    m_ = []
+    for a, b in out:
+        if m_ and a <= m_[-1][1] + 2: m_[-1][1] = max(m_[-1][1], b)
+        else: m_.append([a, b])
+    _shed_cache[pid] = m_; return m_
+def yard_time(pid, d0, d1):
+    """seconds for the train (its centre) from d0 to d1 at depot speed: at shed speed while any part of it is in a shed"""
+    sp = shed_spans(pid); lo, hi = sorted((d0, d1)); t = 0.0; d = lo
+    while d < hi - 1e-6:
+        s_ = min(1.0, hi - d); m_ = d + s_ / 2
+        t += s_ / (V_SHED if any(a - TRAIN_HALF <= m_ <= b + TRAIN_HALF for a, b in sp) else V_YARD); d += s_
+    return t
+
 # where the nose stops at a station (Giovanni): at a "nose" flag if one is placed there, otherwise almost touching the
 # station signal (an ATP signal just beyond the platform end, facing the train). Without either, the train stops
 # centred on the station point from the timetable.
@@ -826,7 +887,7 @@ for k, chain in enumerate(trains):
                 start = STORE_BEFORE.get(tr['ti'], loc[1]); via = [SD_DEP[1], SD_OUT_NODE]
                 pid0 = leg_path(start, via, ctail); d_pl, _ = project(paths[pid0][0], paths[pid0][1], *SD_STOP, 0, None)
                 d0 = start_off(start)
-                run = max(PULL_OUT if LINE == 'M4' else 0, (d_pl - d0) / V_YARD)     # M3: at 15 km/h all the way
+                run = max(PULL_OUT if LINE == 'M4' else 0, yard_time(pid0, d0, d_pl))     # M3: at 15 km/h, 5 in the sheds
                 t_plat = PULL_PLAT[tr['ti']]; t_leave = t_plat - run
                 com_seg0 = len(tl.segs)
                 pid, d_arr, d_end, t_arr = service_leg(tl, start, via, ctail, tr, t_leave, SD_STOP, COM_STOP, 'from_depot', t_plat)
@@ -863,9 +924,9 @@ for k, chain in enumerate(trains):
                     pidE = leg_path(ctail, CFG['DEPOT_IN_VIA'], store); cE = paths[pidE][1]
                     d0, d1 = tail_off(ctail), cE[-1] - TRAIN_HALF
                     t0 = TE.get(('end', tr['ti']), t_end + REVERSE)
-                    _dur = (d1 - d0 - 900) / V_EMPTY + 900 / V_YARD; t0 += depot_gap(t0 + _dur) - (t0 + _dur)
+                    _ty = yard_time(pidE, d1 - 900, d1); _dur = (d1 - d0 - 900) / V_EMPTY + _ty; t0 += depot_gap(t0 + _dur) - (t0 + _dur)
                     t1 = t0 + (d1 - d0 - 900) / V_EMPTY
-                    tl.add(pidE, 'empty', [t0, t1, t1 + 900 / V_YARD], [d0, d1 - 900, d1]); tl.segs[-1].append(store)
+                    tl.add(pidE, 'empty', [t0, t1, t1 + _ty], [d0, d1 - 900, d1]); tl.segs[-1].append(store)
                     loc = ('depot', store)
         else:
             # leaving Comasina tail (or arriving from depot by empty run)
@@ -904,7 +965,8 @@ for k, chain in enumerate(trains):
             if CFG.get('ARR2') and not go_depot and nxt is not None and nxt['out'] and not (nxt is None and k in NIGHT_SD_END):
                 pending = dict(i=seg_in0, tr=tr, ctail=ctail, t_leave=t_leave, t_plat=t_plat)
             if go_depot:
-                t_end = move(tl, pid, d_arr, d_end, depot_gap(t_arr + DWELL_END + (d_end - d_arr) / V_YARD) - (d_end - d_arr) / V_YARD, V_YARD, 'to_depot'); tl.segs[-1].append(end)
+                _ty = yard_time(pid, d_arr, d_end); _vy = abs(d_end - d_arr) / _ty if _ty > 0 else V_YARD      # 5 km/h in the sheds
+                t_end = move(tl, pid, d_arr, d_end, depot_gap(t_arr + DWELL_END + _ty) - _ty, _vy, 'to_depot'); tl.segs[-1].append(end)
                 loc = ('depot', end)
                 # midday layover: comes back out later from the depot (handled by next OUT trip)
             else:
@@ -1156,6 +1218,10 @@ STOCK, DUTIES = [], [[] for _ in out]
 if LINE in ('M3', 'M4'):
     real_trains = __import__('fleet_' + LINE.lower()).trains
     STOCK, SPARE = real_trains()
+    # in the officina at the start of the day (fleet_m3.OFFICINA): out of the trains for the tabelle, standing there all day
+    _OFF = getattr(__import__('fleet_' + LINE.lower()), 'OFFICINA', [])
+    _OFF_U = {x['units']: x for x in STOCK if any(o['units'] == x['units'] for o in _OFF)}
+    STOCK = [x for x in STOCK if x['units'] not in _OFF_U]
     duties = []
     for tl in out:
         segs, start = tl.segs, None
@@ -1202,6 +1268,15 @@ if LINE in ('M3', 'M4'):
         tl.start_where = tl.end_where = 'depot'; out.append(tl)
         STOCK.append({k: v for k, v in u.items() if k != 'node'}); DUTIES.append([[0, 10 ** 6, len(STOCK) - 1]])
         print('unit standing alone in the depot:', u['units'], 'at node', n_)
+    for o_ in _OFF:
+        u = _OFF_U.get(o_['units'])
+        if u is None: print('officina: no such train', o_['units']); continue
+        n_ = o_['node']; pid_ = leg_path(CFG['AFTER_ARR'], [], n_); c_ = paths[pid_][1]
+        tl = TL(len(out)); d_ = c_[-1] - TRAIN_HALF
+        tl.add(pid_, 'to_depot', [30 * 3600, 30 * 3600 + 1], [d_, d_]); tl.segs[-1].append(n_)
+        tl.start_where = tl.end_where = 'depot'; tl.officina = True; out.append(tl)
+        STOCK.append({**u, 'officina': True}); DUTIES.append([[0, 10 ** 6, len(STOCK) - 1]])
+        print('in the officina all day:', u['units'], 'at node', n_)
     # every real train on the map: the units that are not running at a given moment stand in the depot. The 24 trains of
     # the timetable carry the units they run; the units left over are shown on these depot places (nobody else uses them)
     _used = {sg[5] for tl in out for sg in tl.segs if len(sg) > 5 and sg[5] is not None}
@@ -1689,7 +1764,8 @@ for pid in range(len(paths)):
                 run = None
             x += 5
         if run is not None and x - run >= 20: curves.append([round(run - 10, 1), round(x + 10, 1)])
-    PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves})
+    _sh = shed_spans(pid) if st else []
+    PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves, **({'sheds': _sh} if _sh else {})})
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
     NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name', 'stype', 'legal', 'manual')}, 'n': sg.get('_n')}
@@ -2088,7 +2164,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'labels': PLAT_LABELS,
            'platmap': PLATMAP,
            'boards': boards_out(),
-           'stock': STOCK, 'duties': DUTIES, 'test': TEST, 'depot_paths': DEPOT_PATHS,
+           'stock': STOCK, 'duties': DUTIES, 'sheds': [{'dep': 'San Donato', 'nome': sh['nome'], 'uso': sh['uso'], 'pts': sh['pts']} for sh in SHEDS], 'test': TEST, 'depot_paths': DEPOT_PATHS,
            'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'blocks': BLOCKS, 'illegal': ILLEGAL, 'degraded': DEGRADED, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))

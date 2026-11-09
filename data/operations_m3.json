@@ -8,6 +8,8 @@
   "depot_rest_if_wait_over_min": 15,
   "tail_speed_kmh": 15,
   "depot_speed_kmh": 15,
+  "shed_speed_kmh": 5,
+  "_shed_speed": "Dentro la rimessa e l'officina del deposito (data/capannoni_m3.json): massimo 5 km/h finché il treno non è uscito tutto dal capannone (Giovanni, 9/11/2026).",
   "driver_walk_speed_ms": 1.4,
   "cab_setup_s": 30,
   "line_max_kmh": 80,

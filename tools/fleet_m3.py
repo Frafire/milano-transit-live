@@ -31,6 +31,11 @@ HITACHI = [('9201-9202', 2026, 77)]          # (units, year, depot place: 77 = A
 SOLO += [{'units': u, 'type': 'Hitachi Galileo', 'year': str(y), 'display': 'LED', 'note': '6 carrozze, 106,5 m', 'trial': True, 'node': n}
          for u, y, n in HITACHI]
 
+# in the officina (manutenzione) at the start of the day (Giovanni, 9 Nov 2026: "due treni di cui uno prima serie secondo
+# lotto in officina ad inizio giornata"): they stand there all day and take no tabella. PROPOSTA: which trains and which
+# officina tracks (200002 = #A73, 200001 = #A74) are not Giovanni's, to be confirmed.
+OFFICINA = [{'units': '8109-8110 + 8107-8108', 'node': 200002}, {'units': '8061-8062 + 8063-8064', 'node': 200001}]
+
 def trains():
     out = []
     for m, y, note in MENEGHINO:
