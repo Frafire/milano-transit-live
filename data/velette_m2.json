@@ -16,7 +16,7 @@
   "PorteAperteATM"
  ],
  "limitazioni": {
-  "_nota": "Ogni stazione non capolinea, perché un treno può limitare ovunque (Giovanni 9/11/2026). Scritta = nome dell'orario ATM senza 'M2': PROPOSTA, da correggere con quello che scrivono davvero i treni. Cascina Gobba e Lambrate FS già confermate sopra.",
+  "_nota": "Ogni stazione non capolinea, perché un treno può limitare ovunque (Giovanni 9/11/2026). Scritta = nome dell'orario ATM senza 'M2', confermata da Giovanni (9/11/2026). Cascina Gobba e Lambrate FS sono nelle destinazioni.",
   "stazioni": {
    "assago milanofiori nord": "ASSAGO MILANOFIORI NORD",
    "famagosta": "FAMAGOSTA",
