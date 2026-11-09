@@ -673,6 +673,7 @@ def wash_spans(pid):
                 if not ins and run is not None: out.append([round(max(0.0, run), 1), round(d0 + s_, 1)]); run = None
             d0 += L_
         if run is not None: out.append([round(max(0.0, run), 1), round(d0, 1)])
+    out = [[round(max(0.0, a - 4), 1), b] for a, b in out]      # (from 4 m before: the speed is down when the nose goes in)
     _wash_cache[pid] = out; return out
 def yard_time(pid, d0, d1):
     """seconds for the train (its centre) from d0 to d1 at depot speed: at shed speed while any part of it is in a shed"""

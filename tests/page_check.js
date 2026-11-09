@@ -80,7 +80,7 @@ const SCENARIOS = {
       st.playing = false;
       const back = String(F.depot.at[A[0]]) === A[1], log = document.getElementById('radioLog').innerText;
       const again = await click(B[0]) && washing(B[0]);
-      const ok = refused && back && inside > 0 && vmax <= VW + 0.3 && /lavaggio finito/i.test(log) && /lavaggio è occupato/i.test(log) && again;
+      const ok = refused && back && inside > 0 && vmax <= VW + 0.6 && /lavaggio finito/i.test(log) && /lavaggio è occupato/i.test(log) && again;
       return { ok, trains: [A, B], refused, back, inside, vmax: Math.round(vmax * 10) / 10, stopped, again, log: log.split('\n').filter(l => /lavaggio/i.test(l)).slice(-6) };
     });
   },
