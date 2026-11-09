@@ -55,6 +55,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/gioca.html') + '?linee=M3&day=' + (process.env.DAY || 1);      // (the weekday timetable unless DAY=6/7)
 
+const SOFT = new Set(['lavaggio']);      // scenarios whose failure does not stop the build (only a warning)
 const SCENARIOS = {
   // the wash (Giovanni 9 Nov 2026): the DCT sends a train of the rimessa to the wash from its card; a second one while the
   // first is washing: its driver says no; the first goes through the wash at most at the wash speed, without stopping in it,
@@ -862,7 +863,9 @@ const SCENARIOS = {
     const p = await b.newPage(), errs = []; p.on('pageerror', e => errs.push(process.env.STACK ? e.stack : e.message)); if (process.env.CONSOLE) p.on('console', m => console.log('  [page] ' + m.text().slice(0, 900)));
     await p.goto(PAGE); await p.waitForTimeout(6000);
     const r = await SCENARIOS[name](p); if (errs.length) { r.ok = false; r.errors = errs.slice(0, 3); }
-    console.log(`page ${name}: ${r.ok ? 'ok' : 'FAILED'}`, JSON.stringify(r)); if (!r.ok) fail++;
+    // (the wash is not a test that must pass, Giovanni 9 Nov: if it breaks it gets mended later)
+    const soft = SOFT.has(name) && !process.argv.slice(2).includes(name);
+    console.log(`page ${name}: ${r.ok ? 'ok' : soft ? 'WARNING (not blocking)' : 'FAILED'}`, JSON.stringify(r)); if (!r.ok && !soft) fail++;
     await p.close();
   }
   await b.close(); process.exit(fail ? 1 : 0);
