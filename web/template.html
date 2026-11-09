@@ -3929,19 +3929,16 @@ window.MTL_CAPS = __CAPS__;
         if (a.d >= x0 && a.d <= x1) { const c = dir > 0 ? (a.d - x0) * k : (x1 - a.d) * k; mid[a.k] = [ei, c / L]; } } });
     // the routes set: the line's route interlocking (each route its pieces), and the depot's signals at via libera for a
     // train (from the signal to the next one, or to the end of the section: interlocking.sectionEnd)
-    const rt = F.ag.rt();
-    for (const [k, rs] of Object.entries(rt.routes || {})) for (const r of rs || []) { if (r.ready === false) continue;
+    // (only behind a signal at via libera, Giovanni 10 Nov 2026: "rosso imperativo, il tratto davanti è grigio, oppure
+    // rosso se un treno sta passando; se no il segnale è rosso bianco e il tratto davanti è bianco")
+    const rt = F.ag.rt(), goN = SIN_GO || new Set();
+    for (const [k, rs] of Object.entries(rt.routes || {})) for (const r of rs || []) { if (r.ready === false || !goN.has(r.n)) continue;
       for (const pc of r.pieces || []) { const ei = pc[0]; if (!SE.has(ei)) continue; const L = NE[ei].len || 1; add(lit, ei, pc[1] / L, pc[2] / L, +k); } }
     const il = F.ag.il && F.ag.il(), IL = F.ag.IL, SP = F.engine.net.sigpos || {}, AG = F.ag.agents();
     const litPath = (pid, d0, d1, k) => { const pe = PE[pid]; if (!pe || d1 <= d0) return;
       for (const [ei, dir, x0, x1] of pe.e) { if (!SE.has(ei) || x1 <= d0 || x0 >= d1) continue;
         const L = NE[ei].len || 1, kk = L / ((x1 - x0) || 1), p = Math.max(d0, x0), q = Math.min(d1, x1);
         add(lit, ei, (dir > 0 ? (p - x0) * kk : (x1 - q) * kk) / L, (dir > 0 ? (q - x0) * kk : (x1 - p) * kk) / L, k); } };
-    // in the depot (no route interlocking there): a train on the move has its whole way lit, up to where it stops
-    AG.forEach(a => { if (a.hidden || !(a.v > 0.05)) return; const leg = a.legs && a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
-      if (!leg || leg.pid !== a.pid || leg.end == null) return;
-      const next = leg.stops && leg.stops.length && a.stopAt == null ? Math.min(leg.end, leg.stops[0].d) : leg.end;
-      if (next > a.d) litPath(a.pid, a.d - half, next + half, a.k); });
     if (il && il.grant && IL) for (const [si, k] of Object.entries(il.grant)) { if (k == null) continue;
       const a = AG.find(x => x.k === k); if (!a || a.hidden) continue; const hit = (SP[a.pid] || []).find(x => x[1] === +si); if (!hit) continue;
       litPath(a.pid, Math.max(hit[0], a.d - half), IL.sectionEnd(a.pid, +si, hit[0]), k); }
@@ -3952,7 +3949,7 @@ window.MTL_CAPS = __CAPS__;
   function sinSections(SCH, NE, sigOf) {
     if (SCH.__sec && SCH.__sec.n === SCH.edges.length) return SCH.__sec;
     const cuts = {}, ent = [];
-    for (const sg of SCH.signals || []) { const S_ = sigOf(sg.n); if (S_ && S_.illegal) continue; if (!(sg.f > 0.002 && sg.f < 0.998)) { ent.push([sg, sg.f <= 0.002 ? 0 : 1]); continue; }
+    for (const sg of SCH.signals || []) { const S_ = sigOf(sg); if (S_ && S_.illegal) continue; if (!(sg.f > 0.002 && sg.f < 0.998)) { ent.push([sg, sg.f <= 0.002 ? 0 : 1]); continue; }
       (cuts[sg.e] = cuts[sg.e] || []).push(sg.f); ent.push([sg, sg.f]); }
     const pieces = [], byEdge = {}, par = [], find = i => par[i] === i ? i : (par[i] = find(par[i])), join = (i, j) => { par[find(i)] = find(j); };
     const ends = {};
@@ -3969,6 +3966,7 @@ window.MTL_CAPS = __CAPS__;
       const pc = sg.d === -1 ? l.find(p => Math.abs(p[2] - f) < 0.0015) : l.find(p => Math.abs(p[1] - f) < 0.0015); if (pc) (entry[pc[3]] = entry[pc[3]] || []).push(sg); }
     return (SCH.__sec = { n: SCH.edges.length, pieces, byEdge, entry });
   }
+  var SIN_GO = null;            // (the signals at via libera now, by number: the sections behind them are white)
   var SIN_ILL = false;          // (the illegal signals: hidden unless asked for; Giovanni 9 Nov 2026)
   var SIN_NUM = false;          // (the signal numbers on the sinottico: off by default, they crowded it; Giovanni 3 Nov 2026)
   var SIN_Z = { dep: 1, line: 1 };   // the zoom of each sinottico (the − and + buttons)
@@ -3989,12 +3987,15 @@ window.MTL_CAPS = __CAPS__;
     }
     const body = planEl.querySelector('.dp-body');
     if (!SCH) { body.innerHTML = `<p class="dp-none">${SIN_WHICH === 'line' ? 'Sinottico della linea mancante: fallo con tools/sinottico.py linea (data/sinottico_linea_m3.json).' : 'Schema del deposito mancante.'}</p>`; return; }
+    if (!SIGS) SIGS = buildSignals(F); sigAspects(F);
+    // (a signal of the drawing is the map's one with its index in the net: the block signals carry the block's number on
+    // the map, not the one of the placed signal; Giovanni 10 Nov 2026: "i segnali non cambiano colore")
+    const sigOf = sg => SIGS.find(x => x.si != null && x.si === sg.si) || SIGS.find(x => x.tag === '#A' + String(sg.n).padStart(2, '0'));
+    SIN_GO = new Set(SIGS.filter(x => x.asp === 'go' || x.asp === 'sgo').map(x => parseInt(String(x.tag || '').slice(2), 10)));
     const NE = F.engine.net.edges, N = schNodes(SCH), V = schVia(SCH), SE = new Set(SCH.edges), live = sinLive(F, SE), fi = fleets.indexOf(F);
     const at = {}; SCH.edges.forEach(ei => { const e = NE[ei]; [e.a, e.b].forEach(n => { (at[n] = at[n] || []).push(ei); }); });
     SIN_DEG = {}; for (const [n, l] of Object.entries(at)) SIN_DEG[n] = l.length;
     planEl.classList.toggle('line', SIN_WHICH === 'line');
-    if (!SIGS) SIGS = buildSignals(F); sigAspects(F);
-    const sigOf = n => SIGS.find(x => x.tag === '#A' + String(n).padStart(2, '0'));
     // the switches: the position (two pieces) from the route interlocking, or from a train on it, or the last one seen
     const rt = F.ag.rt(), pos = {};
     for (const [n, list] of Object.entries(at)) { if (list.length < 3) continue;
@@ -4013,7 +4014,19 @@ window.MTL_CAPS = __CAPS__;
     SEC.pieces.forEach(([ei, f0, f1, sid]) => {
       if ((live.occ.get(ei) || []).some(([a, b]) => b > f0 + 1e-4 && a < f1 - 1e-4)) occS.add(sid);
       if ((live.lit.get(ei) || []).some(([a, b]) => b > f0 + 1e-4 && a < f1 - 1e-4)) litS.add(sid); });
-    for (const [sid, list] of Object.entries(SEC.entry)) if (list.some(sg => { const S_ = sigOf(sg.n); return S_ && (S_.asp === 'go' || S_.asp === 'sgo'); })) litS.add(+sid);
+    // a signal at via libera: white all the way ahead of it to the next signal, over the switches the way they are set
+    const litWalk = (ei, f, dir) => {
+      for (let guard = 0; guard < 40; guard++) {
+        const l = SEC.byEdge[ei]; if (!l) return;
+        const ps = dir > 0 ? l.filter(p => p[2] > f + 1e-4) : l.filter(p => p[1] < f - 1e-4).reverse();
+        for (const p of ps) { litS.add(p[3]); if (dir > 0 ? p[5] : p[4]) return; }
+        const e = NE[ei], n = dir > 0 ? e.b : e.a, list = at[n] || []; let nx = null;
+        if (list.length === 2) nx = list.find(x => x !== ei);
+        else if (list.length >= 3) { const sp = pos[n]; if (!sp || !sp.includes(ei)) return; nx = sp.find(x => x !== ei); }
+        if (nx == null || !SE.has(nx)) return;
+        const e2 = NE[nx]; dir = e2.a === n ? 1 : -1; f = dir > 0 ? 0 : 1; ei = nx;
+      } };
+    for (const sg of SCH.signals || []) { if (!SE.has(sg.e) || (sg.d !== 1 && sg.d !== -1)) continue; const S_ = sigOf(sg); if (S_ && (S_.asp === 'go' || S_.asp === 'sgo') && !S_.illegal) litWalk(sg.e, sg.f, sg.d); }
     let base = '', over = '', marks = '', X0 = Infinity, Y0 = Infinity, X1 = -Infinity, Y1 = -Infinity;
     const grow = ([x, y]) => { X0 = Math.min(X0, x); Y0 = Math.min(Y0, y); X1 = Math.max(X1, x); Y1 = Math.max(Y1, y); };
     const FULL = {}, GAP = SIN_WHICH === 'line' ? 2.6 : 1.8;
@@ -4050,7 +4063,7 @@ window.MTL_CAPS = __CAPS__;
     // red, and white (via libera = red and white lit together); the illegal ones (square heads) only when asked for
     const ASP = { go: '#2ecc40', stop: '#e5383b', sgo: '#ffffff', sstop: '#e5383b' };
     for (const sg of SCH.signals || []) { const full = FULL[sg.e]; if (!full) continue; const [p0, p1] = sinPart(SCH, sg.e); if (sg.f < p0 - 0.001 || sg.f > p1 + 0.001) continue;
-      const S_ = sigOf(sg.n), a = S_ && S_.asp || 'stop', tag = '#A' + String(sg.n).padStart(2, '0'), ill = !!(S_ && S_.illegal);
+      const S_ = sigOf(sg), a = S_ && S_.asp || 'stop', tag = S_ ? S_.tag : '#A' + String(sg.n).padStart(2, '0'), ill = !!(S_ && S_.illegal);
       if (ill && !SIN_ILL) continue;
       const q0 = fd(sg.e, p0), q1 = fd(sg.e, p1), P_ = p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, g = x => (fd(sg.e, x) - q0) / ((q1 - q0) || 1);
       const m = alongPts(P_, g(sg.f));
