@@ -676,19 +676,21 @@ const SCENARIOS = {
         // (Giovanni 9 Nov 2026: the depot from #A04 and #A05 on: the two pieces drawn only in part are left out of the count)
         const part = SCH.part || {}, want = new Set(); F.ag.agents().forEach(a => { if (a.hidden) return; const pe = F.engine.pathEdges[a.pid]; if (!pe) return;
           for (const [ei, , x0, x1] of pe.e) if (SE.has(ei) && !part[ei] && x1 > a.d - half && x0 < a.d + half) want.add(ei); });
+        // (sections, Giovanni 9 Nov 2026: red the whole section a train is on, so more pieces than the train's own)
         const red = new Set([...document.querySelectorAll('#depotPlan [data-occ]')].map(x => +x.dataset.e).filter(e => !part[e]));
-        const sigs = document.querySelectorAll('#depotPlan circle.sg').length, edges = document.querySelectorAll('#depotPlan path.tk[data-e]').length;
+        const sigs = document.querySelectorAll('#depotPlan circle.sg').length, edges = new Set([...document.querySelectorAll('#depotPlan path.tk[data-e]')].map(x => x.dataset.e)).size;
         const sigWant = SCH.signals.filter(sg => SE.has(sg.e) && (!part[sg.e] || (sg.f >= part[sg.e][0] - 0.001 && sg.f <= part[sg.e][1] + 0.001))).length;
         const station = document.querySelectorAll('#depotPlan text.pl').length && SCH.edges.every(ei => !(F.engine.net.sd_tail_edges || []).includes(ei));
-        res.push({ t: t / 3600, want: want.size, red: red.size, same: want.size === red.size && [...want].every(e => red.has(e)), sigs, sigWant, edges, station });
+        res.push({ t: t / 3600, want: want.size, red: red.size, same: [...want].every(e => red.has(e)), sigs, sigWant, edges, station });
       }
       // the line: its own sinottico (tools/sinottico.py linea), the same drawing
       document.querySelector('#depotPlan .dp-sw button[data-w="line"]').click(); await sleep(1500);
-      const line = { tk: document.querySelectorAll('#depotPlan path.tk').length, want: (F.engine.net.schema_line || { edges: [] }).edges.length, labels: document.querySelectorAll('#depotPlan text.lab').length };
+      const line = { tk: new Set([...document.querySelectorAll('#depotPlan path.tk')].map(x => x.dataset.e)).size, want: (F.engine.net.schema_line || { edges: [] }).edges.length, labels: document.querySelectorAll('#depotPlan text.lab').length,
+        plat: document.querySelectorAll('#depotPlan rect.plat').length, m2: document.querySelectorAll('#depotPlan g.badge').length };
       document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); await sleep(500);
       document.getElementById('dpClose').click(); await sleep(200);
       const back = document.getElementById('depotPlan').hidden;
-      return { ok: res.every(r => r.same && r.want > 0 && r.sigs === r.sigWant && r.edges === SCH.edges.length && r.station) && line.tk === line.want && line.want > 50 && line.labels >= 21 && back, res, line, back };
+      return { ok: res.every(r => r.same && r.want > 0 && r.sigs === r.sigWant && r.edges === SCH.edges.length && r.station) && line.tk === line.want && line.want > 50 && line.labels >= 21 && line.plat >= 42 && line.m2 >= 1 && back, res, line, back };
     });
   },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again

@@ -675,6 +675,7 @@ def shed_spans(pid):
         else: m_.append([a, b])
     _shed_cache[pid] = m_; return m_
 _wash_cache = {}
+WASH_APPROACH = 25.0
 def wash_spans(pid):
     """the stretches of a path inside the wash house (data/capannoni: uso lavaggio): [[from, to], ...]"""
     if pid in _wash_cache: return _wash_cache[pid]
@@ -693,7 +694,9 @@ def wash_spans(pid):
                 if not ins and run is not None: out.append([round(max(0.0, run), 1), round(d0 + s_, 1)]); run = None
             d0 += L_
         if run is not None: out.append([round(max(0.0, run), 1), round(d0, 1)])
-    out = [[round(max(0.0, a - 4), 1), b] for a, b in out]      # (from 4 m before: the speed is down when the nose goes in)
+    # (from WASH_APPROACH m before: the train comes up to the wash already at the wash speed; Giovanni 9 Nov 2026: "3 km/h
+    # da quando il treno approccia il lavaggio")
+    out = [[round(max(0.0, a - WASH_APPROACH), 1), b] for a, b in out]
     _wash_cache[pid] = out; return out
 def yard_time(pid, d0, d1):
     """seconds for the train (its centre) from d0 to d1 at depot speed: at shed speed while any part of it is in a shed"""
@@ -1249,7 +1252,7 @@ if CFG['training']:
     # build, by the tracks and places they depend on, and anything going wrong only leaves the wash out, with a warning)
     import hashlib as _hl
     _wkey = _hl.sha1(json.dumps([sorted((k, [round(v[0], 1), round(v[1], 1)]) for k, v in node_pos.items()), [(e['a'], e['b'], round(e['len'], 1)) for e in edges],
-                                 sorted(RIMESSA_TRACKS.items()), sorted(SECOND.items(), key=str), [sh.get('pts') for sh in SHEDS], sorted(STORE_EXIT.items()), sorted(STORE_ARR_FROM.items())], default=str).encode()).hexdigest()
+                                 sorted(RIMESSA_TRACKS.items()), sorted(SECOND.items(), key=str), [sh.get('pts') for sh in SHEDS], sorted(STORE_EXIT.items()), sorted(STORE_ARR_FROM.items()), WASH_APPROACH, V_WASH], default=str).encode()).hexdigest()
     _wcache = os.path.join(os.environ.get('WASH_CACHE_DIR', os.path.dirname(os.path.abspath(os.getcwd())) + '/build'), 'wash_cache_%s.json' % LINE.lower())
     def _wash_ways():
         _lavP = next((P for sh, P in zip(SHEDS, SHED_XY) if sh.get('uso') == 'lavaggio'), None)

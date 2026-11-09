@@ -355,7 +355,7 @@
 
     // ---------- the officina (Giovanni 9 Nov 2026) ----------
     // a train taken out of the service for a fault always goes to the officina, on one of its stub tracks (#A69-#A75; the
-    // officina tracks with #A63-#A65 are ordinary places). None free: a free place in the rimessa (PROPOSTA), waiting there
+    // officina tracks with #A63-#A65 are ordinary places). None free: a free place in the rimessa, waiting there (confirmed by Giovanni, 9 Nov 2026 evening)
     const OFF = ['A69', 'A70', 'A71', 'A72', 'A73', 'A74', 'A75'];
     function officinaPark(k) {
       if (!F.depotPaths) return null; if (!F.depot) init();

@@ -33,8 +33,8 @@ SOLO += [{'units': u, 'type': 'Hitachi Galileo', 'year': str(y), 'display': 'LED
 
 # in the officina (manutenzione) at the start of the day (Giovanni, 9 Nov 2026: "due treni di cui uno prima serie secondo
 # lotto in officina ad inizio giornata"): they take no tabella at the start of the day but are reserves the player can call
-# (Giovanni 9 Nov: "in servizio, posso chiamarli in riserva"). PROPOSTA: which trains and which officina stub tracks
-# (200002 = #A73, 200001 = #A74) are not Giovanni's, to be confirmed.
+# (Giovanni 9 Nov: "in servizio, posso chiamarli in riserva"). Which trains and which officina stub tracks (200002 = #A73,
+# 200001 = #A74): proposed by Claude, confirmed by Giovanni (9 Nov 2026, evening: "tua proposta va bene").
 OFFICINA = [{'units': '8109-8110 + 8107-8108', 'node': 200002}, {'units': '8061-8062 + 8063-8064', 'node': 200001}]
 
 def trains():

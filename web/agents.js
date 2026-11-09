@@ -49,7 +49,7 @@
       if (!P) { a.accCap = acc; a.brk = brk; return; }
       const load = a.status === 'service' ? loadAt(S.t) : 0;
       a.accCap = P.acc_empty - (P.acc_empty - P.acc_full) * load; a.brk = P.brake_service || brk;
-      if ((FX && FX.manual(a)) || a.manualTo != null) a.accCap *= 0.85;      // manual driving (ATO failed, through a closed station): it accelerates less (Giovanni)
+      if (byHand(a)) a.accCap *= 0.85;      // manual driving (ATO failed, through a closed station, the depot, the first runs): it accelerates less (Giovanni)
       if (FX && FX.half(a)) a.accCap *= P.one_unit != null ? P.one_unit : 0.5;  // one of its two units cut out: half the traction (performance: one_unit)
     }
     let atoLast = -Infinity;
@@ -77,7 +77,7 @@
         });
       }
       // ATO failed: manual driving, no even cruise (the speed goes up and down between 75 and 95% of the limit)
-      if (FX) for (const a of S.agents) if (!a.hidden && (FX.manual(a) || a.manualTo != null)) { a.ato = 0.75 + 0.2 * (0.5 + 0.5 * Math.sin(S.t / 37 + a.k)); a.atoWarn = false; }
+      for (const a of S.agents) if (byHand(a)) { a.ato = 0.75 + 0.2 * (0.5 + 0.5 * Math.sin(S.t / 37 + a.k)); a.atoWarn = false; a.man = true; } else a.man = false;
     }
     // stn[station]: what the PC set for a station (radio alla stazione): closed to the public (trains do not stop), the
     // text on its platform screens
@@ -130,11 +130,35 @@
       return { pid: s[0], status: s[1], trip: s[2], stops, end: s[4][s[4].length - 1], start: fromD != null ? fromD : s[4][0],
                dir: sts.length > 1 ? (sts[sts.length - 1].st > sts[0].st ? 'N' : 'S') : null };
     }
+    // driven by hand (MAN), Giovanni 9 Nov 2026: every move in the depot ("tutti i movimenti in deposito sono effettuati
+    // in MAN"; the ATO goes in past #A02 or at the San Donato platform: here, at the platform, where the service begins),
+    // and the first run of the day each way. By hand a train accelerates less and keeps under the limit (perfOf, atoTick,
+    // speedLimit), and on the first runs it stops off its mark at 4 stops in 100 (manualStop)
+    let FIRST = null;
+    function firstRuns() {
+      if (FIRST) return FIRST; FIRST = new Set(); const best = {};
+      for (let k = 0; k < nTrains(); k++) (planOf(k) || []).forEach((s, si) => { if (s[1] !== 'service') return;
+        const l = legOfSeg(s); if (!l.dir || l.stops.length < 2) return; const t = s[3][0];
+        if (!best[l.dir] || t < best[l.dir][0]) best[l.dir] = [t, k + ':' + si]; });
+      Object.values(best).forEach(b => FIRST.add(b[1])); return FIRST;
+    }
+    // (a number from 0 to 1 that is always the same for the same train, run and stop)
+    const hash01 = (...v) => { let h = 2166136261; for (const x of v) { h ^= (x | 0) + 0x9e3779b9; h = Math.imul(h, 16777619) >>> 0; h ^= h >>> 13; } return (h >>> 0) / 4294967296; };
+    const MANSTOP = ops.manual_stop || {};
+    function manualStop(k, si, leg) {
+      const p = MANSTOP.miss_pct != null ? MANSTOP.miss_pct / 100 : 0.04, m0 = MANSTOP.short_m != null ? MANSTOP.short_m[0] : 2, m1 = MANSTOP.short_m != null ? MANSTOP.short_m[1] : 6;
+      // (short of the mark, never past it: the station signal is 3 m beyond; not at the first and last stops, where the run
+      // starts and ends on its mark for the cab change)
+      leg.stops.forEach((z, i) => { if (i === 0 || i === leg.stops.length - 1) return; if (hash01(k, si, z.j, 7) < p) { const off = m0 + (m1 - m0) * hash01(k, si, z.j, 11); z.d -= off; z.off = off; } });
+    }
     function planLeg(k, si, fromD) {
       const s = planOf(k)[si], leg = legOfSeg(s, fromD);
       leg.si = si; leg.plan = true; leg.timed = true; leg.t0 = s[3][0];
+      if (s[1] === 'service' && firstRuns().has(k + ':' + si)) { leg.man = true; manualStop(k, si, leg); }
       return leg;
     }
+    const byHand = a => { if (a.hidden) return false; if ((FX && FX.manual(a)) || a.manualTo != null) return true;
+      const leg = a.legs && a.legs[0]; if (leg && leg.man) return true; return a.status !== 'service' && a.status !== 'turnback' && a.mode !== 'static'; };
 
     // depot and test-loop signals (web/interlocking.js); the line: route interlocking (web/routes.js)
     const IL = o.interlocking && ILmod ? ILmod.create(Object.assign({}, o.interlocking, { sigpos: o.sigpos, half: o.half })) : null;
@@ -307,8 +331,10 @@
       let v = (ops.train_max_kmh || 90) / 3.6;
       const p = prof[a.pid];
       const B = a.brk || brk, pc = a.ato || ATO_BASE;
+      // by hand in the depot: a little under its speeds (the line's are already scaled by the ATO percentage, pc)
+      const pm = a.man && a.status !== 'service' ? 0.9 + 0.08 * (0.5 + 0.5 * Math.sin(S.t / 23 + a.k)) : 1;
       if (p) for (const sg of p) { if (sg[0] > a.d + half + 400) break; if (sg[1] < a.d - half) continue;
-        const vs = sg[3] != null ? (sg[4] ? sg[3] * pc : sg[3]) : sg[2];
+        const vs = sg[3] != null ? (sg[4] ? sg[3] * pc : sg[3] * pm) : sg[2] * pm;
         v = Math.min(v, sg[0] <= a.d + half ? vs : Math.sqrt(vs * vs + 2 * B * (sg[0] - a.d - half))); }
       // empty (no passengers), shunting: through the platforms at 40 km/h
       const z = o.zones && o.zones[a.pid];
@@ -1492,7 +1518,7 @@
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
       return { tabM: a.mode !== 'plan' ? a.tabM : null, inside: a.inside, to: leg && leg.arrive ? leg.arrive.at : null, pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, trip: a.trip,
                seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold, vlim: a.vlim ? Math.round(a.vlim * 3.6) : null, vlimTo: a.vlimTo,
-               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn, manual: !!((FX && FX.manual(a)) || a.manualTo != null), faults: FX ? FX.list().filter(f => f.k === k) : [] };
+               stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn, manual: byHand(a), faults: FX ? FX.list().filter(f => f.k === k) : [] };
     }
     // a radio change to a train's day (platform, tail, test loop...): it takes it from where it is
     function replan(k) {

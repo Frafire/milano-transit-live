@@ -172,68 +172,164 @@ def find_signals(net, ids, polys, maxd=3.0):
 
 
 def linea(m3='m3.json'):
-    """a first drawing of the line (proposal): Comasina on the left, San Donato on the right, at their distance along the
-    line (SX px a metre); the northbound main track on one row, the southbound on the row below; the other track pieces of
-    the line (crossovers, tails, sidings) between or beside them, where they are along the line; the depot left out"""
+    """the drawing of the line (Giovanni 9 Nov 2026, evening): from #A06 at San Donato to Comasina, the track back to the
+    depot drawn half way, the link to the M2 ending in its logo; Comasina on the left. Not to scale: a block between two
+    stations as long as any other (it is one section), the platforms all alike, the switches and the tails drawn big
+    ("zone dove l'errore è più facile devono essere più zoomate"). The northbound main track on one row (binario 2, verso
+    Comasina), the southbound on the row below (binario 1, verso San Donato: data/itineraries_m3.json), wide apart so that
+    a middle track (Brenta) fits between; the tails and sidings beside or between them. fmap: for a piece drawn level,
+    where each point of it falls in the drawing (0-1 of its length in metres -> 0-1 of its drawn length)"""
     d, net = load(m3); E = net['edges']; NODES = net['nodes']; PE = d['path_edges']; DG = d['degraded']
+    pe_ = lambda pid: (PE[str(pid)] if isinstance(PE, dict) else PE[pid])['e']
     pN, pS = DG['N']['pid'], DG['S']['pid']
     polys = {i: dec(e['p']) for i, e in enumerate(E)}
-    # the chainage along the northbound main track (San Donato 0), and a point of it every 5 m (to place the other nodes)
-    ch, line_pts = {}, []
-    for ei, dr, x0, x1 in PE[str(pN)]['e'] if isinstance(PE, dict) else PE[pN]['e']:
-        P = polys[ei] if dr > 0 else polys[ei][::-1]
-        a, b = (E[ei]['a'], E[ei]['b']) if dr > 0 else (E[ei]['b'], E[ei]['a'])
-        ch.setdefault(a, x0); ch[b] = x1
-        for j in range(len(P) - 1):
-            L = math.dist(P[j], P[j + 1]); k = max(1, int(L / 5))
-            for t in range(k): line_pts.append((0, P[j][0] + (P[j + 1][0] - P[j][0]) * t / k, P[j][1] + (P[j + 1][1] - P[j][1]) * t / k))
-    # (recompute the chainage of the sample points along the polyline)
-    S2, c = [], 0.0
-    for i, (_, x, y) in enumerate(line_pts):
-        if i: c += math.dist(line_pts[i - 1][1:], (x, y))
-        S2.append((c, x, y))
-    TOT = S2[-1][0]
-    north_e = {ei for ei, *_ in (PE[str(pN)] if isinstance(PE, dict) else PE[pN])['e']}
-    south_e = {ei for ei, *_ in (PE[str(pS)] if isinstance(PE, dict) else PE[pS])['e']}
 
-    def where(n):
-        x, y = NODES[str(n)][1] * KX, NODES[str(n)][0] * KY; best = None
-        for i in range(0, len(S2) - 1):
+    def path_pts(pid, step=5.0):
+        out = []
+        for ei, dr, x0, x1 in pe_(pid):
+            P = polys[ei] if dr > 0 else polys[ei][::-1]; C = [0.0]
+            for j in range(1, len(P)): C.append(C[-1] + math.dist(P[j - 1], P[j]))
+            k = max(1, int((x1 - x0) / step))
+            for t in range(k + 1):
+                u = t / k * C[-1]; j = next((i for i in range(1, len(P)) if C[i] >= u), len(P) - 1); q = (u - C[j - 1]) / ((C[j] - C[j - 1]) or 1)
+                out.append((x0 + (x1 - x0) * t / k, P[j - 1][0] + (P[j][0] - P[j - 1][0]) * q, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * q))
+        return out
+    S2 = path_pts(pN); TOT = S2[-1][0]
+    SS = path_pts(pS)
+
+    def where_xy(x, y):
+        best = None
+        for i in range(len(S2) - 1):
             c0, ax, ay = S2[i]; c1, bx, by = S2[i + 1]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy or 1
             u = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); dd = math.hypot(x - ax - u * dx, y - ay - u * dy)
             if best is None or dd < best[0]: best = (dd, c0 + u * (c1 - c0), (dx * (y - ay) - dy * (x - ax)) / math.sqrt(L2))
         return best
-    SX, YN, YS, ROW = 0.25, 200, 222, 22
-    line_e = [i for i, e in enumerate(E) if e.get('cat') in ('main', 'siding', 'crossover', 'link')]
-    pos, side_of = {}, {}
-    for ei in line_e:
-        for n in (E[ei]['a'], E[ei]['b']):
-            if n in pos: continue
-            dd, s_, side = where(n)
-            if dd > 60: continue                          # (the depot and the test loop: far from the line)
-            x = round(40 + (TOT - s_) * SX, 1)
-            on_n = any(n in (E[i]['a'], E[i]['b']) for i in north_e); on_s = any(n in (E[i]['a'], E[i]['b']) for i in south_e)
-            if on_n and not on_s: y = YN
-            elif on_s and not on_n: y = YS
-            elif on_n and on_s: y = YN
-            else:
-                # beside: the side of the line it is on, one row further out (a tail between the tracks: in the middle)
-                y = YN - ROW if side > 4 else YS + ROW if side < -4 else (YN + YS) / 2
-            pos[n] = [x, y]
-    edges = [i for i in line_e if E[i]['a'] in pos and E[i]['b'] in pos]
+    where = lambda n: where_xy(NODES[str(n)][1] * KX, NODES[str(n)][0] * KY)
+    at_d = lambda P, dd: min(P, key=lambda q: abs(q[0] - dd))
+    north_e = {x[0] for x in pe_(pN)}; south_e = {x[0] for x in pe_(pS)}
+    on = lambda n, es: any(n in (E[i]['a'], E[i]['b']) for i in es)
+    # the pieces: the line's (main, sidings, crossovers, the M2 link) near the line
+    cand = [i for i, e in enumerate(E) if e.get('cat') in ('main', 'siding', 'crossover', 'link')]
+    W = {}
+    for i in cand:
+        for n in (E[i]['a'], E[i]['b']):
+            if n not in W: W[n] = where(n)
+    edges = [i for i in cand if W[E[i]['a']][0] <= 60 and W[E[i]['b']][0] <= 60]
+    # from #A06 on: what lies beyond the San Donato station signals (towards the depot) is the depot's; the track back
+    # to the depot (pieces with one end here and the other in the yard) drawn half way
+    sig_n = {sg.get('n'): (i, sg) for i, sg in enumerate(net['signals']) if sg.get('n') is not None}
     used = {E[i]['a'] for i in edges} | {E[i]['b'] for i in edges}
-    stops = DG['N']['stops']; names = DG['names']
-    labels = [{'text': {'DUOMO M3': 'Duomo'}.get(nm, nm.title().replace('Fs', 'FS').replace('T.I.B.B.', 'T.I.B.B.').replace('Fn', 'FN')), 'x': round(40 + (TOT - s_) * SX, 1), 'y': YN - 2 * ROW - 8}
-              for nm, s_ in zip(names, stops)]
-    out = {'_about': 'Sinottico della linea M3 (proposta, fatta da tools/sinottico.py linea): Comasina a sinistra, San Donato a destra, '
-                     'alla loro distanza (0,25 px al metro); un binario di corsa per riga; nodes = dove sta ogni nodo (px), via = curve, '
-                     'labels = le stazioni. Si corregge nell\'editor dei binari (Sinottico, Linea) e si esporta.',
-           'edges': edges, 'nodes': {str(n): pos[n] for n in sorted(used)}, 'via': {}, 'part': {},
-           'signals': add_dirs(net, find_signals(net, edges, polys)), 'places': [], 'labels': labels}
+    back = [i for i, e in enumerate(E) if i not in edges and e.get('cat') in ('siding', 'yard') and ((e['a'] in used) != (e['b'] in used))
+            and e['len'] > 60 and any(e[k] in used and W.get(e[k], (99,))[0] <= 60 for k in ('a', 'b')) and min(W.get(e['a'], where(e['a']))[1], W.get(e['b'], where(e['b']))[1]) < 600]
+    deg = collections.Counter(n for i in edges for n in (E[i]['a'], E[i]['b']))
+    # the stations: where the nose stops each way (chainage along the northbound track)
+    names = DG['names']; stN = DG['N']['stops']
+    sN = [at_d(S2, x)[0] for x in stN]
+    sS = [where_xy(*at_d(SS, x)[1:])[1] for x in DG['S']['stops']]
+    TRAIN = 2 * d.get('half', 52.5) if isinstance(d.get('half'), (int, float)) else 105.0
+    plats = []
+    for i, nm in enumerate(names):
+        s_n = sN[i]; s_s = min(sS, key=lambda x: abs(x - s_n))
+        plats.append((nm, (s_n - TRAIN, s_n), (s_s, s_s + TRAIN)))
+    first_st, last_st = min(min(p[1][0], p[2][0]) for p in plats), max(max(p[1][1], p[2][1]) for p in plats)
+    sw_s = sorted(W[n][1] for n in deg if deg[n] >= 3)
+    sig = add_dirs(net, find_signals(net, edges, polys))
+    def sig_s(sg):
+        P = polys[sg['e']]; C = [0.0]
+        for j in range(1, len(P)): C.append(C[-1] + math.dist(P[j - 1], P[j]))
+        u = sg['f'] * C[-1]; j = next((i for i in range(1, len(P)) if C[i] >= u), len(P) - 1); q = (u - C[j - 1]) / ((C[j] - C[j - 1]) or 1)
+        return where_xy(P[j - 1][0] + (P[j][0] - P[j - 1][0]) * q, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * q)[1]
+    ZONE = 55.0
+    knots = sorted({0.0, TOT, *[sig_s(sg) for sg in sig], *[x for s_ in sw_s for x in (s_ - ZONE, s_, s_ + ZONE)],
+                    *[x for p in plats for x in (*p[1], *p[2])]})
+    K = [knots[0]]
+    for x in knots[1:]:
+        if x - K[-1] > 3: K.append(x)
+    # px for each stretch between two knots
+    PX_ZONE, PX_PLAT = 0.6, 26.0 / TRAIN
+    def width(a, b):
+        L = b - a; m = (a + b) / 2
+        if any(abs(m - x) <= ZONE for x in sw_s) or m < first_st - 5 or m > last_st + 5: return max(4.0, L * PX_ZONE)
+        if any(p[1][0] - 1 <= m <= p[1][1] + 1 or p[2][0] - 1 <= m <= p[2][1] + 1 for p in plats): return L * PX_PLAT
+        return 4.0 + 8.0 * min(1.0, L / 450.0)
+    XK = [0.0]
+    for i in range(1, len(K)): XK.append(XK[-1] + width(K[i - 1], K[i]))
+    X0 = XK[-1] + 30                                      # (Comasina on the left: x grows from Comasina)
+    def X(s_):
+        s_ = max(K[0], min(K[-1], s_)); i = max(1, next((j for j in range(1, len(K)) if K[j] >= s_), len(K) - 1))
+        u = (s_ - K[i - 1]) / ((K[i] - K[i - 1]) or 1); return round(X0 - (XK[i - 1] + (XK[i] - XK[i - 1]) * u), 1)
+    YN, YS, ROW = 200.0, 236.0, 18.0
+    # which side of the northbound track the southbound one is (and the other way): a node of neither is between them
+    # (the middle track of Brenta) or out beyond one of them (tails, sidings)
+    def side_to(P, x, y):
+        best = None
+        for i in range(0, len(P) - 1, 2):
+            _, ax, ay = P[i]; _, bx, by = P[min(i + 2, len(P) - 1)]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy or 1
+            u = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); dd = math.hypot(x - ax - u * dx, y - ay - u * dy)
+            if best is None or dd < best[0]: best = (dd, (dx * (y - ay) - dy * (x - ax)) / math.sqrt(L2))
+        return best[1]
+    mid_ = SS[len(SS) // 2]; refN = 1 if side_to(S2, mid_[1], mid_[2]) > 0 else -1
+    midn = S2[len(S2) // 2]; refS = 1 if side_to(SS, midn[1], midn[2]) > 0 else -1
+    pos = {}
+    for n in used:
+        dd, s_, side = W[n]; x = X(s_)
+        if on(n, north_e) and not on(n, south_e): y = YN
+        elif on(n, south_e) and not on(n, north_e): y = YS
+        elif on(n, north_e): y = YN
+        else:
+            nx_, ny_ = NODES[str(n)][1] * KX, NODES[str(n)][0] * KY; a_ = side_to(S2, nx_, ny_) * refN; b_ = side_to(SS, nx_, ny_) * refS
+            y = (YN + YS) / 2 if a_ > 0.5 and b_ > 0.5 else YS + ROW if a_ > 0 else YN - ROW
+        pos[n] = [x, y]
+    # the track back to the depot: its far node out below, half of it drawn
+    part = {}
+    for i in back:
+        e = E[i]; near, far = (e['a'], e['b']) if e['a'] in used else (e['b'], e['a'])
+        px, py = pos[near]; dfar = where(far); xf = X(dfar[1]) if abs(X(dfar[1]) - px) > 20 else px + 40
+        pos[far] = [round(xf, 1), py + 2 * ROW if py >= YS - 1 else py - 2 * ROW if py <= YN + 1 else py + 2 * ROW]
+        part[str(i)] = [0, 0.5] if e['a'] == near else [0.5, 1]; edges.append(i)
+    # fmap: the pieces drawn level, metres -> drawing
+    fmap = {}
+    for i in edges:
+        e = E[i]; pa, pb = pos.get(e['a']), pos.get(e['b'])
+        if not pa or not pb or abs(pa[1] - pb[1]) > 0.5 or abs(pb[0] - pa[0]) < 8 or str(i) in part: continue
+        P = polys[i]; C = [0.0]
+        for j in range(1, len(P)): C.append(C[-1] + math.dist(P[j - 1], P[j]))
+        k = max(2, int(C[-1] / 25)); pts = []
+        for t in range(k + 1):
+            u = t / k * C[-1]; j = next((jj for jj in range(1, len(P)) if C[jj] >= u), len(P) - 1); q = (u - C[j - 1]) / ((C[j] - C[j - 1]) or 1)
+            xx = X(where_xy(P[j - 1][0] + (P[j][0] - P[j - 1][0]) * q, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * q)[1])
+            pts.append([round(t / k, 3), round(min(1, max(0, (xx - pa[0]) / (pb[0] - pa[0]))), 3)])
+        if any(abs(a_ - b_) > 0.02 for a_, b_ in pts): fmap[str(i)] = pts
+    # the M2: the link's far end (a node of the link with no other piece drawn)
+    badges = []
+    ldeg = collections.Counter(n for i in edges for n in (E[i]['a'], E[i]['b']))
+    for i in edges:
+        if E[i].get('cat') != 'link': continue
+        for n in (E[i]['a'], E[i]['b']):
+            if ldeg[n] == 1 and not any(abs(b_['x'] - pos[n][0]) < 4 and abs(b_['y'] - pos[n][1]) < 4 for b_ in badges):
+                badges.append({'text': 'M2', 'x': pos[n][0], 'y': pos[n][1], 'kind': 'm2'})
+    nice = lambda nm: {'DUOMO M3': 'Duomo'}.get(nm, ' '.join(w if w in ('FS', 'FN', 'T.I.B.B.') else w.capitalize() for w in nm.split()))
+    labels, platforms = [], []
+    for nm, pn, ps in plats:
+        xa, xb = sorted((X(pn[0]), X(pn[1]))); xc, xd = sorted((X(ps[0]), X(ps[1])))
+        platforms += [{'st': nice(nm), 'x0': xa, 'x1': xb, 'y': YN, 'bin': '2'}, {'st': nice(nm), 'x0': xc, 'x1': xd, 'y': YS, 'bin': '1'}]
+        labels.append({'text': nice(nm), 'x': round((min(xa, xc) + max(xb, xd)) / 2, 1), 'y': YN - 2 * ROW - 14})
+    # (names of stations close together on two lines, so that they do not run into each other)
+    labels.sort(key=lambda l: l['x']); last = None
+    for lb in labels:
+        if last is not None and lb['x'] - last['x'] < 7.5 * max(len(lb['text']), len(last['text'])) / 2 + 8 and last['y'] == YN - 2 * ROW - 14: lb['y'] = YN - 2 * ROW - 28
+        last = lb
+    out = {'_about': 'Sinottico della linea M3 (tools/sinottico.py linea; Giovanni 9/11/2026): da #A06 a Comasina, non in scala (un blocco tra '
+                     'due stazioni lungo come un altro, scambi e tronchetti ingranditi); binario 2 (verso Comasina) sopra, binario 1 (verso '
+                     'San Donato) sotto; nodes = dove sta ogni nodo (px), via = curve, part = tratte disegnate solo in parte (il binario di '
+                     'rientro in deposito), fmap = dove cade ogni punto di una tratta in piano, platforms = le banchine, badges = il logo M2 '
+                     'dove il raccordo non è più della linea. Si corregge nell\'editor dei binari (Sinottico, Linea) e si esporta.',
+           'edges': edges, 'nodes': {str(n): pos[n] for n in sorted(pos)}, 'via': {}, 'part': part, 'fmap': fmap,
+           'signals': sig, 'places': [], 'labels': labels, 'platforms': platforms, 'badges': badges}
     OUT = os.path.join(ROOT, 'data', 'sinottico_linea_m3.json')
     json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1)
-    print('sinottico della linea: %d tratte, %d nodi, %d segnali, %d stazioni, lunga %d m -> %s'
-          % (len(edges), len(out['nodes']), len(out['signals']), len(labels), TOT, os.path.relpath(OUT, ROOT)))
+    print('sinottico della linea: %d tratte (%d verso il deposito, a metà), %d nodi, %d segnali, %d stazioni, %d loghi M2, largo %d px (la linea %d m)'
+          % (len(edges), len(back), len(pos), len(sig), len(labels), len(badges), X0, TOT))
 
 
 if __name__ == '__main__':
