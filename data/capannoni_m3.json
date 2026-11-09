@@ -1,51 +1,100 @@
 {
-  "_about": "I capannoni del deposito di San Donato (M3), ricalcati sulle foto satellitari di Giovanni del 9/11/2026: la foto larga allineata ai binari del gioco sull'anello attorno al bosco, la foto ravvicinata allineata alla larga con i due segnaposto ATM; gli spigoli letti dai bordi dei tetti (circa +-3% sulle misure, +-5 m sulla posizione). PROPOSTA: non è un rilievo. Rimessa vetture circa 226 x 53 m (solo la sala con i lucernari gialli, senza la striscia scura a nord-ovest), officina circa 148 x 71 m. Dentro, i treni vanno al massimo a shed_speed_kmh (data/operations_m3.json) finché non ne sono usciti tutti.",
+  "_about": "I capannoni del deposito di San Donato (M3): sagome date da Giovanni (9/11/2026, spigoli presi su Google Maps). Dentro, i treni vanno al massimo a shed_speed_kmh (data/operations_m3.json) finché non ne sono usciti tutti.",
   "capannoni": [
     {
       "nome": "Rimessa vetture",
       "uso": "rimessa",
       "pts": [
         [
-          45.431007,
-          9.253248
+          45.4322387,
+          9.2552993
         ],
         [
-          45.430632,
-          9.253674
+          45.4317467,
+          9.2558691
         ],
         [
-          45.43193,
-          9.255901
+          45.4313111,
+          9.2551259
         ],
         [
-          45.432304,
-          9.255474
+          45.4312545,
+          9.2551985
+        ],
+        [
+          45.430743,
+          9.2543328
+        ],
+        [
+          45.4307793,
+          9.2542948
+        ],
+        [
+          45.4305061,
+          9.2537478
+        ],
+        [
+          45.4308606,
+          9.2533106
+        ],
+        [
+          45.4313949,
+          9.2542079
+        ],
+        [
+          45.4315082,
+          9.254069
         ]
       ],
-      "posto_m": 110,
-      "_posto_m": "Prova di Giovanni (9/11/2026): due posti per binario dentro la rimessa. Da 115 m non ci stanno (230 m su circa 226); da 110 m sì (220 m, 3 m di margine per parte). I posti sono centrati nella sala; il treno (105 m) sta al centro del suo posto. Vale per i binari passanti che stanno nella sala; quelli all'aperto e in officina restano con le bandiere di Giovanni."
+      "posti": 2,
+      "_posti": "Due posti per binario passante (binari dei semafori A48-A59; A79-A90 sono i semafori di uscita sugli stessi binari), Giovanni 9/11/2026. Ogni posto è metà del binario dentro la rimessa (circa 108 m: la rimessa è lunga circa 217 m), il treno (105 m) al centro del suo posto. Solo in rimessa."
+    },
+    {
+      "nome": "Lavaggio",
+      "uso": "lavaggio",
+      "parte_di": "Rimessa vetture",
+      "pts": [
+        [
+          45.4313111,
+          9.2551259
+        ],
+        [
+          45.4312545,
+          9.2551985
+        ],
+        [
+          45.430743,
+          9.2543328
+        ],
+        [
+          45.4307793,
+          9.2542948
+        ]
+      ],
+      "_nota": "La casetta del lavaggio, dentro la rimessa sul lato sud-est (Giovanni 9/11/2026): il binario che la attraversa è il lavaggio."
     },
     {
       "nome": "Officina manutenzione",
       "uso": "manutenzione",
       "pts": [
         [
-          45.430851,
-          9.254634
+          45.4307211,
+          9.2546576
         ],
         [
-          45.430364,
-          9.255226
+          45.4315294,
+          9.256017
         ],
         [
-          45.431228,
-          9.256697
+          45.4310741,
+          9.256625
         ],
         [
-          45.431699,
-          9.256074
+          45.4302628,
+          9.2552464
         ]
-      ]
+      ],
+      "_nota": "Binari tronchi: due treni in manutenzione dall'inizio della giornata, chiamabili come riserva. I treni guasti vanno sempre qui (Giovanni 9/11/2026)."
     }
   ]
 }

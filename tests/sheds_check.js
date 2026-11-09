@@ -10,7 +10,7 @@ let fail = 0; const check = (ok, what) => { console.log((ok ? 'ok   ' : 'FAIL ')
 const inpoly = ([la, lo], P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [a1, o1] = P[i], [a2, o2] = P[j];
   if ((a1 > la) !== (a2 > la) && lo < (o2 - o1) * (la - a1) / (a2 - a1) + o1) c = !c; } return c; };
 const sheds = M.sheds || [];
-check(sheds.length === 2 && sheds.some(s => s.uso === 'rimessa') && sheds.some(s => s.uso === 'manutenzione'), 'two sheds: rimessa and officina (manutenzione)');
+check(sheds.length === 3 && sheds.some(s => s.uso === 'rimessa') && sheds.some(s => s.uso === 'manutenzione'), 'the sheds: rimessa (with the wash) and officina (manutenzione)');
 check(VS === 5, 'shed speed 5 km/h (data/operations_m3.json)');
 const withSheds = M.path_edges.filter(p => p && p.sheds && p.sheds.length).length;
 check(withSheds > 50, `paths through the sheds carry their stretches: ${withSheds}`);
@@ -25,8 +25,8 @@ off.forEach(([x, u]) => {
   check(!!(still && ll && inpoly(ll, offShed.pts)), `${x.units}: stands all day at a place inside the officina (node ${place})`);
   check(!M.duties[k].some(d => d[2] !== u), `${x.units}: no other train on its timeline, no tabella`);
 });
-// the rimessa: two places of posto_m on each of its through tracks, both trains entirely inside the hall (Giovanni 9 Nov:
-// 115 m do not fit, 110 m do); the officina trains: where they stand, how much of them is inside
+// the rimessa (Giovanni's outline, 9 Nov): two places on each of its through tracks, half of the track inside each, both
+// trains entirely inside; the officina trains: where they stand, how much of them is inside
 const KXY = ([la, lo]) => [(lo - 9.19) * L.KX, (la - 45.46) * L.KY], pos = L.posOf(M);
 const inXY = (q, P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [x1, y1] = P[i], [x2, y2] = P[j];
   if ((y1 > q[1]) !== (y2 > q[1]) && q[0] < (x2 - x1) * (q[1] - y1) / (y2 - y1) + x1) c = !c; } return c; };
@@ -34,8 +34,10 @@ const rim = sheds.find(s => s.uso === 'rimessa'), RP = rim.pts.map(KXY), OP = of
 const inside = (node, P) => { const r = M.depot_paths[String(node)]; if (!r) return null; const o = Object.values(r.out)[0]; if (!o) return null;
   let n = 0, k = 0; for (let d = o.start - H; d <= o.start + H + 1e-6; d += 1) { k++; if (inXY(pos(o.pid, d), P)) n++; } return n / k; };
 const RT = Object.entries((M.rimessa || {}).tracks || {});
-const notIn = RT.flatMap(([li, ns]) => ns.filter(n => n != null).map(n => [li, n, inside(n, RP)])).filter(x => x[2] == null || x[2] < 0.999);
-check(M.rimessa && M.rimessa.posto_m === 110 && RT.length >= 8 && RT.every(([, ns]) => ns.every(n => n != null)), `rimessa: two places of ${M.rimessa && M.rimessa.posto_m} m on ${RT.length} tracks`);
+const notIn = RT.flatMap(([li, ns]) => ns.slice(0, 2).filter(n => n != null).map(n => [li, n, inside(n, RP)])).filter(x => x[2] == null || x[2] < 0.999);
+const PM = RT.map(([, ns]) => ns[2]);
+check(RT.length === 12 && RT.every(([, ns]) => ns[0] != null && ns[1] != null) && PM.every(x => x > 2 * H && x < 115), `rimessa: two places on each of its ${RT.length} tracks (A48-A59), places of ${Math.min(...PM).toFixed(1)}-${Math.max(...PM).toFixed(1)} m`);
+const lav = sheds.find(s => s.uso === 'lavaggio'); check(!!lav, 'the wash (lavaggio), part of the rimessa');
 check(!notIn.length, `every train of the rimessa entirely inside the hall${notIn.length ? ': ' + notIn.map(x => 'track ' + x[0] + ' node ' + x[1] + ' ' + (x[2] == null ? '?' : Math.round(x[2] * 100) + '%')).join(', ') : ''}`);
 off.forEach(([x, u]) => { const k = M.duties.findIndex(ds => ds.some(d => d[2] === u)), tr = M.trains[k], f = inside((tr.segs || tr)[0][5], OP);
   console.log(`note ${x.units} in the officina: ${f == null ? '?' : Math.round(f * 100) + '%'} of the train under the roof`); });

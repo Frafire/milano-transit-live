@@ -133,33 +133,32 @@ def _place_link(li, a_, b_, m):
 def _ne_end(a_, b_):
     (ax, ay), (bx, by) = node_pos[a_], node_pos[b_]
     return b_ if (bx - ax) * math.sin(math.radians(50)) + (by - ay) * math.cos(math.radians(50)) > 0 else a_
-# the rimessa (data/capannoni_<line>.json, posto_m): two places of posto_m metres on each through track inside the hall,
-# centred in it, the train in the middle of its place (Giovanni 9 Nov 2026: two places of 115 m do not fit in the ~226 m of
-# the hall, two of 110 m do). It moves the two trains' ends (in place of Giovanni's flags) on those tracks only
+# the rimessa (data/capannoni_<line>.json, posti): two places on each through track inside it, each half of the track's
+# stretch inside the building, the train in the middle of its place (Giovanni 9 Nov 2026: the outline from him, two places
+# only in the rimessa). It sets the two trains' ends (in place of Giovanni's flags) on those tracks only
 _cap = 'capannoni_%s.json' % LINE.lower()
 SHEDS = json.load(open(_cap))['capannoni'] if os.path.exists(_cap) else []
 SHED_XY = [[xy(la, lo) for la, lo in sh['pts']] for sh in SHEDS]
-RIMESSA_TRACKS = {}             # link index -> (from, to) along the hall: the two trains
+def _inpoly(x, y, P):
+    c = False
+    for i in range(len(P)):
+        (x1, y1), (x2, y2) = P[i], P[i - 1]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1: c = not c
+    return c
+RIMESSA_TRACKS = {}             # link index -> (from, to, place length) along the track: the two trains
 for _sh, _P in zip(SHEDS, SHED_XY):
-    if not _sh.get('posto_m') or len(_P) != 4: continue
-    _A = ((_P[0][0] + _P[1][0]) / 2, (_P[0][1] + _P[1][1]) / 2); _B = ((_P[2][0] + _P[3][0]) / 2, (_P[2][1] + _P[3][1]) / 2)
-    _HL = math.dist(_A, _B); _ux, _uy = (_B[0] - _A[0]) / _HL, (_B[1] - _A[1]) / _HL
-    _HW = (math.dist(_P[0], _P[1]) + math.dist(_P[2], _P[3])) / 4
-    _al = lambda q: (q[0] - _A[0]) * _ux + (q[1] - _A[1]) * _uy
-    _of = lambda q: -(q[0] - _A[0]) * _uy + (q[1] - _A[1]) * _ux
-    _pm = _sh['posto_m']; _m0 = (_HL - 2 * _pm) / 2
-    if _m0 < 0: print('rimessa: two places of', _pm, 'm do not fit in', round(_HL), 'm'); continue
-    _hd = math.degrees(math.atan2(_ux, _uy)) % 360       # towards the far end (compass)
+    if _sh.get('posti') != 2: continue
     for _li, (_a, _b, _m) in enumerate(LINKS):
-        if abs(_of(node_pos[_a])) > _HW - 0.5 or abs(_of(node_pos[_b])) > _HW - 0.5: continue      # (the track on the south-east wall: outside, to be confirmed)
-        if min(_al(node_pos[_a]), _al(node_pos[_b])) > 10 or max(_al(node_pos[_a]), _al(node_pos[_b])) < _HL - 40: continue
-        e0, e1 = _m0 + (_pm - 2 * TRAIN_HALF) / 2, _HL - _m0 - (_pm - 2 * TRAIN_HALF) / 2       # the near end of one train, the far end of the other
-        (ax_, ay_), (bx_, by_) = node_pos[_a], node_pos[_b]; da, db = _al(node_pos[_a]), _al(node_pos[_b])
-        at = lambda v: (ax_ + (bx_ - ax_) * (v - da) / (db - da), ay_ + (by_ - ay_) * (v - da) / (db - da))
-        _router.LINK_FLAG[_li] = (*at(e1), _hd); _router.LINK_FLAG2[_li] = (*at(e0), (_hd + 180) % 360)
-        RIMESSA_TRACKS[_li] = (round(e0, 1), round(e1, 1))
-    print('rimessa: %d m long; two places of %d m on %d through tracks (trains from %.1f to %.1f m along the hall)'
-          % (round(_HL), _pm, len(RIMESSA_TRACKS), e0 if RIMESSA_TRACKS else 0, e1 if RIMESSA_TRACKS else 0), sorted(RIMESSA_TRACKS))
+        (ax_, ay_), (bx_, by_) = node_pos[_a], node_pos[_b]; L_ = math.hypot(bx_ - ax_, by_ - ay_) or 1; ux_, uy_ = (bx_ - ax_) / L_, (by_ - ay_) / L_
+        ins = [t / 4 for t in range(-160, int(L_ * 4) + 161) if _inpoly(ax_ + ux_ * t / 4, ay_ + uy_ * t / 4, _P)]
+        if not ins or ins[-1] - ins[0] < 4 * TRAIN_HALF or len(ins) < (ins[-1] - ins[0]) * 4 - 4: continue     # whole inside, room for two
+        t0, t1 = ins[0], ins[-1]; pm = (t1 - t0) / 2; mg = (pm - 2 * TRAIN_HALF) / 2
+        ne_b = (bx_ - ax_) * math.sin(math.radians(50)) + (by_ - ay_) * math.cos(math.radians(50)) > 0
+        far, near = (t1 - mg, t0 + mg) if ne_b else (t0 + mg, t1 - mg)      # the north-east train's far end, the other's near end
+        hd = math.degrees(math.atan2(ux_, uy_)) % 360; hd_ne = hd if ne_b else (hd + 180) % 360
+        _router.LINK_FLAG[_li] = (ax_ + ux_ * far, ay_ + uy_ * far, hd_ne); _router.LINK_FLAG2[_li] = (ax_ + ux_ * near, ay_ + uy_ * near, (hd_ne + 180) % 360)
+        RIMESSA_TRACKS[_li] = (round(t0, 1), round(t1, 1), round(pm, 1))
+    print('rimessa: two places on %d through tracks, places of %s m' % (len(RIMESSA_TRACKS), sorted({v[2] for v in RIMESSA_TRACKS.values()})), sorted(RIMESSA_TRACKS))
 SECOND = {}                     # link index -> second place node
 for _w, _f in _router.LINK_FLAG2_W.items():      # flags on the track just outside the building: the through track it leads to
     for _li, (_a, _b, _m) in enumerate(LINKS):
@@ -613,12 +612,6 @@ def move(tl, pid, d0, d1, t0, v, status):
 # the depot sheds (data/capannoni_<line>.json): inside them at most shed_speed_kmh, until the whole train is out (Giovanni,
 # 9 Nov 2026: "dentro rimessa e manutenzione 5 km/h massimo fino a quando il treno non è uscito interamente dal capannone")
 V_SHED = OPS.get('shed_speed_kmh', OPS['depot_speed_kmh']) / 3.6
-def _inpoly(x, y, P):
-    c = False
-    for i in range(len(P)):
-        (x1, y1), (x2, y2) = P[i], P[i - 1]
-        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1: c = not c
-    return c
 def _along(P, step=2.0):
     """points every step metres along a polyline: [(s, x, y)]"""
     out, acc = [], 0.0
@@ -2188,7 +2181,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'labels': PLAT_LABELS,
            'platmap': PLATMAP,
            'boards': boards_out(),
-           'stock': STOCK, 'duties': DUTIES, 'rimessa': {'tracks': {str(li): [100000 + li, SECOND.get(li)] for li in RIMESSA_TRACKS}, 'posto_m': next((sh['posto_m'] for sh in SHEDS if sh.get('posto_m')), None)}, 'sheds': [{'dep': 'San Donato', 'nome': sh['nome'], 'uso': sh['uso'], 'pts': sh['pts']} for sh in SHEDS], 'test': TEST, 'depot_paths': DEPOT_PATHS,
+           'stock': STOCK, 'duties': DUTIES, 'rimessa': {'tracks': {str(li): [100000 + li, SECOND.get(li), v[2]] for li, v in RIMESSA_TRACKS.items()}}, 'sheds': [{'dep': 'San Donato', 'nome': sh['nome'], 'uso': sh['uso'], 'pts': sh['pts']} for sh in SHEDS], 'test': TEST, 'depot_paths': DEPOT_PATHS,
            'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'blocks': BLOCKS, 'illegal': ILLEGAL, 'degraded': DEGRADED, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))
