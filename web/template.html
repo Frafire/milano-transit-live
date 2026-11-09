@@ -333,7 +333,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 #depotPlan .tk { fill: none; stroke: var(--sin-tk); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; } #depotPlan .tk.test { stroke: #7f95b3; stroke-width: 1.8; stroke-dasharray: 6 4; } #depotPlan .tk.main { stroke: #b7c4d4; stroke-width: 3; }
 #depotPlan .lit { fill: none; stroke: #ffffff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; } #depotPlan .occ { fill: none; stroke: #ff3b3f; stroke-width: 4.4; stroke-linecap: round; stroke-linejoin: round; }
 #depotPlan .dp-opt { font-size: 12px; color: #cfdbe9; display: flex; gap: 4px; align-items: center; }
-#depotPlan .sg { stroke: var(--sin-bg); stroke-width: 1; } #depotPlan .sgn { font-size: 8px; fill: #cfdbe9; text-anchor: start; }
+#depotPlan .sg { stroke: var(--sin-bg); stroke-width: 1; } #depotPlan .sgi .sg { stroke: none; } #depotPlan .sgb { fill: none; stroke: #dfe7f1; stroke-width: 1.3; } #depotPlan .sgc { fill: #15181d; stroke: #dfe7f1; stroke-width: .9; }
+#depotPlan.line .sgb { stroke: #1d2140; } #depotPlan.line .sgc { stroke: #1d2140; } #depotPlan .sgn { font-size: 8px; fill: #cfdbe9; text-anchor: start; }
 #depotPlan .nd { fill: #ffcf3f; stroke: #111; stroke-width: 1; cursor: move; } #depotPlan .vp { fill: #7fe0ff; stroke: #0b2a5b; stroke-width: 1; cursor: move; } #depotPlan svg.edit .tk { cursor: copy; }
 #depotPlan .trn rect { fill: #ff3b3f; stroke: #fff; stroke-width: .8; } #depotPlan .trn text { fill: #fff; font-size: 9px; font-weight: 700; } #depotPlan .trn { cursor: pointer; }
 .bdlabel { position: absolute; transform: translate(-50%, -26px); white-space: nowrap; font: 700 10px/1 var(--display); letter-spacing: .06em; color: #111; background: #ffb400; border-radius: 3px; padding: 2px 5px; box-shadow: 0 1px 4px rgba(0,0,0,.6); }
@@ -3994,7 +3995,17 @@ window.MTL_CAPS = __CAPS__;
     const ASP = { go: '#2ecc40', stop: '#e5383b', sgo: '#ffffff', sstop: '#e5383b' };
     for (const sg of SCH.signals || []) { const full = FULL[sg.e]; if (!full) continue; const [p0, p1] = sinPart(SCH, sg.e); if (sg.f < p0 - 0.001 || sg.f > p1 + 0.001) continue;
       const m = alongPts(full, sg.f), tag = '#A' + String(sg.n).padStart(2, '0'), S_ = SIGS.find(x => x.tag === tag), a = S_ && S_.asp || 'stop';
-      marks += `<circle class="sg" data-n="${sg.n}" cx="${m[0]}" cy="${m[1] - 4.5}" r="2.8" fill="${ASP[a] || '#e5383b'}"><title>${tag}</title></circle>${SIN_NUM ? `<text class="sgn" x="${m[0] + 4}" y="${m[1] - 7}">${sg.n}</text>` : ''}`; }
+      if (sg.d !== 1 && sg.d !== -1) { marks += `<circle class="sg" data-n="${sg.n}" cx="${m[0]}" cy="${m[1] - 4.5}" r="2.8" fill="${ASP[a] || '#e5383b'}"><title>${tag}</title></circle>${SIN_NUM ? `<text class="sgn" x="${m[0] + 4}" y="${m[1] - 7}">${sg.n}</text>` : ''}`; continue; }
+      // as on the screens of the Posto Centrale (Giovanni 9 Nov 2026): beside the track, on the right of the trains it is
+      // for, its foot at the signal, the head turned to the trains coming; the M3 heads have two lamps only: red, and
+      // white (via libera = red and white lit together)
+      const m1 = alongPts(full, Math.max(0, sg.f - 0.003)), m2 = alongPts(full, Math.min(1, sg.f + 0.003));
+      let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
+      const K = SIN_WHICH === 'line' ? 1 : 0.8, nx = -ty, ny = tx, B = [m[0] + nx * 6 * K, m[1] + ny * 6 * K], ang = Math.atan2(-ty, -tx) * 180 / Math.PI;
+      const lit = a === 'go' || a === 'sgo';
+      marks += `<g class="sgi" transform="translate(${P1(B)}) rotate(${Math.round(ang)}) scale(${K})"><title>${tag}</title><path class="sgb" d="M0,-3.2V3.2M0,0H3"/><rect class="sgc" x="3" y="-3.4" width="13" height="6.8" rx="3.4"/>` +
+        `<circle class="sg" data-n="${sg.n}" cx="6.6" cy="0" r="2.2" fill="#ff2a2a"/><circle cx="12.4" cy="0" r="2.2" fill="${lit ? '#ffffff' : '#3b3f46'}"/></g>` +
+        (SIN_NUM ? `<text class="sgn" x="${B[0] + nx * 8 * K}" y="${B[1] + ny * 8 * K + 3}">${sg.n}</text>` : ''); }
     // the places by name (two places at the same point of the drawing, as the two of a rimessa track: one each side)
     const plG = []; for (const pl of SCH.places || []) { const p = N[pl.node]; if (!p || !at[pl.node]) continue;
       const g = plG.find(g => g.some(([, q]) => Math.abs(q[0] - p[0]) < 16 && Math.abs(q[1] - p[1]) < 3)); if (g) g.push([pl, p]); else plG.push([[pl, p]]); }

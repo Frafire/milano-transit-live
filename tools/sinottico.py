@@ -66,6 +66,21 @@ def bends(real, A, B, eps=1.6):
     return [[round(x, 1), round(y, 1)] for x, y in P[1:-1]]
 
 
+def add_dirs(net, sigs):
+    """which way each signal looks: d = 1 for the trains that run its piece from node a to node b, -1 the other way (its
+    heading against the piece there); the page draws the signal on that side of the track, pointing that way"""
+    E = net['edges']
+    for sg in sigs:
+        x = net['signals'][sg['si']] if sg.get('si') is not None and sg['si'] < len(net['signals']) else None
+        if not x or x.get('heading') is None: continue
+        P = dec(E[sg['e']]['p']); C = [0.0]
+        for i in range(1, len(P)): C.append(C[-1] + math.dist(P[i - 1], P[i]))
+        at = sg['f'] * C[-1]; i = next((j for j in range(1, len(P)) if C[j] >= at), len(P) - 1)
+        tx, ty = P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]; h = math.radians(x['heading'])
+        sg['d'] = 1 if tx * math.sin(h) + ty * math.cos(h) >= 0 else -1
+    return sigs
+
+
 def deposito(m3='m3.json', start=(4, 5)):
     d, net = load(m3); E = net['edges']
     OUT = os.path.join(ROOT, 'data', 'schema_deposito_m3.json'); S = json.load(open(OUT)); N = S['nodes']
@@ -129,6 +144,7 @@ def deposito(m3='m3.json', start=(4, 5)):
     # (the signals all stay in the file, the ones of the station too: the San Donato tails' signals are read from here by
     # the agents; the page draws only the ones on the pieces drawn)
     S['places'] = [p for p in S['places'] if str(p['node']) in used]
+    add_dirs(net, S['signals'])
     S['_about'] = ('Sinottico del deposito di San Donato (Giovanni): nodes = dove sta ogni nodo nel disegno (px, li ha messi lui); '
                    'via = le curve di una tratta (dalla forma vera del binario, girata sui suoi due nodi; si spostano a mano); part = '
                    'le tratte disegnate solo in parte (da #A04 e #A05 in poi: la stazione di San Donato non c\'è). '
@@ -213,7 +229,7 @@ def linea(m3='m3.json'):
                      'alla loro distanza (0,25 px al metro); un binario di corsa per riga; nodes = dove sta ogni nodo (px), via = curve, '
                      'labels = le stazioni. Si corregge nell\'editor dei binari (Sinottico, Linea) e si esporta.',
            'edges': edges, 'nodes': {str(n): pos[n] for n in sorted(used)}, 'via': {}, 'part': {},
-           'signals': find_signals(net, edges, polys), 'places': [], 'labels': labels}
+           'signals': add_dirs(net, find_signals(net, edges, polys)), 'places': [], 'labels': labels}
     OUT = os.path.join(ROOT, 'data', 'sinottico_linea_m3.json')
     json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1)
     print('sinottico della linea: %d tratte, %d nodi, %d segnali, %d stazioni, lunga %d m -> %s'
