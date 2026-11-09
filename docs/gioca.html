@@ -1780,7 +1780,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
         + (x.section ? ' · via libera solo col binario libero fino al segnale successivo' : '')
         + (x.manual ? ' · manovrato dal giocatore (clic = via libera)' : '');
     }
-    return { fresh, ahead, request, release, clear, aspect, controlled, isManual, groupOf, sectionEnd, describe, zoneOf, zoneHolder, zoneAsk, zoneFree };
+    // where a signal is, in two or three words (the tooltip on the map; the rules in full are on its card): the name of its
+    // group or zone before the colon ("Deposito lato est")
+    function brief(si) {
+      const x = sig.get(si); if (!x) return '';
+      const g = x.groups.map(gi => groups[gi] && groups[gi].name).find(Boolean) || (x.zone != null && zones[x.zone] ? zones[x.zone].name : '');
+      return String(g || '').split(':')[0].trim();
+    }
+    return { fresh, ahead, request, release, clear, aspect, controlled, isManual, groupOf, sectionEnd, describe, brief, zoneOf, zoneHolder, zoneAsk, zoneFree };
   }
 
   const api = { create, NEAR, PASS, SECTION_MAX };
@@ -7372,6 +7379,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     h += red ? `<button data-pc="unred">Togli il rosso fisso</button>` : `<button data-pc="red">Rosso fisso</button>`;
     if (setBy.length || pcR) h += `<button data-pc="cancel">Annulla l'itinerario${pcR ? ' preparato (' + pcR.id + ')' : ''}</button>`;
     h += `</div>`;
+    { const si = (F.engine.net.signals || []).findIndex(x => x.n === n), rules = si >= 0 ? ilNote(F, si).replace(/^ · /, '').split(' · ').filter(Boolean) : [];
+      if (rules.length) h += `<p class="note">${rules.map(r => r[0].toUpperCase() + r.slice(1)).join('. ')}.</p>`; }
     if (its.length) h += `<div class="lbl pclbl">Itinerari da questo semaforo</div><ul class="pclist">` + its.map(x => `<li><span><b>${x.id}</b> ${cap(x.to || '')}<small>${x.when || ''}</small></span>${pcR && pcR.id === x.id ? '<em>preparato</em>' : `<button data-form="${x.id}">Forma</button>`}</li>`).join('') + `</ul>`;
     if (sws.length) h += `<div class="lbl pclbl">Scambi</div><ul class="pclist">` + sws.map(nd => {
       const ps = RT_.switchPositions(nd), cur = st.sw[nd], lk = st.swLock && st.swLock[nd];
@@ -8093,7 +8102,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const shedLayer = L.layerGroup();
     (FLEETDATA ? FLEETDATA.fleets : []).filter(F => F.line === 'M3').flatMap(F => F.sheds || []).forEach(sh => {
       const col = sh.uso === 'manutenzione' ? '#4db3ff' : sh.uso === 'lavaggio' ? '#3ddc97' : '#ff9f1c';
-      L.polygon(sh.pts, { color: col, weight: 1.5, opacity: .8, dashArray: '5 4', fillColor: col, fillOpacity: .07, interactive: false }).addTo(shedLayer);
+      L.polygon(sh.pts, { color: col, weight: 2, opacity: .95, fillColor: col, fillOpacity: .28, interactive: false }).addTo(shedLayer);   // (a stronger colour, Giovanni 9 Nov 2026)
       // the name towards the far end (the trains stand at the fan end), above the trains
       const g = [sh.pts.reduce((a, p) => a + p[0], 0) / sh.pts.length, sh.pts.reduce((a, p) => a + p[1], 0) / sh.pts.length], e = sh.pts.length === 4 ? [(sh.pts[2][0] + sh.pts[3][0]) / 2, (sh.pts[2][1] + sh.pts[3][1]) / 2] : g;
       const c = [g[0] * .3 + e[0] * .7, g[1] * .3 + e[1] * .7];
@@ -9213,6 +9222,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   const tagHtml = tag => `<span class="sigtag admin-only">${tag}</span>`;   // #AXX, shown in admin mode only
   const sigNo = (F, si) => '#A' + String(((F.engine.net.signals || [])[si] || {}).n || si + 1).padStart(2, '0');
   // interlocking notes for a signal's tooltip
+  function ilBrief(F, si) { const IL = F.ag && F.ag.IL; return IL && si >= 0 && IL.brief ? IL.brief(si) : ''; }
   function ilNote(F, si) {
     const IL = F.ag && F.ag.IL, net = F.engine.net; if (!IL || si < 0) return '';
     return IL.describe(si);
@@ -9284,7 +9294,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       if (x.sg.n != null && ofBlock.has(x.sg.n)) return;
       const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt', tag = tagOf(x.sg.n || (F.engine.net.signals || []).indexOf(x.sg) + 1);
       const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${shunt ? ' sh' : ''}" alt="" src="${SIGURL[shunt ? 'sstop' : x.sg.legal === false ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
-        .bindTooltip(tag + ' · ' + (shunt ? 'Manovra' : 'Blocco') + (x.sg.name ? ' · ' + x.sg.name : '') + ilNote(F, (F.engine.net.signals || []).indexOf(x.sg)) + ' · ' + Math.round(x.len) + ' m controllati', { className: 'st', direction: 'top' });
+        .bindTooltip(tag + ' · ' + (x.sg.name || ilBrief(F, (F.engine.net.signals || []).indexOf(x.sg)) || (shunt ? 'Manovra' : 'Blocco')), { className: 'st', direction: 'top' });   // (two or three words, Giovanni 9 Nov 2026: the rules are on the card)
       // where it is on the paths that go over it: it shows the section right behind it (junction, tail, block)
       const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
       if (F.ag && F.ag.IL && F.ag.IL.isManual(si)) m.on('click', () => clearManual(F, si, tag)); else m.on('click', () => openSignal(tag));
