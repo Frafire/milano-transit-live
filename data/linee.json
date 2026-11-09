@@ -9,5 +9,13 @@
   "metro-tutte": "in arrivo",
   "tram": "in arrivo",
   "bus": "in arrivo",
-  "rete": "in arrivo"
+  "rete": "in arrivo",
+  "orari": {
+    "_nota": "Gli orari che si possono scegliere per una linea (Giovanni 10/11/2026): attuale = l'orario ATM di oggi; gli storici (dati da data/storico, tools/orari_storici.py e tools/storico_corse.py). Stessi valori delle linee. Uno storico giocabile si apre con gioca.html?linee=M3&orario=<nome>.",
+    "M3": {
+      "attuale": "giocabile",
+      "expo2015": "in arrivo",
+      "milanocortina2026": "in arrivo"
+    }
+  }
 }

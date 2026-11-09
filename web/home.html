@@ -118,7 +118,7 @@ header { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
 
 .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: 12px; margin-top: auto; }
 .foot a { color: inherit; }
-.toast { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 20; width: min(440px, calc(100vw - 32px)); box-sizing: border-box;
+.toast { position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 50; width: min(440px, calc(100vw - 32px)); box-sizing: border-box;
   background: #071109; border: 4px solid #2a3a2e; box-shadow: 0 0 0 2px #000, 0 10px 30px rgba(0,0,0,.6); font: 19px/1.2 "VT323", ui-monospace, monospace; color: var(--crt); padding: 10px 12px; }
 
 @media (max-width: 760px) {
@@ -130,6 +130,102 @@ header { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
   .tile .desc { display: none; } .tag { font-size: 10px; padding: 4px 5px; } .go { gap: 10px; } .cta { padding-inline: 32px; }
 }
 @media (prefers-reduced-motion: reduce) { .word .l i { animation: none; } .ticker span { animation: none; padding-left: 12px; } .tile .desc { transition: none; } }
+
+/* ---- the line card ("i" on a line's tile) and the choice of the timetable (Giovanni 10 Nov 2026, from the draft of the
+   graphics chat). --y: the colour of the line whose card is open (M3 #fbb816; M1 #e5392f, M2 #5e9732, M4 #1d3a6b, M5 #998ec4) */
+:root { --y: #fbb816; }
+.led { display: inline-block; background: #0b0a08; border: 2px solid #4b5055; border-radius: 3px; color: var(--led); font: 900 15px/1 var(--dots); padding: 4px 6px 3px; text-shadow: 0 0 5px rgba(255,140,20,.6); }
+.tilewrap { position: relative; display: grid; }
+.tilewrap > .tile { min-width: 0; }
+.info { position: absolute; top: 10px; left: 10px; z-index: 2; width: 34px; height: 34px; padding: 0; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,.45); border: 2px solid var(--y); color: var(--y); font: italic 800 19px/1 Georgia, "Times New Roman", serif; cursor: pointer; }
+.info:hover, .info:focus-visible { background: var(--y); color: var(--night); outline: none; }
+.info-l { position: absolute; top: 16px; left: 50px; z-index: 2; font: 700 12px var(--display); letter-spacing: .08em; text-transform: uppercase; background: rgba(0,0,0,.6); padding: 4px 7px; pointer-events: none; opacity: 0; transition: opacity .15s; }
+.info:hover + .info-l, .info:focus-visible + .info-l { opacity: 1; }
+.ls { position: fixed; inset: 0; z-index: 40; background: var(--night); overflow: auto; }
+.ls-in { max-width: 1000px; margin: 0 auto; padding-bottom: 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.ls-hd { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-top: calc(16px + env(safe-area-inset-top, 0px)); }
+.ls-hd img { height: 56px; border-radius: 8px; }
+.ls-hd h1 { margin: 0; font: 800 clamp(28px, 5vw, 44px)/1 var(--display); text-transform: uppercase; color: var(--y); }
+.ls-hd p { margin: 4px 0 0; font: 600 16px var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ls-hd .act { margin-left: auto; display: flex; gap: 8px; }
+.ls-hd .act button { font: 800 15px var(--display); letter-spacing: .08em; text-transform: uppercase; padding: 10px 16px; cursor: pointer; border: 2px solid var(--y); }
+.ls-hd .play2 { background: var(--y); color: var(--night); }
+.ls-hd .close2 { background: none; color: #fff; border-color: rgba(255,255,255,.4); }
+.ls-nav { position: sticky; top: 0; z-index: 5; background: var(--night); display: flex; gap: 2px; margin: 14px calc(-1 * max(16px, env(safe-area-inset-left, 0px))) 0; padding: 0 max(16px, env(safe-area-inset-left, 0px)); overflow-x: auto; border-bottom: 2px solid rgba(255,255,255,.12); scrollbar-width: none; }
+.ls-nav a { flex: none; padding: 12px 14px 10px; color: var(--muted); font: 700 15px var(--display); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+.ls-nav a.on { color: var(--y); border-bottom-color: var(--y); }
+.ls-nav a.soon { opacity: .45; }
+.ls section { scroll-margin-top: 60px; padding-top: 18px; }
+.ls section + section { border-top: 1px solid rgba(255,255,255,.1); margin-top: 26px; }
+.ls h2 { font: 800 30px/1.1 var(--display); color: var(--y); text-transform: uppercase; margin: 10px 0 12px; }
+.ls h3 { font: 800 20px/1.15 var(--display); color: var(--y); text-transform: uppercase; letter-spacing: .02em; margin: 20px 0 8px; }
+.ls h4 { font: 800 17px/1.15 var(--display); color: var(--y); text-transform: uppercase; letter-spacing: .03em; margin: 0 0 6px; }
+.ls p { margin: 0 0 12px; max-width: 70ch; font-size: 15.5px; line-height: 1.6; color: rgba(255,255,255,.9); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+.stat { background: var(--tile); padding: 12px 14px; }
+.stat b { display: block; font: 800 32px/1 var(--display); color: var(--y); }
+.stat span { font: 600 13px var(--body); color: var(--muted); }
+.lmap { overflow-x: auto; margin-top: 14px; background: rgba(0,0,0,.2); padding: 6px 0; }
+.lmap svg { display: block; }
+.leg { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.leg i { display: inline-block; width: 18px; height: 5px; vertical-align: middle; margin-right: 5px; border-radius: 2px; }
+.tl { list-style: none; margin: 8px 0 0; padding: 0; border-left: 3px solid var(--y); }
+.tl li { position: relative; padding: 0 0 16px 22px; }
+.tl li::before { content: ''; position: absolute; left: -9px; top: 6px; width: 15px; height: 15px; box-sizing: border-box; border-radius: 50%; background: var(--night); border: 3px solid var(--y); }
+.tl .led { margin-bottom: 6px; }
+.playday { display: inline-block; font: 700 12px var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); border: 1px dashed rgba(255,255,255,.3); padding: 3px 8px; }
+.ls .src { font-size: 12px; color: var(--muted); }
+.warn { background: rgba(255,207,63,.12); border-left: 4px solid var(--y); padding: 8px 12px; font-size: 13px; margin: 4px 0 14px; max-width: 70ch; }
+.ask { background: rgba(127,212,255,.1); border-left: 4px solid #7fd4ff; padding: 8px 12px; font-size: 13.5px; margin: 8px 0; max-width: 70ch; }
+.fam { background: var(--tile); padding: 14px; margin-top: 14px; display: grid; grid-template-columns: 220px 1fr; gap: 16px; }
+.fam > * { min-width: 0; }
+.fam .side { display: grid; gap: 8px; align-content: start; }
+.fam .ph { min-height: 120px; display: grid; place-items: center; background: rgba(0,0,0,.25); border: 1px dashed rgba(255,255,255,.25); color: var(--muted); font: 600 12.5px var(--body); text-align: center; padding: 6px; }
+.fam dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0 0 8px; font-size: 14px; }
+.fam dt { color: var(--muted); } .fam dd { margin: 0; }
+.media { display: flex; gap: 6px; flex-wrap: wrap; }
+.media span { font: 700 11.5px var(--display); letter-spacing: .06em; text-transform: uppercase; padding: 4px 8px; background: rgba(0,0,0,.3); color: var(--muted); }
+.mat { overflow-x: auto; min-width: 0; }
+.mat table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.mat th { text-align: left; font: 700 12px var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,.2); }
+.mat td { padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: top; }
+.mat td:first-child { font: 700 14px var(--display); letter-spacing: .03em; white-space: nowrap; }
+.mat td:nth-child(4) { white-space: nowrap; }
+.mat tr.old td { color: var(--muted); }
+.badge { display: inline-block; font: 700 11px var(--display); letter-spacing: .1em; text-transform: uppercase; background: rgba(255,255,255,.12); padding: 2px 6px; margin-left: 6px; vertical-align: middle; color: var(--muted); }
+.sigs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 8px; }
+.sig2 { display: flex; gap: 14px; align-items: center; background: var(--tile); padding: 12px 14px; }
+.sig2 img { width: 44px; height: 72px; image-rendering: pixelated; flex: none; }
+.sig2 svg { flex: none; }
+.sig2 b { display: block; font: 800 17px var(--display); text-transform: uppercase; color: var(--y); }
+.sig2 span { font-size: 13.5px; color: rgba(255,255,255,.85); }
+.pick { position: fixed; inset: 0; z-index: 35; background: var(--night); overflow: auto; }
+.pick-in { max-width: 1080px; margin: 0 auto; min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px;
+  padding-block: calc(16px + env(safe-area-inset-top, 0px)) 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.pick-hd { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pick-hd img { height: 46px; border-radius: 6px; }
+.pick-hd .case { flex: 1; min-width: 0; padding: 6px; border-radius: 7px; }
+.pick-hd .screen { padding: 6px 12px; font-size: clamp(16px, 3vw, 24px); letter-spacing: .08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick-hd .back { font: 700 14px var(--display); letter-spacing: .08em; text-transform: uppercase; background: none; color: #fff; border: 1px solid rgba(255,255,255,.4); padding: 9px 14px; cursor: pointer; }
+.pick-grid { flex: 1; display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px; min-height: 420px; }
+.pick-r { display: grid; grid-template-rows: 1fr 1fr; gap: 12px; }
+.pp { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; text-align: left; padding: 18px 20px; cursor: pointer; color: #fff; font: inherit;
+  background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,.25)), var(--tile); border: 2px solid transparent; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.pp:hover, .pp:focus-visible { border-color: #fff; background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,.25)), var(--tile-hi); outline: none; }
+.pp::before { content: ''; position: absolute; left: 50%; top: 0; width: 60%; height: 100%; transform: translateX(-50%); clip-path: polygon(28% 0, 72% 0, 100% 100%, 0 100%); background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.02)); pointer-events: none; }
+.pp .pic { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); width: 34%; max-width: 190px; }
+.pp.big .pic { width: 30%; }
+.pp .t { position: relative; font: 800 clamp(22px, 3.4vw, 34px)/1 var(--display); text-transform: uppercase; color: var(--y); }
+.pp .d { position: relative; font-size: 14px; color: var(--muted); max-width: 46ch; }
+.pp .when { position: absolute; top: 14px; left: 16px; font-size: 16px; padding: 5px 7px 4px; }
+.pp .tag { top: 14px; right: 14px; }
+.pp.soon .pic, .pp.soon .t, .pp.soon .d { opacity: .75; }
+@media (max-width: 760px) {
+  #metro .tilewrap.big { grid-column: 1 / -1; }
+  .fam { grid-template-columns: 1fr; } .ls-hd .act { margin-left: 0; width: 100%; } .ls-hd .act button { flex: 1; }
+  .pick-grid { grid-template-columns: 1fr; } .pick-r { grid-template-rows: auto; } .pp { min-height: 230px; } .pp .pic, .pp.big .pic { top: 34%; width: 22%; }
+}
+@media (prefers-reduced-motion: reduce) { .info-l { transition: none; } }
 </style>
 </head>
 <body>
@@ -205,6 +301,19 @@ header { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
   <footer class="foot"><span>Simulazione non ufficiale, non affiliata ad ATM. Gratuita, senza pubblicità.</span><a href="https://github.com/Frafire/milano-transit-live">Codice su GitHub (GPL-3.0)</a></footer>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
+<div class="ls" id="ls" hidden role="dialog" aria-modal="true" aria-labelledby="lsTitle"></div>
+<div class="pick" id="pick" hidden role="dialog" aria-modal="true" aria-label="Scegli l'orario">
+ <div class="pick-in">
+  <div class="pick-hd"><img id="pickLogo" src="" alt=""><div class="case"><div class="screen" id="pickScreen">SCEGLI L'ORARIO</div></div><button class="back" id="pickBack">◄ Linee</button></div>
+  <div class="pick-grid">
+   <button class="pp big" data-h="attuale"><span class="when led">OGGI</span><span class="pic"><svg viewBox="0 0 100 100" fill="none" stroke="#fff" stroke-width="6"><circle cx="50" cy="50" r="40"/><path d="M50 24v28l18 12" stroke-linecap="round"/></svg></span><span class="t">Orario attuale</span><span class="d">L'orario ATM di adesso: feriale, sabato o festivo.</span></button>
+   <div class="pick-r">
+    <button class="pp" data-h="expo2015"><span class="when led">2015</span><span class="pic"><svg viewBox="0 0 100 100" fill="none" stroke="#fff" stroke-width="6" stroke-linejoin="round"><path d="M14 80h72M22 80V44l28-18 28 18v36"/><path d="M38 80V56h24v24"/><circle cx="50" cy="42" r="5" fill="#fff"/></svg></span><span class="t">Expo 2015</span><span class="d">Orario in vigore dal 1° maggio 2015, la linea sotto lo sforzo dell'Esposizione.</span></button>
+    <button class="pp" data-h="milanocortina2026"><span class="when led">2026</span><span class="pic"><svg viewBox="0 0 100 100" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"><path d="M50 10v80M15 30l70 40M15 70l70-40"/><path d="M40 16l10 10 10-10M40 84l10-10 10 10M14 44l14-4-4-14M86 56l-14 4 4 14M14 56l14 4-4 14M86 44l-14-4 4-14"/></svg></span><span class="t">Milano Cortina 2026</span><span class="d">Dal 5 al 21 febbraio 2026: treni fino alle 2 di notte, anche per l'Arena Santa Giulia.</span></button>
+   </div>
+  </div>
+ </div>
+</div>
 
 <script>
 // what can be played: data/linee.json, put here by tools/assemble.py
@@ -242,6 +351,108 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => go(t.dataset.to
 document.querySelector('.word').onclick = e => { e.preventDefault(); go(''); };
 let tt;
 function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => t.hidden = true, 3200); }
+// ---- the line cards and the choice of the timetable (Giovanni 10 Nov 2026) ----
+// SCHEDE: data/schede/<line>.json with what the build knows (tools/assemble.py); ORARI: data/linee.json "orari"
+const SCHEDE = __SCHEDE__, ORARI = __ORARI__;
+const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = t => String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const ls = document.getElementById('ls'), pick = document.getElementById('pick');
+let lastFocus = null;
+// the "i" on the tiles of the lines that have a card: a button next to the tile (a button inside a button is not valid)
+document.querySelectorAll('#metro .tile[data-k]').forEach(b => {
+  const k = b.dataset.k; if (!SCHEDE[k]) return;
+  const w = document.createElement('div'); w.className = 'tilewrap' + (b.classList.contains('big') ? ' big' : ''); b.before(w); w.append(b);
+  const i = document.createElement('button'); i.className = 'info'; i.type = 'button'; i.textContent = 'i'; i.setAttribute('aria-label', 'Scheda linea ' + k);
+  const l = document.createElement('span'); l.className = 'info-l'; l.textContent = 'Scheda linea';
+  i.onclick = e => { e.stopPropagation(); openCard(k); }; w.append(i, l);
+});
+// a line with more than one timetable: its tile opens the choice
+document.querySelectorAll('#metro .tile[data-k]').forEach(b => { const k = b.dataset.k; if (ORARI[k] && ok(k)) b.onclick = () => openPick(k); });
+function lineLogo(k) { const im = document.querySelector(`#metro .tile[data-k="${k}"] img`); return im ? im.src : ''; }
+function openPick(k) {
+  pick.dataset.k = k; document.getElementById('pickLogo').src = lineLogo(k); document.getElementById('pickLogo').alt = k;
+  document.getElementById('pickScreen').textContent = k + ' · SCEGLI L\'ORARIO';
+  pick.querySelectorAll('.pp[data-h]').forEach(p => { const st = (ORARI[k] || {})[p.dataset.h] || 'in arrivo', yes = st === 'giocabile' || st === 'in test';
+    p.querySelector('.tag') && p.querySelector('.tag').remove();
+    const t = document.createElement('span'); t.className = 'tag ' + (st === 'in test' ? 'test' : yes ? 'ok' : 'soon'); t.textContent = st === 'in test' ? 'In test' : yes ? 'Giocabile' : 'In arrivo'; p.prepend(t);
+    p.classList.toggle('soon', !yes);
+    p.onclick = () => { if (!yes) { toast('In arrivo: l\'orario storico si sta costruendo dai PDF ATM.'); return; }
+      location.href = gioca(k) + (p.dataset.h === 'attuale' ? '' : '&orario=' + p.dataset.h); }; });
+  lastFocus = document.activeElement; ls.hidden = true; pick.hidden = false; pick.querySelector('.pp').focus();
+}
+function closePick() { pick.hidden = true; if (lastFocus) lastFocus.focus(); }
+document.getElementById('pickBack').onclick = closePick;
+// the card
+const vela = legal => { const W = 13, H = 21, PH = 18, C = 4, cut = legal ? 2 : 0; let r = '';
+  const inPlate = (x, y) => y >= 0 && y < PH && x >= 0 && x < W && !(Math.min(x, W - 1 - x) + Math.min(y, PH - 1 - y) < cut);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let c = null;
+    if (y < PH) { if (!inPlate(x, y)) continue; const edge = !inPlate(x - 1, y) || !inPlate(x + 1, y) || !inPlate(x, y - 1) || !inPlate(x, y + 1);
+      const lamp = (cx, cy) => Math.hypot(x - cx, y - cy) <= 2.3;
+      c = edge ? '#c9d1d6' : lamp(6, 5) ? '#ff2a2a' : lamp(6, 12) ? '#3b3f46' : '#1d2024'; }
+    else if (x >= 5 && x <= 7) c = '#8e979d';
+    if (c) r += `<rect x="${x * C}" y="${y * C}" width="${C}" height="${C}" fill="${c}"/>`; }
+  return `<svg width="${W * C}" height="${H * C}" viewBox="0 0 ${W * C} ${H * C}" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`; };
+function cardHtml(k) {
+  const S = SCHEDE[k], sec = id => S.sezioni.find(s => s.id === id) || {}, src = s => (s.fonti || []).length ? `<p class="src">Fonti: ${s.fonti.join(' ')}</p>` : '';
+  const tappe = l => `<ol class="tl">${l.map(t => `<li>${t.data ? `<span class="led">${esc(t.data)}</span>` : ''}<h4>${t.titolo}</h4><p>${t.testo}</p>${t.giornata_speciale ? '<span class="playday">Giornata speciale · in arrivo</span>' : ''}</li>`).join('')}</ol>`;
+  const nav = S.sezioni.map(s => `<a href="#s-${s.id}"${s.presto ? ' class="soon"' : ''}>${esc(s.titolo)}</a>`).join('');
+  let h = `<div class="ls-in"><div class="ls-hd"><img src="${lineLogo(k)}" alt="${k}"><div><h1 id="lsTitle">${esc(S.titolo)}</h1><p>${esc(S.sottotitolo)}</p></div>` +
+    `<div class="act"><button class="play2" id="lsPlay">Gioca la ${k}</button><button class="close2" id="lsClose">Chiudi ✕</button></div></div><nav class="ls-nav" id="lsnav" aria-label="Sezioni">${nav}</nav>`;
+  for (const s of S.sezioni) {
+    h += `<section id="s-${s.id}"><h2${s.presto ? ' style="opacity:.5"' : ''}>${esc(s.titolo)}</h2>`;
+    if (s.id === 'breve') h += `<div class="stats">${(s.numeri || []).map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div><p style="margin-top:14px">${s.testo}</p>` + src(s);
+    else if (s.id === 'storia') { h += `<div class="warn">${s.avviso}</div>${s.paragrafi.map(p => `<p>${p}</p>`).join('')}${tappe(s.tappe)}`;
+      if (s.crescita) h += `<h3>Come è cresciuta</h3><div class="lmap"><svg id="lmap" height="170" role="img" aria-label="Le stazioni per anno di apertura"></svg></div><div class="leg" id="leg"></div>`;
+      h += src(s); }
+    else if (s.id === 'treni') { h += `<p>${s.intro}</p><h3>${esc(s.tradizionali.titolo)}</h3>${s.tradizionali.paragrafi.map((p, i, a) => `<p>${p}${i === a.length - 1 ? ` <span class="badge">${esc(s.tradizionali.foto)}</span>` : ''}</p>`).join('')}`;
+      for (const g of s.gruppi) { const cols = g.colonne || ['Matricole', 'Costruttore', 'Anno', 'Indicatori', 'Note'], key = { Matricole: 'matricole', Costruttore: 'costruttore', Anno: 'anno', Indicatori: 'indicatori', Note: 'note' };
+        h += `<article class="fam"><div class="side"><div class="ph">Frontale e fianco<br>disegno nostro</div><div class="media"><span>Vista 3D · presto</span><span>Suoni · presto</span></div></div><div><h4>${esc(g.titolo)}${g.badge ? ` <span class="badge">${esc(g.badge)}</span>` : ''}</h4>` +
+          `<dl>${g.dati.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl><div class="mat"><table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>` +
+          (g.righe || []).map(r => `<tr${r.storico ? ' class="old"' : ''}>${cols.map(c => `<td>${esc(r[key[c]] || '—')}</td>`).join('')}</tr>`).join('') + `</tbody></table></div></div></article>`; }
+      h += src(s); }
+    else if (s.id === 'sistemi') { for (const b of s.blocchi) { h += `<h3>${esc(b.titolo)}</h3>${b.paragrafi.map(p => `<p>${p}</p>`).join('')}`;
+        if (b.aspetti) h += `<div class="sigs">${b.aspetti.map(a => `<div class="sig2"><img src="${document.querySelector(a.sprite === 'go' ? 'img.sig.on' : 'img.sig.off').src}" alt="Segnale ${esc(a.nome.toLowerCase())}"><div><b>${esc(a.nome)}</b><span>${esc(a.testo)}</span></div></div>`).join('')}</div>`;
+        if (b.vela) h += `<div class="sigs">${b.vela.map(v => `<div class="sig2">${vela(v.tipo === 'legale')}<div><b>${esc(v.nome)}</b><span>${esc(v.testo)}</span></div></div>`).join('')}</div>${b.da_completare ? `<div class="ask">${esc(b.da_completare)}</div>` : ''}`; }
+      h += src(s); }
+    else if (s.id === 'depositi') { const d = s.deposito; h += `<h3>${esc(d.nome)}</h3><p>${d.paragrafi[0]}</p><p>${d.paragrafi[1]}</p><div class="stats">${d.numeri.map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div>` +
+        `<p style="margin-top:12px">${d.paragrafi[2]}</p><div class="fam" style="grid-template-columns:1fr"><div class="ph" style="min-height:180px">Schema del deposito · dal sinottico del gioco</div></div>` + src(s); }
+    else if (s.id === 'curiosita') h += tappe(s.voci) + src(s);
+    else h += `<p>${esc(s.testo || '')}</p>`;
+    h += '</section>';
+  }
+  return h + '</div>';
+}
+function drawGrowth(S) {
+  const c = (S.sezioni.find(s => s.id === 'storia') || {}).crescita; if (!c) return;
+  const sv = document.getElementById('lmap'), step = 48, x0 = 60, y = 80, order = c.stazioni.slice().reverse(), fi = q => c.fasi.findIndex(f => f.quando === q);
+  sv.setAttribute('width', x0 * 2 + (order.length - 1) * step); let h = '';
+  for (let i = 0; i < order.length - 1; i++) h += `<line x1="${x0 + i * step}" y1="${y}" x2="${x0 + (i + 1) * step}" y2="${y}" stroke="${c.fasi[Math.max(fi(order[i].aperta), fi(order[i + 1].aperta))].colore}" stroke-width="8"/>`;
+  order.forEach((s, i) => { const x = x0 + i * step, up = i % 2 === 0, tx = x + (up ? 4 : -4), ty = up ? y - 14 : y + 22;
+    h += `<circle cx="${x}" cy="${y}" r="6" fill="#fff" stroke="#0b2233" stroke-width="2"/><text x="${tx}" y="${ty}" transform="rotate(-35 ${tx} ${ty})" text-anchor="${up ? 'start' : 'end'}" fill="rgba(255,255,255,.85)" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-size="12" font-weight="600">${esc(s.nome.toUpperCase())}${s.deduzione ? '*' : ''}</text>`; });
+  sv.innerHTML = h;
+  document.getElementById('leg').innerHTML = c.fasi.map(f => `<span><i style="background:${f.colore}"></i>${esc(f.nome)}</span>`).join('') + `<span>· ${esc(c.nota)}</span>`;
+}
+function spy() {
+  const secs = [...ls.querySelectorAll('section')]; if (!secs.length) return; let cur = secs[0];
+  secs.forEach(s => { if (s.getBoundingClientRect().top < 120) cur = s; });
+  if (ls.scrollTop + ls.clientHeight >= ls.scrollHeight - 2) cur = secs[secs.length - 1];     // (at the bottom: the last one, too short to reach the top)
+  // (the bar is moved with scrollLeft only: scrollIntoView would take the whole page back to the top)
+  ls.querySelectorAll('#lsnav a').forEach(a => { const on = a.getAttribute('href') === '#' + cur.id; a.classList.toggle('on', on);
+    if (on) { const n = a.parentElement; if (a.offsetLeft < n.scrollLeft || a.offsetLeft + a.offsetWidth > n.scrollLeft + n.clientWidth) n.scrollLeft = a.offsetLeft - 16; } });
+}
+function openCard(k) {
+  const S = SCHEDE[k]; if (!S) return;
+  document.documentElement.style.setProperty('--y', S.colore || '#fbb816');
+  ls.innerHTML = cardHtml(k); drawGrowth(S); lastFocus = document.activeElement; ls.hidden = false; ls.scrollTop = 0; spy();
+  ls.querySelectorAll('#lsnav a').forEach(a => a.onclick = e => { e.preventDefault(); const t = ls.querySelector(a.getAttribute('href'));
+    ls.scrollTo({ top: t.offsetTop - 50, behavior: reduce() ? 'auto' : 'smooth' }); });
+  document.getElementById('lsClose').onclick = closeCard;
+  document.getElementById('lsPlay').onclick = () => { ls.hidden = true; if (ORARI[k]) openPick(k); else location.href = gioca(k); };
+  document.getElementById('lsClose').focus();
+}
+function closeCard() { ls.hidden = true; if (lastFocus) lastFocus.focus(); }
+ls.addEventListener('scroll', spy, { passive: true });
+addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!ls.hidden) closeCard(); else if (!pick.hidden) closePick(); });
 </script>
 </body>
 </html>

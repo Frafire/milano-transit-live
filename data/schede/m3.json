@@ -1,0 +1,669 @@
+{
+ "_about": "Scheda della linea M3 nel menu (Giovanni 10/11/2026, dalla bozza della chat grafica). Testi per sezione, con le fonti; provvisorio: true = testo da Wikipedia, da sostituire. I numeri (stazioni, km, treni) e le righe delle tabelle dei treni in servizio li mette tools/assemble.py dalla build (orario, flotta del gioco); qui solo l'elenco storico delle unità fuori servizio e gli anni di apertura delle stazioni.",
+ "linea": "M3",
+ "titolo": "Linea M3",
+ "sottotitolo": "Comasina – San Donato · la linea gialla",
+ "colore": "#fbb816",
+ "sezioni": [
+  {
+   "id": "breve",
+   "titolo": "In breve",
+   "apertura": {
+    "anno": "1990",
+    "testo": "prima tratta aperta, Centrale FS – Duomo"
+   },
+   "depositi": 1,
+   "testo": "La linea gialla collega Comasina, a nord, con San Donato, appena fuori città a sud-est, passando per Centrale FS, Duomo e Rogoredo FS.",
+   "fonti": [
+    "Stazioni e km: dal tracciato dell'orario; treni: dalla flotta del gioco (calcolati nella build)"
+   ]
+  },
+  {
+   "id": "storia",
+   "titolo": "Storia",
+   "provvisorio": true,
+   "avviso": "Testo provvisorio da Wikipedia (voce \"Linea M3 della metropolitana di Milano\", CC BY-SA 4.0), solo per l'impaginazione. Sarà sostituito con testo nostro da altre fonti.",
+   "paragrafi": [
+    "La M3 è la terza linea della metropolitana milanese in ordine di costruzione. Il consiglio comunale la approvò nel 1977, partendo da un'indagine sugli spostamenti in città fatta tra il 1976 e il 1977.",
+    "Tra Repubblica e Crocetta la linea corre in due gallerie sovrapposte, per passare sotto le strade strette del centro senza toccare gli edifici. Le cinque stazioni di questa tratta sfruttano l'esperienza di Sant'Agostino sulla M2, costruita allo stesso modo."
+   ],
+   "tappe": [
+    {
+     "data": "1977",
+     "titolo": "Approvata",
+     "testo": "Ordine del giorno del consiglio comunale."
+    },
+    {
+     "data": "1981",
+     "titolo": "Progetto e cantieri",
+     "testo": "Il progetto di MM arriva al Ministero dei trasporti l'11 gennaio; i lavori partono l'8 settembre."
+    },
+    {
+     "data": "03.05.1990",
+     "titolo": "Centrale FS – Duomo",
+     "testo": "Prima tratta: 2,65 km e cinque stazioni, in tempo per i Mondiali. A Duomo i due binari sono su livelli diversi e non si collegano, quindi girano due navette, ognuna sempre sullo stesso binario, ogni nove minuti.",
+     "giornata_speciale": true
+    },
+    {
+     "data": "16.12.1990",
+     "titolo": "Fino a Porta Romana",
+     "testo": "Porta Romana ha una comunicazione tra i binari: finiscono le navette e i treni girano come su una linea normale."
+    },
+    {
+     "data": "12.05.1991",
+     "titolo": "Sondrio e San Donato",
+     "testo": "Aprono Centrale FS – Sondrio a nord e Porta Romana – San Donato a sud, con l'interscambio di Rogoredo FS."
+    },
+    {
+     "data": "05.1993",
+     "titolo": "Via i tram da Corso Lodi",
+     "testo": "Tram e metropolitana insieme in Corso Lodi non funzionano bene: i tram vengono limitati a Crocetta."
+    },
+    {
+     "data": "ANNI 90",
+     "titolo": "Treni corti la sera",
+     "testo": "Fino ai primi anni 2000, le corse della sera tardi e le prime del mattino le faceva di solito una sola unità di trazione, senza accoppiamento."
+    },
+    {
+     "data": "16.12.1995",
+     "titolo": "Zara",
+     "testo": "Prolungamento da Sondrio a Zara, senza fermate intermedie."
+    },
+    {
+     "data": "08.12.2003",
+     "titolo": "Maciachini e il 2° lotto",
+     "testo": "Prolungamento da Zara a Maciachini. Con l'apertura arrivano i treni del 2° lotto: intercomunicanti, con aria condizionata, porte elettriche e indicatori a LED."
+    },
+    {
+     "data": "2009",
+     "titolo": "Arrivano i Meneghino",
+     "testo": "Fino a quest'anno sulla M3 girano solo i Tradizionali. Entrano in servizio i primi Meneghino, costruiti da AnsaldoBreda e Firema per M1, M2 e M3."
+    },
+    {
+     "data": "09.2010",
+     "titolo": "Il Seveso allaga la linea",
+     "testo": "Il Seveso esonda e, insieme alla rottura di una tubazione dell'acquedotto al cantiere Istria della M5, allaga gallerie e stazioni della M3 tra Maciachini e Repubblica: circa 150 mila metri cubi d'acqua, aspirati in un centinaio di ore. La linea resta regolare tra San Donato e Centrale; tra Centrale e Maciachini corrono i bus sostitutivi. Sondrio resta chiusa dal 19 al 27 settembre. Un treno rimane sott'acqua: le unità 8041-8042 e 8043-8044 vengono accantonate.",
+     "giornata_speciale": true
+    },
+    {
+     "data": "26.03.2011",
+     "titolo": "Comasina",
+     "testo": "Prolungamento sotterraneo da Maciachini a Comasina, con Dergano, Affori Centro e Affori FN.",
+     "giornata_speciale": true
+    },
+    {
+     "data": "11.2014",
+     "titolo": "Di nuovo il Seveso",
+     "testo": "Sondrio chiusa il 15 e 16 novembre per un'altra esondazione."
+    },
+    {
+     "data": "2015",
+     "titolo": "Expo",
+     "testo": "Dal 1° maggio al 31 ottobre Milano ospita l'Esposizione Universale e tutta la rete è chiamata allo sforzo. Dal 30 maggio Expo resta aperta fino a mezzanotte nei fine settimana e nei festivi: la M1 porta l'ultimo treno da Rho alle 1:10, M2, M3 e M5 vengono potenziate e prolungate per le coincidenze. Di notte la rete dei bus notturni gira tutti i giorni, e al posto della M3 c'è il 153.",
+     "giornata_speciale": true
+    },
+    {
+     "data": "ESTATE 2018",
+     "titolo": "Revisione del 1° lotto",
+     "testo": "Prima vera revisione dei treni dal 1990: nuova illuminazione, interni riverniciati, porte e indicatori rinnovati, annunci vocali delle fermate."
+    },
+    {
+     "data": "2019",
+     "titolo": "Via i SOCIMI",
+     "testo": "Le sei unità del 1° lotto costruite da SOCIMI, 8069-8080, vengono accantonate. Oggi sono demolite."
+    },
+    {
+     "data": "04.11.2022",
+     "titolo": "Accordo con Hitachi Rail",
+     "testo": "ATM affida a Hitachi Rail un accordo quadro per 46 treni nuovi per M1, M2 e M3, per 368 milioni di euro; il primo contratto riguarda 21 treni per la M1. Si costruiscono a Napoli e Reggio Calabria: 6 casse in alluminio, 106,5 m, fino a 90 km/h, aria condizionata e videosorveglianza vista in tempo reale dalla sala operativa."
+    },
+    {
+     "data": "31.10.2023",
+     "titolo": "Sondrio chiusa",
+     "testo": "Ancora il Seveso: la stazione chiude per un giorno."
+    },
+    {
+     "data": "01–03.2026",
+     "titolo": "Milano Cortina",
+     "testo": "Le Olimpiadi invernali chiedono un altro sforzo. Dal 5 al 22 febbraio la metropolitana resta aperta fino alle 2 di notte sulla rete urbana, poi i bus notturni dalle 2:30 alle 5:30. Sulla M3 il servizio prolungato porta il pubblico all'Arena Santa Giulia, quella dell'hockey. Per le Paralimpiadi, dal 7 al 15 marzo, la metro chiude all'1.",
+     "giornata_speciale": true
+    },
+    {
+     "data": "02.2026",
+     "titolo": "Arriva il primo Galileo",
+     "testo": "Arriva 9201-9202, il primo Hitachi \"Galileo\" della M3, con i bordi gialli: per ora fa solo giri di prova sull'anello del deposito. Dei 46 Galileo ordinati, 25 sono per la M3 e prenderanno il posto dei Tradizionali."
+    }
+   ],
+   "fonti": [
+    "Fonti: Wikipedia, voci \"Linea M3\", \"Sondrio\" e \"Elettromotrici della linea 3\" (CC BY-SA 4.0, provvisorie); articolo di cronaca sull'allagamento del 2010 (testata da indicare); Il Sole 24 Ore, M. Morino, 4/11/2022; <a href=\"https://www.ilpost.it/2015/05/26/expo-mezzanotte-weekend/\" style=\"color:inherit\">Il Post, 26/5/2015</a>; <a href=\"https://www.lapresse.it/cronaca/2015/04/30/expo-come-muoversi-a-milano-durante-lesposizione-universale/\" style=\"color:inherit\">LaPresse, 30/4/2015</a>; <a href=\"https://www.mentelocale.it/milano/110704-atm-milano-servizio-potenziato-durante-le-olimpiadi-fino-a-che-ora-aperta-la-metropolitana.htm\" style=\"color:inherit\">Mentelocale, 4/2/2026</a>; <a href=\"https://www.ilgiorno.it/milano/cronaca/mobilita-il-piano-olimpico-metro-fdacbd2b\" style=\"color:inherit\">Il Giorno</a>; Giovanni (treni corti, flotta, Galileo, Arena Santa Giulia)."
+   ],
+   "crescita": {
+    "provvisorio": true,
+    "nota": "Dalle date della Storia, provvisorie. Missori e Crocetta a dicembre 1990 sono una deduzione.",
+    "fasi": [
+     {
+      "nome": "1990 · maggio",
+      "colore": "#fbb816",
+      "quando": "1990-05"
+     },
+     {
+      "nome": "1990 · dicembre",
+      "colore": "#ffd862",
+      "quando": "1990-12"
+     },
+     {
+      "nome": "1991",
+      "colore": "#ff9e3d",
+      "quando": "1991-05"
+     },
+     {
+      "nome": "1995",
+      "colore": "#7fd4ff",
+      "quando": "1995-12"
+     },
+     {
+      "nome": "2003",
+      "colore": "#b38bff",
+      "quando": "2003-12"
+     },
+     {
+      "nome": "2011",
+      "colore": "#6fe39a",
+      "quando": "2011-03"
+     }
+    ],
+    "stazioni": [
+     {
+      "nome": "Comasina",
+      "aperta": "2011-03"
+     },
+     {
+      "nome": "Affori FN",
+      "aperta": "2011-03"
+     },
+     {
+      "nome": "Affori Centro",
+      "aperta": "2011-03"
+     },
+     {
+      "nome": "Dergano",
+      "aperta": "2011-03"
+     },
+     {
+      "nome": "Maciachini",
+      "aperta": "2003-12"
+     },
+     {
+      "nome": "Zara",
+      "aperta": "1995-12"
+     },
+     {
+      "nome": "Sondrio",
+      "aperta": "1991-05"
+     },
+     {
+      "nome": "Centrale FS",
+      "aperta": "1990-05"
+     },
+     {
+      "nome": "Repubblica",
+      "aperta": "1990-05"
+     },
+     {
+      "nome": "Turati",
+      "aperta": "1990-05"
+     },
+     {
+      "nome": "Montenapoleone",
+      "aperta": "1990-05"
+     },
+     {
+      "nome": "Duomo",
+      "aperta": "1990-05"
+     },
+     {
+      "nome": "Missori",
+      "aperta": "1990-12",
+      "deduzione": true
+     },
+     {
+      "nome": "Crocetta",
+      "aperta": "1990-12",
+      "deduzione": true
+     },
+     {
+      "nome": "Porta Romana",
+      "aperta": "1990-12"
+     },
+     {
+      "nome": "Lodi T.I.B.B.",
+      "aperta": "1991-05"
+     },
+     {
+      "nome": "Brenta",
+      "aperta": "1991-05"
+     },
+     {
+      "nome": "Corvetto",
+      "aperta": "1991-05"
+     },
+     {
+      "nome": "Porto di Mare",
+      "aperta": "1991-05"
+     },
+     {
+      "nome": "Rogoredo FS",
+      "aperta": "1991-05"
+     },
+     {
+      "nome": "San Donato",
+      "aperta": "1991-05"
+     }
+    ]
+   }
+  },
+  {
+   "id": "treni",
+   "titolo": "Materiale rotabile",
+   "provvisorio": true,
+   "intro": "Tutti i treni della M3, gruppo per gruppo, con le matricole. Disegni, viste 3D e suoni saranno fatti da noi.",
+   "tradizionali": {
+    "titolo": "I Tradizionali",
+    "paragrafi": [
+     "Nati identici ai treni di M1 e M2, furono ridisegnati con un frontale aerodinamico e la livrea bianca con filetti neri e fascia gialla, tenendo molti componenti dei predecessori. Ogni unità di trazione (UdT) è bloccata, motrice + rimorchiata + motrice; due UdT accoppiate fanno un treno da sei casse. Una UdT porta 654 persone, 112 sedute.",
+     "Trazione a 1500 V in corrente continua dalla linea aerea, motori asincroni trifase alimentati da inverter. Frenatura di servizio elettropneumatica, con recupero di energia in linea o dissipazione su reostato; in emergenza pattini elettromagnetici sui carrelli. Motrici con inverter ABB e con inverter Hitachi non si possono accoppiare: i comandi sono diversi.",
+     "Sulla fiancata i cartelli gialli dicono la tara, 33,8 t, e due misure: 11,10 m, con le frecce verso l'interno, e 17,57 m da un estremo all'altro."
+    ],
+    "foto": "foto del 2006, welcome day al deposito"
+   },
+   "gruppi": [
+    {
+     "titolo": "Tradizionale 1° lotto · inverter ABB",
+     "dati": [
+      [
+       "Anni",
+       "1989–1990"
+      ],
+      [
+       "Costruttori",
+       "Stanga, Fiat, Breda"
+      ],
+      [
+       "Numerazione",
+       "motrici 8001–8068 (Stanga 8001–8028, Fiat 8029–8054, Breda 8055–8068), rimorchiate 9001–9034"
+      ],
+      [
+       "Casse",
+       "17,50 × 2,85 m, alte 3,535 m, lega leggera"
+      ],
+      [
+       "Posti",
+       "212 per motrice, 230 per rimorchiata"
+      ],
+      [
+       "Carrelli",
+       "TIBB-SOCIMI"
+      ],
+      [
+       "Motori",
+       "4 ELA 2035 (Ansaldo, ABB, Marelli, Parizzi)"
+      ],
+      [
+       "A bordo",
+       "niente intercomunicante né aria condizionata, porte pneumatiche"
+      ],
+      [
+       "Fuori servizio",
+       "8041-8044, allagate nel 2010, demolite"
+      ]
+     ],
+     "flotta": "Tradizionale 1° lotto"
+    },
+    {
+     "titolo": "Tradizionale 1° lotto · SOCIMI, inverter Hitachi",
+     "badge": "demoliti",
+     "dati": [
+      [
+       "Anno",
+       "1990"
+      ],
+      [
+       "Costruttore",
+       "SOCIMI"
+      ],
+      [
+       "Inverter",
+       "GTO-VVVF Hitachi, fatto in Giappone"
+      ],
+      [
+       "Numerazione",
+       "motrici 8069–8080, rimorchiate 9035–9040"
+      ],
+      [
+       "Motori",
+       "Socimi HS 34929/01 RB"
+      ],
+      [
+       "Soprannome",
+       "\"le Socimi\""
+      ],
+      [
+       "Indicatori",
+       "a matrice di punti"
+      ],
+      [
+       "Oggi",
+       "6 unità, accantonate nel 2019, demolite"
+      ]
+     ],
+     "flotta": null,
+     "colonne": [
+      "Matricole",
+      "Anno",
+      "Note"
+     ]
+    },
+    {
+     "titolo": "Tradizionale 2° lotto",
+     "dati": [
+      [
+       "Anni",
+       "2003–2004"
+      ],
+      [
+       "Costruttore",
+       "AnsaldoBreda, inverter ABB"
+      ],
+      [
+       "Numerazione",
+       "motrici 8101–8110, rimorchiate 9101–9105"
+      ],
+      [
+       "A bordo",
+       "intercomunicante, aria condizionata, porte elettriche, indicatori a LED"
+      ],
+      [
+       "In servizio",
+       "di solito due treni di due UdT del 2° lotto e un terzo misto con una UdT del 1° lotto"
+      ]
+     ],
+     "flotta": "Tradizionale 2° lotto"
+    },
+    {
+     "titolo": "Meneghino",
+     "dati": [
+      [
+       "Anni",
+       "2009–2010"
+      ],
+      [
+       "Costruttori",
+       "AnsaldoBreda e Firema"
+      ],
+      [
+       "Composizione",
+       "6 casse"
+      ],
+      [
+       "Numerazione",
+       "motrici 841–858 e 3141–3158, rimorchiate 941–958"
+      ],
+      [
+       "Casse",
+       "motrice 17,57 m, rimorchiata 17,61 m; larghe 2,85 m, alte 3,60 m"
+      ],
+      [
+       "Posti",
+       "216 per motrice, 196 per rimorchiata"
+      ],
+      [
+       "Motori",
+       "Firema 05B60281"
+      ]
+     ],
+     "flotta": "Meneghino"
+    },
+    {
+     "titolo": "Hitachi \"Galileo\"",
+     "badge": "in prova",
+     "dati": [
+      [
+       "Anno",
+       "2026"
+      ],
+      [
+       "Costruttore",
+       "Hitachi Rail STS"
+      ],
+      [
+       "Composizione",
+       "6 casse in alluminio, 106,5 m, bordi gialli"
+      ],
+      [
+       "Velocità massima",
+       "90 km/h"
+      ],
+      [
+       "Ordine",
+       "25 dei 46 Galileo sono per la M3"
+      ],
+      [
+       "Costruito a",
+       "Napoli e Reggio Calabria"
+      ]
+     ],
+     "flotta": "Hitachi Galileo"
+    }
+   ],
+   "fonti": [
+    "Matricole e note: flotta del gioco, dati di Giovanni. Dati tecnici: pannelli ATM esposti al deposito di San Donato e Wikipedia, \"Elettromotrici della linea 3\" (CC BY-SA 4.0)."
+   ],
+   "storico": [
+    {
+     "gruppo": "Tradizionale 1° lotto",
+     "matricole": "8041-8042",
+     "costruttore": "Fiat",
+     "anno": "1990",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 8041 · 9021 · 8042. Allagata a Sondrio nel 2010, accantonata nel 2010; al momento demolita."
+    },
+    {
+     "gruppo": "Tradizionale 1° lotto",
+     "matricole": "8043-8044",
+     "costruttore": "Fiat",
+     "anno": "1990",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 8043 · 9022 · 8044. Allagata a Sondrio nel 2010, accantonata nel 2010; al momento demolita."
+    },
+    {
+     "gruppo": "SOCIMI",
+     "matricole": "8069-8070",
+     "costruttore": "SOCIMI",
+     "anno": "1990",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 8069 · 9035 · 8070. Accantonata nel 2019; al momento demolita."
+    },
+    {
+     "gruppo": "SOCIMI",
+     "matricole": "8071-8072",
+     "costruttore": "SOCIMI",
+     "anno": "1990",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 8071 · 9036 · 8072. Accantonata nel 2019; al momento demolita."
+    },
+    {
+     "gruppo": "SOCIMI",
+     "matricole": "8073-8074",
+     "costruttore": "SOCIMI",
+     "anno": "1990",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 8073 · 9037 · 8074. Accantonata nel 2019; al momento demolita."
+    },
+    {
+     "gruppo": "SOCIMI",
+     "matricole": "8075-8076",
+     "costruttore": "SOCIMI",
+     "anno": "1990",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 8075 · 9038 · 8076. Accantonata nel 2019; al momento demolita."
+    },
+    {
+     "gruppo": "SOCIMI",
+     "matricole": "8077-8078",
+     "costruttore": "SOCIMI",
+     "anno": "1990",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 8077 · 9039 · 8078. Accantonata nel 2019; al momento demolita."
+    },
+    {
+     "gruppo": "SOCIMI",
+     "matricole": "8079-8080",
+     "costruttore": "SOCIMI",
+     "anno": "1990",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 8079 · 9040 · 8080. Accantonata nel 2019; al momento demolita."
+    }
+   ],
+   "note_flotta": {
+    "8105-8106": "Nella realtà cannibalizzata per i pezzi di ricambio. Nel gioco resta in deposito, da sola, e fa solo giri di prova."
+   },
+   "_storico": "Unità fuori servizio: non sono nella flotta del gioco (tools/fleet_m3.py), stanno solo qui."
+  },
+  {
+   "id": "sistemi",
+   "titolo": "Sistemi e segnalamento",
+   "fonti": [
+    "Segnali: gli stessi disegni del gioco. Testi: dati di Giovanni (docs/m3-signalling.md) e pannelli della mostra ATM sugli apparati Siemens."
+   ],
+   "blocchi": [
+    {
+     "titolo": "Blocco e guida",
+     "paragrafi": [
+      "Siemens LZB 700M a blocco fisso, dall'apertura. Partenza, fermata, distanziamento e velocità li gestisce il treno (ATP e ATO) con le informazioni che arrivano da terra. I segnali di linea ci sono comunque.",
+      "Il macchinista apre e chiude le porte e dà il consenso alla partenza. Guida a mano solo negli imprevisti, come persone o oggetti sul binario, o quando si guasta il segnalamento o il treno."
+     ]
+    },
+    {
+     "titolo": "I tre apparati di bordo",
+     "paragrafi": [
+      "<b>ATP</b>, informazione dell'andatura: con le antenne riceve dal binario un segnale codificato con i parametri di marcia lungo tutto il percorso, e sa dove si trova il treno davanti, così i treni si distanziano in modo uniforme e le attese in stazione si accorciano.",
+      "<b>ATO</b>, marcia automatica: collegato all'ATP, guida il treno da solo. Al macchinista restano il consenso all'apertura e alla chiusura delle porte e il consenso alla partenza; poi il treno accelera, rallenta e si ferma in stazione da solo. In qualsiasi momento il macchinista può passare alla guida manuale, sempre sorvegliato dall'ATP.",
+      "<b>ZUB</b>, sicurezza del segnalamento a terra: le antenne leggono le boe messe lungo la linea, di solito vicino alle stazioni e agli scambi, che trasmettono gli aspetti dei segnali. Se il macchinista non rispetta un segnale, lo ZUB ferma subito il treno.",
+      "L'LZB copre solo la linea: in deposito si guida sempre a mano.",
+      "<b>ATP continuo:</b> la marcia normale, con lo stato della linea ricevuto di continuo. <b>ATP discontinuo (ZUB):</b> solo per la prima corsa dei due treni che partono da ogni capolinea, o quando il continuo è degradato. Si va da stazione a stazione, leggendo le spire messe prima dei segnali di partenza."
+     ]
+    },
+    {
+     "titolo": "Gli aspetti",
+     "paragrafi": [],
+     "aspetti": [
+      {
+       "sprite": "stop",
+       "nome": "Rosso",
+       "testo": "Via impedita imperativa: fermarsi."
+      },
+      {
+       "sprite": "go",
+       "nome": "Rosso e bianco",
+       "testo": "Via libera."
+      }
+     ]
+    },
+    {
+     "titolo": "Segnali legali e illegali",
+     "paragrafi": [],
+     "vela": [
+      {
+       "tipo": "legale",
+       "nome": "Legale",
+       "testo": "Vela tonda, angoli smussati."
+      },
+      {
+       "tipo": "illegale",
+       "nome": "Illegale",
+       "testo": "Vela quadra, spigoli vivi."
+      }
+     ],
+     "da_completare": "Cosa vuol dire per il macchinista un segnale illegale rispetto a uno legale? Da completare con Giovanni."
+    },
+    {
+     "titolo": "In deposito",
+     "paragrafi": [
+      "Segnali di manovra; al massimo 15 km/h ovunque tranne sull'anello di prova.",
+      "Segnali: gli stessi disegni del gioco. Testi: dati di Giovanni (docs/m3-signalling.md) e pannelli della mostra ATM sugli apparati Siemens."
+     ]
+    }
+   ]
+  },
+  {
+   "id": "depositi",
+   "titolo": "Depositi",
+   "fonti": [
+    "Fonti: pannello ATM \"Tecnologia e formazione\" al deposito; articolo sull'allagamento del 2010; Giovanni."
+   ],
+   "deposito": {
+    "nome": "Deposito Officina di San Donato",
+    "nel_gioco": "ROD",
+    "paragrafi": [
+     "Aperto nel 1990 insieme alla linea, l'unico deposito della M3 (nel gioco: ROD). Fin dall'inizio è sembrato più un laboratorio che un deposito classico, tanto che ATM ci ha messo anche il campus per formare il personale.",
+     "Rimessa e officina sono zone ben separate. La linea, sotterranea, arriva in superficie con un tronchino, la galleria di servizio che porta i treni al deposito. Intorno corre un anello di prova di 1,8 km, del tutto indipendente, dove si simulano le condizioni di servizio normali e straordinarie.",
+     "La rimessa la governa una torre di controllo. Accanto c'è il deposito degli autobus ATM. Qui sta anche il Badoni, il mezzo di soccorso che traina i treni guasti; nel 2010 ci arrivò al traino il treno rimasto sott'acqua a Sondrio."
+    ],
+    "numeri": [
+     [
+      "24",
+      "treni in rimessa, su 12 binari"
+     ],
+     [
+      "10",
+      "binari in officina, 3 passanti"
+     ],
+     [
+      "1,8 km",
+      "di anello di prova"
+     ],
+     [
+      "1990",
+      "apertura"
+     ]
+    ]
+   }
+  },
+  {
+   "id": "curiosita",
+   "titolo": "Curiosità",
+   "provvisorio": true,
+   "voci": [
+    {
+     "titolo": "Le frecce delle porte",
+     "testo": "Sui Tradizionali, ai lati degli indicatori interni, due frecce luminose dicono da che lato si apriranno le porte alla prossima fermata, con l'informazione presa in tempo reale dall'LZB. Sui Meneghino la freccia è nella veletta, ma indica solo il lato previsto."
+    },
+    {
+     "titolo": "Treni giapponesi a Milano",
+     "testo": "Gli appassionati di treni giapponesi amano i Tradizionali: somigliano molto alla serie 207 di JR East. E le Socimi, con l'inverter Hitachi, suonavano come tanti treni giapponesi con inverter GTO."
+    },
+    {
+     "titolo": "Al cinema",
+     "testo": "Una scena del film \"Anni 90\" (1992) è girata sulla rimorchiata 9029."
+    },
+    {
+     "titolo": "Stupido hotel",
+     "testo": "Il video di \"Siamo soli\" di Vasco Rossi (2001) è girato quasi tutto su un treno della M3, con la veletta che dice \"Stupido hotel\", il titolo dell'album."
+    },
+    {
+     "titolo": "Il numero sul muso",
+     "testo": "All'inizio i Tradizionali non avevano il numero della motrice dipinto sul frontale: è arrivato dopo."
+    }
+   ],
+   "fonti": [
+    "Fonte: Wikipedia, \"Elettromotrici della linea 3\" (CC BY-SA 4.0), provvisoria. Le curiosità da macchinista le aggiungi tu."
+   ]
+  },
+  {
+   "id": "stazioni",
+   "titolo": "Stazioni",
+   "presto": true,
+   "testo": "In arrivo: l'elenco delle stazioni con gli interscambi."
+  }
+ ]
+}

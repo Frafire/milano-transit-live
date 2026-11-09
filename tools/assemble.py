@@ -82,6 +82,11 @@ print('written', OUT, round(os.path.getsize(OUT) / 1e6, 1), 'MB')
 
 # ---------- the menu ----------
 linee = json.load(open(os.path.join(ROOT, 'data', 'linee.json')))
+orari = {k: {h: v for h, v in x.items() if not h.startswith('_')} for k, x in linee.pop('orari', {}).items() if not k.startswith('_')}
+for k, x in orari.items():
+    for h, v in x.items():
+        assert v in ('giocabile', 'in test', 'in arrivo'), 'data/linee.json orari: %s %s = %r' % (k, h, v)
+        if h != 'attuale' and v != 'in arrivo': assert '%s_%s' % (k.lower(), h) in {f[:-5] for f in os.listdir(dati) if f.endswith('_1.js')}, 'data/linee.json: the %s timetable %s is %s, but there are no data for it (dati/%s_%s_1.js)' % (k, h, v, k.lower(), h)
 play = {k: v for k, v in linee.items() if not k.startswith('_')}
 for k, v in play.items():
     assert v in ('giocabile', 'in test', 'in arrivo'), 'data/linee.json: %s = %r (giocabile / in test / in arrivo)' % (k, v)
@@ -97,6 +102,49 @@ assets = {'__LINEE__': json.dumps(play, ensure_ascii=False),
           '__M5__': uri(os.path.join(img, 'lines', 'M5.svg')), '__METRO__': uri(os.path.join(img, 'home', 'metro.png')),
           '__RETE__': uri(os.path.join(img, 'home', 'rete.png')),
           '__SIG_STOP__': uri(os.path.join(web, 'assets', 'signals', 'stop@8x.png')), '__SIG_GO__': uri(os.path.join(web, 'assets', 'signals', 'go@8x.png'))}
+# the line cards (data/schede/<line>.json, Giovanni 10 Nov 2026): the texts as they are, plus what the build knows: the
+# stations and the km from the timetable's track, the trains of the game's fleet (the rows of the tables)
+def scheda(line):
+    sc = json.load(open(os.path.join(ROOT, 'data', 'schede', line.lower() + '.json')))
+    D = json.load(open('data.json')); M = json.load(open('%s.json' % line.lower()))
+    import math
+    def dec(p):
+        la, lo, out = p[0], p[1], [(p[0], p[1])]
+        for i in range(2, len(p), 2): la += p[i]; lo += p[i + 1]; out.append((la, lo))
+        return [(a / 1e5, b / 1e5) for a, b in out]               # (the timetable's shapes: 1e-5 degrees)
+    st = D['stops']; P = dec(D['shapes'][0]['p']); kx = math.cos(math.radians(45.47)) * 111320
+    cum = [0.0]
+    for i in range(1, len(P)): cum.append(cum[-1] + math.hypot((P[i][1] - P[i - 1][1]) * kx, (P[i][0] - P[i - 1][0]) * 111320))
+    at = lambda la, lo: cum[min(range(len(P)), key=lambda i: ((P[i][1] - lo) * kx) ** 2 + ((P[i][0] - la) * 111320) ** 2)]
+    ends = [at(s[1], s[2]) for s in st]; km = (max(ends) - min(ends)) / 1000
+    stock = M.get('stock', [])
+    ind = lambda x: {'LED': 'a LED', 'dot-matrix': 'a matrice di punti'}.get(x, x or '')
+    def builder(b):
+        import re
+        m = re.search(r' da (.+?)(?: con | nel |$)', b or ''); return m.group(1) if m else ''
+    sec = {s['id']: s for s in sc['sezioni']}
+    tr = sec.get('treni')
+    if tr:
+        notes = tr.get('note_flotta', {})
+        for g in tr['gruppi']:
+            rows = [{'matricole': u['units'], 'costruttore': builder(u.get('built')), 'anno': u.get('year', ''), 'indicatori': ind(u.get('display')),
+                     'note': notes.get(u['units']) or '; '.join(x for x in (u.get('note', ''), 'in officina a inizio giornata, chiamabile in riserva' if u.get('officina') else '', 'in prova' if u.get('trial') else '') if x)}
+                    for u in stock if g.get('flotta') and u.get('type') == g['flotta']]
+            n = len(rows)
+            rows += [dict(r, storico=True) for r in tr.get('storico', []) if r['gruppo'] == (g.get('flotta') or 'SOCIMI')]
+            num = lambda r: int(''.join(ch for ch in r['matricole'].split('-')[0] if ch.isdigit()) or 0)
+            g['righe'] = sorted(rows, key=num); g['nel_gioco'] = n
+            if g.get('flotta'): g['dati'].append(['Nel gioco', '%d %s' % (n, 'treno' if n == 1 else 'treni')])
+    sec['breve']['numeri'] = [[str(len(st)), 'stazioni'], [('%.1f km' % km).replace('.', ','), 'tra Comasina e San Donato, sul tracciato dell\'orario'],
+                              [sec['breve']['apertura']['anno'], sec['breve']['apertura']['testo']], [str(sec['breve'].get('depositi', 1)), 'deposito'],
+                              [str(len(stock)), 'treni nella flotta del gioco']]
+    return sc
+schede = {}
+for f in sorted(glob.glob(os.path.join(ROOT, 'data', 'schede', '*.json'))):
+    ln = os.path.splitext(os.path.basename(f))[0].upper()
+    if os.path.exists('%s.json' % ln.lower()): schede[ln] = scheda(ln)
+assets['__SCHEDE__'] = json.dumps(schede, ensure_ascii=False, separators=(',', ':'))
+assets['__ORARI__'] = json.dumps(orari, ensure_ascii=False)
 bg = os.path.join(img, 'home', 'sfondo.jpg')      # the blurred photo behind the menu; without it, a plain dark blue
 assets['__SFONDO__'] = "url('%s')" % uri(bg) if os.path.exists(bg) else 'none'
 for k, v in assets.items():
