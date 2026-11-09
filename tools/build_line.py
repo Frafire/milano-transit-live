@@ -2270,6 +2270,8 @@ NET['sd_tail_edges'] = sorted({ei for n in CFG['SD_TAILS'] for ei in _tail_edges
 print('San Donato tails: track pieces', NET['sd_tail_edges'])
 # the sinottico of the depot (data/schema_deposito_m3.json, tools/schema_deposito.py, corrected by hand)
 NET['schema_depot'] = json.load(open('schema_deposito_%s.json' % LINE.lower())) if os.path.exists('schema_deposito_%s.json' % LINE.lower()) else None
+# the sinottico of the line (data/sinottico_linea_m3.json: tools/sinottico.py linea, then shaped by hand in the editor)
+NET['schema_line'] = json.load(open('sinottico_linea_%s.json' % LINE.lower())) if os.path.exists('sinottico_linea_%s.json' % LINE.lower()) else None
 # what the route interlocking needs from the rules: times, capacities, the signals worked by the PC
 NET['route_rules'] = {'times': {'blade': _tval('Ago dello scambio'), 'signal': _tval('Ritardo di apertura del segnale')},
                       'capacity': {k: v for k, v in _rules_.get('capacity', {}).get('edges', {}).items()},
@@ -2349,7 +2351,7 @@ json.dump({'paths': [{'p': enc(p), 'd': [round(x, 1) for x in c]} for p, c in pa
            'labels': PLAT_LABELS,
            'platmap': PLATMAP,
            'boards': boards_out(),
-           'stock': STOCK, 'duties': DUTIES, 'rimessa': {'tracks': {str(li): [100000 + li, SECOND.get(li), v[2]] for li, v in RIMESSA_TRACKS.items()}}, 'sheds': [{'dep': 'San Donato', 'nome': sh['nome'], 'uso': sh['uso'], 'pts': sh['pts']} for sh in SHEDS], 'test': TEST, 'depot_paths': DEPOT_PATHS,
+           'stock': STOCK, 'duties': DUTIES, 'rimessa': {'tracks': {str(li): [100000 + li, SECOND.get(li), v[2]] for li, v in RIMESSA_TRACKS.items()}}, 'sheds': [{'dep': 'San Donato', 'nome': sh['nome'], 'uso': sh['uso'], 'pts': sh['pts'], **({'lab': sh['etichetta']} if sh.get('etichetta') else {})} for sh in SHEDS], 'test': TEST, 'depot_paths': DEPOT_PATHS,
            'tracks': tracks, 'net': NET, 'path_edges': PATH_EDGES, 'speeds': (json.load(open(_rules)).get('speeds', {}) if os.path.exists(_rules) else {}), 'cuts': (json.load(open(_rules)).get('cuts', {}) if os.path.exists(_rules) else {}), 'ops': OPS, 'section': SECTION, 'throats': THROATS, 'blocks': BLOCKS, 'illegal': ILLEGAL, 'degraded': DEGRADED, 'dwell': (json.load(open('dwell_%s.json' % LINE.lower())) if os.path.exists('dwell_%s.json' % LINE.lower()) else None), 'reverse_s': REVERSE,
            'storage': len(storage), 'line': LINE, 'home': CFG['home'], 'far': CFG['far'], 'half': TRAIN_HALF},
           open(LINE.lower() + '.json', 'w'), separators=(',', ':'))

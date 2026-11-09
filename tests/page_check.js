@@ -673,15 +673,22 @@ const SCENARIOS = {
       M.setView('sin'); const res = [];
       for (const t of [6.2 * 3600, 10.6 * 3600]) {
         st.playing = false; st.t = t; await sleep(2500); await sleep(1300);
-        const want = new Set(); F.ag.agents().forEach(a => { if (a.hidden) return; const pe = F.engine.pathEdges[a.pid]; if (!pe) return;
-          for (const [ei, , x0, x1] of pe.e) if (SE.has(ei) && x1 > a.d - half && x0 < a.d + half) want.add(ei); });
-        const red = new Set([...document.querySelectorAll('#depotPlan polyline[data-occ]')].map(x => +x.dataset.e));
-        const sigs = document.querySelectorAll('#depotPlan circle.sg').length, edges = document.querySelectorAll('#depotPlan polyline[data-e]').length;
-        res.push({ t: t / 3600, want: want.size, red: red.size, same: want.size === red.size && [...want].every(e => red.has(e)), sigs, edges });
+        // (Giovanni 9 Nov 2026: the depot from #A04 and #A05 on: the two pieces drawn only in part are left out of the count)
+        const part = SCH.part || {}, want = new Set(); F.ag.agents().forEach(a => { if (a.hidden) return; const pe = F.engine.pathEdges[a.pid]; if (!pe) return;
+          for (const [ei, , x0, x1] of pe.e) if (SE.has(ei) && !part[ei] && x1 > a.d - half && x0 < a.d + half) want.add(ei); });
+        const red = new Set([...document.querySelectorAll('#depotPlan [data-occ]')].map(x => +x.dataset.e).filter(e => !part[e]));
+        const sigs = document.querySelectorAll('#depotPlan circle.sg').length, edges = document.querySelectorAll('#depotPlan path.tk[data-e]').length;
+        const sigWant = SCH.signals.filter(sg => SE.has(sg.e) && (!part[sg.e] || (sg.f >= part[sg.e][0] - 0.001 && sg.f <= part[sg.e][1] + 0.001))).length;
+        const station = document.querySelectorAll('#depotPlan text.pl').length && SCH.edges.every(ei => !(F.engine.net.sd_tail_edges || []).includes(ei));
+        res.push({ t: t / 3600, want: want.size, red: red.size, same: want.size === red.size && [...want].every(e => red.has(e)), sigs, sigWant, edges, station });
       }
+      // the line: its own sinottico (tools/sinottico.py linea), the same drawing
+      document.querySelector('#depotPlan .dp-sw button[data-w="line"]').click(); await sleep(1500);
+      const line = { tk: document.querySelectorAll('#depotPlan path.tk').length, want: (F.engine.net.schema_line || { edges: [] }).edges.length, labels: document.querySelectorAll('#depotPlan text.lab').length };
+      document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); await sleep(500);
       document.getElementById('dpClose').click(); await sleep(200);
       const back = document.getElementById('depotPlan').hidden;
-      return { ok: res.every(r => r.same && r.want > 0 && r.sigs === SCH.signals.length && r.edges === SCH.edges.length) && back, res, back };
+      return { ok: res.every(r => r.same && r.want > 0 && r.sigs === r.sigWant && r.edges === SCH.edges.length && r.station) && line.tk === line.want && line.want > 50 && line.labels >= 21 && back, res, line, back };
     });
   },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again

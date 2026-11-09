@@ -194,7 +194,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .dposto, .dbin { display: inline-block; transform: translate(-50%, -50%); font: 700 10px var(--body); white-space: nowrap; padding: 0 3px; border-radius: 2px; pointer-events: none; }
 .dposto { color: #111; background: #ff9f1c; }
 .dposto.dlav { background: #4db3ff; }
-.dposto.shedname { background: var(--c); opacity: .85; font-size: 11px; }
+.dposto.shedname { background: var(--c); opacity: .9; font-size: 12px; transform: translate(-50%, -50%) rotate(var(--r, 0deg)); white-space: nowrap; }
 .dbin { color: #fff; background: #1d2226; border: 1px solid #ff9f1c; }
 .deptab { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; } .deptab th, .deptab td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .deptab th { color: var(--muted); font-weight: 600; } .deptab .muted { color: var(--muted); } .deptab td.n { text-align: right; font-variant-numeric: tabular-nums; } .deptab td:last-child { white-space: nowrap; } .deptab small { display: block; color: var(--muted); font-size: 11px; }
@@ -319,20 +319,23 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .pclist li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .pclist li span { display: flex; flex-direction: column; min-width: 0; } .pclist small { color: var(--muted); font-size: 11px; }
 .rodname { font-weight: 700; }
-#depotPlan { position: fixed; inset: 3vh 3vw; z-index: 3000; background: #fff; color: #111; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.6); display: flex; flex-direction: column; overflow: auto; }
+#depotPlan { --sin-bg: #0b2a5b; --sin-hd: #08204a; --sin-tk: #93a3b8; position: fixed; inset: 3vh 3vw; z-index: 3000; background: var(--sin-bg); color: #e8eef6; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.6); display: flex; flex-direction: column; overflow: hidden; }
 #depotPlan[hidden] { display: none; }
-#depotPlan .dp-hd { display: flex; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid #ddd; font: 14px var(--display); } #depotPlan .dp-hd span { color: #666; font-size: 12px; flex: 1; }
-#depotPlan .dp-hd button { background: #111; color: #fff; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
-#depotPlan svg { width: 100%; height: auto; min-width: 640px; }
-#depotPlan .loop { fill: none; stroke: #111; stroke-width: 3; } #depotPlan .tk { stroke: #111; stroke-width: 2; }
-#depotPlan text { font: 12px var(--display); fill: #111; text-anchor: middle; } #depotPlan .pl { font-size: 9px; font-weight: 600; fill: #555; paint-order: stroke; stroke: #fff; stroke-width: 5px; } #depotPlan .grp { font-weight: 700; font-size: 13px; letter-spacing: .05em; text-transform: uppercase; } #depotPlan .lab { font-size: 13px; }
-#depotPlan .tr rect { fill: #ffcf3f; stroke: #111; stroke-width: 1.5; } #depotPlan .tr.coming rect { fill: #fff; stroke-dasharray: 4 3; } #depotPlan .tr { cursor: pointer; } #depotPlan .tr text { font-weight: 700; font-size: 11px; }
+#depotPlan .dp-hd { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; background: var(--sin-hd); border-bottom: 1px solid rgba(255,255,255,.12); font: 14px var(--display); } #depotPlan .dp-hd span { color: #a9bad0; font-size: 12px; flex: 1; min-width: 200px; }
+#depotPlan .dp-hd button { background: #e8eef6; color: #0b2a5b; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; font: 600 13px var(--display); } #depotPlan #dpIn, #depotPlan #dpOut { padding: 6px 10px; min-width: 32px; }
+#depotPlan .dp-sw { display: flex; border: 1px solid rgba(255,255,255,.25); border-radius: 6px; overflow: hidden; } #depotPlan .dp-sw button { border-radius: 0; background: none; color: #e8eef6; } #depotPlan .dp-sw button[aria-pressed="true"] { background: #ffcf3f; color: #111; }
+#depotPlan .dp-body { flex: 1; overflow: auto; } #depotPlan .dp-none { padding: 20px; color: #cfdbe9; }
+#depotPlan svg { display: block; height: auto; min-width: 640px; }
+#depotPlan text { font: 12px var(--display); fill: #e8eef6; text-anchor: middle; } #depotPlan .pl { font-size: 8.5px; font-weight: 600; fill: #c3d1e2; paint-order: stroke; stroke: var(--sin-bg); stroke-width: 4px; } #depotPlan .lab { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+#depotPlan .tk { fill: none; stroke: var(--sin-tk); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; } #depotPlan .tk.test { stroke: #7f95b3; stroke-width: 1.8; stroke-dasharray: 6 4; } #depotPlan .tk.main { stroke: #b7c4d4; stroke-width: 3; }
+#depotPlan .lit { fill: none; stroke: #ffffff; stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; } #depotPlan .occ { fill: none; stroke: #ff3b3f; stroke-width: 4.4; stroke-linecap: round; stroke-linejoin: round; }
+#depotPlan .dp-opt { font-size: 12px; color: #cfdbe9; display: flex; gap: 4px; align-items: center; }
+#depotPlan .sg { stroke: var(--sin-bg); stroke-width: 1; } #depotPlan .sgn { font-size: 8px; fill: #cfdbe9; text-anchor: start; }
+#depotPlan .nd { fill: #ffcf3f; stroke: #111; stroke-width: 1; cursor: move; } #depotPlan .vp { fill: #7fe0ff; stroke: #0b2a5b; stroke-width: 1; cursor: move; } #depotPlan svg.edit .tk { cursor: copy; }
+#depotPlan .trn rect { fill: #ff3b3f; stroke: #fff; stroke-width: .8; } #depotPlan .trn text { fill: #fff; font-size: 9px; font-weight: 700; } #depotPlan .trn { cursor: pointer; }
 .bdlabel { position: absolute; transform: translate(-50%, -26px); white-space: nowrap; font: 700 10px/1 var(--display); letter-spacing: .06em; color: #111; background: #ffb400; border-radius: 3px; padding: 2px 5px; box-shadow: 0 1px 4px rgba(0,0,0,.6); }
 .viewsw { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 3100; display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel-solid); }
 .viewsw button { background: none; color: var(--fg); border: 0; padding: 6px 14px; font: 600 13px var(--display); cursor: pointer; } .viewsw button[aria-pressed="true"] { background: var(--signal); color: #111; }
-#depotPlan .tk { fill: none; stroke: #111; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; } #depotPlan .tk.test { stroke: #8fb8de; stroke-width: 1.4; stroke-dasharray: 5 4; } #depotPlan .dp-opt { font-size: 12px; color: #333; display: flex; gap: 4px; align-items: center; } #depotPlan .tk.main { stroke: #555; stroke-width: 3; }
-#depotPlan .tk.occ { stroke: #e5383b; stroke-width: 4; } #depotPlan .sg { stroke: #111; stroke-width: 1; } #depotPlan .sgn { font-size: 8px; fill: #333; text-anchor: start; }
-#depotPlan .nd { fill: #ffcf3f; stroke: #111; stroke-width: 1; cursor: move; } #depotPlan .trn rect { fill: #e5383b; } #depotPlan .trn text { fill: #fff; font-size: 9px; font-weight: 700; } #depotPlan .trn { cursor: pointer; }
 .m3panel button.redbtn { background: #d62828; border-color: #ff5252; color: #fff; font-weight: 700; } .m3panel button.redbtn:hover { background: #ef3b3b; }
 .pclist li .rgr { flex-direction: row; align-items: center; gap: 6px; flex: 0 0 auto; } .pclist .rg { font-size: 12px; color: var(--muted); } .pclist .rg.ok { color: #7ee08f; }
 .pclist .rg.off { font: 700 11px/1 var(--display); letter-spacing: .05em; padding: 4px 6px; border-radius: 4px; background: #e5383b; color: #fff; } .pclist li.scoperta b { color: #ffb4b4; }
@@ -564,8 +567,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   </div>
 
   <section data-panel="schema" hidden>
-    <p class="note">Sinottico del deposito: trascina i nodi (i quadratini) nel disegno; si agganciano alla griglia (10 px in orizzontale, una riga in verticale). Le modifiche restano in questo browser finché non esporti il file da mettere in data/schema_deposito_m3.json.</p>
-    <div class="row"><button id="schEdit" aria-pressed="false">Sposta i nodi</button><button id="schExport">Esporta il file</button><button id="schUndo">Annulla le modifiche</button></div>
+    <p class="note">Sinottico del deposito o della linea: trascina i nodi (i quadratini, si agganciano alla griglia: 10 px in orizzontale, una riga in verticale) e le curve (i pallini). Doppio clic su un binario: una curva nuova lì. Alt + clic su una curva: la togli. Le modifiche restano in questo browser finché non esporti il file da mettere in data/ (schema_deposito_m3.json o sinottico_linea_m3.json). La prima bozza della linea la fa tools/sinottico.py linea.</p>
+    <div class="row"><select id="schWhich" aria-label="Quale sinottico"><option value="dep">Deposito</option><option value="line">Linea</option></select><button id="schEdit" aria-pressed="false">Modifica il disegno</button><button id="schExport">Esporta il file</button><button id="schUndo">Annulla le modifiche</button></div>
     <p class="note" id="schNote"></p>
   </section>
   <section data-panel="mark">
@@ -1445,13 +1448,16 @@ window.MTL_CAPS = __CAPS__;
     const mpp = 40075016 * Math.cos(45.46 * Math.PI / 180) / (256 * Math.pow(2, z));   // metres per pixel
     const CARS = F.look.cars, CAR = F.carLen, half = CARS * CAR / 2;
     const longView = 2 * half / mpp >= 26;   // train long enough on screen to draw its cars
+    const MRG = Math.max(80, half / mpp + 40);
     for (const [st, i] of items) {
       if (F.trips || F.bus) { const tr = F.trains[i], segs = tr.segs, e = segs[segs.length - 1][3]; if (t < tr.starts[0] || t > e[e.length - 1]) continue; }
       if (st.status === 'parked' && z < 14) continue;
       const rt = realTrain(F, F.trains[i], t), NC0 = rt && rt.cars ? rt.cars : CARS;
       // a short unit (train 28, 3 cars) stands at the front of the 6-car space: its marker over its own middle
       const p = map.latLngToContainerPoint(NC0 < CARS && st.pid != null ? trackAt(F, st.pid, st.d + half - NC0 * CAR / 2) : st.pos);
-      if (p.x < -80 || p.y < -80 || p.x > s.x + 80 || p.y > s.y + 80) continue;
+      // (a train is kept while any part of it can be on the screen: zoomed in, a train is longer than the margin, and the
+      // ones with their middle just off the top or a side vanished while moving the map; Giovanni 9 Nov 2026)
+      if (p.x < -MRG || p.y < -MRG || p.x > s.x + MRG || p.y > s.y + MRG) continue;
       const key = 'f' + fi + ':' + i; drawn.push([p.x, p.y, key]);
       const col = fleetColors(F, st, F.trains[i]), num = F.trips ? F.line.slice(1) : rt ? (F.line === 'M4' && !rt.missing ? rt.units.slice(-2) : F.line === 'M3' && rt.tab === null ? '' : String(rt.n)) : String(F.trains[i].n);
       if (longView) {
@@ -2014,7 +2020,7 @@ window.MTL_CAPS = __CAPS__;
     if (sp && sp.textContent !== String(kmh)) sp.textContent = kmh;
     // the needle follows the speed smoothly (tachoAnim), the red mark shows the limit where the train is
     if (nd) { TACHO.target = -135 + Math.min(92, v) / 90 * 270; if (!TACHO.run) { TACHO.run = true; TACHO.last = 0; requestAnimationFrame(tachoAnim); } }
-    const at = document.getElementById('tachoAto'), atv = st.agent && st.agent.manual ? 'MANUALE' : st.agent && st.agent.ato != null && st.agent.status === 'service' ? 'ATO ' + st.agent.ato + '%' : '';
+    const at = document.getElementById('tachoAto'), atv = st.agent && st.agent.manual ? 'MA' : st.agent && st.agent.ato != null && st.agent.status === 'service' ? 'ATO ' + st.agent.ato + '%' : '';
     if (at && at.textContent !== atv) at.textContent = atv;
     const lm = document.getElementById('tachoLim'), lim = st.agent && st.agent.vmaxHere;
     if (lm) { const a = lim ? (-135 + Math.min(92, lim) / 90 * 270).toFixed(1) : null; if (lm.dataset.a !== String(a)) { lm.dataset.a = a; lm.style.display = a == null ? 'none' : ''; if (a != null) lm.setAttribute('transform', `rotate(${a} 60 60)`); } }
@@ -3323,15 +3329,19 @@ window.MTL_CAPS = __CAPS__;
   };
   // ---- the M3 depot sheds (data/capannoni_m3.json, traced on Giovanni's satellite photo, 9 Nov): rimessa and officina ----
   {
-    const shedLayer = L.layerGroup();
+    const shedLayer = L.layerGroup(), shedLabels = L.layerGroup();
     (FLEETDATA ? FLEETDATA.fleets : []).filter(F => F.line === 'M3').flatMap(F => F.sheds || []).forEach(sh => {
       const col = sh.uso === 'manutenzione' ? '#4db3ff' : sh.uso === 'lavaggio' ? '#3ddc97' : '#ff9f1c';
       L.polygon(sh.pts, { color: col, weight: 2, opacity: .95, fillColor: col, fillOpacity: .28, interactive: false }).addTo(shedLayer);   // (a stronger colour, Giovanni 9 Nov 2026)
-      // the name towards the far end (the trains stand at the fan end), above the trains
+      // the name: where the shed data puts it (lab: outside the officina along its south-east side, in the empty north part
+      // of the rimessa; Giovanni 9 Nov 2026), written along the shed (asse_deg: its long side, the way of the tracks);
+      // otherwise towards the far end. Only zoomed in: from two steps below the most (shedLabels)
       const g = [sh.pts.reduce((a, p) => a + p[0], 0) / sh.pts.length, sh.pts.reduce((a, p) => a + p[1], 0) / sh.pts.length], e = sh.pts.length === 4 ? [(sh.pts[2][0] + sh.pts[3][0]) / 2, (sh.pts[2][1] + sh.pts[3][1]) / 2] : g;
-      const c = [g[0] * .3 + e[0] * .7, g[1] * .3 + e[1] * .7];
-      L.marker(c, { interactive: false, keyboard: false, zIndexOffset: 800, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="dposto shedname" style="--c:${col}">${sh.nome}</span>` }) }).addTo(shedLayer); });
-    const sz = () => { if (map.getZoom() >= 15) shedLayer.addTo(map); else map.removeLayer(shedLayer); };
+      const c = sh.lab ? sh.lab.pos : [g[0] * .3 + e[0] * .7, g[1] * .3 + e[1] * .7];
+      let rot = sh.lab && sh.lab.asse_deg != null ? sh.lab.asse_deg - 90 : 0; if (rot < -90) rot += 180; if (rot > 90) rot -= 180;
+      L.marker(c, { interactive: false, keyboard: false, zIndexOffset: 800, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="dposto shedname" style="--c:${col};--r:${rot}deg">${sh.nome}</span>` }) }).addTo(shedLabels); });
+    const sz = () => { const z = map.getZoom(); if (z >= 15) shedLayer.addTo(map); else map.removeLayer(shedLayer);
+      if (z >= map.getMaxZoom() - 1) shedLabels.addTo(map); else map.removeLayer(shedLabels); };
     map.on('zoomend', sz); sz();
   }
   // ---- M3 platforms: where every station starts and ends, on both tracks ----
@@ -3839,87 +3849,184 @@ window.MTL_CAPS = __CAPS__;
   const viewSw = document.createElement('div'); viewSw.className = 'viewsw'; viewSw.innerHTML = '<button data-view="map" aria-pressed="true">Mappa</button><button data-view="sin" aria-pressed="false">Sinottico</button>';
   // (not on the screen any more: it covered the panels; Giovanni 3 Nov 2026. The sinottico opens from the depot card,
   // its own Mappa button goes back)
-  const setView = v => { viewSw.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v))); planEl.hidden = v !== 'sin'; if (v === 'sin') drawDepotPlan(); };
+  const setView = (v, which) => { if (which) SIN_WHICH = which; viewSw.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v))); planEl.hidden = v !== 'sin'; if (v === 'sin') { planEl.innerHTML = ''; drawDepotPlan(); } };
   viewSw.querySelectorAll('button').forEach(b => b.onclick = () => setView(b.dataset.view));
-  function openDepotPlan() { setView('sin'); }
-  // the editor of the sinottico (Track editor, tab Sinottico): the nodes dragged, on a grid; kept in this browser, exported
-  var SCH_EDIT = { on: false, nodes: null, drag: null };        // (var: the editor's tabs may ask before this line)
-  try { SCH_EDIT.nodes = JSON.parse(localStorage.getItem('mtl-schema-edit') || 'null'); } catch (e) {}
-  const schNodes = F => Object.assign({}, F.engine.net.schema_depot.nodes, SCH_EDIT.nodes || {});
+  function openDepotPlan() { setView('sin', 'dep'); }
+  // ---- the two sinottici (Giovanni 9 Nov 2026): the depot (data/schema_deposito_m3.json, from #A04 and #A05 on, his
+  // shape with the real bends of the track: tools/sinottico.py deposito) and the line (data/sinottico_linea_m3.json, a
+  // first drawing made by tools/sinottico.py linea, to shape here). Our blue behind; the track grey; a route set for a
+  // train (its signal at via libera) lit white all the way; the stretch a train stands on red. The editor (Editor dei
+  // binari, tab Sinottico) moves the nodes and the bends, adds bends (double click on a track) and takes them away
+  // (Alt + click on a bend); kept in this browser until exported.
+  var SIN_WHICH = 'dep';
+  const SIN_KEY = { dep: 'mtl-schema-edit', line: 'mtl-sinlinea-edit' }, SIN_FILE = { dep: 'schema_deposito_m3.json', line: 'sinottico_linea_m3.json' };
+  var SCH_EDIT = { on: false, drag: null, ed: { dep: null, line: null } };   // (var: the editor's tabs may ask before this line)
+  for (const w of ['dep', 'line']) { try { const v = JSON.parse(localStorage.getItem(SIN_KEY[w]) || 'null'); SCH_EDIT.ed[w] = v && (v.nodes || v.via) ? v : v ? { nodes: v } : null; } catch (e) {} }
+  const sinSchema = F => SIN_WHICH === 'line' ? F.engine.net.schema_line : F.engine.net.schema_depot;
+  const sinEd = () => SCH_EDIT.ed[SIN_WHICH] || (SCH_EDIT.ed[SIN_WHICH] = { nodes: {}, via: {} });
+  const schNodes = SCH => Object.assign({}, SCH.nodes, (SCH_EDIT.ed[SIN_WHICH] || {}).nodes || {});
+  const schVia = SCH => Object.assign({}, SCH.via || {}, (SCH_EDIT.ed[SIN_WHICH] || {}).via || {});
+  const sinSave = () => { try { localStorage.setItem(SIN_KEY[SIN_WHICH], JSON.stringify(SCH_EDIT.ed[SIN_WHICH])); } catch (e) {} };
   function schEditOff() { if (SCH_EDIT && SCH_EDIT.on) setSchEdit(false); }
   function setSchEdit(on) { SCH_EDIT.on = on; const b = document.getElementById('schEdit'); if (b) b.setAttribute('aria-pressed', String(on)); if (on) setView('sin'); else drawDepotPlan(); }
   const SWMEM = {};                       // the last position seen of each depot switch: the pair of track pieces a train went over
   const octi = (p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1]; return Math.abs(dx) >= Math.abs(dy) ? [p, [q[0] - Math.sign(dx) * Math.abs(dy), p[1]], q] : [p, q]; };
   const alongPts = (pts, f) => { const L = []; let tot = 0; for (let i = 1; i < pts.length; i++) { L.push(Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); tot += L[i - 1]; }
     let x = f * tot; for (let i = 1; i < pts.length; i++) { if (x <= L[i - 1] || i === pts.length - 1) { const u = L[i - 1] ? Math.min(1, x / L[i - 1]) : 0; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * u, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * u]; } x -= L[i - 1]; } return pts[0]; };
-  // which track pieces of the schema have a train on them, and where each train is (for its number)
-  function sinOccupied(F, SE) {
-    const occ = new Map(), half = F.engine.half, PE = F.engine.pathEdges;
+  // the part of a polyline from f0 to f1 (0-1 of its length)
+  function subPts(pts, f0, f1) {
+    const C = [0]; for (let i = 1; i < pts.length; i++) C.push(C[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const tot = C[C.length - 1] || 1, out = [alongPts(pts, f0)]; for (let i = 1; i < pts.length - 1; i++) if (C[i] / tot > f0 && C[i] / tot < f1) out.push(pts[i]);
+    out.push(alongPts(pts, f1)); return out;
+  }
+  // a polyline with its corners rounded (r px): softer, as on the panels
+  const P1 = v => (Math.round(v[0] * 10) / 10) + ',' + (Math.round(v[1] * 10) / 10);
+  function roundPath(P, r) {
+    if (P.length < 3) return 'M' + P.map(P1).join('L');
+    let s = 'M' + P1(P[0]);
+    for (let i = 1; i < P.length - 1; i++) { const A = P[i - 1], B = P[i], C = P[i + 1], d1 = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1, d2 = Math.hypot(C[0] - B[0], C[1] - B[1]) || 1, k = Math.min(r, d1 / 2, d2 / 2);
+      s += 'L' + P1([B[0] - (B[0] - A[0]) / d1 * k, B[1] - (B[1] - A[1]) / d1 * k]) + 'Q' + P1(B) + ' ' + P1([B[0] + (C[0] - B[0]) / d2 * k, B[1] + (C[1] - B[1]) / d2 * k]); }
+    return s + 'L' + P1(P[P.length - 1]);
+  }
+  // the whole drawn line of a piece (its bends, else horizontal then 45 degrees), before cutting it to its part
+  function sinFull(N, V, e, ei) { const p = N[e.a], q = N[e.b]; if (!p || !q) return null; const v = V[ei]; return v && v.length ? [p, ...v, q] : octi(p, q); }
+  const sinPart = (SCH, ei) => (SCH.part && SCH.part[ei]) || [0, 1];
+  // what is on each piece now: the stretches with a train (red) and the routes set (white), as 0-1 of the piece from its
+  // node a; and where each train is (its number on the piece under its middle)
+  function sinLive(F, SE) {
+    const occ = new Map(), lit = new Map(), mid = {}, half = F.engine.half, PE = F.engine.pathEdges, NE = F.engine.net.edges;
+    const add = (M, ei, f0, f1, k) => { if (!M.has(ei)) M.set(ei, []); M.get(ei).push([Math.max(0, f0), Math.min(1, f1), k]); };
     F.ag.agents().forEach(a => { if (a.hidden) return; const pe = PE[a.pid]; if (!pe) return;
-      for (const [ei, , x0, x1] of pe.e) if (SE.has(ei) && x1 > a.d - half && x0 < a.d + half) { if (!occ.has(ei)) occ.set(ei, []); occ.get(ei).push(a.k); } });
-    return occ;
+      for (const [ei, dir, x0, x1] of pe.e) { if (!SE.has(ei) || x1 <= a.d - half || x0 >= a.d + half) continue;
+        const L = NE[ei].len || 1, k = L / ((x1 - x0) || 1), p = Math.max(a.d - half, x0), q = Math.min(a.d + half, x1);
+        const l0 = dir > 0 ? (p - x0) * k : (x1 - q) * k, l1 = dir > 0 ? (q - x0) * k : (x1 - p) * k; add(occ, ei, l0 / L, l1 / L, a.k);
+        if (a.d >= x0 && a.d <= x1) { const c = dir > 0 ? (a.d - x0) * k : (x1 - a.d) * k; mid[a.k] = [ei, c / L]; } } });
+    // the routes set: the line's route interlocking (each route its pieces), and the depot's signals at via libera for a
+    // train (from the signal to the next one, or to the end of the section: interlocking.sectionEnd)
+    const rt = F.ag.rt();
+    for (const [k, rs] of Object.entries(rt.routes || {})) for (const r of rs || []) { if (r.ready === false) continue;
+      for (const pc of r.pieces || []) { const ei = pc[0]; if (!SE.has(ei)) continue; const L = NE[ei].len || 1; add(lit, ei, pc[1] / L, pc[2] / L, +k); } }
+    const il = F.ag.il && F.ag.il(), IL = F.ag.IL, SP = F.engine.net.sigpos || {}, AG = F.ag.agents();
+    const litPath = (pid, d0, d1, k) => { const pe = PE[pid]; if (!pe || d1 <= d0) return;
+      for (const [ei, dir, x0, x1] of pe.e) { if (!SE.has(ei) || x1 <= d0 || x0 >= d1) continue;
+        const L = NE[ei].len || 1, kk = L / ((x1 - x0) || 1), p = Math.max(d0, x0), q = Math.min(d1, x1);
+        add(lit, ei, (dir > 0 ? (p - x0) * kk : (x1 - q) * kk) / L, (dir > 0 ? (q - x0) * kk : (x1 - p) * kk) / L, k); } };
+    // in the depot (no route interlocking there): a train on the move has its whole way lit, up to where it stops
+    AG.forEach(a => { if (a.hidden || !(a.v > 0.05)) return; const leg = a.legs && a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
+      if (!leg || leg.pid !== a.pid || leg.end == null) return;
+      const next = leg.stops && leg.stops.length && a.stopAt == null ? Math.min(leg.end, leg.stops[0].d) : leg.end;
+      if (next > a.d) litPath(a.pid, a.d - half, next + half, a.k); });
+    if (il && il.grant && IL) for (const [si, k] of Object.entries(il.grant)) { if (k == null) continue;
+      const a = AG.find(x => x.k === k); if (!a || a.hidden) continue; const hit = (SP[a.pid] || []).find(x => x[1] === +si); if (!hit) continue;
+      litPath(a.pid, Math.max(hit[0], a.d - half), IL.sectionEnd(a.pid, +si, hit[0]), k); }
+    return { occ, lit, mid };
   }
   var SIN_NUM = false;          // (the signal numbers on the sinottico: off by default, they crowded it; Giovanni 3 Nov 2026)
+  var SIN_Z = { dep: 1, line: 1 };   // the zoom of each sinottico (the − and + buttons)
   function drawDepotPlan() {
     const F = m3eng(); if (planEl.hidden || !F || !F.ag) return;
-    const SCH = F.engine.net.schema_depot; if (!SCH) { planEl.innerHTML = '<div class="dp-hd"><b>Sinottico</b><span>schema del deposito mancante</span></div>'; return; }
-    const NE = F.engine.net.edges, N = schNodes(F), SE = new Set(SCH.edges), occ = sinOccupied(F, SE), fi = fleets.indexOf(F);
+    if (SCH_EDIT.drag) return;                                    // (not while a node or a bend is being moved)
+    const SCH = sinSchema(F), title = SIN_WHICH === 'line' ? 'Linea M3 · sinottico' : 'Deposito di San Donato · sinottico';
+    if (!planEl.querySelector('.dp-hd')) {
+      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>bianco: itinerario impostato · rosso: tratta occupata · segnali col loro colore · scambi come sono · solo da guardare</span>` +
+        `<div class="dp-sw"><button data-w="dep" aria-pressed="${SIN_WHICH === 'dep'}">Deposito</button><button data-w="line" aria-pressed="${SIN_WHICH === 'line'}">Linea</button></div>` +
+        `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
+      document.getElementById('dpClose').onclick = () => setView('map');
+      document.getElementById('dpNum').onchange = e => { SIN_NUM = e.target.checked; drawDepotPlan(); };
+      document.getElementById('dpIn').onclick = () => { SIN_Z[SIN_WHICH] = Math.min(4, SIN_Z[SIN_WHICH] * 1.25); drawDepotPlan(); };
+      document.getElementById('dpOut').onclick = () => { SIN_Z[SIN_WHICH] = Math.max(0.4, SIN_Z[SIN_WHICH] / 1.25); drawDepotPlan(); };
+      planEl.querySelectorAll('.dp-sw button').forEach(b => b.onclick = () => { SIN_WHICH = b.dataset.w; planEl.innerHTML = ''; drawDepotPlan(); });
+    }
+    const body = planEl.querySelector('.dp-body');
+    if (!SCH) { body.innerHTML = `<p class="dp-none">${SIN_WHICH === 'line' ? 'Sinottico della linea mancante: fallo con tools/sinottico.py linea (data/sinottico_linea_m3.json).' : 'Schema del deposito mancante.'}</p>`; return; }
+    const NE = F.engine.net.edges, N = schNodes(SCH), V = schVia(SCH), SE = new Set(SCH.edges), live = sinLive(F, SE), fi = fleets.indexOf(F);
     const at = {}; SCH.edges.forEach(ei => { const e = NE[ei]; [e.a, e.b].forEach(n => { (at[n] = at[n] || []).push(ei); }); });
-    // the switches: the position (two pieces) from the line interlocking, or from a train on it, or the last one seen
+    // the switches: the position (two pieces) from the route interlocking, or from a train on it, or the last one seen
     const rt = F.ag.rt(), pos = {};
     for (const [n, list] of Object.entries(at)) { if (list.length < 3) continue;
       const sw = rt.sw && rt.sw[n]; let pair = sw ? String(sw).split('-').map(Number) : null;
-      const o = list.filter(ei => occ.has(ei)); if (!pair && o.length >= 2) pair = o.slice(0, 2);
+      const o = list.filter(ei => live.occ.has(ei)); if (!pair && o.length >= 2) pair = o.slice(0, 2);
       if (pair) SWMEM[n] = pair; pos[n] = SWMEM[n] || null; }
-    let paths = '', marks = '', W = 0, H = 0;
-    for (const ei of SCH.edges) { const e = NE[ei], p = N[e.a], q = N[e.b]; if (!p || !q) continue;
-      let pts = octi(p, q);
+    let base = '', over = '', marks = '', X0 = Infinity, Y0 = Infinity, X1 = -Infinity, Y1 = -Infinity;
+    const grow = ([x, y]) => { X0 = Math.min(X0, x); Y0 = Math.min(Y0, y); X1 = Math.max(X1, x); Y1 = Math.max(Y1, y); };
+    const FULL = {};
+    for (const ei of SCH.edges) { const e = NE[ei], full = sinFull(N, V, e, ei); if (!full) continue; FULL[ei] = full;
+      const [p0, p1] = sinPart(SCH, ei); let pts = p0 > 0 || p1 < 1 ? subPts(full, p0, p1) : full;
       // the leg not set at a switch: cut short by 7 px there (as on the panels)
-      const cut = (end) => { const n = end ? e.b : e.a, ps = pos[n]; return ps && !ps.includes(ei); };
+      const cut = end => { if (end ? p1 < 1 : p0 > 0) return false; const n = end ? e.b : e.a, ps = pos[n]; return ps && !ps.includes(ei); };
       const shorten = (P, fromEnd) => { const A = fromEnd ? P[P.length - 1] : P[0], B = fromEnd ? P[P.length - 2] : P[1], d = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1, k = Math.min(7, d / 2) / d, C = [A[0] + (B[0] - A[0]) * k, A[1] + (B[1] - A[1]) * k];
         return fromEnd ? [...P.slice(0, -1), C] : [C, ...P.slice(1)]; };
       if (cut(false)) pts = shorten(pts, false); if (cut(true)) pts = shorten(pts, true);
-      pts.forEach(([x, y]) => { W = Math.max(W, x); H = Math.max(H, y); });
-      const busy = occ.has(ei), cls = busy ? 'tk occ' : NE[ei].cat === 'test' ? 'tk test' : NE[ei].cat === 'main' ? 'tk main' : 'tk';
-      paths += `<polyline class="${cls}" data-e="${ei}"${busy ? ' data-occ="1"' : ''} points="${pts.map(v => v.map(z => Math.round(z * 10) / 10).join(',')).join(' ')}"/>`;
+      pts.forEach(grow);
+      const cls = NE[ei].cat === 'test' ? 'tk test' : NE[ei].cat === 'main' ? 'tk main' : 'tk';
+      // the stretches lit (routes) and red (trains), on the part drawn
+      const onPart = (M, c) => (M.get(ei) || []).map(([f0, f1]) => [(f0 - p0) / (p1 - p0), (f1 - p0) / (p1 - p0)]).filter(([a, b]) => b > 0.001 && a < 0.999)
+        .map(([a, b]) => `<path class="${c}" data-e="${ei}"${c === 'occ' ? ' data-occ="1"' : ''} d="${roundPath(subPts(pts, Math.max(0, a), Math.min(1, b)), 6)}"/>`).join('');
+      const red = onPart(live.occ, 'occ');
+      base += `<path class="${cls}" data-e="${ei}"${red ? ' data-busy="1"' : ''} d="${roundPath(pts, 6)}"/>`;
+      over += onPart(live.lit, 'lit') + red;
     }
-    // the trains: their number on the middle of the pieces they stand on
-    const byTrain = {}; occ.forEach((ks, ei) => ks.forEach(k => { (byTrain[k] = byTrain[k] || []).push(ei); }));
-    for (const [k, eis] of Object.entries(byTrain)) { const ei = eis[Math.floor(eis.length / 2)], e = NE[ei], p = N[e.a], q = N[e.b]; if (!p || !q) continue;
-      const m = alongPts(octi(p, q), 0.5), r = realTrain(F, F.trains[k], state.t);
-      marks += `<g class="trn" data-k="${k}"><rect x="${m[0] - 22}" y="${m[1] - 15}" width="44" height="12" rx="2"/><text x="${m[0]}" y="${m[1] - 6}">${r ? r.n : +k + 1}</text></g>`; }
+    // the trains: their number where their middle is
+    for (const [k, [ei, f]] of Object.entries(live.mid)) { const full = FULL[ei]; if (!full) continue; const [p0, p1] = sinPart(SCH, ei); if (f < p0 || f > p1) continue;
+      const m = alongPts(full, f), r = realTrain(F, F.trains[k], state.t), lab = r ? r.n : +k + 1;
+      marks += `<g class="trn" data-k="${k}"><rect x="${m[0] - 20}" y="${m[1] - 16}" width="40" height="12" rx="3"/><text x="${m[0]}" y="${m[1] - 7}">${lab}</text></g>`; }
     // the signals: their colour (as on the map), their number
     if (!SIGS) SIGS = buildSignals(F); sigAspects(F);
     const ASP = { go: '#2ecc40', stop: '#e5383b', sgo: '#ffffff', sstop: '#e5383b' };
-    for (const sg of SCH.signals) { const e = NE[sg.e], p = N[e.a], q = N[e.b]; if (!p || !q) continue;
-      const m = alongPts(octi(p, q), sg.f), tag = '#A' + String(sg.n).padStart(2, '0'), S_ = SIGS.find(x => x.tag === tag), a = S_ && S_.asp || 'stop';
-      marks += `<circle class="sg" data-n="${sg.n}" cx="${m[0]}" cy="${m[1] - 4}" r="2.6" fill="${ASP[a] || '#e5383b'}"><title>${tag}</title></circle>${SIN_NUM ? `<text class="sgn" x="${m[0] + 4}" y="${m[1] - 6}">${sg.n}</text>` : ''}`; }
-    for (const pl of SCH.places || []) { const p = N[pl.node]; if (p) marks += `<text class="pl" x="${p[0]}" y="${p[1] + 12}">${pl.name}</text>`; }
-    if (SCH_EDIT.on) for (const [n, p] of Object.entries(N)) marks += `<rect class="nd" data-nd="${n}" x="${p[0] - 3.5}" y="${p[1] - 3.5}" width="7" height="7"/>`;
-    if (SCH_EDIT.drag && !planEl.hidden) return;               // (not while a node is being moved)
-    const svg = `<svg viewBox="0 0 ${Math.ceil(W + 60)} ${Math.ceil(H + 40)}" xmlns="http://www.w3.org/2000/svg">${paths}${marks}</svg>`;
-    planEl.innerHTML = `<div class="dp-hd"><b>Deposito di San Donato · sinottico</b><span>proposta, da correggere insieme · rosso: tratta occupata · segnali col loro colore (numero: passaci sopra) · scambi come sono · solo da guardare</span><label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><button id="dpClose">Mappa</button></div>${svg}`;
-    document.getElementById('dpClose').onclick = () => setView('map');
-    document.getElementById('dpNum').onchange = e => { SIN_NUM = e.target.checked; drawDepotPlan(); };
-    planEl.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
-    if (SCH_EDIT.on) bindSchDrag(F);
+    for (const sg of SCH.signals || []) { const full = FULL[sg.e]; if (!full) continue; const [p0, p1] = sinPart(SCH, sg.e); if (sg.f < p0 - 0.001 || sg.f > p1 + 0.001) continue;
+      const m = alongPts(full, sg.f), tag = '#A' + String(sg.n).padStart(2, '0'), S_ = SIGS.find(x => x.tag === tag), a = S_ && S_.asp || 'stop';
+      marks += `<circle class="sg" data-n="${sg.n}" cx="${m[0]}" cy="${m[1] - 4.5}" r="2.8" fill="${ASP[a] || '#e5383b'}"><title>${tag}</title></circle>${SIN_NUM ? `<text class="sgn" x="${m[0] + 4}" y="${m[1] - 7}">${sg.n}</text>` : ''}`; }
+    // the places by name (two places at the same point of the drawing, as the two of a rimessa track: one each side)
+    const plG = []; for (const pl of SCH.places || []) { const p = N[pl.node]; if (!p || !at[pl.node]) continue;
+      const g = plG.find(g => g.some(([, q]) => Math.abs(q[0] - p[0]) < 16 && Math.abs(q[1] - p[1]) < 3)); if (g) g.push([pl, p]); else plG.push([[pl, p]]); }
+    for (const g of plG) g.sort((u, v) => u[1][0] - v[1][0]).forEach(([pl, p], i) => { const dx = g.length > 1 ? (i - (g.length - 1) / 2) * 30 : 0;
+      marks += `<text class="pl" x="${p[0] + dx}" y="${p[1] + 12}">${pl.name}</text>`; });
+    for (const lb of SCH.labels || []) { marks += `<text class="lab" x="${lb.x}" y="${lb.y}">${lb.text}</text>`; grow([lb.x - 30, lb.y - 14]); grow([lb.x + 30, lb.y + 4]); }
+    if (SCH_EDIT.on) {
+      for (const [n, p] of Object.entries(N)) if (at[n]) marks += `<rect class="nd" data-nd="${n}" x="${p[0] - 3.5}" y="${p[1] - 3.5}" width="7" height="7"/>`;
+      for (const [ei, v] of Object.entries(V)) if (FULL[ei] && v) v.forEach((p, i) => { marks += `<circle class="vp" data-e="${ei}" data-i="${i}" cx="${p[0]}" cy="${p[1]}" r="2.6"/>`; });
+    }
+    if (!isFinite(X0)) { X0 = Y0 = 0; X1 = Y1 = 100; }
+    const vb = [Math.floor(X0 - 24), Math.floor(Y0 - 26), Math.ceil(X1 - X0 + 48), Math.ceil(Y1 - Y0 + 44)];
+    const sx = body.scrollLeft, sy = body.scrollTop;
+    // (the depot fits the width; the line, long and low, is drawn at 1.6 px a unit and scrolled sideways)
+    const wcss = SIN_WHICH === 'line' ? Math.round(vb[2] * 1.6 * SIN_Z.line) + 'px' : Math.round(SIN_Z.dep * 100) + '%';
+    body.innerHTML = `<svg viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg" style="width:${wcss}"${SCH_EDIT.on ? ' class="edit"' : ''}><g>${base}</g><g>${over}</g>${marks}</svg>`;
+    body.scrollLeft = sx; body.scrollTop = sy;
+    body.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
+    if (SCH_EDIT.on) bindSchDrag(F, SCH);
   }
-  function bindSchDrag(F) {
-    const svgEl = planEl.querySelector('svg'); if (!svgEl) return;
+  function bindSchDrag(F, SCH) {
+    const svgEl = planEl.querySelector('.dp-body svg'); if (!svgEl) return;
     const toSvg = ev => { const pt = svgEl.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const q = pt.matrixTransform(svgEl.getScreenCTM().inverse()); return [q.x, q.y]; };
-    svgEl.querySelectorAll('rect.nd').forEach(r => r.onpointerdown = ev => { ev.preventDefault(); SCH_EDIT.drag = { n: r.dataset.nd, r }; r.setPointerCapture(ev.pointerId); });
-    svgEl.onpointermove = ev => { const d = SCH_EDIT.drag; if (!d) return; const [x, y] = toSvg(ev); d.x = Math.round(x / 10) * 10; d.y = Math.round((y - 40) / 11) * 11 + 40;
-      d.r.setAttribute('x', d.x - 3.5); d.r.setAttribute('y', d.y - 3.5); };
+    const note = t => { const nt = document.getElementById('schNote'); if (nt) nt.textContent = t; };
+    const count = () => { const ed = SCH_EDIT.ed[SIN_WHICH] || {}; return Object.keys(ed.nodes || {}).length + ' nodi spostati, ' + Object.keys(ed.via || {}).length + ' tratte con curve cambiate (in questo browser). Esporta il file per tenerli.'; };
+    svgEl.querySelectorAll('rect.nd').forEach(r => r.onpointerdown = ev => { ev.preventDefault(); SCH_EDIT.drag = { n: r.dataset.nd, el: r, kind: 'node' }; r.setPointerCapture(ev.pointerId); });
+    svgEl.querySelectorAll('circle.vp').forEach(c => c.onpointerdown = ev => { ev.preventDefault();
+      const ei = c.dataset.e, i = +c.dataset.i, V = schVia(SCH);
+      if (ev.altKey) { const v = (V[ei] || []).slice(); v.splice(i, 1); sinEd().via = Object.assign({}, sinEd().via || {}, { [ei]: v }); sinSave(); note(count()); drawDepotPlan(); return; }
+      SCH_EDIT.drag = { e: ei, i, el: c, kind: 'via' }; c.setPointerCapture(ev.pointerId); });
+    // a double click on a track: a new bend there (the piece keeps its shape: its corners become bends too)
+    svgEl.querySelectorAll('path.tk').forEach(p => p.ondblclick = ev => { ev.preventDefault();
+      const ei = p.dataset.e, e = F.engine.net.edges[ei], N = schNodes(SCH), V = schVia(SCH), full = sinFull(N, V, e, ei); if (!full) return;
+      const [x, y] = toSvg(ev); let best = null;
+      for (let i = 1; i < full.length; i++) { const A = full[i - 1], B = full[i], dx = B[0] - A[0], dy = B[1] - A[1], L2 = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((x - A[0]) * dx + (y - A[1]) * dy) / L2)), d = Math.hypot(x - A[0] - u * dx, y - A[1] - u * dy); if (!best || d < best[0]) best = [d, i]; }
+      const v = full.slice(1, -1).map(q => [Math.round(q[0]), Math.round(q[1])]); v.splice(best[1] - 1, 0, [Math.round(x), Math.round(y)]);
+      sinEd().via = Object.assign({}, sinEd().via || {}, { [ei]: v }); sinSave(); note(count()); drawDepotPlan(); });
+    svgEl.onpointermove = ev => { const d = SCH_EDIT.drag; if (!d) return; const [x, y] = toSvg(ev);
+      if (d.kind === 'node') { d.x = Math.round(x / 10) * 10; d.y = Math.round((y - 40) / 11) * 11 + 40; d.el.setAttribute('x', d.x - 3.5); d.el.setAttribute('y', d.y - 3.5); }
+      else { d.x = Math.round(x); d.y = Math.round(y); d.el.setAttribute('cx', d.x); d.el.setAttribute('cy', d.y); } };
     svgEl.onpointerup = () => { const d = SCH_EDIT.drag; SCH_EDIT.drag = null; if (!d || d.x == null) return;
-      SCH_EDIT.nodes = Object.assign({}, SCH_EDIT.nodes || {}, { [d.n]: [d.x, d.y] });
-      try { localStorage.setItem('mtl-schema-edit', JSON.stringify(SCH_EDIT.nodes)); } catch (e) {}
-      const nt = document.getElementById('schNote'); if (nt) nt.textContent = Object.keys(SCH_EDIT.nodes).length + ' nodi spostati (in questo browser). Esporta il file per tenerli.'; drawDepotPlan(); };
+      if (d.kind === 'node') sinEd().nodes = Object.assign({}, sinEd().nodes || {}, { [d.n]: [d.x, d.y] });
+      else { const v = (schVia(SCH)[d.e] || []).slice(); v[d.i] = [d.x, d.y]; sinEd().via = Object.assign({}, sinEd().via || {}, { [d.e]: v }); }
+      sinSave(); note(count()); drawDepotPlan(); };
   }
   document.getElementById('schEdit').onclick = () => setSchEdit(!SCH_EDIT.on);
-  document.getElementById('schUndo').onclick = () => { SCH_EDIT.nodes = null; try { localStorage.removeItem('mtl-schema-edit'); } catch (e) {} document.getElementById('schNote').textContent = 'Modifiche annullate.'; drawDepotPlan(); };
-  document.getElementById('schExport').onclick = () => { const F = m3eng(); if (!F || !F.engine.net.schema_depot) return;
-    const out = Object.assign({}, F.engine.net.schema_depot, { nodes: schNodes(F) });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' })); a.download = 'schema_deposito_m3.json'; a.click(); };
+  document.getElementById('schWhich').onchange = e => { SIN_WHICH = e.target.value; planEl.innerHTML = ''; if (SCH_EDIT.on) setView('sin'); };
+  document.getElementById('schUndo').onclick = () => { SCH_EDIT.ed[SIN_WHICH] = null; try { localStorage.removeItem(SIN_KEY[SIN_WHICH]); } catch (e) {} document.getElementById('schNote').textContent = 'Modifiche annullate.'; drawDepotPlan(); };
+  document.getElementById('schExport').onclick = () => { const F = m3eng(); const SCH = F && sinSchema(F); if (!SCH) return;
+    const out = Object.assign({}, SCH, { nodes: schNodes(SCH), via: schVia(SCH) });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' })); a.download = SIN_FILE[SIN_WHICH]; a.click(); };
   setInterval(drawDepotPlan, 1000);
   // ================= DEPOT (web/DepotM3.js: places and test loop) =================
   function depotOf(F) {
