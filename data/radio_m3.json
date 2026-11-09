@@ -2550,6 +2550,55 @@
    "testi": [
     "Regolatore: nessun treno pronto in deposito per l'invio a vuoto a Comasina."
    ]
+  },
+  "lavaggio.finito": {
+   "chi": "macchinista",
+   "quando": "Il treno è uscito tutto dal lavaggio (proposta)",
+   "testi": [
+    "DCT, qui treno {treno}: lavaggio finito, torno al {posto2}. Passo."
+   ]
+  },
+  "lavaggio.niente_tempo": {
+   "chi": "DCT",
+   "quando": "Il treno non farebbe in tempo a lavarsi prima della sua prossima corsa: il DCT annulla l'ordine (proposta)",
+   "testi": [
+    "Treno {treno}, annullato: non fai in tempo prima della tua corsa delle {ora}. Resta al tuo posto. Passo."
+   ]
+  },
+  "lavaggio.occupato": {
+   "chi": "macchinista",
+   "quando": "Il DCT manda un secondo treno al lavaggio mentre un altro lo sta facendo: il macchinista rifiuta finché il primo non ha finito (proposta)",
+   "testi": [
+    "Negativo DCT, il lavaggio è occupato dal treno {treno2}: resto fermo al mio posto. Passo."
+   ]
+  },
+  "lavaggio.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT manda un treno dal suo posto in rimessa al lavaggio, poi di nuovo al suo posto (proposta)",
+   "testi": [
+    "Treno {treno}, dal {posto} vai al lavaggio e poi torna al {posto}. Passo."
+   ]
+  },
+  "lavaggio.ordine_altro_posto": {
+   "chi": "DCT",
+   "quando": "Come sopra, ma dopo il lavaggio il treno va in un altro posto (posto2) (proposta)",
+   "testi": [
+    "Treno {treno}, dal {posto} vai al lavaggio e poi al {posto2}. Passo."
+   ]
+  },
+  "lavaggio.ricevuto": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma l'ordine di andare al lavaggio (proposta)",
+   "testi": [
+    "Ricevuto DCT, vado al lavaggio e poi al {posto2}. Passo."
+   ]
+  },
+  "lavaggio.via_occupata": {
+   "chi": "DCT",
+   "quando": "La via per il lavaggio passa da posti occupati: il DCT annulla l'ordine (proposta)",
+   "testi": [
+    "Treno {treno}, annullato: la via per il lavaggio passa da {posti}, occupato. Resta al tuo posto. Passo."
+   ]
   }
  }
 }

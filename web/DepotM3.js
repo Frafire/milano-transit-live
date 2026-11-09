@@ -24,6 +24,7 @@
     const D = { F, loopMsg: '' };
     const placeOf = s => s && s.length > 5 && s[5] != null ? String(s[5]) : null;
     const loopRole = s => s && typeof s[6] === 'string' && s[6].startsWith('loop:') ? s[6].slice(5) : null;
+    const washRole = s => s && typeof s[6] === 'string' && s[6].startsWith('wash:') ? s[6].slice(5) : null;
     const name = q => { const i = (F.engine.net.depot || []).findIndex(d => String(d.node) === String(q)); return i >= 0 ? (F.engine.net.depot[i].name || '').replace('Deposito binario ', 'D') : 'posto ' + q; };
     const low = q => LOW.includes(name(q));
     const taken = () => new Set([...Object.values(F.depot.at), ...Object.values(F.depot.target)].filter(Boolean));
@@ -98,11 +99,12 @@
       if (!F.depot) init();
       F.ag.agents().forEach((a, k) => {
         const tr = F.trains[k], si = Math.min(a.si, tr.segs.length - 1), s = tr.segs[si]; if (!s || a.hidden || a.mode !== 'plan' && a.mode !== 'static') return;
+        if (a.officina != null) { F.depot.at[k] = String(a.officina); delete F.depot.target[k]; return; }      // in the officina for a fault
         let at = F.depot.at[k];
         if (at != null && !(placeOf(s) === at && standsAt(a, s, tr, si))) { delete F.depot.at[k]; at = null; }     // it has left its place
         if (at == null && F.depot.target[k] == null && standsAt(a, s, tr, si) && !taken().has(placeOf(s))) { at = F.depot.at[k] = placeOf(s); }
         // on the way in: a place, given once (on platform 1, #A40)
-        const inRun = placeOf(s) && !isOut(tr, si) && s[3][0] < RESERVE_T && !loopRole(s);
+        const inRun = placeOf(s) && !isOut(tr, si) && s[3][0] < RESERVE_T && !loopRole(s) && !washRole(s);
         if (inRun && F.depot.target[k] == null && at == null && F.depot.done[k] !== a.si) {
           const q = pick(k);
           if (q != null && assign(k, q)) F.depot.seg[k] = a.si;
@@ -116,7 +118,7 @@
         if (F.depot.target[k] != null && (a.si > g || a.si === g && a.v === 0 && Math.abs(a.d - s[4][s[4].length - 1]) < 3)) {
           F.depot.at[k] = F.depot.target[k]; delete F.depot.target[k]; F.depot.done[k] = g; }
       });
-      loopTick(); autoLoop();
+      loopTick(); autoLoop(); washTick();
     }
     // the new trains in test (Giovanni, 2 Nov 2026): out of the peaks they go round the test loop by themselves, a few laps
     // at a time, and never take a passenger run until they are admitted to service (env.trial)
@@ -135,7 +137,7 @@
     const nextAuto = t => { const x = AUTO.find(([t0]) => t0 + 1800 > t); return x ? x[0] : null; };
     // a new service day: each train out of the place it stood in last night (keep: train -> place)
     function newDay(keep) {
-      F.depot = { at: {}, target: {}, seg: {}, done: {}, pending: {} }; F.loop = null; const used = new Set();
+      F.depot = { at: {}, target: {}, seg: {}, done: {}, pending: {} }; F.loop = null; F.wash = null; const used = new Set();
       F.trains.forEach((tr, k) => { const p = keep[k], s = tr.segs[0]; if (p == null || !placeOf(s) || used.has(p)) return;
         if (placeOf(s) !== p && (s[1] === 'from_depot' || s[1] === 'empty')) rewriteOut(tr, 0, p);
         else if (s[1] === 'to_depot' && placeOf(s) !== p) {                 // a reserve train in another place (after a test trip, or a new
@@ -351,7 +353,73 @@
       }
     }
 
-    Object.assign(D, { nextAuto, init, tick, newDay, assign, pick, pastEntrance, rewriteOut, taken, name, placeOf, loopRole, loopInfo, sendToLoop, holdAt, standsAt, isOut });
+    // ---------- the officina (Giovanni 9 Nov 2026) ----------
+    // a train taken out of the service for a fault always goes to the officina, on one of its stub tracks (#A69-#A75; the
+    // officina tracks with #A63-#A65 are ordinary places). None free: a free place in the rimessa (PROPOSTA), waiting there
+    const OFF = ['A69', 'A70', 'A71', 'A72', 'A73', 'A74', 'A75'];
+    function officinaPark(k) {
+      if (!F.depotPaths) return null; if (!F.depot) init();
+      const tk = taken(), free = Object.keys(F.depotPaths).filter(q => !tk.has(q));
+      const q = free.find(x => OFF.includes(name(x))) || free.find(x => !low(x) && F.test && F.test.wash && F.test.wash[x]) || pickAny();
+      const P = q != null && F.depotPaths[q], o = P && Object.values(P.out)[0]; if (!o) return null;
+      F.depot.at[k] = q; delete F.depot.target[k];
+      return { q, pid: o.pid, d: o.start, waiting: !OFF.includes(name(q)) };
+    }
+
+    // ---------- the wash (Giovanni 9 Nov 2026) ----------
+    // The DCT sends a train standing in its place in the rimessa through the wash and back to its place (or another one
+    // he gives), at any time of the day or night; one train at a time: the driver of a second one says no until the
+    // first has finished. The ways (out of the place, a change of cab, through the wash, a change of cab, back) come from
+    // the build (F.test.wash); through the wash at wash_speed_kmh without stopping (the speed profile of the path).
+    const WS = () => F.wash || (F.wash = { holder: null, done: null, msg: '' });
+    const washAhead = k => { const tr = F.trains[k], a = F.ag && F.ag.agents()[k], from = a ? Math.min(a.si, tr.segs.length) : 0; for (let i = from; i < tr.segs.length; i++) if (washRole(tr.segs[i])) return true; return false; };
+    // still before the end of its pass through the wash (the last move of the way there)
+    const inWash = k => { const S = WS(), a = F.ag && F.ag.agents()[k]; return S.holder === k && a && a.mode === 'plan' && S.done != null && a.si <= S.done; };
+    function washInfo(k) {
+      const T = F.test, p = F.depot && F.depot.at[k]; if (!T || !T.wash || !F.ag) return null;
+      if (washAhead(k)) return { on: true, note: WS().msg || 'Al lavaggio.' };
+      if (p == null) return null;
+      if (!T.wash[p]) return { can: false, note: 'Al lavaggio si va solo dai posti della rimessa.' };
+      const S = WS(); return { can: true, holder: S.holder != null && S.holder !== k && inWash(S.holder) ? no(S.holder) : null, note: S.msg, places: Object.keys(T.wash[p].back).filter(q => q === String(p) || !taken().has(q)).map(q => [q, name(q)]) };
+    }
+    function sendToWash(k, q) {
+      const T = F.test, tr = F.trains[k], a = F.ag && F.ag.agents()[k], p = F.depot && F.depot.at[k], R = T && T.wash && p != null ? T.wash[p] : null, S = WS();
+      if (!a || !R || loopAhead(k) || washAhead(k)) return false;
+      q = q != null && q !== '' ? String(q) : String(p);
+      const v = { treno: no(k), posto: name(p), posto2: name(q) };
+      env.say('DCT', env.tx(q === String(p) ? 'lavaggio.ordine' : 'lavaggio.ordine_altro_posto', v), 'pc');
+      if (S.holder != null && S.holder !== k && inWash(S.holder)) {
+        env.say('T' + no(k), env.tx('lavaggio.occupato', { treno2: no(S.holder) }), 'dr'); S.msg = `Il lavaggio è occupato dal treno ${no(S.holder)}.`; return false; }
+      const back = R.back[q];
+      if (!back || (q !== String(p) && taken().has(q))) { S.msg = 'Da qui non si arriva al ' + name(q) + ' dopo il lavaggio, o è occupato.'; return false; }
+      const inWay = ((T.wash_blocks || {})[p] || []).filter(x => taken().has(x));
+      if (inWay.length) { env.say('DCT', env.tx('lavaggio.via_occupata', { treno: no(k), posti: inWay.map(name).join(', ') }), 'pc'); S.msg = 'La via passa da ' + inWay.map(name).join(', ') + ', occupato.'; return false; }
+      const idx = a.mode === 'static' ? tr.segs.length : a.si, next = tr.segs[idx], t0 = Math.round(F.ag.S.t) + 20, legs = R.go.concat([back]), segs = [];
+      let t = t0;
+      legs.forEach((l, i) => { const last = i === legs.length - 1;
+        segs.push([l[0], 'to_depot', -1, [Math.round(t), Math.round(t + Math.max(2, l[4]))], [l[1], l[2]], last ? +q : null, 'wash:' + (last ? 'back' : 'go')]); t += Math.max(2, l[4]) + (l[3] ? T.reverse : 0); });
+      if (next && next[3][0] < RESERVE_T && t > next[3][0] - 120) { env.say('DCT', env.tx('lavaggio.niente_tempo', { treno: no(k), ora: env.fmt(next[3][0]) }), 'pc'); S.msg = 'Non fa in tempo prima della prossima corsa (' + env.fmt(next[3][0]) + ').'; return false; }
+      tr.segs.splice(idx, 0, ...segs); shiftRefs(tr, idx - 1, segs.length); restamp(tr);
+      a.mode = 'plan'; a.si = idx - 1; a.legs = []; a.wait = 0; a.status = 'parked';
+      const g = idx + segs.length - 1;
+      F.depot.target[k] = q; F.depot.seg[k] = g; if (q !== String(p)) followPlace(tr, g, q, back[0], back[2]);
+      S.holder = k; S.done = idx + R.go.length - 1;
+      env.say('T' + no(k), env.tx('lavaggio.ricevuto', v), 'dr');
+      S.msg = 'Al lavaggio, poi al ' + name(q) + ' verso le ' + env.fmt(t) + '.';
+      return true;
+    }
+    // the wash is free when the train has gone through it (its move out of the wash is done)
+    function washTick() {
+      const S = F.wash; if (!S || S.holder == null) return;
+      const k = S.holder, a = F.ag.agents()[k];
+      if (!a || a.hidden || !washAhead(k) || (a.mode === 'plan' && a.si > S.done)) {
+        const q = F.depot.target[k] != null ? F.depot.target[k] : F.depot.at[k];
+        if (a && !a.hidden) env.say('T' + no(k), env.tx('lavaggio.finito', { treno: no(k), posto2: q != null ? name(q) : 'deposito' }), 'ok');
+        S.holder = null; S.done = null; S.msg = '';
+      }
+    }
+
+    Object.assign(D, { officinaPark, OFF, washInfo, sendToWash, washRole, nextAuto, init, tick, newDay, assign, pick, pastEntrance, rewriteOut, taken, name, placeOf, loopRole, loopInfo, sendToLoop, holdAt, standsAt, isOut });
     return D;
   }
 

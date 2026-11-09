@@ -93,7 +93,7 @@
         zone: (kind, a, b, extra) => addZone(kind, a, b, extra), unzone: id => dropZone(id),
         home: (k, endOfRun, turnX) => goHome(S.agents[k], endOfRun, turnX), rescue: k => startRescue(k), tow: k => startTow(k), rescuers: k => rescuers(k),
         // the Badoni from ROD (the line cut off): the broken train is taken away; the DCT: closures, back to the hybrid timetable
-        takeAway: k => { const a = S.agents[k]; if (!a) return; a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.v = 0; delete S.rt.routes[a.k]; },
+        takeAway: k => { const a = S.agents[k]; if (!a) return; if (parkOff(a)) return; a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.v = 0; delete S.rt.routes[a.k]; },
         badoniWay: k => badoniWay(k), place: (k, pid, d) => { const a = S.agents[k]; if (!a) return; a.pid = pid; a.d = d; a.v = 0; a.stopAt = null; },
         // (not those that would turn the trains where there is no power now: closureBlocked)
         closures: X => (o.closures || []).map((c, i) => Object.assign({ i }, c)).filter(c => c.a <= X - 1 && c.b >= X + 1 && (c.often === 'sì' || c.often === 'raramente' || c.often == null) && closureBlocked(c.a, c.b) == null).sort((p, q) => (p.b - p.a) - (q.b - q.a)).slice(0, 3),
@@ -516,8 +516,17 @@
       else { r.legs = [{ kind: 'unload' }, { kind: 'approach', f: fk, dir }]; r.stopAt = null; }
       r.mode = 'home'; r.pcHold = false; return r.k;
     }
+    // a train taken out of the service for a fault: always into the officina (Giovanni 9 Nov 2026), on one of its stub
+    // tracks the page gives (o.depotPark: { q, pid, d }), when it gets to the depot; null: into the depot as before
+    function parkOff(a) {
+      const r = o.depotPark ? o.depotPark(a.k) : null; if (!r) return false;
+      a.hidden = false; a.mode = 'static'; a.status = 'parked'; a.pid = r.pid; a.d = r.d; a.v = 0; a.legs = []; a.stopAt = null; a.vlim = null;
+      a.attached = null; a.broken = true; a.officina = r.q; a.illMove = false; delete S.rt.routes[a.k]; return true;
+    }
     function follow(a) {                     // coupled to another train (rescue): it goes where that one goes, right behind it
       const f = S.agents[a.attached];
+      if ((!f || f.hidden || f.officina != null) && a.rescue && parkOff(a)) return;          // the broken one, towed: to the officina
+      if (f && f.officina != null) { a.attached = null; a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.v = 0; delete S.rt.routes[a.k]; return; }   // the one that pushed it: into the depot
       if (!f || f.hidden) { a.attached = null; a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.v = 0; delete S.rt.routes[a.k]; return; }
       if (f.status === 'parked' || (f.legs[0] && f.legs[0].tailOf)) { a.attached = null; a.v = 0; a.mode = 'home'; a.status = 'empty'; a.legs = [{ kind: 'tailpark' }]; if (f.rescue) f.rescue.stage = 'done'; return; }
       // on the side it stands (behind the one that drives it; the leader's path may change direction at a change of cab)
@@ -832,7 +841,7 @@
       // stopped at a station of the closed stretch, waiting for the PC: the routes it held ahead go back (its own track
       // stays protected by the train itself standing there)
       if (m.kind === 'stopped') { a.status = 'stopped'; a.stoppedSince = S.t; delete S.rt.routes[a.k]; return false; }
-      if (m.kind === 'depot') { a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.illMove = false; return false; }
+      if (m.kind === 'depot') { if (parkOff(a)) return false; a.hidden = true; a.mode = 'static'; a.status = 'depot'; a.illMove = false; return false; }
       // marcia illegale into a San Donato tail (the DCT): it stays there, as the trains held in the tails
       if (m.kind === 'sdtail') { a.mode = 'static'; a.status = 'held'; a.v = 0; a.illMove = false; a.sdTailHeld = true; a.at = 0; delete S.rt.routes[a.k]; return false; }
       // fase D4: passengers off; then empty to the depot (southbound) or to a tail at Comasina (northbound)

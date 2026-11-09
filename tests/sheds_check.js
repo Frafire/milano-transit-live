@@ -59,4 +59,21 @@ for (let t = T0 + 1; t <= T1; t++) {
 check(moving > 300, `trains moving inside the sheds (seconds): ${moving} of ${samples} inside`);
 check(!over, `never above ${VS} km/h while any part of the train is inside${over ? ': ' + over + ' s, worst ' + (worst * 3.6).toFixed(1) + ' km/h, ' + overAt : ''}`);
 check(outFast > 0, 'faster again once the whole train is out');
+// a train taken out of the service for a fault always goes to the officina (Giovanni 9 Nov): the UdT excluded (it goes
+// home by itself) and the rescue (towed): the broken train stands on a free stub track of the officina (#A69-#A75),
+// in sight; the one that pushed or pulled it goes into the depot
+const names = Object.fromEntries(M.net.depot.map(p => [String(p.node), p.name])), OFFN = ['A69', 'A70', 'A71', 'A72', 'A73', 'A74', 'A75'];
+const offTaken = new Set(off.map(([x, u]) => String((M.trains[M.duties.findIndex(ds => ds.some(d => d[2] === u))].segs || M.trains[M.duties.findIndex(ds => ds.some(d => d[2] === u))])[0][5])));
+for (const [kind, T1] of [['udt', 10.5 * 3600], ['soccorso', 11 * 3600]]) {
+  const used = new Set(offTaken), hook = k => { const q = Object.keys(M.depot_paths).find(q => OFFN.includes(names[q]) && !used.has(q)); if (!q) return null; used.add(q);
+    const o = Object.values(M.depot_paths[q].out)[0]; return { q, pid: o.pid, d: o.start }; };
+  const ag2 = L.agents(M, D, t => L.posAt(day, t), { depotPark: k => (ag2.S.faults.list.some(f => f.k === k && f.maint) ? hook(k) : null) }), T0f = 8 * 3600;
+  ag2.start(T0f - 600, L.posAt(day, T0f - 600)); ag2.step(T0f);
+  const a = ag2.agents().find(x => !x.hidden && x.status === 'service' && x.v > 8 && x.at > 3 && x.at < 17);
+  const id = ag2.event({ kind: 'fault', what: 'new', fault: kind, k: a.k }); let rk = null;
+  for (let t = T0f + 10; t <= T1; t += 10) { ag2.step(t); const f = ag2.S.faults.list.find(x => x.id === id); if (f && f.rk != null) rk = f.rk; }
+  const r = rk != null ? ag2.agents()[rk] : null, inOff = a.officina != null && OFFN.includes(names[a.officina]) && !a.hidden && a.status === 'parked';
+  const at_ = inOff ? pos(a.pid, a.d) : null, under = at_ && inXY(at_, OP);
+  check(inOff && under && (kind !== 'soccorso' || (r && r.hidden)), `${kind}: the broken train ${a.k + 1} in the officina (${a.officina != null ? names[a.officina] : 'no'}${under ? ', under its roof' : ''})${kind === 'soccorso' ? ', the rescue train ' + (r ? (r.hidden ? 'in the depot' : r.status + '/' + r.mode) : 'none') : ''}`);
+}
 console.log(fail ? 'sheds: FAILED' : 'sheds: all ok'); process.exit(fail ? 1 : 0);

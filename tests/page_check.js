@@ -48,6 +48,7 @@
 //   admitted from the admin menu at night, from the next day it runs a traditional train's duties, out of its own place
 // - comasina: by radio, a train from San Donato goes into Comasina platform 1 and changes cab there (no tail)
 // - guasto: admin menu Guasti, a train in service does not start again: the call among the PC alarms, the PC answers Riarma
+// - lavaggio: the DCT sends a rimessa train to the wash; a second one is refused until the first has finished; wash speed
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
 // Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea|emergenza|giorno ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
@@ -55,6 +56,34 @@ const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/gioca.html') + '?linee=M3&day=' + (process.env.DAY || 1);      // (the weekday timetable unless DAY=6/7)
 
 const SCENARIOS = {
+  // the wash (Giovanni 9 Nov 2026): the DCT sends a train of the rimessa to the wash from its card; a second one while the
+  // first is washing: its driver says no; the first goes through the wash at most at the wash speed, without stopping in it,
+  // and back to its place ("lavaggio finito"); then the second can go
+  async lavaggio(p) {
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.depotPaths), W = F.test.wash || {}, VW = F.engine.ops.wash_speed_kmh;
+      st.playing = false; st.t = 10.2 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      const at = Object.entries(F.depot.at).map(([k, q]) => [+k, String(q)]).filter(([, q]) => W[q]);
+      if (at.length < 2) return { ok: false, why: 'fewer than two trains in the rimessa', at };
+      const [A, B] = at, click = async k => { st.sel = 'f' + M.fleets.indexOf(F) + ':' + k; M.renderCard(); const b = document.querySelector('[data-wash]'); if (!b) return false; b.click(); await sleep(200); return true; };
+      if (!await click(A[0])) return { ok: false, why: 'no wash button' };
+      await click(B[0]);
+      const washing = k => F.trains[k].segs.some((s, i) => typeof s[6] === 'string' && s[6].startsWith('wash:') && i >= F.ag.agents()[k].si);
+      const refused = !washing(B[0]);
+      st.playing = true; st.speed = 30; const t0 = Date.now(); let vmax = 0, inside = 0, stopped = 0;
+      const pe = k => { const a = F.ag.agents()[k], e = F.engine.pathEdges[a.pid]; return e && e.wash ? e.wash : null; };
+      while (Date.now() - t0 < 200000 && (washing(A[0]) || F.depot.target[A[0]] != null)) {
+        await sleep(100); const a = F.ag.agents()[A[0]], w = pe(A[0]), H = F.engine.half;
+        if (w && w.some(([s0, s1]) => a.d + H > s0 && a.d - H < s1)) { inside++; vmax = Math.max(vmax, a.v * 3.6); if (a.v < 0.05) stopped++; }
+      }
+      st.playing = false;
+      const back = String(F.depot.at[A[0]]) === A[1], log = document.getElementById('radioLog').innerText;
+      const again = await click(B[0]) && washing(B[0]);
+      const ok = refused && back && inside > 0 && vmax <= VW + 0.3 && /lavaggio finito/i.test(log) && /lavaggio è occupato/i.test(log) && again;
+      return { ok, trains: [A, B], refused, back, inside, vmax: Math.round(vmax * 10) / 10, stopped, again, log: log.split('\n').filter(l => /lavaggio/i.test(l)).slice(-6) };
+    });
+  },
   async loop(p) {
     return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));

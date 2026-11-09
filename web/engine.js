@@ -192,6 +192,8 @@
       }
       // the depot sheds (data/capannoni_m3.json): at most shed_speed_kmh while any part of the train is inside (Giovanni)
       if (pe.sheds && ops.shed_speed_kmh) { const vs = ops.shed_speed_kmh / 3.6; pe.sheds.forEach(([s0, s1]) => out.push([s0, s1, vs, vs, 0])); }
+      // the wash (Giovanni 9 Nov): through the wash house at wash_speed_kmh, without stopping
+      if (pe.wash && ops.wash_speed_kmh) { const vw = ops.wash_speed_kmh / 3.6; pe.wash.forEach(([s0, s1]) => out.push([s0, s1, vw, vw, 0])); }
       pe.div.forEach(x => { const d = Array.isArray(x) ? x[0] : x, j = Array.isArray(x) && speeds ? speeds['J' + x[1]] : null;
         const vj = j != null ? j / 3.6 : div; out.push([d - w, d + w, vj, vj, 0]); });
       return out.sort((x, y) => x[0] - y[0]);

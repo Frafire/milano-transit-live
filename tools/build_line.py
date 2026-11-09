@@ -612,6 +612,7 @@ def move(tl, pid, d0, d1, t0, v, status):
 # the depot sheds (data/capannoni_<line>.json): inside them at most shed_speed_kmh, until the whole train is out (Giovanni,
 # 9 Nov 2026: "dentro rimessa e manutenzione 5 km/h massimo fino a quando il treno non è uscito interamente dal capannone")
 V_SHED = OPS.get('shed_speed_kmh', OPS['depot_speed_kmh']) / 3.6
+V_WASH = OPS.get('wash_speed_kmh', OPS['depot_speed_kmh']) / 3.6
 def _along(P, step=2.0):
     """points every step metres along a polyline: [(s, x, y)]"""
     out, acc = [], 0.0
@@ -653,12 +654,33 @@ def shed_spans(pid):
         if m_ and a <= m_[-1][1] + 2: m_[-1][1] = max(m_[-1][1], b)
         else: m_.append([a, b])
     _shed_cache[pid] = m_; return m_
+_wash_cache = {}
+def wash_spans(pid):
+    """the stretches of a path inside the wash house (data/capannoni: uso lavaggio): [[from, to], ...]"""
+    if pid in _wash_cache: return _wash_cache[pid]
+    LP = [P for sh, P in zip(SHEDS, SHED_XY) if sh.get('uso') == 'lavaggio']; out, run, d0 = [], None, 0.0
+    # (only on the wash track: the through track whose middle is in the wash house)
+    WE = {ei for a_, b_, m_ in LINKS if LP and _inpoly(*node_pos[m_], LP[0]) for ei in node_edges[m_]}
+    if LP:
+        for ei, dr in PATH_STATES.get(pid, []):
+            P = poly(ei, dr); L_ = plen(P)
+            for s_, x_, y_ in (_along(P) if ei in WE else [(s__, None, None) for s__ in (0.0,)]):
+                if x_ is None:
+                    if run is not None: out.append([round(max(0.0, run), 1), round(d0, 1)]); run = None
+                    continue
+                ins = any(_inpoly(x_, y_, Q) for Q in LP)
+                if ins and run is None: run = d0 + s_ - 1
+                if not ins and run is not None: out.append([round(max(0.0, run), 1), round(d0 + s_, 1)]); run = None
+            d0 += L_
+        if run is not None: out.append([round(max(0.0, run), 1), round(d0, 1)])
+    _wash_cache[pid] = out; return out
 def yard_time(pid, d0, d1):
     """seconds for the train (its centre) from d0 to d1 at depot speed: at shed speed while any part of it is in a shed"""
-    sp = shed_spans(pid); lo, hi = sorted((d0, d1)); t = 0.0; d = lo
+    sp = shed_spans(pid); wp = wash_spans(pid); lo, hi = sorted((d0, d1)); t = 0.0; d = lo
     while d < hi - 1e-6:
         s_ = min(1.0, hi - d); m_ = d + s_ / 2
-        t += s_ / (V_SHED if any(a - TRAIN_HALF <= m_ <= b + TRAIN_HALF for a, b in sp) else V_YARD); d += s_
+        v_ = V_WASH if any(a - TRAIN_HALF <= m_ <= b + TRAIN_HALF for a, b in wp) else V_SHED if any(a - TRAIN_HALF <= m_ <= b + TRAIN_HALF for a, b in sp) else V_YARD
+        t += s_ / v_; d += s_
     return t
 
 # where the nose stops at a station (Giovanni): at a "nose" flag if one is placed there, otherwise almost touching the
@@ -1196,6 +1218,105 @@ if CFG['training']:
         v_['legs'][-1] = [ph_, s_, round(e_ + TEST['stops'][0], 1), rv_]; v_['lap0'] = TEST['stops'][0]; _joined += 1
     print('test loop: way in on to the first test stop for', _joined, 'places of', len(TEST['trip']))
     print('test platforms:', [t['name'] for t in TEST['platforms']])
+    # ---- the wash (Giovanni 9 Nov 2026): the house on the south-east side of the rimessa (data/capannoni_m3.json, uso
+    # lavaggio); the through track that crosses it is the wash track. On the DCT's order a train goes from its place in the
+    # rimessa through the wash (wash_speed_kmh, without stopping) and back to its place, or to another one the DCT gives; one
+    # train at a time. The way: out of its place, through the wash, a change of cab beyond it, back (a change of cab
+    # before it too when it must); which way through the wash: the shortest found (Giovanni: as it is simplest)
+    TEST['wash'] = {}
+    _lavP = next((P for sh, P in zip(SHEDS, SHED_XY) if sh.get('uso') == 'lavaggio'), None)
+    _wl = next(((a_, b_, m_) for a_, b_, m_ in LINKS if _lavP and _inpoly(*node_pos[m_], _lavP)), None)
+    if _wl:
+        _wa, _wb, _wm = _wl
+        import heapq as _hq
+        _snap = len(paths)                 # the search makes many paths: only the ones of the ways chosen are kept (below)
+        _wedges = {ei for n_ in (_wa, _wb, _wm) for ei in node_edges[n_] if edges[ei].get('mid') is not None or _wm in (edges[ei]['a'], edges[ei]['b'])}
+        def _near(n0, maxd=420):        # nodes up to maxd metres of track from n0 (not over the wash track): places to turn
+            dist = {n0: 0.0}; h = [(0.0, n0)]
+            while h:
+                d_, n_ = _hq.heappop(h)
+                if d_ > dist.get(n_, 1e18) or d_ > maxd: continue
+                for ei in node_edges[n_]:
+                    if ei in _wedges: continue
+                    e = edges[ei]; o = e['b'] if e['a'] == n_ else e['a']; nd = d_ + e['len']
+                    if nd < dist.get(o, 1e18) and o < 100000: dist[o] = nd; _hq.heappush(h, (nd, o))
+            return [n_ for n_, d_ in sorted(dist.items(), key=lambda x: x[1]) if d_ >= 2 * TRAIN_HALF]
+        _RP = sorted(n for li_ in RIMESSA_TRACKS for n in (100000 + li_, SECOND.get(li_)) if n is not None and n in STORE_EXIT)
+        def _r(a_, b_, via=(), first=None, allow=()):
+            _router.THROUGH_ALLOWED = set(allow)
+            try: return route_nodes(a_, b_, via=list(via), first=first)
+            finally: _router.THROUGH_ALLOWED = set()
+        def _tmin(p0, p1, lo=0.0):       # the change of cab as soon as the whole train is past the junction (and past lo): (d on p0, d on p1)
+            d = paths[p0][1][-1] - TRAIN_HALF; dd = _turn(p0, d, p1)
+            if dd is None or d < lo: return None
+            while d - 5 > max(TRAIN_HALF, lo):
+                x = _turn(p0, d - 5, p1)
+                if x is None: break
+                d, dd = d - 5, x
+            x = _turn(p0, min(d + 3, paths[p0][1][-1] - TRAIN_HALF), p1)
+            return (min(d + 3, paths[p0][1][-1] - TRAIN_HALF), x) if x is not None else (d, dd)
+        _bk = {}
+        def _back(p1, q_):               # from the end of p1, after a change of cab, to place q_ (in by the end its train comes in by)
+            if (p1, q_) not in _bk:
+                r = _r(end_node(*PATH_STATES[p1][-1]), q_, via=[STORE_ARR_FROM[q_]], first=start_node(*PATH_STATES[p1][-1]), allow=(q_, _wm)); out = None
+                if r:
+                    ws = wash_spans(p1); p2 = make_path(('wback', q_, tuple(PATH_STATES[p1][-1])), r); tm = _tmin(p1, p2, (ws[-1][1] + TRAIN_HALF + 2) if ws else 0.0)      # (the whole train through the wash first)
+                    if tm and tm[1] < end_off(q_, paths[p2][1][-1]): out = (tm[0], [p2, tm[1], end_off(q_, paths[p2][1][-1]), 0])
+                _bk[(p1, q_)] = out
+            return _bk[(p1, q_)]
+        # the runs through the wash after a change of cab at X (back the way the train came: first = the node before X)
+        _th = {}
+        def _thru(X, prev):
+            if (X, prev) not in _th:
+                out = []
+                for e1, e2 in ((_wa, _wb), (_wb, _wa)):
+                    for Y in _Ys[e2]:
+                        r1 = _r(X, Y, via=[e1, _wm, e2], first=prev, allow=(_wm,))
+                        if r1: out.append((Y, make_path(('wthru', X, prev, Y), r1)))
+                _th[(X, prev)] = out
+            return _th[(X, prev)]
+        _long = {n_ for e in edges if e['len'] >= 2 * TRAIN_HALF + 10 for n_ in (e['a'], e['b'])}
+        _Xs = sorted(set(n_ for n_ in _near(_wa, 1200) + _near(_wb, 1200) if n_ in _long))
+        _Ys = {e2: [n_ for n_ in _near(e2, 1200) if n_ in _long] for e2 in (_wa, _wb)}
+        _nowash = []
+        for p_ in _RP:
+            a_, v_, f_ = _start(p_); best = None
+            for e1, e2 in ((_wa, _wb), (_wb, _wa)):
+                for Y in _Ys[e2]:                   # out of the place straight through the wash, a change of cab beyond it
+                    r1 = _r(a_, Y, via=list(v_) + [e1, _wm, e2], first=f_, allow=(p_, _wm))
+                    if not r1: continue
+                    p1 = make_path(('wgo', p_, Y), r1); bk = _back(p1, p_)
+                    if not bk or not wash_spans(p1): continue
+                    L_ = bk[0] - start_off(p_) + bk[1][2] - bk[1][1]
+                    if best is None or L_ < best[0]: best = (L_, [[p1, start_off(p_), bk[0], 1]], p1)
+            if best is None:                 # a change of cab first (out of its place the other way), then through the wash
+                for X in _Xs:
+                    r0 = _r(a_, X, via=list(v_), first=f_, allow=(p_,))
+                    if not r0: continue
+                    p0 = make_path(('wgo0', p_, X), r0)
+                    for Y, p1 in _thru(X, start_node(*PATH_STATES[p0][-1])):
+                        tm = _tmin(p0, p1); ws = wash_spans(p1)
+                        if tm is None or not ws or ws[0][0] < tm[1] + TRAIN_HALF: continue      # (the wash ahead of the train)
+                        bk = _back(p1, p_)
+                        if not bk or bk[0] <= tm[1] + 1: continue
+                        L_ = tm[0] - start_off(p_) + bk[0] - tm[1] + bk[1][2] - bk[1][1]
+                        if best is None or L_ < best[0]: best = (L_, [[p0, start_off(p_), tm[0], 1], [p1, tm[1], bk[0], 1]], p1)
+            if best is None: _nowash.append(p_); continue
+            L_, go, p1 = best
+            back = {}
+            for q_ in _RP:                   # back to its place, or to another one the DCT gives
+                bk = _back(p1, q_)
+                if bk and abs(bk[0] - go[-1][2]) < 0.5: back[str(q_)] = [bk[1][0], round(bk[1][1], 1), round(bk[1][2], 1), 0, round(yard_time(bk[1][0], bk[1][1], bk[1][2]))]
+            TEST['wash'][str(p_)] = {'go': [[a, round(b, 1), round(c, 1), d, round(yard_time(a, b, c))] for a, b, c, d in go], 'back': back, 'len': round(L_)}      # legs: [path, from, to, change of cab after, seconds]
+        _keep = {l[0]: list(PATH_STATES[l[0]]) for v in TEST['wash'].values() for l in v['go'] + list(v['back'].values())}
+        for _pid in range(_snap, len(paths)):
+            for _c in (PATH_STATES, _shed_cache, _wash_cache, _marks_cache): _c.pop(_pid, None)
+        for _k in [k for k, v in path_key.items() if v >= _snap]: del path_key[_k]
+        del paths[_snap:]
+        _remap = {pid: (make_path(('wash', pid), st) if pid >= _snap else pid) for pid, st in _keep.items()}
+        for v in TEST['wash'].values():
+            for l in v['go'] + list(v['back'].values()): l[0] = _remap[l[0]]
+        print('wash: track', _wl, '| ways from', len(TEST['wash']), 'places of the rimessa (m:', sorted(v['len'] for v in TEST['wash'].values()), ') none from', _nowash)
     # the Badoni (Giovanni 3 Nov 2026): it always stands in the depot behind #A104 (its track); called, it goes out through
     # San Donato binario 3 to the line (web/faults.js). d: its centre, 3 m behind the signal; plat: San Donato binario 3
     # (the way found goes round by #A94 and through the depot: not used until Giovanni says which way the Badoni goes out)
@@ -1781,8 +1902,8 @@ for pid in range(len(paths)):
                 run = None
             x += 5
         if run is not None and x - run >= 20: curves.append([round(run - 10, 1), round(x + 10, 1)])
-    _sh = shed_spans(pid) if st else []
-    PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves, **({'sheds': _sh} if _sh else {})})
+    _sh = shed_spans(pid) if st else []; _wsh = wash_spans(pid) if st else []
+    PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves, **({'sheds': _sh} if _sh else {}), **({'wash': _wsh} if _wsh else {})})
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
     NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name', 'stype', 'legal', 'manual')}, 'n': sg.get('_n')}
@@ -2026,6 +2147,8 @@ if TEST and TEST.get('trip'):
         return [q_ for q_, pk in _park.items() if q_ != own and any(e1 == e2 and a1 < b2 - 0.5 and a2 < b1 - 0.5 for (e1, a1, b1) in pk for (e2, a2, b2) in cov)]
     TEST['trip_blocks'] = {p_: _over(v['legs'], p_) for p_, v in TEST['trip'].items()}
     TEST['home_blocks'] = {q_: _over(v['legs'], q_) for q_, v in TEST['home'].items()}
+    # the wash: the places a train going through the wash and back would run over (they must be free)
+    TEST['wash_blocks'] = {p_: _over([l[:4] for l in v['go'] + [v['back'][p_]]], p_) for p_, v in TEST.get('wash', {}).items() if p_ in v['back']}
     print('test loop: places in the way, going', {k: v for k, v in TEST['trip_blocks'].items() if v}, '| coming back', {k: v for k, v in TEST['home_blocks'].items() if v})
 # every signal (block, wrong-way and placed) on every path that goes over it facing it, for the route interlocking:
 # sigall[pid] = [[d, number, flags]]; flags: 'm' manual, 'i' wrong-way, 'e' terminus departure. A block or wrong-way
