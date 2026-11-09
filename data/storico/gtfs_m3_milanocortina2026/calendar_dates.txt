@@ -1,0 +1,4 @@
+"service_id","date","exception_type"
+"l_storico_milanocortina2026","20260209","1"
+"s_storico_milanocortina2026","20260207","1"
+"f_storico_milanocortina2026","20260208","1"

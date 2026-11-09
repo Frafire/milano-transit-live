@@ -1,0 +1,1 @@
+GTFS fatto da tools/storico_corse.py dall'orario storico M3 milanocortina2026 (ATM, orari M3 per stazione, in vigore dal 05/02/2026 al 21/02/2026 (PDF M3_Completa_Olimpiadi_2026.pdf, dato da Giovanni)). Corse con "proposta" nel file m3_milanocortina2026_corse.json: non sono nel PDF.

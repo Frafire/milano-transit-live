@@ -54,6 +54,23 @@ for pair in "sat:$SAT_DAY" "sun:$SUN_DAY"; do
     grep -h "tail clashes\|not covered" m3.log && node "$ROOT/tools/precompute_live.js" > pre.log && python3 "$ROOT/tests/check_tails.py" && python3 "$ROOT/tests/check_depot.py" && \
     node "$ROOT/tests/day_agents_check.js" 5 24 && node "$ROOT/tests/timetable_check.js" && (node "$ROOT/tests/headway_check.js" || echo "WARNING ($n): trains closer than 2 minutes"))
 done
+# the historical timetables of the M3 (Giovanni 10 Nov 2026; data/storico: Expo 2015, Milano Cortina 2026): their GTFS is
+# made by tools/orari_storici.py (the PDF) and tools/storico_corse.py (the runs; the "ogni X'-Y'" stretches are a
+# PROPOSTA), built like a day of today in build_storico/<nome>_<1|6|7>, packed as dati/m3_<nome>_<1|6|7>.js and loaded only
+# with gioca.html?orario=<nome>. Not playable yet: their checks only warn, they never stop the build
+for nome in expo2015 milanocortina2026; do
+  G="$ROOT/data/storico/gtfs_m3_$nome"; [ -d "$G" ] || continue
+  for n in 1 6 7; do
+    d=$(python3 -c "import json; print(json.load(open('$ROOT/data/storico/m3_${nome}_corse.json'))['giorni'][{'1': 'feriale', '6': 'sabato', '7': 'festivo'}['$n']])")
+    BD="$ROOT/build_storico/${nome}_$n"; mkdir -p "$BD"
+    find "$ROOT/data" -maxdepth 1 -type f -exec cp {} "$BD"/ \;
+    echo "== M3 $nome ($n): service day $d"
+    (cd "$BD" && python3 "$ROOT/tools/build_data.py" "$G" "$d" data.json > bd.log && gzip -9 -kf data.json && WASH_CACHE_DIR="$B" LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log && \
+      grep -h "real fleet\|tail clashes" m3.log && node "$ROOT/tools/precompute_live.js" > pre.log && \
+      { python3 "$ROOT/tests/check_tails.py" && python3 "$ROOT/tests/check_depot.py" && node "$ROOT/tests/day_agents_check.js" 5 24 && node "$ROOT/tests/timetable_check.js"; } > checks.log 2>&1 && echo "   checks ok") \
+      || echo "WARNING (M3 $nome $n, not playable yet): see build_storico/${nome}_$n/checks.log"
+  done
+done
 # M2, tappa 1 (in test): its own timetable extract (data/gtfs_m2) and the turni, in build_m2/<1|6|7>; nothing of the
 # M3 build is used or changed. tools/assemble_m2.py packs it.
 GTFS_M2="$ROOT/data/gtfs_m2"

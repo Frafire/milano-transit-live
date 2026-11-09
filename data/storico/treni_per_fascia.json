@@ -1,0 +1,236 @@
+{
+ "_about": "Treni in viaggio (massimo) e treni che servono con 4 min di sosta ai capolinea (PROPOSTA), per fascia: tools/storico_treni.py",
+ "fasce": [
+  [
+   "punta del mattino",
+   420,
+   570
+  ],
+  [
+   "giorno",
+   570,
+   990
+  ],
+  [
+   "punta del pomeriggio",
+   990,
+   1170
+  ],
+  [
+   "sera",
+   1170,
+   1440
+  ],
+  [
+   "notte (dopo mezzanotte)",
+   1440,
+   1620
+  ]
+ ],
+ "treni": {
+  "oggi (GTFS)": {
+   "feriale": {
+    "punta del mattino": [
+     19,
+     22
+    ],
+    "giorno": [
+     16,
+     19
+    ],
+    "punta del pomeriggio": [
+     18,
+     20
+    ],
+    "sera": [
+     17,
+     20
+    ],
+    "notte (dopo mezzanotte)": [
+     7,
+     8
+    ]
+   },
+   "sabato": {
+    "punta del mattino": [
+     12,
+     13
+    ],
+    "giorno": [
+     12,
+     13
+    ],
+    "punta del pomeriggio": [
+     12,
+     13
+    ],
+    "sera": [
+     11,
+     13
+    ],
+    "notte (dopo mezzanotte)": [
+     8,
+     8
+    ]
+   },
+   "festivo": {
+    "punta del mattino": [
+     8,
+     9
+    ],
+    "giorno": [
+     11,
+     13
+    ],
+    "punta del pomeriggio": [
+     11,
+     13
+    ],
+    "sera": [
+     11,
+     13
+    ],
+    "notte (dopo mezzanotte)": [
+     7,
+     8
+    ]
+   }
+  },
+  "expo2015": {
+   "feriale": {
+    "punta del mattino": [
+     27,
+     30
+    ],
+    "giorno": [
+     21,
+     25
+    ],
+    "punta del pomeriggio": [
+     25,
+     28
+    ],
+    "sera": [
+     23,
+     27
+    ],
+    "notte (dopo mezzanotte)": [
+     8,
+     8
+    ]
+   },
+   "sabato": {
+    "punta del mattino": [
+     16,
+     18
+    ],
+    "giorno": [
+     16,
+     18
+    ],
+    "punta del pomeriggio": [
+     16,
+     18
+    ],
+    "sera": [
+     16,
+     18
+    ],
+    "notte (dopo mezzanotte)": [
+     8,
+     8
+    ]
+   },
+   "festivo": {
+    "punta del mattino": [
+     9,
+     10
+    ],
+    "giorno": [
+     13,
+     14
+    ],
+    "punta del pomeriggio": [
+     13,
+     14
+    ],
+    "sera": [
+     13,
+     14
+    ],
+    "notte (dopo mezzanotte)": [
+     8,
+     8
+    ]
+   }
+  },
+  "milanocortina2026": {
+   "feriale": {
+    "punta del mattino": [
+     19,
+     21
+    ],
+    "giorno": [
+     16,
+     18
+    ],
+    "punta del pomeriggio": [
+     18,
+     20
+    ],
+    "sera": [
+     17,
+     19
+    ],
+    "notte (dopo mezzanotte)": [
+     8,
+     8
+    ]
+   },
+   "sabato": {
+    "punta del mattino": [
+     13,
+     14
+    ],
+    "giorno": [
+     12,
+     14
+    ],
+    "punta del pomeriggio": [
+     13,
+     14
+    ],
+    "sera": [
+     12,
+     14
+    ],
+    "notte (dopo mezzanotte)": [
+     8,
+     8
+    ]
+   },
+   "festivo": {
+    "punta del mattino": [
+     8,
+     9
+    ],
+    "giorno": [
+     13,
+     14
+    ],
+    "punta del pomeriggio": [
+     13,
+     14
+    ],
+    "sera": [
+     12,
+     14
+    ],
+    "notte (dopo mezzanotte)": [
+     8,
+     8
+    ]
+   }
+  }
+ }
+}

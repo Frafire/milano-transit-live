@@ -61,6 +61,14 @@ for suf, dn in (('6', 'build_sat'), ('7', 'build_sun')):
         m2 = base64.b64encode(gzip.compress(json.dumps({'fleets': [json.load(open(os.path.join(bd, 'm3.json')))]}, separators=(',', ':')).encode(), 9)).decode()
         l2 = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm3_live.json'), 'rb').read(), 9)).decode()
         write_pack('M3', suf, d2, m2, l2)
+# the historical timetables of the M3 (../build_storico/<nome>_<1|6|7>, build.sh): dati/m3_<nome>_<1|6|7>.js, loaded only
+# with gioca.html?orario=<nome> (not playable yet: the menu shows them "in arrivo")
+for bd in sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath('.')), 'build_storico', '*_[167]'))):
+    if all(os.path.exists(os.path.join(bd, f)) for f in ('data.json.gz', 'm3.json', 'm3_live.json')):
+        d2 = base64.b64encode(open(os.path.join(bd, 'data.json.gz'), 'rb').read()).decode()
+        m2 = base64.b64encode(gzip.compress(json.dumps({'fleets': [json.load(open(os.path.join(bd, 'm3.json')))]}, separators=(',', ':')).encode(), 9)).decode()
+        l2 = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm3_live.json'), 'rb').read(), 9)).decode()
+        write_pack('M3', os.path.basename(bd), d2, m2, l2)
 # the other lines' data, each from its own file (tools/assemble_<line>.py): nothing of theirs in this file
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import assemble_m2

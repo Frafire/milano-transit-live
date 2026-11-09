@@ -1,0 +1,1 @@
+GTFS fatto da tools/storico_corse.py dall'orario storico M3 expo2015 (ATM, orari M3 ai capolinea, in vigore dal 1/05/2015 (PDF M3_ATM_2015-05.pdf, dato da Giovanni)). Corse con "proposta" nel file m3_expo2015_corse.json: non sono nel PDF.

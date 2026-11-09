@@ -1,0 +1,4 @@
+"service_id","date","exception_type"
+"l_storico_expo2015","20150504","1"
+"s_storico_expo2015","20150502","1"
+"f_storico_expo2015","20150503","1"
