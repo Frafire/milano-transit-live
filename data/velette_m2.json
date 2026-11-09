@@ -14,5 +14,39 @@
  "speciali": [
   "FUORI SERVIZIO",
   "PorteAperteATM"
- ]
+ ],
+ "limitazioni": {
+  "_nota": "Ogni stazione non capolinea, perché un treno può limitare ovunque (Giovanni 9/11/2026). Scritta = nome dell'orario ATM senza 'M2': PROPOSTA, da correggere con quello che scrivono davvero i treni. Cascina Gobba e Lambrate FS già confermate sopra.",
+  "stazioni": {
+   "assago milanofiori nord": "ASSAGO MILANOFIORI NORD",
+   "famagosta": "FAMAGOSTA",
+   "romolo": "ROMOLO",
+   "p.ta genova f.s.": "P.TA GENOVA F.S.",
+   "s.agostino": "S.AGOSTINO",
+   "s.ambrogio": "S.AMBROGIO",
+   "cadorna fn m2": "CADORNA FN",
+   "lanza": "LANZA",
+   "moscova": "MOSCOVA",
+   "garibaldi fs": "GARIBALDI FS",
+   "gioia": "GIOIA",
+   "centrale fs": "CENTRALE FS",
+   "caiazzo": "CAIAZZO",
+   "loreto m2": "LORETO",
+   "piola": "PIOLA",
+   "udine": "UDINE",
+   "cimiano": "CIMIANO",
+   "crescenzago": "CRESCENZAGO",
+   "vimodrone": "VIMODRONE",
+   "cascina burrona": "CASCINA BURRONA",
+   "cernusco sul naviglio": "CERNUSCO SUL NAVIGLIO",
+   "villa fiorita": "VILLA FIORITA",
+   "cassina de pecchi": "CASSINA DE PECCHI",
+   "bussero": "BUSSERO",
+   "villa pompea": "VILLA POMPEA",
+   "gorgonzola": "GORGONZOLA",
+   "cascina antonietta": "CASCINA ANTONIETTA",
+   "cologno sud": "COLOGNO SUD",
+   "cologno centro": "COLOGNO CENTRO"
+  }
+ }
 }

@@ -2270,7 +2270,7 @@ window.MTL_CAPS = __CAPS__;
     let sign = '';
     const numEnd = num ? V.x + 5 + colsOf(num) * 2.3 + 5 : V.x + 4;
     if (num) sign += ledText(num, V.x + 5, 2.3, '#3dff6e');
-    if (txt) sign += ledDest(txt, numEnd, V.x + V.w - 4, V.y + V.h / 2, 2.45, 1.8, '#ff8a1a', 'led');     // ABBIATEGRASSO fits (photo of 930)
+    if (txt) sign += ledDest(txt, numEnd, V.x + V.w - 4, V.y + V.h / 2, 2.45, 1.7, '#ff8a1a', 'led');     // ABBIATEGRASSO (photo of 930) and FUORI SERVIZIO fit (Giovanni)
     // the two lamps of each unit are the same: white below when running, red above when standing
     const red = lights === 'red', on = red ? '#ff3826' : '#fffaf0', glow = red ? '#ff2a14' : '#fff4c8';
     const housing = (x, lx, sx) => `<rect x="${x}" y="139" width="47.5" height="40" rx="7" fill="url(#hsg)" stroke="#8e949a" stroke-width="1.3"/>
