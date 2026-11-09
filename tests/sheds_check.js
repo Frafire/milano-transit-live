@@ -41,6 +41,10 @@ const lav = sheds.find(s => s.uso === 'lavaggio'); check(!!lav, 'the wash (lavag
 check(!notIn.length, `every train of the rimessa entirely inside the hall${notIn.length ? ': ' + notIn.map(x => 'track ' + x[0] + ' node ' + x[1] + ' ' + (x[2] == null ? '?' : Math.round(x[2] * 100) + '%')).join(', ') : ''}`);
 off.forEach(([x, u]) => { const k = M.duties.findIndex(ds => ds.some(d => d[2] === u)), tr = M.trains[k], f = inside((tr.segs || tr)[0][5], OP);
   console.log(`note ${x.units} in the officina: ${f == null ? '?' : Math.round(f * 100) + '%'} of the train under the roof`); });
+// the parking places of the officina (#A63-#A65, through tracks under its roof): the whole train inside (Giovanni 9 Nov)
+{ const nm = Object.fromEntries(M.net.depot.map(p => [String(p.node), p.name]));
+  const pk = Object.keys(M.depot_paths).filter(q => /A6[3-5]$/.test(nm[q] || '')).map(q => [nm[q], inside(q, OP)]);
+  check(pk.length === 3 && pk.every(([, f]) => f != null && f >= 0.999), `officina parking places entirely under its roof: ${pk.map(([n, f]) => n + ' ' + (f == null ? '?' : Math.round(f * 100) + '%')).join(', ')}`); }
 // the agents in the morning
 const day = L.runDay(M, D), ag = L.agents(M, D, t => L.posAt(day, t)), T0 = 4.5 * 3600, T1 = 7.5 * 3600;
 ag.start(T0, L.posAt(day, T0));

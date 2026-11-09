@@ -104,7 +104,14 @@
         + (x.section ? ' · via libera solo col binario libero fino al segnale successivo' : '')
         + (x.manual ? ' · manovrato dal giocatore (clic = via libera)' : '');
     }
-    return { fresh, ahead, request, release, clear, aspect, controlled, isManual, groupOf, sectionEnd, describe, zoneOf, zoneHolder, zoneAsk, zoneFree };
+    // where a signal is, in two or three words (the tooltip on the map; the rules in full are on its card): the name of its
+    // group or zone before the colon ("Deposito lato est")
+    function brief(si) {
+      const x = sig.get(si); if (!x) return '';
+      const g = x.groups.map(gi => groups[gi] && groups[gi].name).find(Boolean) || (x.zone != null && zones[x.zone] ? zones[x.zone].name : '');
+      return String(g || '').split(':')[0].trim();
+    }
+    return { fresh, ahead, request, release, clear, aspect, controlled, isManual, groupOf, sectionEnd, describe, brief, zoneOf, zoneHolder, zoneAsk, zoneFree };
   }
 
   const api = { create, NEAR, PASS, SECTION_MAX };

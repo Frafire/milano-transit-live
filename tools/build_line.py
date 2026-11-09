@@ -159,6 +159,26 @@ for _sh, _P in zip(SHEDS, SHED_XY):
         _router.LINK_FLAG[_li] = (ax_ + ux_ * far, ay_ + uy_ * far, hd_ne); _router.LINK_FLAG2[_li] = (ax_ + ux_ * near, ay_ + uy_ * near, (hd_ne + 180) % 360)
         RIMESSA_TRACKS[_li] = (round(t0, 1), round(t1, 1), round(pm, 1))
     print('rimessa: two places on %d through tracks, places of %s m' % (len(RIMESSA_TRACKS), sorted({v[2] for v in RIMESSA_TRACKS.values()})), sorted(RIMESSA_TRACKS))
+# the officina (uso manutenzione): one train on each through track that runs inside it (#A63-#A65, the parking places of
+# the officina), in the middle of the track's stretch under the roof, so that all of it stands inside (Giovanni 9 Nov 2026:
+# "riposiziona i treni ... dentro il capannone"); a track whose stretch inside is shorter than a train keeps its old place
+OFFICINA_TRACKS = {}
+for _sh, _P in zip(SHEDS, SHED_XY):
+    if _sh.get('uso') != 'manutenzione': continue
+    for _li, (_a, _b, _m) in enumerate(LINKS):
+        if _li in RIMESSA_TRACKS: continue
+        (ax_, ay_), (bx_, by_) = node_pos[_a], node_pos[_b]; L_ = math.hypot(bx_ - ax_, by_ - ay_) or 1; ux_, uy_ = (bx_ - ax_) / L_, (by_ - ay_) / L_
+        if not _inpoly(*node_pos[_m], _P): continue
+        ins = [t / 4 for t in range(-160, int(L_ * 4) + 161) if _inpoly(ax_ + ux_ * t / 4, ay_ + uy_ * t / 4, _P)]
+        if not ins or len(ins) < (ins[-1] - ins[0]) * 4 - 4: continue
+        t0, t1 = max(ins[0], 0.0), min(ins[-1], L_)            # (on the track itself: not past its ends)
+        if t1 - t0 < 2 * TRAIN_HALF + 1: print('officina: through track', _li, 'only', round(t1 - t0), 'm under the roof: place left as it was'); continue
+        ne_b = (bx_ - ax_) * math.sin(math.radians(50)) + (by_ - ay_) * math.cos(math.radians(50)) > 0
+        mid = (t0 + t1) / 2; far = mid + TRAIN_HALF if ne_b else mid - TRAIN_HALF
+        hd = math.degrees(math.atan2(ux_, uy_)) % 360; hd_ne = hd if ne_b else (hd + 180) % 360
+        _router.LINK_FLAG[_li] = (ax_ + ux_ * far, ay_ + uy_ * far, hd_ne)
+        OFFICINA_TRACKS[_li] = (round(t0, 1), round(t1, 1))
+    print('officina: one train in the middle of %d through tracks under its roof' % len(OFFICINA_TRACKS), {k: round(v[1] - v[0], 1) for k, v in sorted(OFFICINA_TRACKS.items())})
 SECOND = {}                     # link index -> second place node
 for _w, _f in _router.LINK_FLAG2_W.items():      # flags on the track just outside the building: the through track it leads to
     for _li, (_a, _b, _m) in enumerate(LINKS):
