@@ -9,8 +9,8 @@
      9.255078
     ],
     [
-     45.4309906,
-     9.2562837
+     45.4310031,
+     9.2563072
     ]
    ]
   },
@@ -23,8 +23,8 @@
      9.255035
     ],
     [
-     45.4310578,
-     9.256208
+     45.4310663,
+     9.2562229
     ]
    ]
   },
@@ -37,8 +37,8 @@
      9.254986
     ],
     [
-     45.4310993,
-     9.2561612
+     45.431105,
+     9.2561712
     ]
    ]
   },
@@ -51,8 +51,8 @@
      9.254922
     ],
     [
-     45.4311337,
-     9.2561225
+     45.431137,
+     9.2561285
     ]
    ]
   },
@@ -79,8 +79,8 @@
      9.254839
     ],
     [
-     45.4312171,
-     9.2560286
+     45.4312148,
+     9.2560245
     ]
    ]
   },
@@ -93,8 +93,8 @@
      9.254796
     ],
     [
-     45.4312492,
-     9.2559925
+     45.4312448,
+     9.2559844
     ]
    ]
   }
@@ -5184,5 +5184,5 @@
    "name": "Comasina binario 2 (arrivi): comunicazione dei tronchetti"
   }
  },
- "_tracks_note": "Binari tronchi dell'officina (A69-A75): finiscono tutti alla stessa altezza, quella di A71 (Giovanni 9/11/2026, sera)."
+ "_tracks_note": "Binari tronchi dell'officina (A69-A75): finiscono tutti sulla linea che passa per la fine di A71, parallela al muro nord-est dell'officina (Giovanni 9/11/2026, sera)."
 }

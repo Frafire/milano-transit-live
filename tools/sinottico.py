@@ -91,12 +91,39 @@ def deposito(m3='m3.json', start=(4, 5)):
         elif e['b'] in keep: part[str(ei)] = [round(max(0, f - 0.08), 3), 1]
     out_e = [ei for ei in edges if ei in sig_e or (E[ei]['a'] in keep and E[ei]['b'] in keep)]
     dropped = sorted(set(edges) - set(out_e))
+    # (Giovanni 9 Nov 2026, the Rogoredo board: level lines and 45 degrees, no curves; the bends from the real track only
+    # with CURVE=1)
     via = {}
-    for ei in out_e:
+    for ei in (out_e if os.environ.get('CURVE') else []):
         e = E[ei]; A, B = N.get(str(e['a'])), N.get(str(e['b']))
         if not A or not B or str(ei) in part or e.get('cat') == 'test': continue
         v = bends(dec(e['p']), A, B)
         if v: via[str(ei)] = v
+    # a switch drawn with all its three pieces going off the same side (Giovanni: "i nodi alcune volte sembrano molto
+    # strani"): its trunk (the piece that leaves the other way in the real track) goes out the other side and turns
+    # round, with 45-degree corners, to its far node, as the loop on the Rogoredo board
+    deg = collections.Counter(n for ei in out_e for n in (E[ei]['a'], E[ei]['b']))
+    def tang(ei, n):
+        P = dec(E[ei]['p']); a, b = (P[0], P[min(len(P) - 1, 3)]) if E[ei]['a'] == n else (P[-1], P[max(0, len(P) - 4)])
+        return math.atan2(b[1] - a[1], b[0] - a[0])
+    ang = lambda x, y: min(abs(x - y) % (2 * math.pi), 2 * math.pi - abs(x - y) % (2 * math.pi))
+    turned = []
+    for n, k in deg.items():
+        if k != 3 or str(n) not in N: continue
+        eis = [ei for ei in out_e if n in (E[ei]['a'], E[ei]['b']) and str(ei) not in part]
+        if len(eis) != 3: continue
+        far = lambda ei: E[ei]['b'] if E[ei]['a'] == n else E[ei]['a']
+        P = N[str(n)]; xs = [N[str(far(ei))][0] - P[0] for ei in eis]
+        if not (all(x > 3 for x in xs) or all(x < -3 for x in xs)): continue
+        t = {ei: tang(ei, n) for ei in eis}; tr = max(eis, key=lambda ei: sum(ang(t[ei], t[o]) for o in eis if o != ei))
+        Q = N[str(far(tr))]; sx = 1 if xs[0] > 0 else -1; G, R = 16, 10
+        up = -1 if Q[1] < P[1] else 1
+        x1 = P[0] - sx * G
+        v = [[x1, P[1]], [x1 - sx * R, P[1] + up * R], [x1 - sx * R, Q[1] - up * R], [x1, Q[1]]]
+        if abs(Q[1] - P[1]) < 2 * R + 2: v = [[x1, P[1]], [x1 - sx * R, P[1] + up * R], [x1, Q[1]]]
+        if E[tr]['a'] != n: v = v[::-1]
+        via[str(tr)] = v; turned.append((n, tr))
+    if turned: print('switches turned round (the trunk out the other side):', turned)
     used = {str(E[ei]['a']) for ei in out_e} | {str(E[ei]['b']) for ei in out_e}
     S['edges'] = out_e; S['nodes'] = {k: v for k, v in N.items() if k in used}; S['via'] = via; S['part'] = part
     # (the signals all stay in the file, the ones of the station too: the San Donato tails' signals are read from here by

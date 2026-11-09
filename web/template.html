@@ -321,7 +321,10 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .rodname { font-weight: 700; }
 #depotPlan { --sin-bg: #0b2a5b; --sin-hd: #08204a; --sin-tk: #93a3b8; position: fixed; inset: 3vh 3vw; z-index: 3000; background: var(--sin-bg); color: #e8eef6; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.6); display: flex; flex-direction: column; overflow: hidden; }
 #depotPlan[hidden] { display: none; }
-#depotPlan .dp-hd { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; background: var(--sin-hd); border-bottom: 1px solid rgba(255,255,255,.12); font: 14px var(--display); } #depotPlan .dp-hd span { color: #a9bad0; font-size: 12px; flex: 1; min-width: 200px; }
+#depotPlan.line { --sin-bg: #a3a8d0; --sin-tk: #2f86dc; color: #1d2140; }
+#depotPlan.line .tk { stroke: #2f86dc; stroke-width: 2.6; } #depotPlan.line .tk.main { stroke: #36c93a; stroke-width: 3.2; } #depotPlan.line text { fill: #1d2140; } #depotPlan.line .lab { fill: #1d2140; }
+#depotPlan.line .lit { stroke: #ffffff; stroke-width: 3.6; } #depotPlan.line .occ { stroke: #e8402a; } #depotPlan.line .sg { stroke: #1d2140; } #depotPlan.line .sgn { fill: #1d2140; }
+#depotPlan .dp-hd { color: #e8eef6; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; background: var(--sin-hd); border-bottom: 1px solid rgba(255,255,255,.12); font: 14px var(--display); } #depotPlan .dp-hd span { color: #a9bad0; font-size: 12px; flex: 1; min-width: 200px; }
 #depotPlan .dp-hd button { background: #e8eef6; color: #0b2a5b; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; font: 600 13px var(--display); } #depotPlan #dpIn, #depotPlan #dpOut { padding: 6px 10px; min-width: 32px; }
 #depotPlan .dp-sw { display: flex; border: 1px solid rgba(255,255,255,.25); border-radius: 6px; overflow: hidden; } #depotPlan .dp-sw button { border-radius: 0; background: none; color: #e8eef6; } #depotPlan .dp-sw button[aria-pressed="true"] { background: #ffcf3f; color: #111; }
 #depotPlan .dp-body { flex: 1; overflow: auto; } #depotPlan .dp-none { padding: 20px; color: #cfdbe9; }
@@ -3889,7 +3892,21 @@ window.MTL_CAPS = __CAPS__;
     return s + 'L' + P1(P[P.length - 1]);
   }
   // the whole drawn line of a piece (its bends, else horizontal then 45 degrees), before cutting it to its part
-  function sinFull(N, V, e, ei) { const p = N[e.a], q = N[e.b]; if (!p || !q) return null; const v = V[ei]; return v && v.length ? [p, ...v, q] : octi(p, q); }
+  // (as on the panels, Giovanni 9 Nov 2026, the Rogoredo depot board: a piece leaving a switch goes off it at 45 degrees and
+  // then runs level; between two switches, or two plain nodes, the slant in the middle)
+  var SIN_DEG = {};
+  function octiSw(p, q, swA, swB) {
+    const dx = q[0] - p[0], dy = q[1] - p[1], ax = Math.abs(dx), ay = Math.abs(dy), sx = Math.sign(dx) || 1;
+    if (ay < 0.5 || ax < 0.5) return [p, q];
+    if (ax < ay) { const sy = Math.sign(dy);                          // (steep: upright, the slant at the switch end)
+      if (swA && !swB) return [p, [q[0], p[1] + sy * ax], q];
+      if (swB && !swA) return [p, [p[0], q[1] - sy * ax], q];
+      const m = (p[1] + q[1]) / 2; return [p, [p[0], m - sy * ax / 2], [q[0], m + sy * ax / 2], q]; }
+    if (swA && !swB) return [p, [p[0] + sx * ay, q[1]], q];
+    if (swB && !swA) return [p, [q[0] - sx * ay, p[1]], q];
+    const m = (p[0] + q[0]) / 2; return [p, [m - sx * ay / 2, p[1]], [m + sx * ay / 2, q[1]], q];
+  }
+  function sinFull(N, V, e, ei) { const p = N[e.a], q = N[e.b]; if (!p || !q) return null; const v = V[ei]; return v && v.length ? [p, ...v, q] : octiSw(p, q, (SIN_DEG[e.a] || 0) >= 3, (SIN_DEG[e.b] || 0) >= 3); }
   const sinPart = (SCH, ei) => (SCH.part && SCH.part[ei]) || [0, 1];
   // what is on each piece now: the stretches with a train (red) and the routes set (white), as 0-1 of the piece from its
   // node a; and where each train is (its number on the piece under its middle)
@@ -3941,6 +3958,8 @@ window.MTL_CAPS = __CAPS__;
     if (!SCH) { body.innerHTML = `<p class="dp-none">${SIN_WHICH === 'line' ? 'Sinottico della linea mancante: fallo con tools/sinottico.py linea (data/sinottico_linea_m3.json).' : 'Schema del deposito mancante.'}</p>`; return; }
     const NE = F.engine.net.edges, N = schNodes(SCH), V = schVia(SCH), SE = new Set(SCH.edges), live = sinLive(F, SE), fi = fleets.indexOf(F);
     const at = {}; SCH.edges.forEach(ei => { const e = NE[ei]; [e.a, e.b].forEach(n => { (at[n] = at[n] || []).push(ei); }); });
+    SIN_DEG = {}; for (const [n, l] of Object.entries(at)) SIN_DEG[n] = l.length;
+    planEl.classList.toggle('line', SIN_WHICH === 'line');
     // the switches: the position (two pieces) from the route interlocking, or from a train on it, or the last one seen
     const rt = F.ag.rt(), pos = {};
     for (const [n, list] of Object.entries(at)) { if (list.length < 3) continue;
