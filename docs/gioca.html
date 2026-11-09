@@ -6848,9 +6848,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // still does not fit, running from right to left without end (Giovanni 7 Nov: "Assago Milanofiori Forum" does not fit)
   let LEDN = 0;
   function ledDest(txt, x0, x1, yMid, pMax, pMin, fill, filt) {
-    const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
+    const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[ch.toUpperCase()] || F57[' '])[0].length + 1, -1);
     const dots = (t, x, p) => { let out = ''; const y = yMid - 3.5 * p;
-      for (const ch of t) { const g = F57[ch] || F57[' '];
+      for (const ch of t) { const g = F57[ch] || F57[ch.toUpperCase()] || F57[' '];
         for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .43).toFixed(2)}"/>`;
         x += (g[0].length + 1) * p; }
       return out; };
@@ -6870,7 +6870,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // the two grilles and the coupler, the grey underframe under it.
   function leonardoSVG(dest, lights, no, livery, X) {
     X = Object.assign({ comune: true, handle: true }, X || {});      // approved by Giovanni, 7 Nov 2026: handle and the Comune's small logo, no lettering
-    const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 3);
+    const txt = (t => /[A-Z]/.test(t) ? t : t.toUpperCase())(String(dest || '').replace(/[^A-Za-z0-9 .'-]/g, '')), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 3);
     const L = { black: { body: ['#2c2d30', '#202124'], band: ['#86ef6d', '#4cc93a', '#2f9d27'] },
                 green: { body: ['#5cb64f', '#3f9a37'], band: ['#ffffff', '#e4e7ea', '#aeb5bc'] },
                 red: { body: ['#2c2d30', '#202124'], band: ['#ff8a78', '#e8392b', '#a8201a'] },
@@ -6887,7 +6887,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       <path d="M${cx - 44} 727 A44 44 0 0 1 ${cx + 44} 727" fill="none" stroke="${red ? '#c42a1f' : '#c9ced3'}" stroke-width="2"/>
       ${red ? `<circle cx="${cx}" cy="705" r="44" fill="url(#lrd)" filter="url(#lbl)"/>` : `<circle cx="${cx}" cy="727" r="44" fill="url(#lwh)" filter="url(#lbl)"/>`}
       <circle cx="${cx}" cy="727" r="27" fill="#b9bec3" stroke="#7d848a" stroke-width="2.5"/>
-      <circle cx="${cx}" cy="727" r="16.5" fill="none" stroke="#7f868c" stroke-width="5"/>
+      <circle cx="${cx}" cy="727" r="19" fill="none" stroke="#7f868c" stroke-width="10"/>
       <circle cx="${cx}" cy="727" r="13" fill="${red ? '#3a3d41' : '#ffffff'}" stroke="${red ? '#1f2124' : '#c9ced3'}" stroke-width="3"/>`;   // a thin grey rim round the lamp (Giovanni 9 Nov)
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 30 1010 1000">
       <defs>
@@ -6946,7 +6946,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   function meneghinoM2SVG(dest, lights, no, edge) {
     // (coordinates measured on the photos of 958, 956, 954, 941: the front is 255 wide; grey, yellow edges, the upper
     // part black and narrowing towards the roof)
-    const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
+    const txt = (t => /[A-Z]/.test(t) ? t : t.toUpperCase())(String(dest || '').replace(/[^A-Za-z0-9 .'-]/g, '')), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
     // the sign, one display: the train number in green on the left, the destination in orange in the middle
     const V = { x: 38, y: 12, w: 185, h: 21 };
     const ledText = (t, x0, p, fill) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;

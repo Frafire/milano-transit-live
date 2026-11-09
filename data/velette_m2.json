@@ -1,0 +1,18 @@
+{
+ "_nota": "Cosa scrive la veletta dei treni M2 per ogni destinazione dell'orario ATM (GTFS, trip_headsign), da Giovanni (9/11/2026). Le scritte si scrivono come sono (maiuscole e minuscole). 'speciali': scritte che non vengono dall'orario. 'abbreviate': solo sui treni elencati (data/flotta_m2.json, velette).",
+ "destinazioni": {
+  "abbiategrasso": "ABBIATEGRASSO",
+  "gessate": "GESSATE",
+  "assago milanofiori forum": "ASSAGO MILANO FORUM",
+  "cologno nord": "COLOGNO NORD",
+  "cascina gobba": "CASCINA GOBBA",
+  "lambrate fs": "LAMBRATE FS"
+ },
+ "note": {
+  "lambrate fs": "limitazione serale per i lavori di potenziamento dell'infrastruttura del gestore"
+ },
+ "speciali": [
+  "FUORI SERVIZIO",
+  "PorteAperteATM"
+ ]
+}
