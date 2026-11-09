@@ -96,13 +96,28 @@ def build(nome):
                         if o is not None and abs(t - base[s] - o) <= 150: dif.append(t - o)
                     if len(dif) >= 8: off[s] = statistics.median(dif); off_src[s] = 'pdf'; continue
                 off[s] = base[s]; off_src[s] = 'oggi (PROPOSTA)'
-            # 2. every time seen, back at the origin: runs
-            pts = sorted((t - off[s], s, t) for s in seen for t in seen[s])
+            # 2. the runs, station after station: a time at a station is the run whose time at the station before, plus the
+            # time between the two, is the nearest (within 2 minutes and a bit; the first runs of the day, by hand, are
+            # slower: matched station by station they stay one run); a time with no run behind it starts one (a run seen
+            # first after the "ogni" stretch)
             runs = []
-            for o, s, t in pts:
-                if runs and o - runs[-1]['o'] <= 90 and s not in runs[-1]['seen']:
-                    r = runs[-1]; r['seen'][s] = t; r['os'].append(o); r['o'] = statistics.median(r['os'])
-                else: runs.append({'o': o, 'os': [o], 'seen': {s: t}})
+            for i, s in enumerate(order):
+                ts = seen.get(s, [])
+                pred = []
+                for r in runs:
+                    ls, lt = r['last']; pred.append((lt + off[s] - off[ls], r))
+                used = set()
+                for t in ts:
+                    best = None
+                    for pt, r in pred:
+                        if id(r) in used: continue
+                        ls = r['last'][0]; tol = 120 + 0.12 * (off[s] - off[ls])
+                        if abs(t - pt) <= tol and (best is None or abs(t - pt) < abs(t - best[0])): best = (pt, r)
+                    if best: r = best[1]; used.add(id(r)); r['seen'][s] = t; r['last'] = (s, t)
+                    else: r = {'seen': {s: t}, 'last': (s, t)}; runs.append(r); used.add(id(r))
+            for r in runs:
+                f = next(s for s in order if s in r['seen']); r['o'] = r['seen'][f] - off[f]
+            runs.sort(key=lambda r: r['o'])
             # 3. the gaps in the "ogni" stretch: filled (PROPOSTA)
             added = 0
             if band:
@@ -132,8 +147,11 @@ def build(nome):
             # 4. every run at every station
             for r in runs:
                 o = round(r['o']); times = {}
-                for s in order:
-                    times[s] = r['seen'].get(s, o + round(off[s]))
+                # (a station not seen: from the nearest one seen before it, else from the first seen after it)
+                for j, s in enumerate(order):
+                    if s in r['seen']: times[s] = r['seen'][s]; continue
+                    back = [x for x in order[:j] if x in r['seen']]; fwd = [x for x in order[j + 1:] if x in r['seen']]
+                    times[s] = (r['seen'][back[-1]] + round(off[s] - off[back[-1]])) if back else (r['seen'][fwd[0]] - round(off[fwd[0]] - off[s])) if fwd else o + round(off[s])
                 # (in order: a seen time never before the one at the station behind)
                 prev = None
                 for s in order:
