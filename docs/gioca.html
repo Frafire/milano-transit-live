@@ -855,6 +855,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .dposto, .dbin { display: inline-block; transform: translate(-50%, -50%); font: 700 10px var(--body); white-space: nowrap; padding: 0 3px; border-radius: 2px; pointer-events: none; }
 .dposto { color: #111; background: #ff9f1c; }
 .dposto.dlav { background: #4db3ff; }
+.dposto.shedname { background: var(--c); opacity: .85; font-size: 11px; }
 .dbin { color: #fff; background: #1d2226; border: 1px solid #ff9f1c; }
 .deptab { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; } .deptab th, .deptab td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .deptab th { color: var(--muted); font-weight: 600; } .deptab .muted { color: var(--muted); } .deptab td.n { text-align: right; font-variant-numeric: tabular-nums; } .deptab td:last-child { white-space: nowrap; } .deptab small { display: block; color: var(--muted); font-size: 11px; }
@@ -1563,6 +1564,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
           out.push([Math.max(a0, c0), Math.min(a1, c1), Math.max(v - cm, 15 / 3.6), Math.max(raw - cm, 15 / 3.6), sc]);
         }));
       }
+      // the depot sheds (data/capannoni_m3.json): at most shed_speed_kmh while any part of the train is inside (Giovanni)
+      if (pe.sheds && ops.shed_speed_kmh) { const vs = ops.shed_speed_kmh / 3.6; pe.sheds.forEach(([s0, s1]) => out.push([s0, s1, vs, vs, 0])); }
       pe.div.forEach(x => { const d = Array.isArray(x) ? x[0] : x, j = Array.isArray(x) && speeds ? speeds['J' + x[1]] : null;
         const vj = j != null ? j / 3.6 : div; out.push([d - w, d + w, vj, vj, 0]); });
       return out.sort((x, y) => x[0] - y[0]);
@@ -5558,7 +5561,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const msgs = [], keep = {}, U = i => (F.stock || []).findIndex(x => String(x.units) === i.units);
     const T = F.trains.map((tr, k) => ({ tr, k, tab: isTab(tr), kind: startKind(tr), dep: firstDep(tr) }));
     // (a short unit, as the 3 cars of 8105-8106, never runs a tabella: only test laps)
-    const ok = i => { const x = F.stock[U(i)]; return !!x && !(x.cars && x.cars < 6) && !inMaint(i.units) && (!x.trial || ADMIT.has(String(x.units))); };
+    const ok = i => { const x = F.stock[U(i)]; return !!x && !x.officina && !(x.cars && x.cars < 6) && !inMaint(i.units) && (!x.trial || ADMIT.has(String(x.units))); };
     const pool = { D: [], C: [], S: [] }; inv.forEach(i => { if (U(i) >= 0) (pool[i.kind] || pool.D).push(i); });
     // the termini first: their tabelle take the trains sleeping there; the trains over go to the depot in the night
     for (const K of ['C', 'S']) {
@@ -6731,7 +6734,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (st.trip >= 0) { title = '→ <span class="cap">' + trips[st.trip].h + '</span>'; what = st.label; }
     else if (a && a.mode !== 'plan' && a.status === 'service' && a.to != null) { title = '→ <span class="cap">' + cap(F.engine.G.names[a.to]) + '</span>'; what = cardSub(st); }
     const no = F.bus ? 'Bus ' + (rt ? rt.n : tr.n) : 'Treno ' + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n);
-    const stTxt = F.trips ? '<span class="st on">in servizio</span>' : trial ? '<span class="st trial">in prova</span>' : inServ ? '<span class="st on">in servizio</span>' : '<span class="st off">fuori servizio</span>';
+    const stTxt = F.trips ? '<span class="st on">in servizio</span>' : trial ? '<span class="st trial">in prova</span>' : rt && rt.officina ? '<span class="st off">in officina</span>' : inServ ? '<span class="st on">in servizio</span>' : '<span class="st off">fuori servizio</span>';
     // the facts of the train
     const info = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>' : rt.none ? ''
       : `<p class="info">${(rt.built ? [rt.units, rt.type, rt.built, rt.note] : [rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note]).filter(Boolean).join(rt.built ? ' · ' : ' · ')}</p>`)
@@ -7770,7 +7773,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     // clicked by (6 Nov 2026: a signal he placed on the left of its track was moved to the track beside it)
     return best && any && best.d - any.d <= 1.5 ? best : any; }
   // the tests' way in (tests/m2_editor_check.js): no state, only the tracks of the page, and where the signals are drawn at level 19
-  window.__mtlFronts = { leonardo: leonardoSVG, meneghinoM2: meneghinoM2SVG, url: trainFront };
+  window.__mtlFronts = { leonardo: leonardoSVG, meneghinoM2: meneghinoM2SVG, url: trainFront, scr: { W: SCR.W, txtW } };     // scr: tests/velette_m3_check.js
   window.__mtlKit = { draw: o => { const c = o.type === 'shunt' ? kitShunt(!!o.go, o.mount) : o.type === 'marm' ? kitMarm(o.go ? 'via' : 'stop') : o.type === 'rall' ? kitRall(o.kmh, o.mount) : o.type === 'speedind' ? kitSpeedInd(o.kmh) : kitSprite({ ...o, lit: o.lit || ['R'], pOn: o.p === 'luminosa', dirOn: 'R' }); return [c.toDataURL(), c.width, c.height]; }, placed: () => KITPLACED.map(([sg, m]) => ({ lat: sg.lat, lon: sg.lon, mlat: m.getLatLng().lat, mlon: m.getLatLng().lng })), trackFor: (lat, lon, heading, right, line) => { const c = kitTrackFor([lat, lon], heading, right, line || 'M2'); return c && { w: c.w, dir: c.dir, heading: c.heading, side: c.side, d: c.d }; } };
   // nearest track to a click, with the point on it and the track's own direction there
   function snap(latlng, tol = 18) {
@@ -7994,6 +7997,19 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       (peak ? `Top speed it needs (accelerating and braking at ${a} m/s²): <b>${Math.round(peak)} km/h</b>` : `Not possible in ${T} s with ${a} m/s²`) +
       `<br>Simulation now: ${sim ? Math.round(sim) + ' s' : '–'} · timetable: ${Math.round(x.plan)} s`;
   };
+  // ---- the M3 depot sheds (data/capannoni_m3.json, traced on Giovanni's satellite photo, 9 Nov): rimessa and officina ----
+  {
+    const shedLayer = L.layerGroup();
+    (FLEETDATA ? FLEETDATA.fleets : []).filter(F => F.line === 'M3').flatMap(F => F.sheds || []).forEach(sh => {
+      const col = sh.uso === 'manutenzione' ? '#4db3ff' : '#ff9f1c';
+      L.polygon(sh.pts, { color: col, weight: 1.5, opacity: .8, dashArray: '5 4', fillColor: col, fillOpacity: .07, interactive: false }).addTo(shedLayer);
+      // the name towards the far end (the trains stand at the fan end), above the trains
+      const g = [sh.pts.reduce((a, p) => a + p[0], 0) / sh.pts.length, sh.pts.reduce((a, p) => a + p[1], 0) / sh.pts.length], e = sh.pts.length === 4 ? [(sh.pts[2][0] + sh.pts[3][0]) / 2, (sh.pts[2][1] + sh.pts[3][1]) / 2] : g;
+      const c = [g[0] * .3 + e[0] * .7, g[1] * .3 + e[1] * .7];
+      L.marker(c, { interactive: false, keyboard: false, zIndexOffset: 800, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span class="dposto shedname" style="--c:${col}">${sh.nome}</span>` }) }).addTo(shedLayer); });
+    const sz = () => { if (map.getZoom() >= 15) shedLayer.addTo(map); else map.removeLayer(shedLayer); };
+    map.on('zoomend', sz); sz();
+  }
   // ---- M3 platforms: where every station starts and ends, on both tracks ----
   const m3platLayer = L.layerGroup();
   let showPlat = false;
@@ -8664,7 +8680,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const rows = F.trains.map((tr, k) => ({ tr, k, r: realTrain(F, tr, state.t), tab: isTab(tr), dep: firstDep(tr) }));
     const tabs = rows.filter(x => x.tab).sort((a, b) => a.dep - b.dep), res = rows.filter(x => !x.tab && !x.tr.cover && x.r && !x.r.none);
     const canSwap = x => startKind(x.tr) === 'D' && standing(F, x.k);
-    const usable = y => y.r && !y.r.none && !y.r.missing && !(y.r.cars && y.r.cars < 6) && !inMaint(y.r.units) && (!(F.stock[y.r.u] || {}).trial || ADMIT.has(String(y.r.units)));
+    const usable = y => y.r && !y.r.none && !y.r.missing && !y.r.officina && !(y.r.cars && y.r.cars < 6) && !inMaint(y.r.units) && (!(F.stock[y.r.u] || {}).trial || ADMIT.has(String(y.r.units)));
     const opts = x => [...tabs, ...res].filter(y => y !== x && canSwap(y) && usable(y));
     const row = x => { const can = canSwap(x), o = can ? opts(x) : [];
       return `<li><span><b>Tabella ${x.tr.n}</b><small>parte alle ${fmt(x.dep)} da ${placeTxt(x.tr)}${F.depot && F.depot.at[x.k] != null ? ' (' + depotName(F, F.depot.at[x.k]) + ')' : ''}</small></span>
@@ -8674,7 +8690,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     card.innerHTML = `<div class="hd"><div><h2>Turni del giorno</h2><div class="sub">${DAYS[dayPick]} · ${tabs.length} tabelle · un treno per tabella tutto il giorno</div></div></div>
       <p class="note">Si cambia il treno di una tabella finché i due treni sono ancora fermi al loro posto in deposito: ognuno parte poi dal posto dell'altro.</p>
       <ul class="pclist">${tabs.map(row).join('')}</ul>
-      <div class="pclbl">Riserva in deposito</div><ul class="pclist">${res.map(x => `<li><span><b>${x.r.units}</b><small>${F.depot && F.depot.at[x.k] != null ? depotName(F, F.depot.at[x.k]) : ''}${inMaint(x.r.units) ? ' · in manutenzione ancora ' + MAINT[x.r.units] + (MAINT[x.r.units] === 1 ? ' giorno' : ' giorni') : (F.stock[x.r.u] || {}).trial && !ADMIT.has(String(x.r.units)) ? ' · in prova' : ''}</small></span></li>`).join('') || '<li><span><small>nessuno</small></span></li>'}</ul>
+      <div class="pclbl">Riserva in deposito</div><ul class="pclist">${res.map(x => `<li><span><b>${x.r.units}</b><small>${F.depot && F.depot.at[x.k] != null ? depotName(F, F.depot.at[x.k]) : ''}${x.r.officina ? ' · in officina (manutenzione)' : inMaint(x.r.units) ? ' · in manutenzione ancora ' + MAINT[x.r.units] + (MAINT[x.r.units] === 1 ? ' giorno' : ' giorni') : (F.stock[x.r.u] || {}).trial && !ADMIT.has(String(x.r.units)) ? ' · in prova' : ''}</small></span></li>`).join('') || '<li><span><small>nessuno</small></span></li>'}</ul>
       ${maint.length ? `<p class="note">In manutenzione: ${maint.map(([u, d]) => u + ' (ancora ' + d + (d === 1 ? ' giorno)' : ' giorni)')).join(', ')}.</p>` : ''}
       <div class="foot"><span></span><button id="cardClose">Chiudi</button></div>`;
     card.hidden = false;
@@ -8721,7 +8737,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // a tabella without its train for the rest of the day: its train taken out of the service (or broken), no reserve yet
   const uncovered = (F, m) => { const a = F.ag.agents()[m], tr = F.trains[m]; return isTab(tr) && !tr.cover && !tr.coveredBy && a && (a.mode !== 'plan' || !!a.wdWant); };
   const reserves = F => F.trains.map((tr, k) => ({ tr, k, r: realTrain(F, tr, state.t) })).filter(x => !isTab(x.tr) && !x.tr.cover && standing(F, x.k)
-    && x.r && !x.r.none && !x.r.missing && !(x.r.cars && x.r.cars < 6) && !inMaint(x.r.units) && (!(F.stock[x.r.u] || {}).trial || ADMIT.has(String(x.r.units))));
+    && x.r && !x.r.none && !x.r.missing && !x.r.officina && !(x.r.cars && x.r.cars < 6) && !inMaint(x.r.units) && (!(F.stock[x.r.u] || {}).trial || ADMIT.has(String(x.r.units))));
   function withdraw(F, k) {
     const a = F.ag.agents()[k], no = realTrain(F, F.trains[k], state.t); if (!a || a.mode !== 'plan' || a.wdWant || !no) return false;
     if (standing(F, k)) { if (!F.ag.event({ kind: 'regola', what: 'keep', k })) return false; say('DCT', tx('dct.regola.trattieni', { treno: no.n }), 'pc'); return true; }
@@ -8766,7 +8782,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // platform of Comasina: the station has its trains again for the next day ----
   const comReserves = F => F.trains.map((tr, k) => ({ tr, k, r: realTrain(F, tr, state.t), a: F.ag.agents()[k] })).filter(x => !isTab(x.tr) && !x.tr.cover
     && /comasina/i.test((x.tr.where || [])[0] || '') && x.tr.segs.length === 1 && x.tr.segs[0][3][0] >= 29 * 3600 && x.a && !x.a.hidden && x.a.v === 0
-    && x.r && !x.r.none && !x.r.missing && !inMaint(x.r.units));
+    && x.r && !x.r.none && !x.r.missing && !x.r.officina && !inMaint(x.r.units));
   function insertComReserve(F, k, m) {
     const R = F.trains[k], T = F.trains[m], a = F.ag.agents()[k], pe = F.engine.pathEdges, last = F.engine.G.names.length - 1;
     if (!a || !comReserves(F).some(x => x.k === k) || !uncovered(F, m)) return null;
