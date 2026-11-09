@@ -1,47 +1,49 @@
 {
-  "_about": "I capannoni del deposito di San Donato (M3), ricalcati sulla foto satellitare di Giovanni (9/11/2026) allineata ai binari del gioco (circa +-5 m). PROPOSTA: gli spigoli sono letti dalla foto, non da un rilievo. Dentro, i treni vanno al massimo a shed_speed_kmh (data/operations_m3.json) finché non ne sono usciti tutti.",
+  "_about": "I capannoni del deposito di San Donato (M3), ricalcati sulle foto satellitari di Giovanni del 9/11/2026: la foto larga allineata ai binari del gioco sull'anello attorno al bosco, la foto ravvicinata allineata alla larga con i due segnaposto ATM; gli spigoli letti dai bordi dei tetti (circa +-3% sulle misure, +-5 m sulla posizione). PROPOSTA: non è un rilievo. Rimessa vetture circa 226 x 53 m (solo la sala con i lucernari gialli, senza la striscia scura a nord-ovest), officina circa 148 x 71 m. Dentro, i treni vanno al massimo a shed_speed_kmh (data/operations_m3.json) finché non ne sono usciti tutti.",
   "capannoni": [
     {
       "nome": "Rimessa vetture",
       "uso": "rimessa",
       "pts": [
         [
-          45.430918,
-          9.253293
+          45.431007,
+          9.253248
         ],
         [
-          45.430442,
-          9.253888
+          45.430632,
+          9.253674
         ],
         [
-          45.432207,
-          9.257043
+          45.43193,
+          9.255901
         ],
         [
-          45.432755,
-          9.256352
+          45.432304,
+          9.255474
         ]
-      ]
+      ],
+      "posto_m": 110,
+      "_posto_m": "Prova di Giovanni (9/11/2026): due posti per binario dentro la rimessa. Da 115 m non ci stanno (230 m su circa 226); da 110 m sì (220 m, 3 m di margine per parte). I posti sono centrati nella sala; il treno (105 m) sta al centro del suo posto. Vale per i binari passanti che stanno nella sala; quelli all'aperto e in officina restano con le bandiere di Giovanni."
     },
     {
       "nome": "Officina manutenzione",
       "uso": "manutenzione",
       "pts": [
         [
-          45.430769,
-          9.255251
+          45.430851,
+          9.254634
         ],
         [
-          45.430217,
-          9.256064
+          45.430364,
+          9.255226
         ],
         [
-          45.431295,
-          9.258067
+          45.431228,
+          9.256697
         ],
         [
-          45.431879,
-          9.257216
+          45.431699,
+          9.256074
         ]
       ]
     }

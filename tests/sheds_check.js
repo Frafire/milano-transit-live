@@ -25,6 +25,20 @@ off.forEach(([x, u]) => {
   check(!!(still && ll && inpoly(ll, offShed.pts)), `${x.units}: stands all day at a place inside the officina (node ${place})`);
   check(!M.duties[k].some(d => d[2] !== u), `${x.units}: no other train on its timeline, no tabella`);
 });
+// the rimessa: two places of posto_m on each of its through tracks, both trains entirely inside the hall (Giovanni 9 Nov:
+// 115 m do not fit, 110 m do); the officina trains: where they stand, how much of them is inside
+const KXY = ([la, lo]) => [(lo - 9.19) * L.KX, (la - 45.46) * L.KY], pos = L.posOf(M);
+const inXY = (q, P) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [x1, y1] = P[i], [x2, y2] = P[j];
+  if ((y1 > q[1]) !== (y2 > q[1]) && q[0] < (x2 - x1) * (q[1] - y1) / (y2 - y1) + x1) c = !c; } return c; };
+const rim = sheds.find(s => s.uso === 'rimessa'), RP = rim.pts.map(KXY), OP = offShed.pts.map(KXY);
+const inside = (node, P) => { const r = M.depot_paths[String(node)]; if (!r) return null; const o = Object.values(r.out)[0]; if (!o) return null;
+  let n = 0, k = 0; for (let d = o.start - H; d <= o.start + H + 1e-6; d += 1) { k++; if (inXY(pos(o.pid, d), P)) n++; } return n / k; };
+const RT = Object.entries((M.rimessa || {}).tracks || {});
+const notIn = RT.flatMap(([li, ns]) => ns.filter(n => n != null).map(n => [li, n, inside(n, RP)])).filter(x => x[2] == null || x[2] < 0.999);
+check(M.rimessa && M.rimessa.posto_m === 110 && RT.length >= 8 && RT.every(([, ns]) => ns.every(n => n != null)), `rimessa: two places of ${M.rimessa && M.rimessa.posto_m} m on ${RT.length} tracks`);
+check(!notIn.length, `every train of the rimessa entirely inside the hall${notIn.length ? ': ' + notIn.map(x => 'track ' + x[0] + ' node ' + x[1] + ' ' + (x[2] == null ? '?' : Math.round(x[2] * 100) + '%')).join(', ') : ''}`);
+off.forEach(([x, u]) => { const k = M.duties.findIndex(ds => ds.some(d => d[2] === u)), tr = M.trains[k], f = inside((tr.segs || tr)[0][5], OP);
+  console.log(`note ${x.units} in the officina: ${f == null ? '?' : Math.round(f * 100) + '%'} of the train under the roof`); });
 // the agents in the morning
 const day = L.runDay(M, D), ag = L.agents(M, D, t => L.posAt(day, t)), T0 = 4.5 * 3600, T1 = 7.5 * 3600;
 ag.start(T0, L.posAt(day, T0));
