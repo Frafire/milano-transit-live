@@ -374,6 +374,9 @@ if LINE == 'M3' and _TSL.get('positions') and CFG.get('com_night', True):
             if (_t, _p) not in _eslots: _eslots.append((_t, _p))
     _eslots.append(('P', None))
     if COM_RESERVE_SLOT: _eslots.remove(COM_RESERVE_SLOT)                 # (the reserve stands there: nobody else goes in)
+    # more trains than places (the reserve took one): the earliest of the last ones goes back to the depot, not the
+    # latest (with every position 1 taken for the night it would wait for a free tail for ever: Expo 2015, Sunday)
+    if len(_ends) > len(_eslots): _ends = _ends[:1] + _ends[1:][len(_ends) - len(_eslots):]
     NIGHT_COM_END = {c[-1]['train']: (sl[0] if sl[0] != 'P' else None) for c, sl in zip(_ends, _eslots)}
     NIGHT_COM_POS_END = {c[-1]['train']: sl for c, sl in zip(_ends, _eslots)}
     print('Comasina at night: morning', {k: v for k, v in NIGHT_COM_POS.items()}, '| evening', {k: v for k, v in NIGHT_COM_POS_END.items()})

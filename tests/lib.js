@@ -114,7 +114,7 @@ function driveDay(M, D) {
   const ag = agents(M, D, null, { record });
   const T0 = Math.min(...M.trains.map(s => s[0][3][0])) - 60, T1 = Math.max(...M.trains.map(s => s[s.length - 1][3][s[s.length - 1][3].length - 1])) + 1800;
   ag.start(T0, dayStart(M));
-  for (let t = T0; t < T1; t += 600) ag.step(Math.min(T1, t + 600));
+  for (let t = T0; t < T1; t += 600) { if (process.env.DAY_PROGRESS) console.error("t", (t / 3600).toFixed(2), Date.now() % 1e6); ag.step(Math.min(T1, t + 600)); }
   rec.forEach((R, k) => { if (R.cur) { const ts = R.cur.seg[3], ds = R.cur.seg[4]; ts.push(r1(T1)); ds.push(ds[ds.length - 1]); R.segs.push(R.cur.seg); R.cur = null; }
     const plan = M.trains[k]; while (R.segs.length < plan.length) { const s = plan[R.segs.length]; R.segs.push([s[0], s[1], s[2], [T1, T1], [s[4][s[4].length - 1], s[4][s[4].length - 1]], ...s.slice(5)]); } });
   return { res: rec.map(R => ({ segs: R.segs, log: R.log })), held: rec.reduce((x, R) => x + R.held, 0), rt: ag.rt(), T0, T1, pidChanged: rec.reduce((x, R) => x + (R.pidChanged || 0), 0) };
