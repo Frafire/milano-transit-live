@@ -151,9 +151,14 @@ def build(nome):
                     # (only where the gap is the "ogni" stretch: some part of it, at some station, inside 7:00-19:59)
                     if gap <= hmax * 1.25: continue
                     if not any(band['dalle'] * 3600 <= a['o'] + off[s] + x < (band['alle'] + 1) * 3600 for s in order for x in (0, gap / 2, gap)): continue
-                    ts, t = [], a['o']
+                    # (where it is tight, never the same interval on and on: 3' and 3'30" one after the other instead of 3'15",
+                    # a little breath every other run at Comasina. Giovanni 10 Nov 2026 "provaci", PROPOSTA of Claude: at
+                    # 3'15" all morning the Expo weekday piled up 6-8 minutes by 9:30)
+                    ts, t, alt = [], a['o'], 0
                     while True:
-                        t += h_hist(t)
+                        h = h_hist(t)
+                        if h < hmin + 30: h = hmin + 30 * alt; alt ^= 1
+                        t += h
                         if t >= b['o'] - hmin * 0.5: break
                         ts.append(t)
                     # the whole gap closed exactly on the two real runs: the same steps, stretched
