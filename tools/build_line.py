@@ -797,6 +797,12 @@ def depot_gap(t, hold=90):
     """first time >= t that is at least `hold` s from every other arrival into the depot"""
     while any(abs(t - x) < hold for x in DEPOT_ARRIVALS): t += 15
     DEPOT_ARRIVALS.append(t); return t
+DEPOT_DEPARTURES = []      # when trains leave their depot places: never two at once on the way out (the later one leaves earlier)
+def depot_leave(t, hold=90):
+    """last time <= t that is at least `hold` s from every other departure from the depot (90 s, like the arrivals: PROPOSTA;
+    two trains 4 s apart on the exit track, Expo 2015 weekday at 6:14)"""
+    while any(abs(t - x) < hold for x in DEPOT_DEPARTURES): t -= 15
+    DEPOT_DEPARTURES.append(t); return t
 ALTS = collections.defaultdict(list)
 BOARD = collections.defaultdict(lambda: collections.defaultdict(list))
 def station_key(name):
@@ -954,7 +960,7 @@ for k, chain in enumerate(trains):
                 pid0 = leg_path(start, via, ctail); d_pl, _ = project(paths[pid0][0], paths[pid0][1], *SD_STOP, 0, None)
                 d0 = start_off(start)
                 run = max(PULL_OUT if LINE == 'M4' else 0, yard_time(pid0, d0, d_pl))     # M3: at 15 km/h, 5 in the sheds
-                t_plat = PULL_PLAT[tr['ti']]; t_leave = t_plat - run
+                t_plat = PULL_PLAT[tr['ti']]; t_leave = depot_leave(t_plat - run)
                 com_seg0 = len(tl.segs)
                 pid, d_arr, d_end, t_arr = service_leg(tl, start, via, ctail, tr, t_leave, SD_STOP, COM_STOP, 'from_depot', t_plat)
                 tl.segs[-2].append(start)
@@ -1001,7 +1007,7 @@ for k, chain in enumerate(trains):
                 ctail, t_ready = EARLY_TAIL[tr['ti']]
                 pidE = leg_path(STORE_BEFORE.get(tr['ti'], loc[1]), [SD_DEP[1], SD_OUT_NODE], ctail); cE = paths[pidE][1]
                 LE = cE[-1]; d0, d1 = start_off(STORE_BEFORE.get(tr['ti'], loc[1])), LE - tail_off(ctail)
-                t0 = t_ready - (d1 - d0) / V_EMPTY - 90 - EMPTY_MARGIN    # leave early: on the way it may wait behind passenger trains
+                t0 = depot_leave(t_ready - (d1 - d0) / V_EMPTY - 90 - EMPTY_MARGIN)    # leave early: on the way it may wait behind passenger trains
                 tl.add(pidE, 'empty', [t0, t0 + 90, t_ready], [d0, d0 + 200, d1]); tl.segs[-1].append(STORE_BEFORE.get(tr['ti'], loc[1]))
                 loc = ('com', ctail, t_ready)
             if loc[0] == 'comP':
