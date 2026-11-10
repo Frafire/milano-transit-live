@@ -1177,7 +1177,7 @@
         // (but not before 30 s from its departure time: the route is always for the train that leaves first. Giovanni,
         // Precedenze 4 and 27: at San Donato a train that arrived first and leaves later took the exit over the crossover
         // and held up the one leaving before it, Milano Cortina 9 Feb 2026 at 17:59)
-        const early = st && st.dep && (leg.plan || leg.timed) && S.t < st.dep - 30;
+        const early = st && st.dep && leg.plan && leg.start != null && Math.abs(st.d - leg.start) < 1 && S.t < st.dep - 30;
         if (S.t < a.dwellUntil) { if (S.t >= a.dwellUntil - 10 && leg.stops.length > 1 && !early) authority(a, leg); a.why = fx ? 'guasto' : ex ? 'sosta' : null; return; }
         if (!st || leg.stops.length === 1 && st.d >= leg.end - 0.5) {      // last stop of the run: it ends here
           leg.stops.shift(); a.stopAt = null; a.legs.shift(); if (leg.arrive) { a.at = leg.arrive.at; a.arr = leg.arrive.dir; } return;

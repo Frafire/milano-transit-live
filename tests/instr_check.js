@@ -17,9 +17,12 @@ for (const lab of PICK) {
   for (const [kd, [k, o]] of Object.entries(kinds)) {
     const ag = mk(); tried++;
     const pre = ag.instrPreview(k, o.key), r = ag.event({ kind: 'order', k, what: 'instr', arg: { key: o.key } });
-    let overlap = 0;
+    let overlap = 0, served = false;
     for (let t = TC + 390; t <= TC + 360 + 2400; t += 30) {
       ag.step(t);
+      // (in service from there: at some moment in the 40 minutes at another open station; at the end it may well be back
+      // at the one it was sent to, going round the limited service)
+      { const b = ag.agents()[k]; if (o.open && (b.mode === 'shuttle' || b.mode === 'timetable') && b.at != null && ag.S.parts.some(p => b.at >= p[0] && b.at <= p[1]) && b.at !== o.st) served = true; }
       const by = new Map(); ag.agents().forEach(a => { if (a.hidden) return; const pe = M.path_edges[a.pid]; if (!pe) return;
         for (const [ei, dir, x0, x1] of pe.e) { if (x1 < a.d - H || x0 > a.d + H) continue; const kk = (M.net.edges[ei].len || 1) / ((x1 - x0) || 1), p = Math.max(a.d - H, x0), q = Math.min(a.d + H, x1);
           (by.get(ei) || by.set(ei, []).get(ei)).push([a.k, dir > 0 ? (p - x0) * kk : (x1 - q) * kk, dir > 0 ? (q - x0) * kk : (x1 - p) * kk]); } });
@@ -27,7 +30,7 @@ for (const lab of PICK) {
     }
     const a = ag.agents()[k], rt = ag.rt(), G = M.degraded;
     const atSt = a.at != null ? G.names[a.at] : '?';
-    const arrived = o.key === 'dep' ? a.hidden : o.key === 'tail' ? a.status === 'parked' : o.open ? ((a.mode === 'shuttle' || a.mode === 'timetable') && a.at != null && ag.S.parts.some(p => a.at >= p[0] && a.at <= p[1]) && a.at !== o.st) : (a.status === 'stopped' && a.at === o.st);
+    const arrived = o.key === 'dep' ? a.hidden : o.key === 'tail' ? a.status === 'parked' : o.open ? served : (a.status === 'stopped' && a.at === o.st);
     const bad = !r || !pre || !pre.length || !arrived || overlap || rt.viol || rt.swViol;
     console.log(`${bad ? 'FAIL' : 'ok  '} ${lab} · treno ${k + 1}: ${o.label} | given ${!!r}, preview ${pre ? pre.length + ' moves' : 'none'} | after 40 min: ${a.mode}/${a.status} at ${atSt}${a.hidden ? ' (deposito)' : ''}${bad ? ' why ' + JSON.stringify(a.red && a.red.now || a.why) + ' leg ' + JSON.stringify((a.legs[0] || {}).kind || [(a.legs[0] || {}).pid, Math.round((a.legs[0] || {}).start), Math.round((a.legs[0] || {}).end)]) + ' d ' + Math.round(a.d) + ' pid ' + a.pid : ''} | overlaps ${overlap} | without route: signals ${rt.viol || 0}, switches ${rt.swViol || 0}`);
     if (bad) fail++;
