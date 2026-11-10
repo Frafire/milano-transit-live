@@ -152,16 +152,16 @@
       leg.stops.forEach((z, i) => { if (i === 0 || i === leg.stops.length - 1) return; if (hash01(k, si, z.j, 7) < p) { const off = m0 + (m1 - m0) * hash01(k, si, z.j, 11); z.d -= off; z.off = off; } });
     }
     // in ATO (Giovanni 10 Nov 2026): the stop on the mark is not precise to the metre, 2-3 m ahead or short of the mark at
-    // 80 stops in 100 (ops.ato_stop). Not at the first and last stop (the run starts and ends on its mark for the cab change).
-    // Off for now (ops.ato_stop.attivo): the engine finds a train at its station by its exact stop point (closures,
-    // navetta, shuttles), and trains standing 2-3 m off it lock the closures (tests/closures_check.js)
+    // 80 stops in 100 (ops.ato_stop). Only in the drawing (z.drawOff, state(k).drawStop: the page draws the train off its
+    // mark over the last 30 m and while it stands): the engine keeps the exact stop point, which the closures, the navetta
+    // and the shuttles use to find a train at its station (Giovanni: "perfetto fai così"). Not at the first and last stop
+    // of a run (it starts and ends on its mark for the cab change)
     const ATOSTOP = ops.ato_stop || {};
     function atoStop(k, si, leg) {
       const p = ATOSTOP.off_pct != null ? ATOSTOP.off_pct / 100 : 0, m0 = (ATOSTOP.off_m || [2, 3])[0], m1 = (ATOSTOP.off_m || [2, 3])[1];
       if (!(p > 0) || ATOSTOP.attivo === false) return;
-      leg.stops.forEach((z, i) => { if (i === 0 || i === leg.stops.length - 1) return; if (hash01(k, si, z.j, 13) < p) {
-        let off = (m0 + (m1 - m0) * hash01(k, si, z.j, 17)) * (hash01(k, si, z.j, 19) < 0.5 ? 1 : -1);
-        z.d -= off; z.off = off; } });
+      leg.stops.forEach((z, i) => { if (i === 0 || i === leg.stops.length - 1) return; if (hash01(k, si, z.j, 13) < p)
+        z.drawOff = (m0 + (m1 - m0) * hash01(k, si, z.j, 17)) * (hash01(k, si, z.j, 19) < 0.5 ? 1 : -1); });
     }
     function planLeg(k, si, fromD) {
       const s = planOf(k)[si], leg = legOfSeg(s, fromD);
@@ -1225,6 +1225,7 @@
             const st = leg.stops[0];
             if (leg.skipSet && leg.skipSet.has(st.st) && leg.stops.length > 1) { leg.stops.shift(); return; }
             if (a.manualTo === st.st) a.manualTo = null;
+            a.drawOff = st.drawOff ? { pid: a.pid, d: st.d, off: st.drawOff } : null;
             a.stopAt = st.st; a.at = st.st; a.arrLate = st.arr != null ? S.t - st.arr : null; a.exitClosed = false; if (a.navOut && a.part && st.st >= a.part[0] && st.st <= a.part[1] && !(S.cl && S.navInfo && Object.values(S.navInfo).some(x => x.open === st.st))) a.navOut = false;
             if (leg.plan) { planDwell(a, leg, st); a.dwellUntil = S.t + a.dwBase; }
             else { a.arriveT = S.t; a.stopKey = null; a.dwBase = leg.status !== 'service' ? 1 : Math.abs(st.d - leg.start) < 1 ? 30 : 20; a.dwellUntil = S.t + a.dwBase; }
@@ -1529,7 +1530,11 @@
     function state(k) {
       const a = S.agents[k]; if (!a) return null;
       const leg = a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
-      return { tabM: a.mode !== 'plan' ? a.tabM : null, inside: a.inside, to: leg && leg.arrive ? leg.arrive.at : null, pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, trip: a.trip,
+      // (the ATO stop off its mark, drawing only: the next stop, or the one it stands at or has just left)
+      const z0 = leg && leg.pid === a.pid && leg.stops && leg.stops[0];
+      const ds_ = [z0 && z0.drawOff ? [z0.d, z0.drawOff] : null, a.drawOff && a.drawOff.pid === a.pid ? [a.drawOff.d, a.drawOff.off] : null].filter(Boolean);
+      const drawStop = ds_.length ? ds_.reduce((x, y) => Math.abs(y[0] - a.d) < Math.abs(x[0] - a.d) ? y : x) : null;
+      return { drawStop, tabM: a.mode !== 'plan' ? a.tabM : null, inside: a.inside, to: leg && leg.arrive ? leg.arrive.at : null, pid: a.pid, d: a.d, v: a.v, status: a.status, mode: a.mode, hidden: !!a.hidden, red: a.red, late: a.late, stopAt: a.stopAt, why: a.why, trip: a.trip,
                seg: a.mode === 'plan' ? a.si : -1, waiting: S.t < a.wait, pcHold: !!a.pcHold, vlim: a.vlim ? Math.round(a.vlim * 3.6) : null, vlimTo: a.vlimTo,
                stops: leg && leg.stops ? leg.stops.map(z => z.st) : [], dir: leg ? leg.dir : null, timed: !!(leg && leg.timed), at: a.at, vmaxHere: a.hidden ? null : Math.round(limitHere(a) * 3.6), ato: a.ato != null ? Math.round(a.ato * 100) : null, atoWarn: !!a.atoWarn, manual: byHand(a), faults: FX ? FX.list().filter(f => f.k === k) : [] };
     }
