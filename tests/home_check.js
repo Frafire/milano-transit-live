@@ -67,9 +67,14 @@ const ORARI = LINEE.orari || {};
     check(g(/2° lotto/).rows.length >= 1 && g(/Meneghino/).rows.length >= 1 && g(/Galileo/).rows.length >= 1, 'tables of the 2° lotto, Meneghino and Galileo');
     check(T.every(f => sorted(f.rows)), 'every table in the order of the numbers');
     await p.click('#lsClose'); }
-  // the choice of the timetable: the M3 tile opens it; the historical ones (in arrivo) open nothing
+  // the choice of the timetable: the M3 tile opens it; a historical one in arrivo opens nothing, a giocabile one opens the
+  // game with ?orario= (data/linee.json "orari"; Milano Cortina giocabile since 10 Nov 2026, Giovanni)
   { await p.click('#metro .tile[data-k="M3"]'); check(await shown(p, '#pick'), 'the M3 tile opens the choice of the timetable');
-    for (const h of ['expo2015', 'milanocortina2026']) { const u = p.url(); await p.click(`#pick .pp[data-h="${h}"]`); await p.waitForTimeout(300);
+    for (const h of Object.keys(ORARI.M3 || {}).filter(h => h !== 'attuale' && !h.startsWith('_'))) {
+      if (OPEN(ORARI.M3[h])) { const q = await b.newPage(); await q.goto(HOME + '#metro'); await q.click('#metro .tile[data-k="M3"]');
+        await Promise.all([q.waitForURL(/gioca\.html/, { waitUntil: 'commit' }), q.click(`#pick .pp[data-h="${h}"]`)]);
+        check(/linee=M3/.test(q.url()) && new RegExp('orario=' + h).test(q.url()), `${h}: giocabile, opens the game with that timetable`); await q.close(); continue; }
+      const u = p.url(); await p.click(`#pick .pp[data-h="${h}"]`); await p.waitForTimeout(300);
       check(p.url() === u && await p.isVisible('#pick') && await p.isVisible('#toast'), `${h}: in arrivo, opens nothing, says so`); }
     await p.keyboard.press('Escape'); check(await p.isHidden('#pick'), 'Esc closes the choice'); }
   for (const what of ['card', 'pick']) {      // nothing wider than a phone
