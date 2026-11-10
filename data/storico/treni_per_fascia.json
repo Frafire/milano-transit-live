@@ -99,20 +99,20 @@
   "expo2015": {
    "feriale": {
     "punta del mattino": [
-     27,
-     30
+     18,
+     21
     ],
     "giorno": [
-     21,
-     25
+     17,
+     19
     ],
     "punta del pomeriggio": [
-     25,
-     28
+     18,
+     20
     ],
     "sera": [
-     23,
-     27
+     17,
+     20
     ],
     "notte (dopo mezzanotte)": [
      8,
@@ -167,20 +167,20 @@
   "milanocortina2026": {
    "feriale": {
     "punta del mattino": [
-     19,
-     21
-    ],
-    "giorno": [
-     16,
-     18
-    ],
-    "punta del pomeriggio": [
      18,
      20
     ],
-    "sera": [
+    "giorno": [
+     15,
+     17
+    ],
+    "punta del pomeriggio": [
      17,
      19
+    ],
+    "sera": [
+     16,
+     18
     ],
     "notte (dopo mezzanotte)": [
      8,
