@@ -813,11 +813,14 @@ def a06_clear(pid, d0, plan=None):
         for i in range(len(ds) - 1):
             if ds[i] <= d_c <= ds[i + 1]: return ts[i] - ts[0] + (ts[i + 1] - ts[i]) * (d_c - ds[i]) / max(1e-6, ds[i + 1] - ds[i])
     return yard_time(pid, d0, d_c)
-def depot_leave(t, clear):
-    """last time <= t at which a train needing `clear` s to be past #A06 neither enters the zone before the train ahead has
-    left it nor holds up the one after"""
-    while any(not (t >= x + cx or t + clear <= x) for x, cx in DEPOT_DEPARTURES): t -= 15
-    DEPOT_DEPARTURES.append((t, clear)); return t
+def depot_leave(t, clear, late_max=0):
+    """the time near t at which a train needing `clear` s to be past #A06 neither enters the zone before the train ahead
+    has left it nor holds up the one after: a little later first, within late_max (the wait it has anyway at its platform),
+    else earlier, up to 10 minutes (never swapping much the order of the trains), else t"""
+    fits = lambda u: all(u >= x + cx or u + clear <= x for x, cx in DEPOT_DEPARTURES)
+    u = next((t + dt for dt in range(0, int(late_max) + 1, 5) if fits(t + dt)), None)
+    if u is None: u = next((t - dt for dt in range(15, 601, 15) if fits(t - dt)), t)
+    DEPOT_DEPARTURES.append((u, clear)); return u
 import atexit as _atexit
 _atexit.register(lambda: DEPOT_DEPARTURES and print('depot departures: %d, past #A06 in %d-%d s, closest two %d s apart' % (len(DEPOT_DEPARTURES), min(c for _, c in DEPOT_DEPARTURES), max(c for _, c in DEPOT_DEPARTURES), min((b[0] - a[0] for a, b in zip(sorted(DEPOT_DEPARTURES), sorted(DEPOT_DEPARTURES)[1:])), default=0))))
 ALTS = collections.defaultdict(list)
@@ -977,7 +980,8 @@ for k, chain in enumerate(trains):
                 pid0 = leg_path(start, via, ctail); d_pl, _ = project(paths[pid0][0], paths[pid0][1], *SD_STOP, 0, None)
                 d0 = start_off(start)
                 run = max(PULL_OUT if LINE == 'M4' else 0, yard_time(pid0, d0, d_pl))     # M3: at 15 km/h, 5 in the sheds
-                t_plat = PULL_PLAT[tr['ti']]; t_leave = depot_leave(t_plat - run, a06_clear(pid0, d0))
+                t_plat = PULL_PLAT[tr['ti']]; _late = max(0, tr['dep'] - 30 - t_plat)                  # (it waits at the platform anyway)
+                t_leave = depot_leave(t_plat - run, a06_clear(pid0, d0), _late); t_plat = t_leave + run
                 com_seg0 = len(tl.segs)
                 pid, d_arr, d_end, t_arr = service_leg(tl, start, via, ctail, tr, t_leave, SD_STOP, COM_STOP, 'from_depot', t_plat)
                 tl.segs[-2].append(start)
@@ -1025,7 +1029,7 @@ for k, chain in enumerate(trains):
                 pidE = leg_path(STORE_BEFORE.get(tr['ti'], loc[1]), [SD_DEP[1], SD_OUT_NODE], ctail); cE = paths[pidE][1]
                 LE = cE[-1]; d0, d1 = start_off(STORE_BEFORE.get(tr['ti'], loc[1])), LE - tail_off(ctail)
                 _t0 = t_ready - (d1 - d0) / V_EMPTY - 90 - EMPTY_MARGIN                # leave early: on the way it may wait behind passenger trains
-                t0 = depot_leave(_t0, a06_clear(pidE, d0, [[_t0, _t0 + 90, t_ready], [d0, d0 + 200, d1]]))
+                t0 = depot_leave(_t0, a06_clear(pidE, d0, [[_t0, _t0 + 90, t_ready], [d0, d0 + 200, d1]]), EMPTY_MARGIN / 2)
                 tl.add(pidE, 'empty', [t0, t0 + 90, t_ready], [d0, d0 + 200, d1]); tl.segs[-1].append(STORE_BEFORE.get(tr['ti'], loc[1]))
                 loc = ('com', ctail, t_ready)
             if loc[0] == 'comP':
