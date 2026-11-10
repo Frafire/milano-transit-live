@@ -75,6 +75,10 @@ def headway_shape(runs, t0, t1):
 
 _T = json.load(open(os.path.join(ROOT, 'data', 'regole_m3.json'))).get('tempi', {})
 MIN_HEADWAY = next((v[0] for k, v in _T.items() if k.startswith('Intervallo minimo tra due treni ai capolinea')), 0) or 0
+# (STORICO_MIN_HEADWAY, STORICO_OUT: to try another minimum without touching data/storico, e.g. how far the simulation can
+# follow a tighter timetable)
+MIN_HEADWAY = float(os.environ.get('STORICO_MIN_HEADWAY', MIN_HEADWAY))
+OUT = os.environ.get('STORICO_OUT') or os.path.join(ROOT, 'data', 'storico')
 
 
 def build(nome):
@@ -181,9 +185,9 @@ def build(nome):
                      '(o al contrario, secondo il verso); visti = in quante stazioni l\'orario è del PDF; proposta = corsa messa nella fascia '
                      '"ogni X\'-Y\'" o con orari calcolati (PROPOSTA di Claude, da confermare).' % nome,
            'fonte': src['fonte'], 'dal': src['dal'], 'al': src['al'], 'giorni': DATES[nome], 'rapporto': report, 'corse': out_runs}
-    json.dump(doc, open(os.path.join(ROOT, 'data', 'storico', 'm3_%s_corse.json' % nome), 'w'), ensure_ascii=False, indent=0)
+    json.dump(doc, open(os.path.join(OUT, 'm3_%s_corse.json' % nome), 'w'), ensure_ascii=False, indent=0)
     # the GTFS
-    G = os.path.join(ROOT, 'data', 'storico', 'gtfs_m3_%s' % nome); os.makedirs(G, exist_ok=True)
+    G = os.path.join(OUT, 'gtfs_m3_%s' % nome); os.makedirs(G, exist_ok=True)
     for f in ('agency.txt', 'routes.txt', 'stops.txt', 'shapes.txt'):
         open(os.path.join(G, f), 'w', encoding='utf-8').write(open(os.path.join(G0, f), encoding='utf-8').read())
     sid = {d: '%s_storico_%s' % ({'feriale': 'l', 'sabato': 's', 'festivo': 'f'}[d], nome) for d in DAYS}
