@@ -55,15 +55,17 @@ for n, g in GIORNI:
         def who(t):
             d = next((d for d in duties if d[0] <= t <= d[1]), None) or next((d for d in duties if d[0] > t), None)
             return d[2] if d else None
-        out_ = next((s[3][0] for s in segs if s[1] == 'from_depot'), None)
-        in_ = next((s[3][-1] for s in reversed(segs) if s[1] == 'to_depot'), None)
+        # (the stretches out of the depot: start 0 = the night in a tail or on a platform; end 'for ever' = the same at night)
+        ds_ = [d for d in duties if d[0] < INF]
+        outs = ['notte in linea' if d[0] == 0 else hm(d[0]) for d in ds_]
+        ins = ['notte in linea' if d[1] >= INF else hm(d[1]) for d in ds_]
         trains_ = []
         for d in duties:
             if d[0] >= INF: continue
-            trains_.append('%s (%s-%s)' % (units(d[2]), hm(d[0]), hm(d[1]) if d[1] < INF else 'fine'))
+            trains_.append('%s (%s-%s)' % (units(d[2]), hm(d[0]), hm(d[1]) if d[1] < INF else 'notte in linea'))
         miss = any(d[2] < 0 for d in duties)
-        rows.append([tab, '; '.join(trains_), hm(out_) if out_ is not None else 'notte in linea', hm(sv[0][3][0]), hm(sv[-1][3][-1]),
-                     hm(in_) if in_ is not None else 'notte in linea', len(sv), miss])
+        rows.append([tab, '; '.join(trains_), ', '.join(outs), hm(sv[0][3][0]), hm(sv[-1][3][-1]),
+                     ', '.join(ins), len(sv), miss])
         for j, s in enumerate(sv, 1):
             tr = D['trips'][s[2]] if 0 <= s[2] < len(D['trips']) else None
             a, b = (stops[tr[5][0]], stops[tr[5][-1]]) if tr else ('?', '?')
@@ -71,7 +73,7 @@ for n, g in GIORNI:
             runs.append([tab, j, a, hm(s[3][0]), b, hm(s[3][-1]), units(u), u is None or u < 0])
     rows.sort(key=lambda r: r[0]); runs.sort(key=lambda r: (r[0], r[1]))
     ws = wb.create_sheet('%s riepilogo' % g)
-    head(ws, ['Tabella', 'Treno (dalle-alle)', 'Esce dal deposito', 'Prima partenza', 'Ultimo arrivo', 'Rientra in deposito', 'Corse'], [9, 70, 14, 12, 12, 14, 8])
+    head(ws, ['Tabella', 'Treno (dalle-alle)', 'Esce dal deposito', 'Prima partenza', 'Ultimo arrivo', 'Rientra in deposito', 'Corse'], [9, 70, 22, 12, 12, 22, 8])
     for r in rows:
         ws.append(r[:7]); i = ws.max_row
         for c in ws[i]: c.font = f_txt; c.alignment = Alignment(horizontal='center')
