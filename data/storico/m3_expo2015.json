@@ -3,7 +3,7 @@
  "fonte": "ATM, orari M3 ai capolinea, in vigore dal 1/05/2015 (PDF M3_ATM_2015-05.pdf, dato da Giovanni)",
  "nome": "expo2015",
  "dal": "1/05/2015",
- "al": null,
+ "al": "31/10/2015",
  "pagine": 2,
  "stazioni": [
   {
@@ -338,5 +338,6 @@
     }
    }
   }
- ]
+ ],
+ "_al": "Il PDF non dice fino a quando: finisce con l'Expo (Giovanni 10/11/2026); l'Esposizione si chiude il 31 ottobre 2015."
 }

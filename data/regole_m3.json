@@ -4401,6 +4401,21 @@
    "Volte al giorno (stima)": 0.05,
    "Nel programma oggi": "sì",
    "Note": "Giovanni, 2 nov 2026"
+  },
+  {
+   "N.": 27,
+   "Tipo": "treno",
+   "Guasto": "Il treno SOCIMI non riparte (inverter Hitachi, solo flotta 2015)",
+   "Come si presenta (cosa vedono macchinista e PC)": "Il treno resta fermo; il macchinista riarma",
+   "Cosa fa il macchinista (e quanto ci mette)": "Riarma da solo: quasi sempre riparte al primo colpo e avvisa il DCT; se non riparte chiama il DCT, come al n. 1",
+   "Cosa fa il PC": "Come al n. 1",
+   "Quando diventa soccorso": "Come al n. 1",
+   "Come si risolve / soccorso": "Riarmo: riparte al primo colpo nel 97% dei casi; altrimenti come al n. 1",
+   "Tempi (min - max)": "Come al n. 1",
+   "Quanto spesso / come si attiva": "casuale, solo sui treni SOCIMI (orario Expo 2015)",
+   "Volte al giorno (stima)": 4,
+   "Nel programma oggi": "sì (orari storici, flotta 2015)",
+   "Note": "Giovanni 10/11/2026: le 6 unità SOCIMI (8069-8080) hanno problemi di trazione più di una volta al giorno, di solito mai gravi; si accoppiano solo tra loro. 4 al giorno su tutta la linea = circa 1,3 per ognuno dei 3 treni SOCIMI: PROPOSTA di Claude."
   }
  ]
 }

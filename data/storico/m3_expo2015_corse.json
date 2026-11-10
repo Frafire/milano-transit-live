@@ -2,7 +2,7 @@
 "_about": "Corse dell'orario storico M3 expo2015 ricostruite da tools/storico_corse.py: orari = le stazioni da Comasina a San Donato (o al contrario, secondo il verso); visti = in quante stazioni l'orario è del PDF; proposta = corsa messa nella fascia \"ogni X'-Y'\" o con orari calcolati (PROPOSTA di Claude, da confermare).",
 "fonte": "ATM, orari M3 ai capolinea, in vigore dal 1/05/2015 (PDF M3_ATM_2015-05.pdf, dato da Giovanni)",
 "dal": "1/05/2015",
-"al": null,
+"al": "31/10/2015",
 "giorni": {
 "feriale": "20150504",
 "sabato": "20150502",

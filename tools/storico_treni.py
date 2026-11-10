@@ -11,7 +11,7 @@ import storico_corse as SC
 ROOT = SC.ROOT
 FASCE = [('punta del mattino', 7 * 60, 9 * 60 + 30), ('giorno', 9 * 60 + 30, 16 * 60 + 30), ('punta del pomeriggio', 16 * 60 + 30, 19 * 60 + 30),
          ('sera', 19 * 60 + 30, 24 * 60), ('notte (dopo mezzanotte)', 24 * 60, 27 * 60)]
-REV = 4                                                       # minuti di sosta al capolinea per invertire (PROPOSTA)
+REV = 4      # minuti di sosta al capolinea per invertire: proposta di Claude; per il 2026 giusta (Giovanni 10/11/2026, dal macchinista M2); per il 2015 non si sa
 
 
 def intervals_today():
@@ -50,7 +50,7 @@ def main():
         out[name] = {d: counts(iv[d]) for d in SC.DAYS}
         for d in SC.DAYS:
             print('%-20s %-8s ' % (name, d) + ' | '.join('%s %d (%d)' % (f.split()[0] if f != 'punta del pomeriggio' else 'pomer.', *out[name][d][f]) for f, _, _ in FASCE))
-    json.dump({'_about': 'Treni in viaggio (massimo) e treni che servono con %d min di sosta ai capolinea (PROPOSTA), per fascia: tools/storico_treni.py' % REV,
+    json.dump({'_about': 'Treni in viaggio (massimo) e treni che servono con %d min di sosta ai capolinea (giusta per il 2026, Giovanni; per il 2015 PROPOSTA), per fascia: tools/storico_treni.py' % REV,
                'fasce': [[f, a, b] for f, a, b in FASCE], 'treni': {k: {d: {f: list(v) for f, v in dd.items()} for d, dd in x.items()} for k, x in out.items()}},
               open(os.path.join(ROOT, 'data', 'storico', 'treni_per_fascia.json'), 'w'), ensure_ascii=False, indent=1)
 

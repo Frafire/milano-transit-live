@@ -40,6 +40,7 @@
   // the kinds, with the words of the Excel (the row of foglio Guasti is matched by these at build time)
   const KINDS = {
     trazione: { label: 'Il treno non riparte (trazione)' },
+    trazione_socimi: { label: 'Treno SOCIMI: problema di trazione', socimi: true },
     porta: { label: 'Una porta non si chiude' },
     freno: { label: 'Frenatura di emergenza intempestiva' },
     ato: { label: 'Guasto ATO' },
@@ -77,7 +78,7 @@
                     reopenSt: 'Riapri la stazione', gaps: 'Lascia l\'orario (corse scoperte)', freq: 'Frequenza più bassa (orario ibrido)', limit: 'Servizio limitato (chiudi tu una tratta)', home: 'Scarica e rientra a ROD', homeEnd: 'A fine corsa rientra a ROD', hold: 'Ferma i treni', fire: 'Chiudi la stazione, chiama i vigili del fuoco', police: 'Chiama polizia e soccorsi' };
 
   function create(c) {
-    // c: { S, G, DT, emBrake(a) m/s2, loadAt(t), catalog: [{ id, perDay }] }
+    // c: { S, G, DT, emBrake(a) m/s2, loadAt(t), catalog: [{ id, perDay, first }], unitOf(k, t): the units a train runs, hasSocimi }
     const { S, G, DT } = c, SD = 0;                    // San Donato: station 0
     const F = () => S.faults || (S.faults = { on: false, rng: 20261101, seq: 0, list: [], feed: [], roll: 0 });
     // seeded random numbers (mulberry32), the seed in the state
@@ -118,6 +119,8 @@
     function add(kind, k, extra) {
       if (!KINDS[kind]) return null;
       if (KINDS[kind].on && KINDS[kind].on !== 'none') return addLine(kind, extra && extra.target, extra);
+      // a SOCIMI train (flotta 2015, inverter Hitachi): a traction failure that nearly always ends at the first re-arming
+      if (KINDS[kind].socimi) { const e = (c.catalog || []).find(x => x.id === kind); extra = Object.assign({ p1: e && e.first != null ? e.first : null, socimi: true }, extra || {}); kind = 'trazione'; }
       if (KINDS[kind].as) { extra = Object.assign({ force: kind, tries: 2 }, extra || {}); kind = KINDS[kind].as; }     // (admin: how it must end)
       const a = S.agents[k]; if (!a || a.hidden || a.mode === 'static') return null;
       if (of(a).some(f => f.kind === kind)) return null;
@@ -471,7 +474,7 @@
             else say(f, 'dr', tx('guasto.chiede_riarmo.riarmato'));
             continue;
           }
-          const ok = !f.force && rnd() < (f.kind === 'freno' ? [0.8, 0.6, 0.4] : [0.7, 0.5, 0.3])[Math.min(f.tries, 2)];
+          const ok = !f.force && rnd() < (f.p1 != null && f.self && f.tries === 0 ? f.p1 : (f.kind === 'freno' ? [0.8, 0.6, 0.4] : [0.7, 0.5, 0.3])[Math.min(f.tries, 2)]);
           if (ok) { end(f, f.self ? (f.kind === 'trazione' ? tx('guasto.trazione.riarmato', { dove: f.where || '' })
             : tx('guasto.freno.riarmato', { dove: f.where || '' })) : tx('guasto.riarmo.riuscito')); continue; }
           if (f.self && f.tries === 0) { f.self = false; f.tries = 1; f.ph = 'call';
@@ -526,13 +529,16 @@
       const cand = S.agents.filter(a => !a.hidden && a.status === 'service' && a.mode !== 'static' && !of(a).length);
       for (const { id, perDay } of c.catalog || []) {
         if (!KINDS[id] || !(perDay > 0)) continue;
+        if (KINDS[id].socimi && !c.hasSocimi) continue;                                 // (no SOCIMI in this fleet: not even drawn)
         const w = id === 'porte_persone' ? (c.loadAt ? c.loadAt(S.t) / 0.6 : 1) : 1;      // more in the peak hours
         const r = rnd();
         if (r >= perDay * 60 / DAYS * w) continue;
         if (id === 'sciopero' || id === 'prefettura') continue;
         if (KINDS[id].on) { add(id, null, { random: true }); continue; }
-        if (!cand.length) continue;
-        const a = cand.splice(Math.floor(rnd() * cand.length), 1)[0];
+        // only on the SOCIMI trains (c.unitOf: the units a train runs at that moment); none in the fleet: never
+        const pool = KINDS[id].socimi ? cand.filter(a => { const u = c.unitOf ? c.unitOf(a.k, S.t) : null; return u && /socimi/i.test(u.type || ''); }) : cand;
+        if (!pool.length) continue;
+        const a = pool[Math.floor(rnd() * pool.length)]; cand.splice(cand.indexOf(a), 1);
         add(id, a.k, { random: true });
       }
     }

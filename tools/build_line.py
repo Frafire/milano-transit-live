@@ -2300,7 +2300,7 @@ NET['navette'] = NAVETTE if DEGRADED else {}
 NET['rev_paths'] = REV_PATHS if DEGRADED else {}
 # failures (foglio Guasti, fase D): which rows the program simulates, and how many times a day each happens (Volte al giorno)
 import re as _re
-_FK = [('trazione', r'non riparte'), ('porta', r'porta non si chiude'), ('freno', r'frenatura di emergenza'), ('ato', r'guasto ato'), ('atp', r'guasto atp'),
+_FK = [('trazione_socimi', r'socimi'), ('trazione', r'non riparte'), ('porta', r'porta non si chiude'), ('freno', r'frenatura di emergenza'), ('ato', r'guasto ato'), ('atp', r'guasto atp'),
        ('allarme', r'allarme passeggero'), ('porte_persone', r'bloccano la chiusura'), ('malore_treno', r'male sul treno'), ('riarmo', r'continuamente di essere riarmato'), ('secondario', r'problema secondario'),
        ('scambio', r'scambio guasto'), ('segnale', r'segnale guasto'), ('sezione', r'sezione occupata'), ('tensione', r'mancanza di tensione'),
        ('persona', r'persona sui binari'), ('oggetto', r'oggetto caduto'), ('malore_stazione', r'male in stazione'), ('tunnel', r'persona nel tunnel'),
@@ -2312,6 +2312,9 @@ for _g in _RG.get('guasti', []):
     if not _id: continue
     _f = next((v for k, v in _g.items() if k.startswith('Volte al giorno')), None)
     NET['faults'].append({'id': _id, 'n': _g.get('N.'), 'name': _g.get('Guasto'), 'perDay': _f if isinstance(_f, (int, float)) else 0})
+    # the SOCIMI (Giovanni 10 Nov 2026): the share that starts again at the first re-arming ("97%" in Come si risolve)
+    _p1 = _re.search(r'(\d+(?:[.,]\d+)?)\s*%', str(_g.get('Come si risolve / soccorso') or '')) if _id == 'trazione_socimi' else None
+    if _p1: NET['faults'][-1]['first'] = float(_p1.group(1).replace(',', '.')) / 100
 print('faults:', [(f['id'], f['perDay']) for f in NET['faults']])
 _cst = _rules_.get('closures_list', {}).get('stations', [])
 _often = {}

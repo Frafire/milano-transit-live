@@ -1,5 +1,5 @@
 {
- "_about": "Treni in viaggio (massimo) e treni che servono con 4 min di sosta ai capolinea (PROPOSTA), per fascia: tools/storico_treni.py",
+ "_about": "Treni in viaggio (massimo) e treni che servono con 4 min di sosta ai capolinea (giusta per il 2026, Giovanni; per il 2015 PROPOSTA), per fascia: tools/storico_treni.py",
  "fasce": [
   [
    "punta del mattino",
@@ -189,7 +189,7 @@
    },
    "sabato": {
     "punta del mattino": [
-     12,
+     13,
      14
     ],
     "giorno": [

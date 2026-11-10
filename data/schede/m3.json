@@ -571,7 +571,9 @@
     },
     {
      "titolo": "Segnali legali e illegali",
-     "paragrafi": [],
+     "paragrafi": [
+      "Legali sono i segnali posti nella direzione standard della linea, quella in cui i treni percorrono normalmente quel binario. Illegali sono quelli posti nella direzione non standard: servono ai treni che percorrono quel binario al contrario."
+     ],
      "vela": [
       {
        "tipo": "legale",
@@ -583,8 +585,7 @@
        "nome": "Illegale",
        "testo": "Vela quadra, spigoli vivi."
       }
-     ],
-     "da_completare": "Cosa vuol dire per il macchinista un segnale illegale rispetto a uno legale? Da completare con Giovanni."
+     ]
     },
     {
      "titolo": "In deposito",

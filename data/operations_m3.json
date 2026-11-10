@@ -71,7 +71,7 @@
   "_illegal": "Un treno sul binario illegale (contromano: navetta, treno che torna indietro sul suo binario): blocco orientato dall'altra parte, dispositivi esclusi, quindi più lento (Giovanni e il suo collega, 2 nov 2026)",
   "illegal_kmh": 30,
   "manual_stop": {
-    "_about": "Guida manuale (MAN, Giovanni 9/11/2026): tutti i movimenti in deposito e la prima corsa del giorno per ogni senso; l'ATO entra alla banchina di San Donato (o dopo A02). In manuale il treno accelera meno e resta sotto i limiti. miss_pct: quante fermate su 100 non sono nel punto esatto (Giovanni: 4%). short_m: di quanti metri si ferma prima del punto (PROPOSTA di Claude, da confermare).",
+    "_about": "Guida manuale (MAN, Giovanni 9/11/2026): tutti i movimenti in deposito e la prima corsa del giorno per ogni senso; l'ATO entra alla banchina di San Donato (o dopo A02). In manuale il treno accelera meno e resta sotto i limiti. miss_pct: quante fermate su 100 non sono nel punto esatto (Giovanni: 4%). short_m: di quanti metri si ferma prima del punto (proposta di Claude, confermata da Giovanni il 10/11/2026). In ATO l'errore di fermata è al massimo 2-3 m (Giovanni 10/11/2026): non ancora nel programma, manca quanto spesso succede.",
     "miss_pct": 4,
     "short_m": [
       2,

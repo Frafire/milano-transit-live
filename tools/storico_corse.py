@@ -83,7 +83,10 @@ def build(nome):
             order = ORDER if to == 'SAN DONATO' else ORDER[::-1]
             pages = {p['stazione']: p for p in src['stazioni'] if p['verso'] == to}
             base = offsets(T[day][to], order)                                       # (today's)
-            band = next((p['ogni'][day] for p in pages.values() if day in p['ogni']), None)
+            # the pages do not always say the same (Milano Cortina, Saturday: "ogni 5'" on some, "5'-6'" on others): the lower
+            # one, always (Giovanni 10 Nov 2026: "metti sempre inferiore ovvero 5")
+            bands = [p['ogni'][day] for p in pages.values() if day in p['ogni']]
+            band = dict(bands[0], min=min(b['min'] for b in bands), max=min(b['max'] for b in bands)) if bands else None
             seen = {s: sorted(sec(x + ':00') for x in pages[s]['partenze'][day]) for s in order if s in pages}
             # 1. the times from the origin: from the PDF where two stations see the same run, else today's
             off, off_src = {}, {}
