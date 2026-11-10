@@ -6,8 +6,8 @@ then the three Meneghino added in Oct 2026 (941-942, 943-944, 947-948).
 SOLO: units standing alone (not coupled, not given any service); they can still go round the test loop.
 
 FLOTTA (environment, the historical timetables, Giovanni 10 Nov 2026): '2026' (Milano Cortina) = today's fleet without the
-Hitachi Galileo; '2015' (Expo) = without the Galileo and without the Meneghino that came from the M1 or the M2 (their note
-"trasferito dalla ..."), with the six SOCIMI units of the 1st lot (8069-8080, inverter Hitachi): they work like the others
+Hitachi Galileo; '2015' (Expo) = without the Galileo and without the Meneghino that came from the M2 in 2021 (those from the M1
+in 2010 were already on the M3: Giovanni put them back, 10 Nov 2026), with the six SOCIMI units of the 1st lot (8069-8080, inverter Hitachi): they work like the others
 but couple only with each other (three trains of two SOCIMI units) and have traction problems more than once a day
 (foglio Guasti, row 27)."""
 import os
@@ -50,7 +50,7 @@ OFFICINA = [{'units': '8109-8110 + 8107-8108', 'node': 200002}, {'units': '8061-
 def trains():
     out = []
     for m, y, note in MENEGHINO:
-        if FLOTTA == '2015' and note.startswith('trasferito'): continue
+        if FLOTTA == '2015' and note.startswith('trasferito') and int(note.split()[-1]) > 2015: continue      # (from the M1 in 2010: already here)
         out.append({'units': m, 'type': 'Meneghino', 'year': str(y), 'display': 'LED', 'note': note})
     out.append({'units': '8101-8102 + 8103-8104', 'type': 'Tradizionale 2° lotto', 'year': '2003', 'display': 'LED', 'note': ''})
     out.append({'units': '8109-8110 + 8107-8108', 'type': 'Tradizionale 2° lotto', 'year': '2003-2004', 'display': 'LED', 'note': ''})

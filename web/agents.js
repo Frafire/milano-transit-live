@@ -151,10 +151,20 @@
       // starts and ends on its mark for the cab change)
       leg.stops.forEach((z, i) => { if (i === 0 || i === leg.stops.length - 1) return; if (hash01(k, si, z.j, 7) < p) { const off = m0 + (m1 - m0) * hash01(k, si, z.j, 11); z.d -= off; z.off = off; } });
     }
+    // in ATO (Giovanni 10 Nov 2026): the stop on the mark is not precise to the metre, 2-3 m ahead or short of the mark at
+    // 80 stops in 100 (ops.ato_stop). Not at the first and last stop (the run starts and ends on its mark for the cab change)
+    const ATOSTOP = ops.ato_stop || {};
+    function atoStop(k, si, leg) {
+      const p = ATOSTOP.off_pct != null ? ATOSTOP.off_pct / 100 : 0, m0 = (ATOSTOP.off_m || [2, 3])[0], m1 = (ATOSTOP.off_m || [2, 3])[1];
+      if (!(p > 0)) return;
+      leg.stops.forEach((z, i) => { if (i === 0 || i === leg.stops.length - 1) return; if (hash01(k, si, z.j, 13) < p) {
+        const off = (m0 + (m1 - m0) * hash01(k, si, z.j, 17)) * (hash01(k, si, z.j, 19) < 0.5 ? 1 : -1); z.d -= off; z.off = off; } });
+    }
     function planLeg(k, si, fromD) {
       const s = planOf(k)[si], leg = legOfSeg(s, fromD);
       leg.si = si; leg.plan = true; leg.timed = true; leg.t0 = s[3][0];
       if (s[1] === 'service' && firstRuns().has(k + ':' + si)) { leg.man = true; manualStop(k, si, leg); }
+      else if (s[1] === 'service') atoStop(k, si, leg);
       return leg;
     }
     const byHand = a => { if (a.hidden) return false; if ((FX && FX.manual(a)) || a.manualTo != null) return true;
