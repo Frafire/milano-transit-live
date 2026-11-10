@@ -2221,6 +2221,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   // the kinds, with the words of the Excel (the row of foglio Guasti is matched by these at build time)
   const KINDS = {
     trazione: { label: 'Il treno non riparte (trazione)' },
+    trazione_socimi: { label: 'Treno SOCIMI: problema di trazione', socimi: true },
     porta: { label: 'Una porta non si chiude' },
     freno: { label: 'Frenatura di emergenza intempestiva' },
     ato: { label: 'Guasto ATO' },
@@ -2258,7 +2259,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
                     reopenSt: 'Riapri la stazione', gaps: 'Lascia l\'orario (corse scoperte)', freq: 'Frequenza più bassa (orario ibrido)', limit: 'Servizio limitato (chiudi tu una tratta)', home: 'Scarica e rientra a ROD', homeEnd: 'A fine corsa rientra a ROD', hold: 'Ferma i treni', fire: 'Chiudi la stazione, chiama i vigili del fuoco', police: 'Chiama polizia e soccorsi' };
 
   function create(c) {
-    // c: { S, G, DT, emBrake(a) m/s2, loadAt(t), catalog: [{ id, perDay }] }
+    // c: { S, G, DT, emBrake(a) m/s2, loadAt(t), catalog: [{ id, perDay, first }], unitOf(k, t): the units a train runs, hasSocimi }
     const { S, G, DT } = c, SD = 0;                    // San Donato: station 0
     const F = () => S.faults || (S.faults = { on: false, rng: 20261101, seq: 0, list: [], feed: [], roll: 0 });
     // seeded random numbers (mulberry32), the seed in the state
@@ -2299,6 +2300,8 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     function add(kind, k, extra) {
       if (!KINDS[kind]) return null;
       if (KINDS[kind].on && KINDS[kind].on !== 'none') return addLine(kind, extra && extra.target, extra);
+      // a SOCIMI train (flotta 2015, inverter Hitachi): a traction failure that nearly always ends at the first re-arming
+      if (KINDS[kind].socimi) { const e = (c.catalog || []).find(x => x.id === kind); extra = Object.assign({ p1: e && e.first != null ? e.first : null, socimi: true }, extra || {}); kind = 'trazione'; }
       if (KINDS[kind].as) { extra = Object.assign({ force: kind, tries: 2 }, extra || {}); kind = KINDS[kind].as; }     // (admin: how it must end)
       const a = S.agents[k]; if (!a || a.hidden || a.mode === 'static') return null;
       if (of(a).some(f => f.kind === kind)) return null;
@@ -2652,7 +2655,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
             else say(f, 'dr', tx('guasto.chiede_riarmo.riarmato'));
             continue;
           }
-          const ok = !f.force && rnd() < (f.kind === 'freno' ? [0.8, 0.6, 0.4] : [0.7, 0.5, 0.3])[Math.min(f.tries, 2)];
+          const ok = !f.force && rnd() < (f.p1 != null && f.self && f.tries === 0 ? f.p1 : (f.kind === 'freno' ? [0.8, 0.6, 0.4] : [0.7, 0.5, 0.3])[Math.min(f.tries, 2)]);
           if (ok) { end(f, f.self ? (f.kind === 'trazione' ? tx('guasto.trazione.riarmato', { dove: f.where || '' })
             : tx('guasto.freno.riarmato', { dove: f.where || '' })) : tx('guasto.riarmo.riuscito')); continue; }
           if (f.self && f.tries === 0) { f.self = false; f.tries = 1; f.ph = 'call';
@@ -2707,13 +2710,16 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       const cand = S.agents.filter(a => !a.hidden && a.status === 'service' && a.mode !== 'static' && !of(a).length);
       for (const { id, perDay } of c.catalog || []) {
         if (!KINDS[id] || !(perDay > 0)) continue;
+        if (KINDS[id].socimi && !c.hasSocimi) continue;                                 // (no SOCIMI in this fleet: not even drawn)
         const w = id === 'porte_persone' ? (c.loadAt ? c.loadAt(S.t) / 0.6 : 1) : 1;      // more in the peak hours
         const r = rnd();
         if (r >= perDay * 60 / DAYS * w) continue;
         if (id === 'sciopero' || id === 'prefettura') continue;
         if (KINDS[id].on) { add(id, null, { random: true }); continue; }
-        if (!cand.length) continue;
-        const a = cand.splice(Math.floor(rnd() * cand.length), 1)[0];
+        // only on the SOCIMI trains (c.unitOf: the units a train runs at that moment); none in the fleet: never
+        const pool = KINDS[id].socimi ? cand.filter(a => { const u = c.unitOf ? c.unitOf(a.k, S.t) : null; return u && /socimi/i.test(u.type || ''); }) : cand;
+        if (!pool.length) continue;
+        const a = pool[Math.floor(rnd() * pool.length)]; cand.splice(cand.indexOf(a), 1);
         add(id, a.k, { random: true });
       }
     }
@@ -2856,7 +2862,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
     // text on its platform screens
     const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null, zones: [] };
     // failures (web/faults.js, foglio Guasti): emergency brake of each kind of train
-    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, tempi: o.tempi, badoni: o.badoni, half, vyard: (ops.depot_speed_kmh || 15) / 3.6, catalog: o.faults || [], emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
+    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, tempi: o.tempi, badoni: o.badoni, half, vyard: (ops.depot_speed_kmh || 15) / 3.6, catalog: o.faults || [], unitOf: o.unitOf, hasSocimi: !!o.hasSocimi, emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
       line: {
         // the signals and switches of the main tracks (where the line failures happen), the route behind a signal
         sigs: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => (o.sigall && o.sigall[pid] || []).map(x => x[1])))].filter(n => !RT.isPcSignal(n)).sort((x, y) => x - y),
@@ -2924,10 +2930,23 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
       // starts and ends on its mark for the cab change)
       leg.stops.forEach((z, i) => { if (i === 0 || i === leg.stops.length - 1) return; if (hash01(k, si, z.j, 7) < p) { const off = m0 + (m1 - m0) * hash01(k, si, z.j, 11); z.d -= off; z.off = off; } });
     }
+    // in ATO (Giovanni 10 Nov 2026): the stop on the mark is not precise to the metre, 2-3 m ahead or short of the mark at
+    // 80 stops in 100 (ops.ato_stop). Not at the first and last stop (the run starts and ends on its mark for the cab change).
+    // Off for now (ops.ato_stop.attivo): the engine finds a train at its station by its exact stop point (closures,
+    // navetta, shuttles), and trains standing 2-3 m off it lock the closures (tests/closures_check.js)
+    const ATOSTOP = ops.ato_stop || {};
+    function atoStop(k, si, leg) {
+      const p = ATOSTOP.off_pct != null ? ATOSTOP.off_pct / 100 : 0, m0 = (ATOSTOP.off_m || [2, 3])[0], m1 = (ATOSTOP.off_m || [2, 3])[1];
+      if (!(p > 0) || ATOSTOP.attivo === false) return;
+      leg.stops.forEach((z, i) => { if (i === 0 || i === leg.stops.length - 1) return; if (hash01(k, si, z.j, 13) < p) {
+        let off = (m0 + (m1 - m0) * hash01(k, si, z.j, 17)) * (hash01(k, si, z.j, 19) < 0.5 ? 1 : -1);
+        z.d -= off; z.off = off; } });
+    }
     function planLeg(k, si, fromD) {
       const s = planOf(k)[si], leg = legOfSeg(s, fromD);
       leg.si = si; leg.plan = true; leg.timed = true; leg.t0 = s[3][0];
       if (s[1] === 'service' && firstRuns().has(k + ':' + si)) { leg.man = true; manualStop(k, si, leg); }
+      else if (s[1] === 'service') atoStop(k, si, leg);
       return leg;
     }
     const byHand = a => { if (a.hidden) return false; if ((FX && FX.manual(a)) || a.manualTo != null) return true;
@@ -8608,7 +8627,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); tr.carr10 = tr.carr1 && JSON.parse(JSON.stringify(tr.carr1)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, depotPark: k => (F.dm && F.ag && F.ag.S.faults && F.ag.S.faults.list.some(f => f.k === k && f.maint)) ? F.dm.officinaPark(k) : null, tempi: (E_.net.rules || {}).tempi, sdTails: E_.net.sd_tail_edges, depotIn: Object.values(F.depotPaths || {}).map(P => [P.in, P.in_stop]), sdTailSig: Object.fromEntries(((E_.net.schema_depot || {}).signals || []).filter(x => (E_.net.sd_tail_edges || []).includes(x.e)).map(x => [x.e, x.n])), badoni: F.test && F.test.badoni, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      planOf: k => F.trains[k].segs, count: F.trains.length, depotPark: k => (F.dm && F.ag && F.ag.S.faults && F.ag.S.faults.list.some(f => f.k === k && f.maint)) ? F.dm.officinaPark(k) : null, tempi: (E_.net.rules || {}).tempi, sdTails: E_.net.sd_tail_edges, depotIn: Object.values(F.depotPaths || {}).map(P => [P.in, P.in_stop]), sdTailSig: Object.fromEntries(((E_.net.schema_depot || {}).signals || []).filter(x => (E_.net.sd_tail_edges || []).includes(x.e)).map(x => [x.e, x.n])), badoni: F.test && F.test.badoni, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, unitOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t); return d && d[2] >= 0 ? stock[d[2]] : null; })(F.trains.map(tr => tr.duties), F.stock || []), hasSocimi: (F.stock || []).some(u => /socimi/i.test(u.type || '')), kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino|hitachi/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
