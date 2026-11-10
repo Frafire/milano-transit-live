@@ -134,7 +134,12 @@
   "Intervallo minimo tra due treni ai capolinea: un cambio banco a Comasina non ci mette meno di (disposizione dell'ACEI)": [
    200,
    null,
-   "Giovanni 10/11/2026: la frequenza teorica di 2 minuti è impossibile per il tempo che si perde a Comasina. Usato per le fasce \"ogni X'\" degli orari storici (tools/storico_corse.py)"
+   "Giovanni 10/11/2026: un cambio banco a Comasina non ci mette meno di 200 s (dal macchinista); vale nei casi normali e nell'orario normale. Per gli orari speciali vedi la riga sotto"
+  ],
+  "Intervallo minimo tra due treni ai capolinea negli orari speciali (Expo 2015, Milano Cortina 2026): uno sforzo in più": [
+   180,
+   null,
+   "Giovanni 10/11/2026: 180 s, 20 meno del solito: \"magari per questi eventi si richiedeva di fare uno sforzo in più\". Con 180 s la simulazione segue il PDF di Milano Cortina intero (tools/storico_corse.py)"
   ]
  },
  "semafori": {

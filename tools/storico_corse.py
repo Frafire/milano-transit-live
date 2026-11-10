@@ -74,7 +74,9 @@ def headway_shape(runs, t0, t1):
 
 
 _T = json.load(open(os.path.join(ROOT, 'data', 'regole_m3.json'))).get('tempi', {})
-MIN_HEADWAY = next((v[0] for k, v in _T.items() if k.startswith('Intervallo minimo tra due treni ai capolinea')), 0) or 0
+# the historical timetables are the special ones (Expo, Milano Cortina): 180 s, the normal 200 s otherwise (foglio Tempi)
+MIN_HEADWAY = next((v[0] for k, v in _T.items() if k.startswith('Intervallo minimo tra due treni ai capolinea negli orari speciali')), 0) or \
+    next((v[0] for k, v in _T.items() if k.startswith('Intervallo minimo tra due treni ai capolinea')), 0) or 0
 # (STORICO_MIN_HEADWAY, STORICO_OUT: to try another minimum without touching data/storico, e.g. how far the simulation can
 # follow a tighter timetable)
 MIN_HEADWAY = float(os.environ.get('STORICO_MIN_HEADWAY', MIN_HEADWAY))
@@ -134,7 +136,8 @@ def build(nome):
             if band:
                 hmin, hmax = band['min'] * 60, band['max'] * 60
                 # never closer than a cab change at Comasina allows (foglio Tempi, Giovanni 10 Nov 2026: at least 200 s,
-                # the ACEI; "la frequenza teorica di 2 minuti è impossibile"): the PDF's lower end is raised to it
+                # the ACEI, 180 s in these special timetables; "la frequenza teorica di 2 minuti è impossibile"): the PDF's
+                # lower end is raised to it
                 hmin = max(hmin, MIN_HEADWAY); hmax = max(hmax, hmin)
                 h_today = headway_shape(T[day][to], 0, 0); tv = [h_today(t) for t in range(band['dalle'] * 3600, (band['alle'] + 1) * 3600, 300)]
                 tv = [x for x in tv if x]; lo, hi = (min(tv), max(tv)) if tv else (hmin, hmax)

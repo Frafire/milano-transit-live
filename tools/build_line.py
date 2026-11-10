@@ -797,12 +797,29 @@ def depot_gap(t, hold=90):
     """first time >= t that is at least `hold` s from every other arrival into the depot"""
     while any(abs(t - x) < hold for x in DEPOT_ARRIVALS): t += 15
     DEPOT_ARRIVALS.append(t); return t
-DEPOT_DEPARTURES = []      # when trains leave their depot places: never two at once on the way out (the later one leaves earlier)
-def depot_leave(t, hold=90):
-    """last time <= t that is at least `hold` s from every other departure from the depot (90 s, like the arrivals: PROPOSTA;
-    two trains 4 s apart on the exit track, Expo 2015 weekday at 6:14)"""
-    while any(abs(t - x) < hold for x in DEPOT_DEPARTURES): t -= 15
-    DEPOT_DEPARTURES.append(t); return t
+# leaving the depot (Giovanni 10 Nov 2026): another train may leave only when the one before has gone entirely past #A06,
+# otherwise it waits behind its signal. In the game the depot interlocking does it; here the planned times keep to it too
+# (the later one leaves earlier, so it still reaches its platform in time)
+DEPOT_DEPARTURES = []                 # (leaves, the zone up to #A06 free again)
+_A06 = next((sg for sg in _rules_['signals'] if sg.get('_n') == 6), None)
+def a06_clear(pid, d0, plan=None):
+    """seconds from leaving d0 until the tail is past #A06 on path pid (plan: [[t...], [d...]] of the run; else 15 km/h)"""
+    if not _A06: return 90.0
+    d_a, off = project(paths[pid][0], paths[pid][1], _A06['lat'], _A06['lon'], d0, None)
+    if d_a is None or off > 15 or d_a < d0: return 90.0
+    d_c = d_a + TRAIN_HALF
+    if plan:
+        ts, ds = plan
+        for i in range(len(ds) - 1):
+            if ds[i] <= d_c <= ds[i + 1]: return ts[i] - ts[0] + (ts[i + 1] - ts[i]) * (d_c - ds[i]) / max(1e-6, ds[i + 1] - ds[i])
+    return yard_time(pid, d0, d_c)
+def depot_leave(t, clear):
+    """last time <= t at which a train needing `clear` s to be past #A06 neither enters the zone before the train ahead has
+    left it nor holds up the one after"""
+    while any(not (t >= x + cx or t + clear <= x) for x, cx in DEPOT_DEPARTURES): t -= 15
+    DEPOT_DEPARTURES.append((t, clear)); return t
+import atexit as _atexit
+_atexit.register(lambda: DEPOT_DEPARTURES and print('depot departures: %d, past #A06 in %d-%d s, closest two %d s apart' % (len(DEPOT_DEPARTURES), min(c for _, c in DEPOT_DEPARTURES), max(c for _, c in DEPOT_DEPARTURES), min((b[0] - a[0] for a, b in zip(sorted(DEPOT_DEPARTURES), sorted(DEPOT_DEPARTURES)[1:])), default=0))))
 ALTS = collections.defaultdict(list)
 BOARD = collections.defaultdict(lambda: collections.defaultdict(list))
 def station_key(name):
@@ -960,7 +977,7 @@ for k, chain in enumerate(trains):
                 pid0 = leg_path(start, via, ctail); d_pl, _ = project(paths[pid0][0], paths[pid0][1], *SD_STOP, 0, None)
                 d0 = start_off(start)
                 run = max(PULL_OUT if LINE == 'M4' else 0, yard_time(pid0, d0, d_pl))     # M3: at 15 km/h, 5 in the sheds
-                t_plat = PULL_PLAT[tr['ti']]; t_leave = depot_leave(t_plat - run)
+                t_plat = PULL_PLAT[tr['ti']]; t_leave = depot_leave(t_plat - run, a06_clear(pid0, d0))
                 com_seg0 = len(tl.segs)
                 pid, d_arr, d_end, t_arr = service_leg(tl, start, via, ctail, tr, t_leave, SD_STOP, COM_STOP, 'from_depot', t_plat)
                 tl.segs[-2].append(start)
@@ -1007,7 +1024,8 @@ for k, chain in enumerate(trains):
                 ctail, t_ready = EARLY_TAIL[tr['ti']]
                 pidE = leg_path(STORE_BEFORE.get(tr['ti'], loc[1]), [SD_DEP[1], SD_OUT_NODE], ctail); cE = paths[pidE][1]
                 LE = cE[-1]; d0, d1 = start_off(STORE_BEFORE.get(tr['ti'], loc[1])), LE - tail_off(ctail)
-                t0 = depot_leave(t_ready - (d1 - d0) / V_EMPTY - 90 - EMPTY_MARGIN)    # leave early: on the way it may wait behind passenger trains
+                _t0 = t_ready - (d1 - d0) / V_EMPTY - 90 - EMPTY_MARGIN                # leave early: on the way it may wait behind passenger trains
+                t0 = depot_leave(_t0, a06_clear(pidE, d0, [[_t0, _t0 + 90, t_ready], [d0, d0 + 200, d1]]))
                 tl.add(pidE, 'empty', [t0, t0 + 90, t_ready], [d0, d0 + 200, d1]); tl.segs[-1].append(STORE_BEFORE.get(tr['ti'], loc[1]))
                 loc = ('com', ctail, t_ready)
             if loc[0] == 'comP':
