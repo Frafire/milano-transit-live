@@ -3205,6 +3205,15 @@
    "Note": "per dopo (procedure di soccorso). Per l'interlocking adesso conta solo: quali tratte può autorizzare il PC, proteggendo sempre gli altri treni"
   },
   {
+   "N.": 27,
+   "Situazione": "sempre",
+   "Dove (gruppo o semafori)": "qualsiasi stazione (prima a San Donato, A45 e A14)",
+   "Se... (chi chiede cosa)": "due treni fermi in banchina vogliono partire su itinerari che si toccano",
+   "Allora... (decisione)": "l'itinerario è sempre di chi deve partire prima: il treno lo chiede 30 s prima del suo orario di partenza, non quando arriva in banchina",
+   "Perché": "un treno arrivato prima ma che parte dopo non deve bloccare quello che parte prima (Milano Cortina, 9/2/2026, San Donato 17:59)",
+   "Note": "Giovanni 10/11/2026: \"l'itinerario è sempre di chi deve partire prima\". Come la precedenza 4."
+  },
+  {
    "N.": 28,
    "Situazione": "sempre",
    "Dove (gruppo o semafori)": "tronchetti, rimesse e gallerie di collegamento",
