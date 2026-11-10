@@ -70,17 +70,8 @@
   "marcia_a_vista_kmh": 15,
   "_illegal": "Un treno sul binario illegale (contromano: navetta, treno che torna indietro sul suo binario): blocco orientato dall'altra parte, dispositivi esclusi, quindi più lento (Giovanni e il suo collega, 2 nov 2026)",
   "illegal_kmh": 30,
-  "ato_stop": {
-    "_about": "Fermata in ATO (Giovanni 10/11/2026): lo stop a bersaglio non è preciso al metro, il treno si ferma 2-3 m avanti o indietro rispetto al punto di stop nell'80% delle fermate. off_pct: quante fermate su 100; off_m: di quanti metri (avanti o indietro a caso, metà e metà: proposta di Claude). Non alla prima e all'ultima fermata della corsa (cambio banco).",
-    "_disegno": "Solo nel disegno del treno (Giovanni 10/11/2026: \"perfetto fai così\"): il motore tiene il punto di stop esatto, la pagina disegna il treno 2-3 m avanti o indietro negli ultimi 30 m e mentre è fermo. attivo: false lo spegne.",
-    "off_pct": 80,
-    "off_m": [
-      2,
-      3
-    ]
-  },
   "manual_stop": {
-    "_about": "Guida manuale (MAN, Giovanni 9/11/2026): tutti i movimenti in deposito e la prima corsa del giorno per ogni senso; l'ATO entra alla banchina di San Donato (o dopo A02). In manuale il treno accelera meno e resta sotto i limiti. miss_pct: quante fermate su 100 non sono nel punto esatto (Giovanni: 4%). short_m: di quanti metri si ferma prima del punto (proposta di Claude, confermata da Giovanni il 10/11/2026). In ATO l'errore di fermata è al massimo 2-3 m (Giovanni 10/11/2026): non ancora nel programma, manca quanto spesso succede.",
+    "_about": "Guida manuale (MAN, Giovanni 9/11/2026): tutti i movimenti in deposito e la prima corsa del giorno per ogni senso; l'ATO entra alla banchina di San Donato (o dopo A02). In manuale il treno accelera meno e resta sotto i limiti. miss_pct: quante fermate su 100 non sono nel punto esatto (Giovanni: 4%). short_m: di quanti metri si ferma prima del punto (proposta di Claude, confermata da Giovanni il 10/11/2026). In ATO la fermata resta precisa (Giovanni 10/11/2026: 2-3 m avanti o indietro nell'80% delle fermate, ma per ora preciso finché non pensa a un sistema che lo simuli meglio).",
     "miss_pct": 4,
     "short_m": [
       2,

@@ -4585,9 +4585,7 @@ window.MTL_CAPS = __CAPS__;
     // the movements of the table (Regole_interlocking_M3, foglio Itinerari) set for it now
     const ids = [...new Set((F.ag.rt().routes[tr.agentK] || []).map(r => r.id).filter(Boolean))];
     if (ids.length) label += ' · itinerario ' + ids.join(', ');
-    let dv = viewD(F, tr.agentK, s);
-    // the ATO stop 2-3 m off the mark (web/agents.js atoStop): only drawn, over the last 30 m before the stop and the first after
-    if (s.drawStop) { const f = 1 - Math.abs(s.drawStop[0] - dv) / 30; if (f > 0) dv -= s.drawStop[1] * Math.min(1, f); }
+    const dv = viewD(F, tr.agentK, s);
     return { pos: trackAt(F, s.pid, dv), pid: s.pid, d: dv, v: s.v, status: s.status, label, trip: s.mode === 'plan' ? s.trip : -1, seg: s.mode === 'plan' ? s.seg : -1, agent: s };
   }
   // ================= RADIO TERRA-TRENO (M3): web/radio.js =================
