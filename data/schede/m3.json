@@ -21,22 +21,52 @@
   {
    "id": "storia",
    "titolo": "Storia",
-   "provvisorio": true,
-   "avviso": "Testo provvisorio da Wikipedia (voce \"Linea M3 della metropolitana di Milano\", CC BY-SA 4.0), solo per l'impaginazione. Sarà sostituito con testo nostro da altre fonti.",
    "paragrafi": [
-    "La M3 è la terza linea della metropolitana milanese in ordine di costruzione. Il consiglio comunale la approvò nel 1977, partendo da un'indagine sugli spostamenti in città fatta tra il 1976 e il 1977.",
-    "Tra Repubblica e Crocetta la linea corre in due gallerie sovrapposte, per passare sotto le strade strette del centro senza toccare gli edifici. Le cinque stazioni di questa tratta sfruttano l'esperienza di Sant'Agostino sulla M2, costruita allo stesso modo."
+    "## Il progetto",
+    "Negli anni Settanta Metropolitana Milanese studia una nuova linea, la terza, di colore giallo. Lo studio di fattibilità del 1976–1977 dice che serve soprattutto un collegamento nord-sud, tra Rogoredo e la Stazione Centrale, per chi va a scuola e al lavoro; nella stessa fase si pensa anche a una quinta linea est-ovest, solo per le periferie del nord. Il 17 ottobre 1977 viene approvato il percorso del progetto preliminare.",
+    "Il progetto definitivo arriva al Ministero dei Trasporti l'11 gennaio 1981: 11,2 km e quindici stazioni, dalla Centrale (con la M2) a Repubblica, al Duomo (con la M1), a Rogoredo e fino a San Donato, dove nasce un grande nodo con parcheggi, autostazione e il deposito ATM. La prima pietra è dell'8 settembre 1981.",
+    "## Verso nord: sei ipotesi",
+    "Fin dall'inizio si pensa di portare la linea a Cinisello Balsamo, Bresso e Cusano Milanino, molto abitati, ma si sceglie il tracciato Sondrio – Zara – Maciachini. Il Piano dei trasporti del 1980 prevede di raddoppiare i binari delle tranvie interurbane e di far arrivare i tram proprio al capolinea nord della metropolitana.",
+    "Tra il 1984 e il 1988 il Comune approva i prolungamenti: il 22 ottobre 1984 fino a Sondrio, all'incrocio con le circolari 90 e 91; poi fino a San Donato con il deposito; infine verso l'Ospedale Niguarda. Si arriva a due rami possibili a nord, verso Affori e verso Cusano-Cinisello, e in tutto a sei ipotesi diverse.",
+    "Poiché a nord i passeggeri attesi sono pochi, all'inizio degli anni Novanta MM studia anche una metropolitana leggera automatica, la MLAI: treni più piccoli, meno costi, meno impatto. Una prima linea andrebbe da Moscova (M2) a Bresso, Cusano Milanino e Paderno Dugnano, circa 6 km con undici stazioni; una seconda, a sud, da Missori (M3) ad Abbiategrasso (M2), circa 6 km con nove stazioni.",
+    "## Soldi privati e Tangentopoli",
+    "Per pagare la linea si prova una strada nuova: coinvolgere investitori privati, a cui andrebbe per un certo periodo l'esercizio della linea, che poi tornerebbe pubblica, come per molte infrastrutture della Milano dell'Ottocento.",
+    "Dal 1992 arriva Mani Pulite. Anche gli appalti della M3 finiscono sotto esame: le inchieste giornalistiche dell'epoca parlano di tangenti per oltre 2.000 miliardi di lire. I lavori rallentano, le sei ipotesi verso nord vengono abbandonate e al loro posto si fa una soluzione più piccola, la metrotranvia, oggi il tram 4.",
+    "## Come è stata scavata",
+    "Lungo il tracciato ci sono troppi edifici storici per usare i metodi delle prime due linee: MM studia tecniche nuove, guardando soprattutto al Giappone e agli Stati Uniti. Tra Repubblica e Crocetta la linea corre in due gallerie sovrapposte: così passa sotto le strade strette del centro senza mettere a rischio le case e ha curve più larghe, quindi più veloci. Le cinque stazioni di questa tratta sfruttano l'esperienza di Sant'Agostino sulla M2.",
+    "Circa il 70% delle gallerie è scavato a foro cieco: prima una piccola fresa automatica fa le iniezioni che consolidano il terreno senza toccare la superficie, poi si scava con le tecniche tradizionali. Il restante 30% è fatto con il Metodo Milano.",
+    "Il problema più grande è l'acqua della falda. A Crocetta la falda è circa sei metri sopra il fondo della galleria: uno strato di limo spesso un metro fa slittare la calotta in cemento armato prima che sia fatto l'arco rovescio, e circa duecento metri di galleria si allagano. I prodotti chimici fanno avanzare solo di pochi metri; alla fine si usa una tecnica delle miniere, l'azoto liquido a –196 °C, fatto passare in tubi d'acciaio dentro fori rivestiti di fanghi bentonitici, che congela il terreno e permette di finire lo scavo.",
+    "Il caso più delicato è il Teatro alla Scala: in via Manzoni la galleria a due livelli passa a circa dieci metri dall'ingresso e a quindici di profondità. MM, Comune e Sovrintendenza della Scala decidono un armamento diverso e un monitoraggio continuo con sensori e lettori ottici, che trova i treni che fanno vibrare più del consentito e li manda in manutenzione.",
+    "Fuori dal centro i due binari corrono affiancati in galleria; da Corvetto a San Donato, dove c'erano ampie aree libere, la linea è costruita a cielo aperto. L'eccezione è Rogoredo: per non fermare la ferrovia, sotto i binari vengono costruiti prima due grandi manufatti di circa cinquanta metri, alti più di dieci, uno per i treni e uno per i passeggeri.",
+    "## Le stazioni e i reperti del Duomo",
+    "Le stazioni della M3 non sono tutte uguali: dentro i bastioni sono quasi tutte a banchine sovrapposte, dove il livello di sotto regge anche la banchina di sopra; altrove ci sono banchine a isola in una o due gallerie, o banchine laterali e centrali nelle stazioni a cielo aperto. Mezzanini, scale e ascensori sono fatti quasi sempre a cielo aperto, negli spazi stretti ai lati delle gallerie. Le stazioni a nord di Centrale, progettate da Claudio Dini, sono più luminose e sprecano meno spazio.",
+    "Come per la M1, gli scavi in piazza del Duomo trovano fondazioni antiche, mura dell'alto Medioevo e strade: si ricostruisce l'area sacra che c'era prima della cattedrale, con i resti di Santa Tecla, di Santa Maria Maggiore (fondata nell'836) e del battistero di San Giovanni alle Fonti, poi resi visitabili."
    ],
    "tappe": [
     {
-     "data": "1977",
+     "data": "17.10.1977",
      "titolo": "Approvata",
-     "testo": "Ordine del giorno del consiglio comunale."
+     "testo": "Approvato il percorso del progetto preliminare, dopo lo studio di fattibilità del 1976-1977 sui collegamenti nord-sud."
+    },
+    {
+     "data": "1980",
+     "titolo": "Piano dei trasporti",
+     "testo": "Tranvie interurbane a doppio binario, con i capolinea dove arriverà la M3 a nord."
     },
     {
      "data": "1981",
      "titolo": "Progetto e cantieri",
      "testo": "Il progetto di MM arriva al Ministero dei trasporti l'11 gennaio; i lavori partono l'8 settembre."
+    },
+    {
+     "data": "1982",
+     "titolo": "Cantieri in centro",
+     "testo": "Si scava tra Centrale e Duomo, con le gallerie sovrapposte da tre pozzi in largo Donegani, piazza Cavour e via Santa Margherita, e il raccordo con la M2 in piazza Duca d'Aosta. Alla fine dell'anno i lavori arrivano a Medaglie d'Oro; nel 1983 tutta la tratta fino a Rogoredo è in costruzione."
+    },
+    {
+     "data": "22.10.1984",
+     "titolo": "Fino a Sondrio",
+     "testo": "Il Comune approva il prolungamento a Sondrio; seguiranno San Donato con il deposito e la direzione Niguarda, fino a sei ipotesi per il nord."
     },
     {
      "data": "03.05.1990",
@@ -53,6 +83,11 @@
      "data": "12.05.1991",
      "titolo": "Sondrio e San Donato",
      "testo": "Aprono Centrale FS – Sondrio a nord e Porta Romana – San Donato a sud, con l'interscambio di Rogoredo FS."
+    },
+    {
+     "data": "1992",
+     "titolo": "Tangentopoli",
+     "testo": "Mani Pulite colpisce anche gli appalti della M3: lavori rallentati, le sei ipotesi verso nord abbandonate, al loro posto la metrotranvia (tram 4)."
     },
     {
      "data": "05.1993",
@@ -135,7 +170,8 @@
     }
    ],
    "fonti": [
-    "Fonti: Wikipedia, voci \"Linea M3\", \"Sondrio\" e \"Elettromotrici della linea 3\" (CC BY-SA 4.0, provvisorie); articolo di cronaca sull'allagamento del 2010 (testata da indicare); Il Sole 24 Ore, M. Morino, 4/11/2022; <a href=\"https://www.ilpost.it/2015/05/26/expo-mezzanotte-weekend/\" style=\"color:inherit\">Il Post, 26/5/2015</a>; <a href=\"https://www.lapresse.it/cronaca/2015/04/30/expo-come-muoversi-a-milano-durante-lesposizione-universale/\" style=\"color:inherit\">LaPresse, 30/4/2015</a>; <a href=\"https://www.mentelocale.it/milano/110704-atm-milano-servizio-potenziato-durante-le-olimpiadi-fino-a-che-ora-aperta-la-metropolitana.htm\" style=\"color:inherit\">Mentelocale, 4/2/2026</a>; <a href=\"https://www.ilgiorno.it/milano/cronaca/mobilita-il-piano-olimpico-metro-fdacbd2b\" style=\"color:inherit\">Il Giorno</a>; Giovanni (treni corti, flotta, Galileo, Arena Santa Giulia)."
+    "G. Severi, R. Vasini, Metropolitana a Milano, Grafiche Alma, 1996; A. Mantegazza, L'ATM di Milano 1973-2005, Ciriec, 2013; G. L. Minici, La metropolitana milanese; Metropolitana Milanese, Linea 3 (gialla), 1981; MM, Linea 3 Rogoredo-Centrale FS: studi di fattibilità; MM, Linea 3 / MM Strutture ed infrastrutture del territorio, 1995; S. Baroni, Il ruolo della metropolitana nel trasporto pubblico; D. Caporusso, Scavi MM3, Soprintendenza archeologica della Lombardia, 1991; A. Calabrò, la Repubblica, 9/12/2025; BreA Studio Ingegneria, 2016;",
+    "Wikipedia, voci \"Sondrio\" e \"Elettromotrici della linea 3\" (CC BY-SA 4.0); articolo di cronaca sull'allagamento del 2010 (testata da indicare); Il Sole 24 Ore, M. Morino, 4/11/2022; <a href=\"https://www.ilpost.it/2015/05/26/expo-mezzanotte-weekend/\" style=\"color:inherit\">Il Post, 26/5/2015</a>; <a href=\"https://www.lapresse.it/cronaca/2015/04/30/expo-come-muoversi-a-milano-durante-lesposizione-universale/\" style=\"color:inherit\">LaPresse, 30/4/2015</a>; <a href=\"https://www.mentelocale.it/milano/110704-atm-milano-servizio-potenziato-durante-le-olimpiadi-fino-a-che-ora-aperta-la-metropolitana.htm\" style=\"color:inherit\">Mentelocale, 4/2/2026</a>; <a href=\"https://www.ilgiorno.it/milano/cronaca/mobilita-il-piano-olimpico-metro-fdacbd2b\" style=\"color:inherit\">Il Giorno</a>; Giovanni (treni corti, flotta, Galileo, Arena Santa Giulia)."
    ],
    "crescita": {
     "provvisorio": true,

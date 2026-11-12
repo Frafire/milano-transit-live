@@ -52,7 +52,10 @@ const ORARI = LINEE.orari || {};
     await p.click('#metro .tilewrap .info');
     const ids = await p.$$eval('#lsnav a', as => as.map(a => a.getAttribute('href').slice(1)));
     for (const id of ids) {
-      await p.click(`#lsnav a[href="#${id}"]`); await p.waitForTimeout(900);
+      // (a smooth scroll: the longer the section before, the longer it takes; up to 3 s)
+      await p.click(`#lsnav a[href="#${id}"]`); await p.waitForTimeout(600);
+      await p.waitForFunction(id => { const t = document.getElementById(id).getBoundingClientRect().top, ls = document.getElementById('ls');
+        return (t >= 0 && t < 140) || ls.scrollTop + innerHeight >= ls.scrollHeight - 2; }, id, { timeout: 3000 }).catch(() => {}); await p.waitForTimeout(300);
       const r = await p.evaluate(id => { const s = document.getElementById(id), t = s.getBoundingClientRect().top, on = document.querySelector('#lsnav a.on');
         const last = s === [...document.querySelectorAll('#ls section')].pop(), atEnd = document.getElementById('ls').scrollTop + innerHeight >= document.getElementById('ls').scrollHeight - 2;
         return { near: t >= 0 && t < 140, on: on && on.getAttribute('href') === '#' + id, last, atEnd }; }, id);
