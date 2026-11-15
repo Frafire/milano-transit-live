@@ -693,6 +693,41 @@ const SCENARIOS = {
       return { ok: res.every(r => r.same && r.want > 0 && r.sigs === r.sigWant && r.edges === SCH.edges.length && r.station) && line.tk === line.want && line.want > 50 && line.labels >= 21 && line.plat >= 42 && line.m2 >= 1 && back, res, line, back };
     });
   },
+  async sineditor(p) {   // the sinottico editor (Giovanni 16 Nov 2026): numbers, a repeated click between two nodes on top of each
+    // other, arrows, undo and redo, separate, align to the row, the list of what to look at; nothing left in the browser
+    const sleep = ms => new Promise(r => setTimeout(r, ms)), r = {};
+    await p.evaluate(() => { document.querySelector('.drawer .tab[data-mode="schema"]').click(); const w = document.getElementById('schWhich'); w.value = 'line'; w.dispatchEvent(new Event('change'));
+      document.getElementById('schEdit').click(); for (let i = 0; i < 4; i++) document.getElementById('dpIn').click(); });
+    await sleep(1500);
+    const yOf = n => p.evaluate(n => { const e = document.querySelector(`#depotPlan rect.nd[data-nd="${n}"]`); return e ? [+e.getAttribute('x') + 3.5, +e.getAttribute('y') + 3.5] : null; }, n);
+    const sel = () => p.evaluate(() => document.getElementById('schSel').textContent);
+    r.labels = await p.evaluate(() => [document.querySelectorAll('#depotPlan rect.nd').length, document.querySelectorAll('#depotPlan text.ndn').length, document.querySelector('#depotPlan svg').classList.contains('zhi')]);
+    r.near = await p.evaluate(() => document.querySelectorAll('#depotPlan .ndg.near').length);
+    const click = async n => { const box = await p.evaluate(n => { const e = document.querySelector(`#depotPlan rect.nd[data-nd="${n}"]`); e.scrollIntoView({ block: 'center', inline: 'center' }); const b = e.getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, n);
+      await p.mouse.click(box[0], box[1]); await sleep(300); };
+    await click('116'); const s1 = await sel(); await click('116'); const s2 = await sel();
+    r.cycle = [s1, s2]; const one = (s1.match(/nodo (\d+)/) || [])[1], two = (s2.match(/nodo (\d+)/) || [])[1];
+    r.cycleOk = !!one && !!two && one !== two && ['116', '141'].includes(one) && ['116', '141'].includes(two);
+    const p0 = await yOf(two); await p.keyboard.press('ArrowRight'); await sleep(300); const p1 = await yOf(two);
+    await p.keyboard.press('Shift+ArrowDown'); await sleep(300); const p2 = await yOf(two);
+    await p.keyboard.press('Control+z'); await sleep(300); const p3 = await yOf(two); await p.keyboard.press('Control+y'); await sleep(300); const p4 = await yOf(two);
+    await p.keyboard.press('Control+z'); await p.keyboard.press('Control+z'); await sleep(300); const p5 = await yOf(two);
+    r.keys = [p0, p1, p2, p3, p4, p5];
+    const eq = (u, v) => Math.abs(u - v) < 0.05;
+    r.keysOk = eq(p1[0] - p0[0], 1) && eq(p2[1] - p1[1], 10) && eq(p3[1], p1[1]) && eq(p4[1], p2[1]) && eq(p5[0], p0[0]) && eq(p5[1], p0[1]);
+    await p.evaluate(() => { document.getElementById('schSepD').value = 20; document.getElementById('schSep').click(); }); await sleep(300);
+    const a = await yOf('116'), b = await yOf('141'); r.sep = [a, b]; r.sepOk = Math.abs(Math.abs(a[0] - b[0]) - 20) < 0.6 && Math.abs(a[1] - b[1]) < 0.05;
+    await p.evaluate(() => document.getElementById('schU').click()); await sleep(300);
+    r.list = await p.evaluate(() => { document.getElementById('schSuspBox').open = true; return [...document.querySelectorAll('#schSusp button')].map(x => x.textContent); });
+    r.listOk = r.list.some(t => /Nodi 1(16|41) e 1(16|41)/.test(t)) && r.list.some(t => /Tratto .* corto/.test(t)) && r.list.some(t => /Nodo 173 fuori/.test(t));
+    await p.evaluate(() => [...document.querySelectorAll('#schSusp button')].find(x => /Nodo 173 fuori/.test(x.textContent)).click()); await sleep(300);
+    await p.evaluate(() => document.getElementById('schAlign').click()); await sleep(300); r.align = await yOf('173');
+    r.alignOk = !!r.align && Math.abs(r.align[1] - 200) < 0.05;
+    await p.evaluate(() => { document.getElementById('schUndo').click(); try { localStorage.removeItem('mtl-sinlinea-edit'); localStorage.removeItem('mtl-schema-edit'); } catch (e) {}
+      document.getElementById('schEdit').click(); document.getElementById('dpClose').click(); });
+    r.ok = r.labels[0] > 50 && r.labels[0] === r.labels[1] && r.labels[2] && r.near >= 6 && r.cycleOk && r.keysOk && r.sepOk && r.listOk && r.alignOk;
+    if (r.ok) delete r.list; return r;
+  },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again
     return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));

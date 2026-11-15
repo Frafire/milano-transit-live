@@ -27,6 +27,7 @@ node "$ROOT/tools/precompute_live.js"
 echo "== tests"
 python3 "$ROOT/tests/check_tails.py"
 python3 "$ROOT/tests/check_depot.py"
+python3 "$ROOT/tests/sinottico_check.py"      # (the drawings: nodes and pieces closer than 10 px, only reported)
 node "$ROOT/tests/engine_test.js"
 node "$ROOT/tests/day_agents_check.js" 5 24
 node "$ROOT/tests/interlocking_check.js" 5 24
