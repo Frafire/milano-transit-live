@@ -151,10 +151,15 @@ for grp in PLAT_EDITS.get('unisci', []):
     if len(ms) < 2: continue
     pts = [ll(*q) for q in _hull([xy(a, b) for op in ms for a, b in op['p']])]
     OSM_PLAT = [op for op in OSM_PLAT if op['osm'] not in grp] + [dict(ms[0], p=pts + [pts[0]], merged=grp)]
+# disegna: platforms drawn by hand (the M2: Gessate longer, Lanza one island), in place of the ones drawn here or from OSM
+for i, d in enumerate(PLAT_EDITS.get('disegna', [])):
+    if i == 0: OSM_PLAT = [op for op in OSM_PLAT if op['station'].upper() not in {x['station'].upper() for x in PLAT_EDITS['disegna']}]
+    OSM_PLAT.append({'osm': None, 'station': d['station'], 'ref': d.get('ref', ''), 'p': d['p'], 'disegnata': True})
 for op in OSM_PLAT:
     flat, pa, pb = [], 0, 0
     for a_, b_ in op['p']:
         A, B = round(a_ * 1e6), round(b_ * 1e6); flat += [A - pa, B - pb]; pa, pb = A, B
+    if op.get('disegnata'): platforms.append({'n': op['station'].title(), 'p': flat, 'ref': op.get('ref', ''), 'disegnata': 1}); continue
     platforms.append({'n': op['station'].title(), 'p': flat, 'osm': op['osm'], 'ref': op.get('ref', ''), **({'merged': op['merged']} if op.get('merged') else {})})
 OSM_ST = {op['station'].upper() for op in OSM_PLAT}
 for name, sts in station_tracks.items():

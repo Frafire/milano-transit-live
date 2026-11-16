@@ -1,7 +1,38 @@
 {
-  "_nota": "Correzioni di Giovanni alle banchine M2 (applicate da tools/build_trips.py con PLATFORM_EDITS). unisci: banchine OSM (id) che sono una sola, unite nel loro contorno. allunga: per una stazione con le banchine disegnate dalla build (110 m), il punto [lat, lon] fino a cui arrivano.",
-  "unisci": [[971662712, 971662713]],
-  "unisci_note": {"971662712": "Famagosta: in OSM due metà della stessa banchina a isola (Giovanni 5/11/2026)"},
-  "allunga": {"ASSAGO MILANOFIORI FORUM": [45.402292, 9.145794]},
-  "allunga_note": {"ASSAGO MILANOFIORI FORUM": "verso nord fino all'altezza dei segnali (Giovanni 5/11/2026)"}
+ "_nota": "Correzioni di Giovanni alle banchine M2 (applicate da tools/build_trips.py con PLATFORM_EDITS). unisci: banchine OSM (id) che sono una sola, unite nel loro contorno. allunga: per una stazione con le banchine disegnate dalla build (110 m), il punto [lat, lon] fino a cui arrivano. disegna: banchine disegnate a mano (contorno [lat, lon]) che prendono il posto di quelle disegnate dalla build o da OSM per quella stazione.",
+ "unisci": [
+  [
+   971662712,
+   971662713
+  ]
+ ],
+ "unisci_note": {
+  "971662712": "Famagosta: in OSM due metà della stessa banchina a isola (Giovanni 5/11/2026)"
+ },
+ "allunga": {
+  "ASSAGO MILANOFIORI FORUM": [45.402292, 9.145794]
+ },
+ "allunga_note": {
+  "ASSAGO MILANOFIORI FORUM": "verso nord fino all'altezza dei segnali (Giovanni 5/11/2026)"
+ },
+ "disegna": [
+  {
+   "station": "LANZA",
+   "ref": "isola",
+   "nota": "Banchina a isola unica tra i due binari, 111 m (Giovanni, 16/11/2026)",
+   "p": [[45.4718122, 9.182302], [45.4718122, 9.182302], [45.4718327, 9.1823255], [45.4718676, 9.1823671], [45.4719025, 9.1824088], [45.4719374, 9.1824504], [45.4719724, 9.182492], [45.4720073, 9.1825336], [45.4720422, 9.1825753], [45.4720771, 9.1826169], [45.472112, 9.1826585], [45.4721469, 9.1827001], [45.4721818, 9.1827418], [45.4722167, 9.1827834], [45.4722518, 9.1828249], [45.4722869, 9.1828663], [45.4723216, 9.1829069], [45.4723575, 9.1829474], [45.4723933, 9.1829874], [45.4724291, 9.1830275], [45.4724656, 9.1830664], [45.4725025, 9.1831041], [45.4725395, 9.1831419], [45.4725182, 9.1831833], [45.4724813, 9.1831456], [45.4724444, 9.1831079], [45.4724067, 9.1830677], [45.4723709, 9.1830276], [45.4723351, 9.1829876], [45.4722988, 9.1829466], [45.4722637, 9.1829057], [45.4722287, 9.1828643], [45.4721934, 9.1828226], [45.4721585, 9.1827809], [45.4721236, 9.1827393], [45.4720887, 9.1826977], [45.4720538, 9.1826561], [45.4720189, 9.1826145], [45.471984, 9.1825728], [45.4719491, 9.1825312], [45.4719141, 9.1824896], [45.4718792, 9.182448], [45.4718443, 9.1824063], [45.4718094, 9.1823647], [45.4717828, 9.182332], [45.4717828, 9.182332], [45.4718122, 9.182302]]
+  },
+  {
+   "station": "GESSATE",
+   "ref": "",
+   "nota": "Banchina disegnata dalla build allungata di 25 m verso Cascina Antonietta, come da foto aerea (Giovanni, 16/11/2026)",
+   "p": [[45.545382, 9.437147], [45.545382, 9.437147], [45.545363, 9.437068], [45.545334, 9.436947], [45.545305, 9.436825], [45.545276, 9.436704], [45.545247, 9.436583], [45.545219, 9.436461], [45.545189, 9.43634], [45.54516, 9.436219], [45.54513, 9.436098], [45.545101, 9.435977], [45.5450283, 9.4356737], [45.5449911, 9.4356918], [45.545066, 9.435994], [45.545096, 9.436115], [45.545126, 9.436236], [45.545155, 9.436357], [45.545184, 9.436478], [45.545213, 9.436599], [45.545242, 9.43672], [45.545271, 9.436842], [45.5453, 9.436963], [45.545329, 9.437085], [45.545347, 9.437163], [45.545347, 9.437163], [45.545382, 9.437147]]
+  },
+  {
+   "station": "GESSATE",
+   "ref": "",
+   "nota": "Banchina disegnata dalla build allungata di 25 m verso Cascina Antonietta, come da foto aerea (Giovanni, 16/11/2026)",
+   "p": [[45.5450361, 9.4356698], [45.545111, 9.435972], [45.545141, 9.436093], [45.54517, 9.436214], [45.545199, 9.436335], [45.545228, 9.436457], [45.545257, 9.436578], [45.545286, 9.436699], [45.545315, 9.436821], [45.545344, 9.436942], [45.545373, 9.437064], [45.545391, 9.437142], [45.545391, 9.437142], [45.545426, 9.437126], [45.545426, 9.437126], [45.545407, 9.437047], [45.545378, 9.436926], [45.545349, 9.436804], [45.54532, 9.436683], [45.545292, 9.436562], [45.545263, 9.43644], [45.545234, 9.436319], [45.545204, 9.436197], [45.545175, 9.436076], [45.545146, 9.435955], [45.5450733, 9.4356517], [45.5450361, 9.4356698]]
+  }
+ ]
 }
