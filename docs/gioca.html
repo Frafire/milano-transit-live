@@ -1097,9 +1097,8 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 .pcburger { background: none; border: 0; cursor: pointer; width: 56px; justify-content: center; color: var(--signal); }
 .pcburger svg { width: 24px; height: 24px; } .pcburger[aria-pressed=true] { background: var(--tile-hi); }
 .pcclock { gap: 10px; position: relative; }
-.pcbar .clock { position: relative; background: #0b0a08; border: 2px solid #4b5055; border-radius: 3px; color: var(--led); font: 900 24px/1 var(--dots); padding: 4px 8px 3px; text-shadow: 0 0 6px rgba(255,140,20,.65); letter-spacing: 0; }
-.pcbar .clock::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle, transparent 52%, rgba(0,0,0,.6) 62%); background-size: 3px 3px; }
-.pcbar .clock .s { font-size: 15px; color: var(--led); opacity: .8; }
+.pcbar .clock { color: #fff; font: 700 26px/1 var(--display); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.pcbar .clock .s { font-size: 17px; color: var(--muted); margin-left: 1px; }
 .pcday { background: none; border: 0; cursor: pointer; text-align: left; font: 600 12px/1.15 var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 0; }
 .pcday b { display: block; color: #fff; font-size: 14px; } .pcday:hover b { color: var(--signal); }
 .pcdays { position: absolute; left: 8px; top: calc(100% + 6px); z-index: 2100; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; padding: 10px; width: 300px; box-shadow: 0 14px 30px rgba(0,0,0,.6); flex-direction: column; gap: 8px; }
@@ -1274,7 +1273,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
 @media (max-width: 900px) {
   :root { --pc-left: 0px; }
   .pcbar { flex-wrap: wrap; } .pcbar > * { padding: 5px 7px; }
-  .pcday { display: none; } .pcbar .clock { font-size: 19px; }
+  .pcday { display: none; } .pcbar .clock { font-size: 22px; }
   .pcspeed { order: 8; flex-basis: 100% !important; border-top: 1px solid var(--line); justify-content: space-between; box-sizing: border-box; }
   .pcspeed button { padding: 6px 0; font-size: 14px; flex: 1; }
   .pcpl { margin-right: auto; }
