@@ -1010,34 +1010,40 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan.line path.tk { stroke: #6b7080; stroke-width: 3.2; } #depotPlan.line path.tk.lit { stroke: #ffffff; stroke-width: 3.6; } #depotPlan.line path.tk.occ { stroke: #e8402a; stroke-width: 4.2; }
 #depotPlan .plat { fill: rgba(86,224,234,.22); stroke: #2bb7c4; stroke-width: 1.2; } #depotPlan .binno { font-size: 8px; font-weight: 700; fill: #1d2140; }
 #depotPlan .badge rect { fill: #5f9732; stroke: #fff; stroke-width: 1; } #depotPlan .badge text { fill: #fff; font-size: 10px; font-weight: 800; } #depotPlan .trn text { fill: #fff; font-size: 9px; font-weight: 700; } #depotPlan .trn { cursor: pointer; }
-/* the sinottici as an ACEI panel (Giovanni 16 Nov 2026, with photos of ACEI panels: "sfondo grigio scuro"): the grid of
-   the tiles, the track as black bars cut at each section, lamps on them (red dots occupied, yellow dots given to a train),
-   the signals black with their lamps, the numbers of the trains green on black, the names in white capitals */
-#depotPlan, #depotPlan.line { --sin-bg: #3a3e42; --sin-hd: #26292c; --sin-tk: #0b0c0d; color: #e9ecef; }
-#depotPlan .dp-hd { background: var(--sin-hd); }
+/* the sinottici as the real ACEI board of the depot (Giovanni 16 Nov 2026, with the frames of a video of the Centrale
+   Operativa of the M3 depot: "sfondo grigio chiaro… puoi calcolare i tiles… esattamente come le foto"): light grey tiles of
+   28 px with darker joints, the track as black bars cut at each section, lamps on them (red dots occupied, white dots a
+   route set), the signals on a mast beside the track (round head: legal side, A; square head: wrong-way side, B), a lamp
+   by each switch lit when it is set off the straight, the black windows of the train numbers all over the board, the
+   names printed small in dark grey */
+#depotPlan, #depotPlan.line { --sin-bg: #c3c0b1; --sin-hd: #26292c; --sin-tk: #121212; color: #2b2a25; }
+#depotPlan .dp-hd { background: var(--sin-hd); color: #e9ecef; }
 #depotPlan .dp-hd button { background: #e9ecef; color: #26292c; } #depotPlan .dp-sw button { background: none; color: #e9ecef; } #depotPlan .dp-sw button[aria-pressed="true"] { background: #ffcf3f; color: #26292c; }
-#depotPlan .cell { stroke: rgba(255,255,255,.075); stroke-width: 1; }
+#depotPlan .dp-body { background: var(--sin-bg); }
+#depotPlan .cell { stroke: #8d8a7c; stroke-width: 1; opacity: .75; }
 #depotPlan .tk, #depotPlan.line .tk, #depotPlan path.tk, #depotPlan.line path.tk, #depotPlan .tk.main, #depotPlan.line .tk.main,
-#depotPlan path.tk.lit, #depotPlan path.tk.occ, #depotPlan.line path.tk.lit, #depotPlan.line path.tk.occ { stroke: #0b0c0d; stroke-width: 4.2; stroke-linecap: butt; stroke-dasharray: none; }
-#depotPlan.line path.tk, #depotPlan.line path.tk.lit, #depotPlan.line path.tk.occ { stroke-width: 5.2; }
-#depotPlan path.tk.test { stroke: #15171a; stroke-width: 2.6; stroke-dasharray: 7 4; }
-#depotPlan .lamp { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 0 7; pointer-events: none; }
-#depotPlan .lamp.occ { stroke: #ff2b22; } #depotPlan .lamp.lit { stroke: #ffd84a; }
-#depotPlan text, #depotPlan.line text { fill: #e9ecef; }
-#depotPlan .lab, #depotPlan.line .lab { fill: #ffffff; font: 800 14px var(--display); letter-spacing: .08em; text-transform: uppercase; }
-#depotPlan .pl { fill: #d6dade; stroke: var(--sin-bg); }
-#depotPlan .plat { fill: rgba(255,255,255,.07); stroke: #8d949b; stroke-width: 1; }
-#depotPlan .binno, #depotPlan.line .binno { fill: #ff4a3d; font: 700 10px var(--display); }
-#depotPlan .sgb, #depotPlan.line .sgb { stroke: #0b0c0d; stroke-width: 1.4; } #depotPlan .sgc, #depotPlan.line .sgc { fill: #0b0c0d; stroke: #0b0c0d; }
-#depotPlan .sgi .sgw { stroke: none; } #depotPlan .sgn, #depotPlan.line .sgn { fill: #7ee08f; font-weight: 600; }
-#depotPlan .sg, #depotPlan.line .sg { stroke: #0b0c0d; }
-#depotPlan .trn rect, #depotPlan .trn.late rect, #depotPlan .trn.early rect { fill: #050607; stroke: #5b6168; stroke-width: .8; }
-#depotPlan .trn text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
-#depotPlan .cont text { fill: #cfd4d9; }
+#depotPlan path.tk.lit, #depotPlan path.tk.occ, #depotPlan.line path.tk.lit, #depotPlan.line path.tk.occ { stroke: #121212; stroke-width: 5; stroke-linecap: butt; stroke-dasharray: none; }
+#depotPlan path.tk.test { stroke: #121212; stroke-width: 3.2; stroke-dasharray: 9 4; }
+#depotPlan .lamp { fill: none; stroke-width: 3.4; stroke-linecap: round; stroke-dasharray: 0 6.5; pointer-events: none; }
+#depotPlan .lamp.occ { stroke: #ff2b22; } #depotPlan .lamp.lit { stroke: #ffffff; }
+#depotPlan text, #depotPlan.line text { fill: #2b2a25; font-family: "DIN Condensed", "Arial Narrow", "Roboto Condensed", var(--display); }
+#depotPlan .lab, #depotPlan.line .lab { fill: #22211c; font: 700 15px "DIN Condensed", "Arial Narrow", "Roboto Condensed", var(--display); letter-spacing: .1em; text-transform: uppercase; }
+#depotPlan .pl { fill: #2b2a25; stroke: none; font-size: 9px; font-weight: 600; }
+#depotPlan .plat { fill: rgba(255,255,255,.28); stroke: #6c6a5e; stroke-width: 1; }
+#depotPlan .binno, #depotPlan.line .binno { fill: #b3121a; font: 700 10px var(--display); }
+#depotPlan .sgb, #depotPlan.line .sgb { fill: none; stroke: #2b2a25; stroke-width: 1.3; } #depotPlan .sgc, #depotPlan.line .sgc { fill: #1b1b1b; stroke: #6c6a5e; stroke-width: .7; }
+#depotPlan .sgi .sgw { stroke: none; } #depotPlan .sgn, #depotPlan.line .sgn { fill: #3a382f; font: 600 9px var(--display); }
+#depotPlan .sg, #depotPlan.line .sg { stroke: none; }
+#depotPlan .swl { fill: #3d3c35; stroke: #121212; stroke-width: .8; } #depotPlan .swl.on { fill: #fff6d0; } #depotPlan .swb { stroke: #121212; stroke-width: 1.4; }
+#depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
+#depotPlan .trn rect, #depotPlan .trn.late rect, #depotPlan .trn.early rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; }
+#depotPlan .trn text, #depotPlan .disp .trn text { fill: #ffffff; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
+#depotPlan .cont text { fill: #2b2a25; }
 #depotPlan .vp { stroke: #26292c; }
-#depotPlan path.tk.tail, #depotPlan.line path.tk.tail { stroke: #7a8188; }
-#depotPlan .tailn { font: 600 8.5px var(--display); fill: #c9ced3; } #depotPlan .posn { font: 600 7.5px var(--display); fill: #9aa1a8; }
+#depotPlan path.tk.tail, #depotPlan.line path.tk.tail { stroke: #5d5b52; }
+#depotPlan .tailn { font: 600 8.5px var(--display); fill: #3a382f; } #depotPlan .posn { font: 600 7.5px var(--display); fill: #55534a; }
 #depotPlan .trkn { font: 800 12px var(--display); fill: #ffe14a; paint-order: stroke; stroke: #000; stroke-width: 3px; pointer-events: none; }
+#depotPlan .dp-none, #depotPlan .dp-ph { color: #2b2a25; }
 .bdlabel { position: absolute; transform: translate(-50%, -26px); white-space: nowrap; font: 700 10px/1 var(--display); letter-spacing: .06em; color: #111; background: #ffb400; border-radius: 3px; padding: 2px 5px; box-shadow: 0 1px 4px rgba(0,0,0,.6); }
 .viewsw { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 3100; display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel-solid); }
 .viewsw button { background: none; color: var(--fg); border: 0; padding: 6px 14px; font: 600 13px var(--display); cursor: pointer; } .viewsw button[aria-pressed="true"] { background: var(--signal); color: #111; }
@@ -9032,7 +9038,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // (Alt + click on a bend); kept in this browser until exported.
   var SIN_WHICH = 'dep';
   // (-2: the drawings made from zero on 16 Nov 2026; the edits of the old ones are not used)
-  const SIN_KEY = { dep: 'mtl-schema-edit-2', line: 'mtl-sinlinea-edit-2' }, SIN_FILE = { dep: 'schema_deposito_m3.json', line: 'sinottico_linea_m3.json' };
+  const SIN_KEY = { dep: 'mtl-schema-edit-3', line: 'mtl-sinlinea-edit-3' }, SIN_FILE = { dep: 'schema_deposito_m3.json', line: 'sinottico_linea_m3.json' };
   var SCH_EDIT = { on: false, drag: null, ed: { dep: null, line: null }, sel: [], grid: true, group: false, pick: null, hist: { dep: { u: [], r: [] }, line: { u: [], r: [] } } };   // (var: the editor's tabs may ask before this line)
   for (const w of ['dep', 'line']) { try { const v = JSON.parse(localStorage.getItem(SIN_KEY[w]) || 'null'); SCH_EDIT.ed[w] = v && (v.nodes || v.via) ? v : v ? { nodes: v } : null; } catch (e) {} }
   const sinSchema = F => SIN_WHICH === 'line' ? F.engine.net.schema_line : F.engine.net.schema_depot;
@@ -9144,12 +9150,39 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   var SIN_NAMES = false;        // (the names of the tracks and the numbers of the pieces, big: Giovanni 16 Nov 2026)
   var SIN_NUM = false;          // (the signal numbers on the sinottico: off by default, they crowded it; Giovanni 3 Nov 2026)
   var SIN_Z = { dep: 1, line: 1 };   // the zoom of each sinottico (the − and + buttons)
+  // the windows of the train numbers (one per section at least three tiles long), worked out once per drawing as it is
+  // (the file and the editor's changes): beside the longest bit of the section, at its middle, on the side with no other
+  // track and no other window near (else none)
+  var SIN_DISP = { key: null, list: [] };
+  function sinDisplays(SCH, SEC, FULL, fd) {
+    const key = SIN_WHICH + '|' + SCH.edges.length + '|' + schSnap();
+    if (SIN_DISP.key === key) return SIN_DISP.list;
+    const segs = []; for (const P of Object.values(FULL)) for (let i = 1; i < P.length; i++) segs.push([P[i - 1], P[i]]);
+    const dseg = (p, [A, B]) => { const dx = B[0] - A[0], dy = B[1] - A[1], L2 = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((p[0] - A[0]) * dx + (p[1] - A[1]) * dy) / L2)); return Math.hypot(p[0] - A[0] - u * dx, p[1] - A[1] - u * dy); };
+    const plen = P => { let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); return L; };
+    const sec = {};
+    for (const [ei, f0, f1, sid] of SEC.pieces) { const full = FULL[ei]; if (!full) continue; const [p0, p1] = sinPart(SCH, ei);
+      const a = Math.max(f0, p0), b = Math.min(f1, p1); if (b <= a) continue;
+      const P = subPts(full, fd(ei, a), fd(ei, b)), L = plen(P); const s_ = sec[sid] || (sec[sid] = { L: 0, best: null }); s_.L += L; if (!s_.best || L > s_.best[1]) s_.best = [P, L]; }
+    const out = [];
+    // (on the tiles, as on the board: a window two tiles wide in the row of tiles next to the track, its middle on a joint)
+    const [TS, TX, TY] = SCH.tile || [28, 0, 0];
+    for (const [sid, s_] of Object.entries(sec).sort((u, v) => v[1].L - u[1].L)) { if (s_.L < 5 * TS) continue;
+      const P = s_.best[0], m = alongPts(P, 0.5), m1 = alongPts(P, 0.45), m2 = alongPts(P, 0.55); let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+      const flat = Math.abs(ty) < 0.2, upright = Math.abs(tx) < 0.2; if (!flat && !upright) continue;
+      for (const sd of [-1, 1]) { const c = flat ? [Math.round((m[0] - TX) / TS - 0.5) * TS + TX + TS / 2, m[1] + sd * TS] : [m[0] + sd * 2 * TS, Math.round((m[1] - TY) / TS) * TS + TY];
+        const pts = [c, [c[0] - 25, c[1] - 7], [c[0] + 25, c[1] - 7], [c[0] - 25, c[1] + 7], [c[0] + 25, c[1] + 7], [c[0] - 12, c[1]], [c[0] + 12, c[1]]];
+        if (segs.some(sg => pts.some(p => dseg(p, sg) < 6))) continue;
+        if (out.some(o => Math.abs(o.x - c[0]) < 60 && Math.abs(o.y - c[1]) < 20)) continue;
+        out.push({ sid: +sid, x: Math.round(c[0] * 10) / 10, y: Math.round(c[1] * 10) / 10 }); break; } }
+    SIN_DISP = { key, list: out }; return out;
+  }
   function drawDepotPlan() {
     const F = m3eng(); if (planEl.hidden || !F || !F.ag) return;
     if (SCH_EDIT.drag) return;                                    // (not while a node or a bend is being moved)
     const SCH = sinSchema(F), title = SIN_WHICH === 'line' ? 'Linea M3 · sinottico' : 'Deposito di San Donato · sinottico';
     if (!planEl.querySelector('.dp-hd')) {
-      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti gialli data a un treno · segnali: rosso, rosso e bianco via libera · treni: numero bianco in orario, verde in anticipo, rosso in ritardo (30 s)</span>` +
+      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · spia accanto allo scambio accesa: deviato · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s)</span>` +
         `<div class="dp-sw"><button data-w="dep" aria-pressed="${SIN_WHICH === 'dep'}">Deposito</button><button data-w="line" aria-pressed="${SIN_WHICH === 'line'}">Linea</button></div>` +
         `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><label class="dp-opt"><input type="checkbox" id="dpIll" ${SIN_ILL ? 'checked' : ''}> segnali illegali</label><label class="dp-opt"><input type="checkbox" id="dpNames" ${SIN_NAMES ? 'checked' : ''}> nomi dei binari</label><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
       document.getElementById('dpClose').onclick = () => setView('map');
@@ -9235,18 +9268,29 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         if (f1 <= p0 + 1e-4 || f0 >= p1 - 1e-4) continue;
         let a = (fd(ei, Math.max(f0, p0)) - q0) / ((q1 - q0) || 1), b = (fd(ei, Math.min(f1, p1)) - q0) / ((q1 - q0) || 1);
         if (s0) a += GAP / L; if (s1) b -= GAP / L; if (b - a < 0.5 / L) continue;
-        const c = occS.has(sid) ? ' occ' : litS.has(sid) ? ' lit' : '', d_ = sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))).map(q => roundPath(q, 6)).join('');
+        const c = occS.has(sid) ? ' occ' : litS.has(sid) ? ' lit' : '', d_ = sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))).map(q => roundPath(q, 1.5)).join('');
         // (as on the ACEI panels, Giovanni 16 Nov 2026: the black bar of the section, and over it its lamps: red dots
         // occupied, yellow dots given to a train)
         base += `<path class="tk${kind}${c}" data-e="${ei}" data-s="${sid}" d="${d_}"/>`;
         if (c) over += `<path class="lamp${c}" data-e="${ei}"${c === ' occ' ? ' data-occ="1"' : ''} d="${d_}"/>`; }
     }
-    // the trains: their number where their middle is; grey on time, green 30 s or more early, red 30 s or more late
+    // the black windows of the train numbers all over the board (Giovanni 16 Nov 2026, the depot's board: "su tutto il
+    // riquadro… devono essere così"): one beside each section long enough (three tiles), on the side free of other track;
+    // a train's number in the window of the section its middle is on (white on time, green 30 s or more early, red 30 s or
+    // more late), at the train itself where its section has none
+    const DISP = sinDisplays(SCH, SEC, FULL, fd);
+    const dispOf = {}; DISP.forEach(dp => { dispOf[dp.sid] = dp; });
     const AGK = {}; F.ag.agents().forEach(a => { AGK[a.k] = a; });
+    const used = new Set(), trnHtml = [];
     for (const [k, [ei, f]] of Object.entries(live.mid)) { const full = FULL[ei]; if (!full) continue; const [p0, p1] = sinPart(SCH, ei); if (f < p0 || f > p1) continue;
-      const q0 = fd(ei, p0), q1 = fd(ei, p1), m = T(alongPts(p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, (fd(ei, f) - q0) / ((q1 - q0) || 1))), r = realTrain(F, F.trains[k], state.t), lab = r ? r.n : +k + 1;
+      const r = realTrain(F, F.trains[k], state.t), lab = r ? r.n : +k + 1;
       const a = AGK[k], late = a && a.status === 'service' && a.late != null ? a.late : 0, tc = late >= 30 ? 'late' : late <= -30 ? 'early' : 'ok';
-      marks += `<g class="trn ${tc}" data-k="${k}"><rect x="${m[0] - 20}" y="${m[1] - 16}" width="40" height="12" rx="3"/><text x="${m[0]}" y="${m[1] - 7}">${lab}</text></g>`; }
+      const pc = (SEC.byEdge[ei] || []).find(q => f >= q[1] - 1e-4 && f <= q[2] + 1e-4), dp = pc && dispOf[pc[3]];
+      let c; if (dp && !used.has(dp.sid)) { used.add(dp.sid); c = T([dp.x, dp.y]); }
+      else { const q0 = fd(ei, p0), q1 = fd(ei, p1), m = T(alongPts(p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, (fd(ei, f) - q0) / ((q1 - q0) || 1))); c = [m[0], m[1] - 13]; }
+      trnHtml.push(`<g class="trn ${tc}" data-k="${k}"><rect x="${(c[0] - 27).toFixed(1)}" y="${(c[1] - 7).toFixed(1)}" width="54" height="14" rx="1"/><text x="${c[0].toFixed(1)}" y="${(c[1] + 3.4).toFixed(1)}">${lab}</text></g>`); }
+    for (const dp of DISP) { if (used.has(dp.sid)) continue; const c = T([dp.x, dp.y]); marks += `<g class="disp"><rect x="${(c[0] - 27).toFixed(1)}" y="${(c[1] - 7).toFixed(1)}" width="54" height="14" rx="1"/></g>`; grow([c[0] - 26, c[1] - 8]); grow([c[0] + 26, c[1] + 8]); }
+    marks += trnHtml.join('');
     // the stations: their platforms, a frame round each, the number of the track above it
     for (const pf0 of SCH.platforms || []) { const [x0, y] = T([pf0.x0, pf0.y]), pf = { x0, x1: x0 + pf0.x1 - pf0.x0, y };
       marks += `<rect class="plat" x="${pf.x0}" y="${pf.y - 5}" width="${Math.max(4, pf.x1 - pf.x0)}" height="10" rx="1.5"><title>${pf0.st} · binario ${pf0.bin}</title></rect>` +
@@ -9263,6 +9307,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     // trains it is for, its foot at the signal, the head turned to the trains coming; the M3 heads have two lamps only:
     // red, and white (via libera = red and white lit together); the illegal ones (square heads) only when asked for
     const ASP = { go: '#2ecc40', stop: '#e5383b', sgo: '#ffffff', sstop: '#e5383b' };
+    // (as on the board of the depot, Giovanni 16 Nov 2026: the head on a mast beside the track, its foot towards the trains
+    // coming, the red lamp at the far end; round head on the legal side (A), square on the wrong-way side (B), on the left
+    // of the trains it is for)
     for (const sg of SCH.signals || []) { const full = FULL[sg.e]; if (!full) continue; const [p0, p1] = sinPart(SCH, sg.e); if (sg.f < p0 - 0.001 || sg.f > p1 + 0.001) continue;
       const S_ = sigOf(sg), a = S_ && S_.asp || 'stop', tag = S_ ? S_.tag : '#A' + String(sg.n).padStart(2, '0'), ill = !!(S_ && S_.illegal);
       if (ill && !SIN_ILL) continue;
@@ -9271,11 +9318,23 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       if (sg.d !== 1 && sg.d !== -1) { marks += `<circle class="sg" data-n="${sg.n}" data-tag="${tag}" cx="${m[0]}" cy="${m[1] - 4.5}" r="2.8" fill="${ASP[a] || '#e5383b'}"><title>${tag}</title></circle>${SIN_NUM ? `<text class="sgn" x="${m[0] + 4}" y="${m[1] - 7}">${sg.n}</text>` : ''}`; continue; }
       const m1 = T(alongPts(P_, Math.max(0, g(sg.f) - 0.003))), m2 = T(alongPts(P_, Math.min(1, g(sg.f) + 0.003)));
       let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
-      const K = SIN_WHICH === 'line' ? 1 : 0.8, nx = -ty, ny = tx, B = [m[0] + nx * 6.5 * K, m[1] + ny * 6.5 * K], ang = Math.atan2(-ty, -tx) * 180 / Math.PI;
+      const sqr = !!sg.b || ill, side = sqr ? -1 : 1, K = SIN_WHICH === 'line' ? 1 : 0.9, nx = -ty * side, ny = tx * side;
+      const O = [m[0] - tx * 7 * K + nx * 8 * K, m[1] - ty * 7 * K + ny * 8 * K], ang = Math.atan2(ty, tx) * 180 / Math.PI;
       const lit = a === 'go' || a === 'sgo';
-      marks += `<g class="sgi${ill ? ' ill' : ''}${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(B)}) rotate(${Math.round(ang)}) scale(${K})"><title>${tag}${ill ? ' (illegale)' : ''} · ${lit ? 'via libera' : 'rosso'}</title><path class="sgb" d="M0,-3.2V3.2M0,0H3"/><rect class="sgc" x="3" y="-3.4" width="13" height="6.8" rx="${ill ? 0 : 3.4}"/>` +
-        `<circle class="sg" data-n="${sg.n}" cx="6.6" cy="0" r="2.2" fill="#ff2a2a"/><circle class="sgw" cx="12.4" cy="0" r="2.2" fill="${lit ? '#ffffff' : '#3b3f46'}"/></g>` +
-        (SIN_NUM ? `<text class="sgn" x="${B[0] + nx * 8 * K}" y="${B[1] + ny * 8 * K + 3}">${sg.n}</text>` : ''); }
+      marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
+        `<path class="sgb" d="M-14,-3.2V3.2M-14,0H-7"/><rect class="sgc" x="-7" y="-3.7" width="14" height="7.4" rx="${sqr ? 0.8 : 3.7}"/>` +
+        `<circle class="sgw" cx="-3.3" cy="0" r="2.3" fill="${lit ? '#ffffff' : '#4a4943'}"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="2.3" fill="#ff2a2a"/></g>` +
+        (SIN_NUM ? `<text class="sgn" x="${O[0] + nx * 9 * K}" y="${O[1] + ny * 9 * K + 3}">${sg.n}</text>` : ''); }
+    // the switches: a lamp beside each, on the straight side, lit when it is set for the turnout (Giovanni 16 Nov 2026: "si
+    // illumina quando l'itinerario non è dritto"); dark when straight or not known
+    for (const [n, list] of Object.entries(at)) { if (list.length !== 3 || !N[n]) continue;
+      const dirOf = ei => { const P = FULL[ei]; if (!P) return null; const e = NE[ei], A = e.a == n ? P[0] : P[P.length - 1], B = e.a == n ? P[1] : P[P.length - 2], l = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1; return [(B[0] - A[0]) / l, (B[1] - A[1]) / l]; };
+      const D = list.map(dirOf); if (D.some(x => !x)) continue;
+      let best = null; for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) { const dt = D[i][0] * D[j][0] + D[i][1] * D[j][1]; if (!best || dt < best[0]) best = [dt, i, j]; }
+      const k = 3 - best[1] - best[2], dv = D[k], tr = (D[best[1]][0] * dv[0] + D[best[1]][1] * dv[1]) > 0 ? D[best[1]] : D[best[2]];
+      let w = [-tr[1], tr[0]]; if (w[0] * dv[0] + w[1] * dv[1] > 0) w = [-w[0], -w[1]];
+      const c = T([N[n][0] + tr[0] * 9 + w[0] * 9, N[n][1] + tr[1] * 9 + w[1] * 9]), sp = pos[n], on = !!(sp && sp.includes(list[k]));
+      marks += `<rect class="swl${on ? ' on' : ''}" x="${(c[0] - 2.4).toFixed(1)}" y="${(c[1] - 2.4).toFixed(1)}" width="4.8" height="4.8"><title>scambio ${n}: ${sp ? (on ? 'deviato' : 'dritto') : 'posizione non nota'}</title></rect>`; }
     // the places by name (two places at the same point of the drawing, as the two of a rimessa track: one each side)
     const plG = []; for (const pl of SCH.places || []) { const p = N[pl.node] && T(N[pl.node]); if (!p || !at[pl.node]) continue;
       const g = plG.find(g => g.some(([, q]) => Math.abs(q[0] - p[0]) < 16 && Math.abs(q[1] - p[1]) < 3)); if (g) g.push([pl, p]); else plG.push([[pl, p]]); }
@@ -9312,7 +9371,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     // (the drawings made from zero, Giovanni 16 Nov 2026, "fai il piano più grande": drawn at their own size, 1.3 px a unit for
     // the line on one row, 0.9 for the depot, times the zoom; scrolled, not squeezed into the page)
     const wcss = Math.round(vb[2] * (SIN_WHICH === 'line' ? 1.3 : 0.9) * SIN_Z[SIN_WHICH]) + 'px';
-    const grid = `<defs><pattern id="sinGrid" width="56" height="56" patternUnits="userSpaceOnUse" x="${vb[0]}" y="${vb[1]}"><path d="M56 0H0V56" fill="none" class="cell"/></pattern></defs><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" fill="url(#sinGrid)" pointer-events="none"/>`;
+    // (the tiles of the board: 28 px, the tracks along their middles: SCH.tile = [size, x, y of a tile's middle])
+    const [TS, TX, TY] = SCH.tile || [28, 0, 0], gx = TX - TS / 2, gy = TY - TS / 2;
+    const grid = `<defs><pattern id="sinGrid" width="${TS}" height="${TS}" patternUnits="userSpaceOnUse" x="${gx}" y="${gy}"><path d="M${TS} 0H0V${TS}" fill="none" class="cell"/></pattern></defs><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" fill="url(#sinGrid)" pointer-events="none"/>`;
     base = grid + base;
     body.innerHTML = `<svg viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg" style="width:${wcss}"${SCH_EDIT.on ? ` class="edit${SIN_Z[SIN_WHICH] >= 2.4 ? ' zhi' : ''}"` : ''}><g>${base}</g><g>${over}</g>${marks}</svg>`;
     body.scrollLeft = sx; body.scrollTop = sy;

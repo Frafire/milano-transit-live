@@ -786,7 +786,7 @@ const SCENARIOS = {
     const sleep = ms => new Promise(r => setTimeout(r, ms)), r = {};
     // (the drawings made again from zero have no nodes on top of each other: the joint of a place, 300000 put on 100000)
     await p.evaluate(() => { const F = window.mtl.fleets.find(f => f.line === 'M3' && f.ag), q = F.engine.net.schema_depot.nodes['100000'];
-      localStorage.setItem('mtl-schema-edit-2', JSON.stringify({ nodes: { 300000: [q[0] + 0.5, q[1]] }, via: {} })); });
+      localStorage.setItem('mtl-schema-edit-3', JSON.stringify({ nodes: { 300000: [q[0] + 0.5, q[1]] }, via: {} })); });
     await p.reload(); await p.waitForTimeout(6000);
     const which = async w => { await p.evaluate(w => { const s = document.getElementById('schWhich'); s.value = w; s.dispatchEvent(new Event('change')); }, w); await sleep(1500); };
     await p.evaluate(() => { document.querySelector('.drawer .tab[data-mode="schema"]').click(); document.getElementById('schEdit').click(); });
@@ -821,7 +821,7 @@ const SCENARIOS = {
     if (off) { await p.evaluate(n => [...document.querySelectorAll('#schSusp button')].find(x => x.dataset.sel === n).click(), off[1]); await sleep(300);
       const a0 = await yOf(off[1]); await p.evaluate(() => document.getElementById('schAlign').click()); await sleep(300); r.align = [a0, await yOf(off[1])];
       r.alignOk = !!a0 && Math.abs(r.align[1][1] - a0[1] - 28) < 0.05; }                  // (172 -> 200)
-    await p.evaluate(() => { document.getElementById('schUndo').click(); try { localStorage.removeItem('mtl-sinlinea-edit-2'); localStorage.removeItem('mtl-schema-edit-2'); } catch (e) {}
+    await p.evaluate(() => { document.getElementById('schUndo').click(); try { localStorage.removeItem('mtl-sinlinea-edit-3'); localStorage.removeItem('mtl-schema-edit-3'); } catch (e) {}
       document.getElementById('schEdit').click(); document.getElementById('dpClose').click(); });
     r.ok = r.labels[0] > 50 && r.labels[0] === r.labels[1] && r.labels[2] && r.near >= 2 && !!r.pair && r.cycleOk && r.keysOk && r.sepOk && r.listOk && r.alignOk;
     return r;
