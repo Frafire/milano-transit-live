@@ -1010,6 +1010,31 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan.line path.tk { stroke: #6b7080; stroke-width: 3.2; } #depotPlan.line path.tk.lit { stroke: #ffffff; stroke-width: 3.6; } #depotPlan.line path.tk.occ { stroke: #e8402a; stroke-width: 4.2; }
 #depotPlan .plat { fill: rgba(86,224,234,.22); stroke: #2bb7c4; stroke-width: 1.2; } #depotPlan .binno { font-size: 8px; font-weight: 700; fill: #1d2140; }
 #depotPlan .badge rect { fill: #5f9732; stroke: #fff; stroke-width: 1; } #depotPlan .badge text { fill: #fff; font-size: 10px; font-weight: 800; } #depotPlan .trn text { fill: #fff; font-size: 9px; font-weight: 700; } #depotPlan .trn { cursor: pointer; }
+/* the sinottici as an ACEI panel (Giovanni 16 Nov 2026, with photos of ACEI panels: "sfondo grigio scuro"): the grid of
+   the tiles, the track as black bars cut at each section, lamps on them (red dots occupied, yellow dots given to a train),
+   the signals black with their lamps, the numbers of the trains green on black, the names in white capitals */
+#depotPlan, #depotPlan.line { --sin-bg: #3a3e42; --sin-hd: #26292c; --sin-tk: #0b0c0d; color: #e9ecef; }
+#depotPlan .dp-hd { background: var(--sin-hd); }
+#depotPlan .dp-hd button { background: #e9ecef; color: #26292c; } #depotPlan .dp-sw button { background: none; color: #e9ecef; } #depotPlan .dp-sw button[aria-pressed="true"] { background: #ffcf3f; color: #26292c; }
+#depotPlan .cell { stroke: rgba(255,255,255,.075); stroke-width: 1; }
+#depotPlan .tk, #depotPlan.line .tk, #depotPlan path.tk, #depotPlan.line path.tk, #depotPlan .tk.main, #depotPlan.line .tk.main,
+#depotPlan path.tk.lit, #depotPlan path.tk.occ, #depotPlan.line path.tk.lit, #depotPlan.line path.tk.occ { stroke: #0b0c0d; stroke-width: 4.2; stroke-linecap: butt; stroke-dasharray: none; }
+#depotPlan.line path.tk, #depotPlan.line path.tk.lit, #depotPlan.line path.tk.occ { stroke-width: 5.2; }
+#depotPlan path.tk.test { stroke: #15171a; stroke-width: 2.6; stroke-dasharray: 7 4; }
+#depotPlan .lamp { fill: none; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 0 7; pointer-events: none; }
+#depotPlan .lamp.occ { stroke: #ff2b22; } #depotPlan .lamp.lit { stroke: #ffd84a; }
+#depotPlan text, #depotPlan.line text { fill: #e9ecef; }
+#depotPlan .lab, #depotPlan.line .lab { fill: #ffffff; font: 800 14px var(--display); letter-spacing: .08em; text-transform: uppercase; }
+#depotPlan .pl { fill: #d6dade; stroke: var(--sin-bg); }
+#depotPlan .plat { fill: rgba(255,255,255,.07); stroke: #8d949b; stroke-width: 1; }
+#depotPlan .binno, #depotPlan.line .binno { fill: #ff4a3d; font: 700 10px var(--display); }
+#depotPlan .sgb, #depotPlan.line .sgb { stroke: #0b0c0d; stroke-width: 1.4; } #depotPlan .sgc, #depotPlan.line .sgc { fill: #0b0c0d; stroke: #0b0c0d; }
+#depotPlan .sgi .sgw { stroke: none; } #depotPlan .sgn, #depotPlan.line .sgn { fill: #7ee08f; font-weight: 600; }
+#depotPlan .sg, #depotPlan.line .sg { stroke: #0b0c0d; }
+#depotPlan .trn rect, #depotPlan .trn.late rect, #depotPlan .trn.early rect { fill: #050607; stroke: #5b6168; stroke-width: .8; }
+#depotPlan .trn text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
+#depotPlan .cont text { fill: #cfd4d9; }
+#depotPlan .vp { stroke: #26292c; }
 .bdlabel { position: absolute; transform: translate(-50%, -26px); white-space: nowrap; font: 700 10px/1 var(--display); letter-spacing: .06em; color: #111; background: #ffb400; border-radius: 3px; padding: 2px 5px; box-shadow: 0 1px 4px rgba(0,0,0,.6); }
 .viewsw { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 3100; display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel-solid); }
 .viewsw button { background: none; color: var(--fg); border: 0; padding: 6px 14px; font: 600 13px var(--display); cursor: pointer; } .viewsw button[aria-pressed="true"] { background: var(--signal); color: #111; }
@@ -9120,7 +9145,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (SCH_EDIT.drag) return;                                    // (not while a node or a bend is being moved)
     const SCH = sinSchema(F), title = SIN_WHICH === 'line' ? 'Linea M3 · sinottico' : 'Deposito di San Donato · sinottico';
     if (!planEl.querySelector('.dp-hd')) {
-      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: rossa occupata, bianca libera e data a un treno · segnali: rosso, rosso e bianco via libera · treni: grigio in orario, verde in anticipo, rosso in ritardo (30 s) · solo da guardare</span>` +
+      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti gialli data a un treno · segnali: rosso, rosso e bianco via libera · treni: numero bianco in orario, verde in anticipo, rosso in ritardo (30 s)</span>` +
         `<div class="dp-sw"><button data-w="dep" aria-pressed="${SIN_WHICH === 'dep'}">Deposito</button><button data-w="line" aria-pressed="${SIN_WHICH === 'line'}">Linea</button></div>` +
         `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><label class="dp-opt"><input type="checkbox" id="dpIll" ${SIN_ILL ? 'checked' : ''}> segnali illegali</label><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
       document.getElementById('dpClose').onclick = () => setView('map');
@@ -9205,8 +9230,11 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         if (f1 <= p0 + 1e-4 || f0 >= p1 - 1e-4) continue;
         let a = (fd(ei, Math.max(f0, p0)) - q0) / ((q1 - q0) || 1), b = (fd(ei, Math.min(f1, p1)) - q0) / ((q1 - q0) || 1);
         if (s0) a += GAP / L; if (s1) b -= GAP / L; if (b - a < 0.5 / L) continue;
-        const c = occS.has(sid) ? ' occ' : litS.has(sid) ? ' lit' : '';
-        base += `<path class="tk${kind}${c}" data-e="${ei}" data-s="${sid}"${c === ' occ' ? ' data-occ="1"' : ''} d="${sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))).map(q => roundPath(q, 6)).join('')}"/>`; }
+        const c = occS.has(sid) ? ' occ' : litS.has(sid) ? ' lit' : '', d_ = sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))).map(q => roundPath(q, 6)).join('');
+        // (as on the ACEI panels, Giovanni 16 Nov 2026: the black bar of the section, and over it its lamps: red dots
+        // occupied, yellow dots given to a train)
+        base += `<path class="tk${kind}${c}" data-e="${ei}" data-s="${sid}" d="${d_}"/>`;
+        if (c) over += `<path class="lamp${c}" data-e="${ei}"${c === ' occ' ? ' data-occ="1"' : ''} d="${d_}"/>`; }
     }
     // the trains: their number where their middle is; grey on time, green 30 s or more early, red 30 s or more late
     const AGK = {}; F.ag.agents().forEach(a => { AGK[a.k] = a; });
@@ -9217,7 +9245,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     // the stations: their platforms, a frame round each, the number of the track above it
     for (const pf0 of SCH.platforms || []) { const [x0, y] = T([pf0.x0, pf0.y]), pf = { x0, x1: x0 + pf0.x1 - pf0.x0, y };
       marks += `<rect class="plat" x="${pf.x0}" y="${pf.y - 5}" width="${Math.max(4, pf.x1 - pf.x0)}" height="10" rx="1.5"><title>${pf0.st} · binario ${pf0.bin}</title></rect>` +
-      `<text class="binno" x="${(pf.x0 + pf.x1) / 2}" y="${pf.y - 7.5}">${pf0.bin}</text>`; grow([pf.x0, pf.y - 12]); grow([pf.x1, pf.y + 6]); }
+      `<text class="binno" x="${(pf.x0 + pf.x1) / 2}" y="${pf.y - 7.5}">${({ 1: 'I', 2: 'II' })[pf0.bin] || pf0.bin}</text>`; grow([pf.x0, pf.y - 12]); grow([pf.x1, pf.y + 6]); }
     // where the track leaves the line for another (the M2 link): that line's logo
     for (const bd0 of SCH.badges || []) { const [bx, by] = T([bd0.x, bd0.y]), bd = Object.assign({}, bd0, { x: bx, y: by }); marks += `<g class="badge ${bd.kind || ''}"><rect x="${bd.x - 12}" y="${bd.y - 8}" width="24" height="16" rx="3.5"/><text x="${bd.x}" y="${bd.y + 4.2}">${bd.text}</text></g>`; grow([bd.x - 14, bd.y - 10]); grow([bd.x + 14, bd.y + 10]); }
     // the signals: as on the screens of the Posto Centrale (Giovanni 9 Nov 2026): beside the track, on the right of the
@@ -9271,6 +9299,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     // (the drawings made from zero, Giovanni 16 Nov 2026, "fai il piano più grande": drawn at their own size, 1.3 px a unit for
     // the line on one row, 0.9 for the depot, times the zoom; scrolled, not squeezed into the page)
     const wcss = Math.round(vb[2] * (SIN_WHICH === 'line' ? 1.3 : 0.9) * SIN_Z[SIN_WHICH]) + 'px';
+    const grid = `<defs><pattern id="sinGrid" width="56" height="56" patternUnits="userSpaceOnUse" x="${vb[0]}" y="${vb[1]}"><path d="M56 0H0V56" fill="none" class="cell"/></pattern></defs><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" fill="url(#sinGrid)" pointer-events="none"/>`;
+    base = grid + base;
     body.innerHTML = `<svg viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg" style="width:${wcss}"${SCH_EDIT.on ? ` class="edit${SIN_Z[SIN_WHICH] >= 2.4 ? ' zhi' : ''}"` : ''}><g>${base}</g><g>${over}</g>${marks}</svg>`;
     body.scrollLeft = sx; body.scrollTop = sy;
     body.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
