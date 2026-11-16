@@ -78,9 +78,9 @@ const SCENARIOS = {
         day: $('pcDayName').textContent + ' ' + $('pcDayType').textContent, status0: $('pcStatus').children.length };
       out.rail = [...document.querySelectorAll('#pcRail button')].filter(vis).map(b => b.dataset.w);
       out.start = ['w-radio', 'w-emg', 'w-info', 'w-chiu'].map(id => vis($(id)));
-      $('pcBurger').click(); await sleep(200); const off = document.body.classList.contains('pc-rail-off') && !vis($('pcRail'));
+      $('pcBurger').click(); await sleep(350); const off = document.body.classList.contains('pc-rail-off') && !vis($('pcRail'));
       $('pcRail').querySelector('[data-w="info"]').click(); await sleep(200); const stays = !document.body.classList.contains('pc-rail-off') || true;
-      $('pcBurger').click(); await sleep(200); out.railToggle = off && vis($('pcRail')); PC.closeWin('info');
+      $('pcBurger').click(); await sleep(350); out.railToggle = off && vis($('pcRail')); PC.closeWin('info');
       // the card: only with something selected; its Radio opens the train's conversation
       const k = F.ag.agents().findIndex(a => !a.hidden && a.status === 'service');
       st.sel = 'f' + fi + ':' + k; M.renderCard(); await sleep(300);

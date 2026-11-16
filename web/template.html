@@ -429,7 +429,7 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 .arrow-ic { transform: translate(-50%, -50%); }
 /* ================= POSTO CENTRALE (Giovanni 16 Nov 2026, his bozza): bar, rail, windows, Strumenti, dock ================= */
 :root { --night: #0b2233; --tile: rgba(30,86,122,.78); --tile-hi: rgba(42,112,156,.92); --led: #ff9416; --crt: #8dff9e; --crt-bg: #071109; --m3: #fbb816; --admin: #b48cff; --red: #e5383b;
-  --dots: "Doto", "Courier New", monospace; --pix: "VT323", ui-monospace, monospace; --pc-top: 52px; --pc-left: 92px; --pc-bot: 32px; }
+  --dots: "Doto", "Courier New", monospace; --pix: "VT323", ui-monospace, monospace; --pc-top: 52px; --pc-left: 0px; --pc-bot: 0px; }
 #map { top: var(--pc-top); left: var(--pc-left); bottom: var(--pc-bot); right: 0; }
 .pcbar { position: fixed; z-index: 2000; top: 0; left: 0; right: 0; display: flex; align-items: stretch; background: var(--night); border-bottom: 1px solid var(--line); min-height: 52px; padding-top: env(safe-area-inset-top, 0px); }
 .pcbar > * { display: flex; align-items: center; padding: 6px 12px; border-right: 1px solid var(--line); flex: none; }
@@ -473,10 +473,13 @@ body:not(.player)::after { content: ''; position: fixed; inset: 0; border: 3px s
 .pcgmenu > a:hover, .pcgmenu > button:hover { background: rgba(255,255,255,.08); }
 .pcgmenu svg { width: 18px; height: 18px; color: var(--signal); flex: none; }
 .pcgmenu .soon { color: var(--muted); cursor: default; } .pcgmenu .soon::after { content: 'presto'; margin-left: auto; font: 700 11px var(--display); letter-spacing: .08em; text-transform: uppercase; }
+.pcgnote { padding: 6px 10px 4px; font-size: 11.5px; color: var(--muted); }
 .pcgmenu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; } .pcglbl { font: 700 11px var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 4px 10px; }
 #pcMapOpts .basemap { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px 6px; }
 .pcrail { position: fixed; z-index: 1900; top: var(--pc-top); bottom: var(--pc-bot); left: 0; width: 92px; display: flex; flex-direction: column; background: var(--night); border-right: 1px solid var(--line); overflow-y: auto; }
-body.pc-rail-off .pcrail { display: none; }
+.pcrail { transition: transform .22s ease, box-shadow .22s, visibility 0s; box-shadow: 10px 0 30px rgba(0,0,0,.45); }
+body.pc-rail-off .pcrail { transform: translateX(-100%); box-shadow: none; visibility: hidden; transition: transform .22s ease, box-shadow .22s, visibility 0s .22s; }
+@media (prefers-reduced-motion: reduce) { .pcrail, body.pc-rail-off .pcrail { transition: none; } }
 .pcrail button { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 14px 4px 12px; background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; cursor: pointer; color: #fff; font: 700 12px var(--display); letter-spacing: .07em; text-transform: uppercase; }
 .pcrail button svg { width: 26px; height: 26px; color: var(--signal); }
 .pcrail button:hover { background: rgba(255,255,255,.05); }
@@ -486,13 +489,9 @@ body.pc-rail-off .pcrail { display: none; }
 .pcrail .adm, .pcrail .adm svg { color: var(--admin); }
 .pcstage { position: fixed; z-index: 1500; top: var(--pc-top); left: var(--pc-left); right: 0; bottom: var(--pc-bot); pointer-events: none; }
 .pcstage > * { pointer-events: auto; }
-.pcfoot { position: fixed; z-index: 2000; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--night); border-top: 1px solid var(--line); padding: 3px 12px calc(3px + env(safe-area-inset-bottom, 0px)); font-size: 11.5px; color: var(--muted); min-height: 32px; box-sizing: border-box; }
-.pcdock { display: flex; gap: 6px; flex-wrap: wrap; }
-.pcdock button { background: var(--tile); border: 1px solid var(--line); border-radius: 0; padding: 4px 10px; font: 700 12px var(--display); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; color: #fff; }
-.pcdock button.ring { animation: pcpulse 1s infinite; border-color: var(--crt); }
 .leaflet-bottom { bottom: 0; }
 /* the panel of the old days: admin only, beside the rail */
-.console { top: 10px; left: 10px; max-height: calc(100% - 20px); }
+.console { top: 10px; left: 102px; max-height: calc(100% - 20px); }
 .console .brand .roles, .console .conmin { display: none; }
 body.player .console, body.pc-console-off .console { display: none !important; }
 .pcstage .console { position: absolute; }
@@ -506,8 +505,8 @@ body.player .console, body.pc-console-off .console { display: none !important; }
 .pcwin .wb:hover { background: rgba(255,255,255,.12); } .pcwin .wx { background: #b3261e; } .pcwin .wx:hover { background: #d93a30; }
 .pcwin .wbody { overflow: auto; min-height: 0; }
 .pcwin.emgwin .wh { background: #7a1712; }
-#w-radio { width: 620px; height: 440px; left: 16px; bottom: 16px; }
-#w-emg { width: 470px; left: 440px; top: 16px; } #w-info { width: 400px; height: 460px; left: 16px; top: 16px; } #w-chiu { width: 430px; left: 200px; top: 30px; max-height: calc(100% - 60px); }
+#w-radio { width: 620px; height: 440px; left: 108px; bottom: 16px; }
+#w-emg { width: 470px; left: 540px; top: 16px; } #w-info { width: 400px; height: 460px; left: 108px; top: 16px; } #w-chiu { width: 430px; left: 300px; top: 30px; max-height: calc(100% - 60px); }
 .rtabs { display: flex; border-bottom: 2px solid #2a3a2e; background: #12241a; flex: none; }
 .rtabs button { background: none; border: 0; border-radius: 0; padding: 7px 16px; font: 20px var(--pix); color: #5f9a6b; cursor: pointer; text-transform: uppercase; }
 .rtabs button[aria-selected=true] { color: var(--crt); background: var(--crt-bg); }
@@ -632,11 +631,10 @@ body.player .console, body.pc-console-off .console { display: none !important; }
   .tnav { flex-direction: row; overflow-x: auto; padding: 0; } .tnav h2 { display: none; }
   .tnav button { border-left: 0; border-bottom: 3px solid transparent; white-space: nowrap; padding: 10px 12px; font-size: 14px; } .tnav button[aria-selected=true] { border-bottom-color: var(--signal); }
   .tnav .close { margin: 6px; }
-  .pcfoot > span { display: none; }
   .console { left: 6px; right: 6px; width: auto; }
   #depotPlan .dp-hd > span { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .sym, .rtabs button.calling, .pcdock button.ring, .convs .c.new { animation: none; } .keysw .k { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .sym, .rtabs button.calling, .convs .c.new { animation: none; } .keysw .k { transition: none; } }
 </style>
 </head>
 <body>
@@ -659,6 +657,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       <hr><div class="pcglbl">Mappa</div><div id="pcMapOpts"></div><hr>
       <button role="menuitem" class="soon" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>Suoni</button>
       <button role="menuitem" class="soon" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5M12 17v.5"/></svg>Come si gioca</button>
+      <hr><div class="pcgnote">Simulazione non ufficiale, non affiliata ad ATM</div>
     </div>
   </div>
 </header>
@@ -673,7 +672,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
 </nav>
 <div class="pcstage" id="pcStage">
   <section class="pcwin" id="w-radio" data-title="Radio – DCT" hidden aria-label="Radio e telefono">
-    <div class="wh"><b>Radio – DCT</b><button class="wb wm" title="Riduci" aria-label="Riduci">–</button><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
+    <div class="wh"><b>Radio – DCT</b><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
     <div class="rtabs" role="tablist"><button data-r="radio" role="tab" aria-selected="true">Radio</button><button data-r="tel" role="tab" aria-selected="false" id="pcTelTab">Telefono</button></div>
     <div class="rgrid"><div class="convs" id="pcConvs"></div>
       <div class="chat" id="pcChat">
@@ -683,7 +682,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       </div></div>
   </section>
   <section class="pcwin emgwin" id="w-emg" data-title="Emergenza" hidden aria-label="Emergenza">
-    <div class="wh"><b>Emergenza</b><button class="wb wm" title="Riduci" aria-label="Riduci">–</button><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
+    <div class="wh"><b>Emergenza</b><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
     <div class="wbody">
       <div class="emgg">
         <div><h3 class="r">Blocco linea</h3>
@@ -699,12 +698,12 @@ body.player .console, body.pc-console-off .console { display: none !important; }
     </div>
   </section>
   <section class="pcwin" id="w-info" data-title="Pannello info" hidden aria-label="Pannello info">
-    <div class="wh"><b>Pannello info</b><button class="wb wm" title="Riduci" aria-label="Riduci">–</button><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
+    <div class="wh"><b>Pannello info</b><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
     <div class="wbody pad"><div id="pcGuasti"><div class="sec red">Guasti e allarmi</div></div><div class="sec">Treni</div><ul class="list" id="pcTrains"></ul><div class="sec">Stazioni</div><ul class="list" id="pcStations"></ul>
       <details class="pcmore" id="pcInfoMore"><summary>Segnali, bivi, aspetti e codici (come oggi)</summary></details></div>
   </section>
   <section class="pcwin" id="w-chiu" data-title="Chiusure" hidden aria-label="Chiusure">
-    <div class="wh"><b>Chiusure</b><button class="wb wm" title="Riduci" aria-label="Riduci">–</button><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
+    <div class="wh"><b>Chiusure</b><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
     <div class="wbody pad">
       <div class="sec">Chiusura tratta</div>
       <div class="frow"><label for="pcCDa">Da</label><select id="pcCDa"></select></div>
@@ -732,7 +731,6 @@ body.player .console, body.pc-console-off .console { display: none !important; }
     <div id="pcToolsKeep" hidden></div>
   </section>
 </div>
-<footer class="pcfoot" id="pcFoot"><div class="pcdock" id="pcDock"></div><span>Simulazione non ufficiale, non affiliata ad ATM</span></footer>
 
 <div class="loading" id="loading">Loading timetable…</div>
 
@@ -5601,9 +5599,8 @@ window.MTL_CAPS = __CAPS__;
 
     // ---------- the rail and the layout ----------
     function layout() {
-      const top = $('pcbar').offsetHeight, foot = $('pcFoot').offsetHeight, railOn = !body.classList.contains('pc-rail-off');
-      const R = document.documentElement.style; R.setProperty('--pc-top', top + 'px'); R.setProperty('--pc-bot', foot + 'px');
-      R.setProperty('--pc-left', railOn && !phoneW() ? $('pcRail').offsetWidth + 'px' : '0px');
+      // the panel on the left slides over the map: the map and the windows never move
+      const R = document.documentElement.style; R.setProperty('--pc-top', $('pcbar').offsetHeight + 'px'); R.setProperty('--pc-bot', '0px'); R.setProperty('--pc-left', '0px');
       map.invalidateSize({ pan: false });
     }
     function setRail(on) { body.classList.toggle('pc-rail-off', !on); $('pcBurger').setAttribute('aria-pressed', String(on)); layout(); }
@@ -5619,15 +5616,12 @@ window.MTL_CAPS = __CAPS__;
     // ---------- the windows ----------
     const WIN = { radio: 'w-radio', emg: 'w-emg', info: 'w-info', chiu: 'w-chiu' }; let ztop = 30;
     const front = el => { el.style.zIndex = ++ztop; };
-    function openWin(k) { const el = $(WIN[k]); el.hidden = false; front(el); dockDel(k); railMark(k, true); draw(k); }
-    function closeWin(k) { $(WIN[k]).hidden = true; dockDel(k); railMark(k, false); }
-    function minWin(k) { $(WIN[k]).hidden = true; railMark(k, false); dockAdd(k); }
-    function dockAdd(k) { if ($('pcDock').querySelector(`[data-k="${k}"]`)) return; const b = document.createElement('button'); b.dataset.k = k; b.textContent = $(WIN[k]).dataset.title; b.onclick = () => openWin(k); $('pcDock').append(b); }
-    function dockDel(k) { const b = $('pcDock').querySelector(`[data-k="${k}"]`); if (b) b.remove(); }
+    function openWin(k) { const el = $(WIN[k]); el.hidden = false; front(el); railMark(k, true); draw(k); }
+    function closeWin(k) { $(WIN[k]).hidden = true; railMark(k, false); }
     const draw = k => { if (k === 'radio') drawRadio(true); else if (k === 'info') drawInfo(); else if (k === 'chiu') drawChiu(); else if (k === 'emg') drawEmg(); };
     Object.entries(WIN).forEach(([k, id]) => { const el = $(id), h = el.querySelector('.wh');
       el.addEventListener('pointerdown', () => front(el));
-      el.querySelector('.wm').onclick = () => minWin(k); el.querySelector('.wx').onclick = () => closeWin(k);
+      el.querySelector('.wx').onclick = () => closeWin(k);
       h.addEventListener('pointerdown', e => { if (e.target.closest('button') || phoneW()) return;
         const st = $('pcStage').getBoundingClientRect(), r = el.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top; h.setPointerCapture(e.pointerId);
         el.style.left = (r.left - st.left) + 'px'; el.style.top = (r.top - st.top) + 'px'; el.style.bottom = 'auto'; el.style.right = 'auto';
@@ -5691,7 +5685,6 @@ window.MTL_CAPS = __CAPS__;
         const sh = (GPHR[g] || []).map(([l, m, kind], i) => `<button data-gi="${i}"${kind === 'evac' ? ' title="L’ordine di evacuazione viene registrato"' : ''}>${esc(l)}</button>`).join('') + '<span class="prop">frasi segnaposto: vanno nel foglio Radio dell’Excel</span>';
         if ($('pcGrpSay').dataset.h !== sh + g) { $('pcGrpSay').dataset.h = sh + g; $('pcGrpSay').innerHTML = sh; $('pcGrpSay').querySelectorAll('[data-gi]').forEach(b => b.onclick = () => { const [, m, kind] = GPHR[g][+b.dataset.gi]; groupSay(g, m, 'DCT', kind); }); } }
       drawExtra(F, grp ? null : cur);
-      const d = $('pcDock').querySelector('[data-k="radio"]'); if (d) d.classList.toggle('ring', waiting() > 0);
     }
     // under the train's radio: the answers to its call for a failure (as in the Allarmi), and without power evacuate / wait
     function drawExtra(F, cur) {
@@ -5946,11 +5939,11 @@ window.MTL_CAPS = __CAPS__;
     const PCALL = new Set();
     PCH.tick = tick;
     // ---------- the start: only the Radio open (on the phone: in the dock); the rail closed on the phone ----------
-    if (phoneW()) { body.classList.add('pc-rail-off'); $('pcBurger').setAttribute('aria-pressed', 'false'); dockAdd('radio'); } else openWin('radio');
+    if (phoneW()) { body.classList.add('pc-rail-off'); $('pcBurger').setAttribute('aria-pressed', 'false'); } else openWin('radio');
     if (isPlayer) body.classList.add('pc-console-off'); else railMark('admin', true);
     document.querySelectorAll('.role').forEach(b => b.addEventListener('click', () => { body.classList.toggle('pc-console-off', isPlayer); railMark('admin', !isPlayer); if (!$('pcTools').hidden) drawTools(); }));
     layout(); setTimeout(layout, 300); dayLabel(); status();
-    window.mtlPC = { openWin, closeWin, minWin, setTools, setPiano, groupLog: GLOG, evac: EVAC, tab: t => { RW.tab = t; drawRadio(true); }, cur: () => RW.cur, waiting, status: () => $('pcStatus').innerHTML };
+    window.mtlPC = { openWin, closeWin, setTools, setPiano, groupLog: GLOG, evac: EVAC, tab: t => { RW.tab = t; drawRadio(true); }, cur: () => RW.cur, waiting, status: () => $('pcStatus').innerHTML };
   })();
   window.mtl = { map, state, fleets, setView, trainState: (F, tr, t) => trainState(F, tr, t), rego: { comReserves: F => comReserves(F), insertComReserve: (F, k, m) => insertComReserve(F, k, m), withdraw: (F, k) => withdraw(F, k), uncovered: (F, m) => uncovered(F, m), runsOf: (F, m) => runsOf(F, m) }, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), phone: { conv: X => MR.phoneConv(X), pending: () => MR.phonePending() }, osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
