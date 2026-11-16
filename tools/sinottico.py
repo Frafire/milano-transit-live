@@ -152,7 +152,9 @@ def find_signals(net, ids, polys, maxd=3.0):
     for si, sg in enumerate(net['signals']):
         if sg.get('n') is None or sg.get('kind') == 'stop': continue
         la, lo = sg.get('on_track') or (sg['lat'], sg['lon']); x, y = lo * KX, la * KY; best = None
-        for i in ids:
+        # (on the track Giovanni put it on in the editor, its way w, when that track is among these pieces)
+        same = [i for i in ids if E[i].get('way') == sg.get('w')]
+        for i in (same or ids):
             P = polys[i]; run = 0.0; tot = sum(math.dist(P[j], P[j + 1]) for j in range(len(P) - 1)) or 1
             for j in range(len(P) - 1):
                 (ax, ay), (bx, by) = P[j], P[j + 1]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy; L = math.sqrt(L2) or 1
