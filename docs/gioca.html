@@ -996,7 +996,14 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 #depotPlan .dp-opt { font-size: 12px; color: #cfdbe9; display: flex; gap: 4px; align-items: center; }
 #depotPlan .sg { stroke: var(--sin-bg); stroke-width: 1; } #depotPlan .sgi .sg { stroke: none; } #depotPlan .sgb { fill: none; stroke: #dfe7f1; stroke-width: 1.3; } #depotPlan .sgc { fill: #15181d; stroke: #dfe7f1; stroke-width: .9; }
 #depotPlan.line .sgb { stroke: #1d2140; } #depotPlan.line .sgc { stroke: #1d2140; } #depotPlan .sgn { font-size: 8px; fill: #cfdbe9; text-anchor: start; }
-#depotPlan .nd { fill: #ffcf3f; stroke: #111; stroke-width: 1; cursor: move; } #depotPlan .vp { fill: #7fe0ff; stroke: #0b2a5b; stroke-width: 1; cursor: move; } #depotPlan svg.edit .tk { cursor: copy; }
+#depotPlan .nd { fill: #ffcf3f; stroke: #111; stroke-width: 1; cursor: move; }
+#depotPlan .ndg .ndn { display: none; font: 600 7px system-ui, sans-serif; fill: #fff; paint-order: stroke; stroke: #000; stroke-width: 2px; pointer-events: none; }
+#depotPlan .ndg:hover .ndn, #depotPlan svg.zhi .ndn, #depotPlan .ndg.sel .ndn, #depotPlan .ndg.near .ndn { display: block; }
+#depotPlan .ndg.near .nd { fill: #ff7a59; } #depotPlan .ndg.sel .nd { fill: #3fd0ff; stroke: #fff; stroke-width: 1.5; }
+/* (editing: the editor's panel stays above the sinottico, beside it) */
+body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; }
+#depotPlan .cont text { font: italic 600 10px system-ui, sans-serif; fill: #1d2b55; } #depotPlan .cont text.r { text-anchor: end; }
+#schSusp button { display: block; width: 100%; text-align: left; margin: 2px 0; font-size: 12px; } #schSepD { width: 58px; } #depotPlan .vp { fill: #7fe0ff; stroke: #0b2a5b; stroke-width: 1; cursor: move; } #depotPlan svg.edit .tk { cursor: copy; }
 #depotPlan .trn rect { fill: #8a8f99; stroke: #fff; stroke-width: .8; } #depotPlan .trn.late rect { fill: #e5383b; } #depotPlan .trn.early rect { fill: #2fa84f; }
 #depotPlan path.tk { stroke-linecap: butt; } #depotPlan path.tk.lit { stroke: #ffffff; stroke-width: 3.4; stroke-dasharray: none; } #depotPlan path.tk.occ { stroke: #ff3b3f; stroke-width: 4.2; stroke-dasharray: none; }
 #depotPlan.line path.tk { stroke: #36c93a; stroke-width: 3.2; } #depotPlan.line path.tk.lit { stroke: #ffffff; stroke-width: 3.6; } #depotPlan.line path.tk.occ { stroke: #e8402a; stroke-width: 4.2; }
@@ -1236,8 +1243,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   </div>
 
   <section data-panel="schema" hidden>
-    <p class="note">Sinottico del deposito o della linea: trascina i nodi (i quadratini, si agganciano alla griglia: 10 px in orizzontale, una riga in verticale) e le curve (i pallini). Doppio clic su un binario: una curva nuova lì. Alt + clic su una curva: la togli. Le modifiche restano in questo browser finché non esporti il file da mettere in data/ (schema_deposito_m3.json o sinottico_linea_m3.json). La prima bozza della linea la fa tools/sinottico.py linea.</p>
+    <p class="note">Sinottico del deposito o della linea: trascina i nodi (i quadratini, con il numero vicino quando ci passi sopra) e le curve (i pallini). Con la griglia i nodi si agganciano a 10 px in orizzontale e a una riga in verticale; senza griglia si spostano di 1 px. Nodi a meno di 10 px l'uno dall'altro sono arancioni: clicca di nuovo nello stesso punto per passare all'altro. Clic con Maiusc: aggiungi un nodo alla selezione. Frecce: sposta il nodo scelto di 1 px (con Maiusc 10 px). Ctrl+Z annulla, Ctrl+Y ripeti. Doppio clic su un binario: una curva nuova lì. Alt + clic su una curva: la togli. Le modifiche restano in questo browser finché non esporti il file da mettere in data/ (schema_deposito_m3.json o sinottico_linea_m3.json). La prima bozza della linea la fa tools/sinottico.py linea.</p>
     <div class="row"><select id="schWhich" aria-label="Quale sinottico"><option value="dep">Deposito</option><option value="line">Linea</option></select><button id="schEdit" aria-pressed="false">Modifica il disegno</button><button id="schExport">Esporta il file</button><button id="schUndo">Annulla le modifiche</button></div>
+    <div class="row"><button id="schU" title="Ctrl+Z" disabled>Annulla</button><button id="schR" title="Ctrl+Y" disabled>Ripeti</button><button id="schGrid" aria-pressed="true">Griglia</button><button id="schGroup" aria-pressed="false" title="Trascinando un nodo, quelli a meno di 10 px vengono con lui">Unisci i nodi vicini</button></div>
+    <div class="row"><button id="schAlign" title="Un nodo: sulla riga più vicina. Due o più: tutti allo stesso x del primo scelto">Allinea alla riga</button><button id="schSep" title="Mette i nodi scelti (o quelli vicini al nodo scelto) in fila, a questa distanza">Separa di</button><input id="schSepD" type="number" value="20" min="2" max="200" step="1" aria-label="Distanza in px"> px</div>
+    <p class="note" id="schSel">Nessun nodo scelto.</p>
+    <details id="schSuspBox"><summary>Nodi sospetti: <span id="schSuspN">0</span></summary><div id="schSusp"></div></details>
     <p class="note" id="schNote"></p>
   </section>
   <section data-panel="mark">
@@ -8686,7 +8697,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // (Alt + click on a bend); kept in this browser until exported.
   var SIN_WHICH = 'dep';
   const SIN_KEY = { dep: 'mtl-schema-edit', line: 'mtl-sinlinea-edit' }, SIN_FILE = { dep: 'schema_deposito_m3.json', line: 'sinottico_linea_m3.json' };
-  var SCH_EDIT = { on: false, drag: null, ed: { dep: null, line: null } };   // (var: the editor's tabs may ask before this line)
+  var SCH_EDIT = { on: false, drag: null, ed: { dep: null, line: null }, sel: [], grid: true, group: false, pick: null, hist: { dep: { u: [], r: [] }, line: { u: [], r: [] } } };   // (var: the editor's tabs may ask before this line)
   for (const w of ['dep', 'line']) { try { const v = JSON.parse(localStorage.getItem(SIN_KEY[w]) || 'null'); SCH_EDIT.ed[w] = v && (v.nodes || v.via) ? v : v ? { nodes: v } : null; } catch (e) {} }
   const sinSchema = F => SIN_WHICH === 'line' ? F.engine.net.schema_line : F.engine.net.schema_depot;
   const sinEd = () => SCH_EDIT.ed[SIN_WHICH] || (SCH_EDIT.ed[SIN_WHICH] = { nodes: {}, via: {} });
@@ -8694,7 +8705,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   const schVia = SCH => Object.assign({}, SCH.via || {}, (SCH_EDIT.ed[SIN_WHICH] || {}).via || {});
   const sinSave = () => { try { localStorage.setItem(SIN_KEY[SIN_WHICH], JSON.stringify(SCH_EDIT.ed[SIN_WHICH])); } catch (e) {} };
   function schEditOff() { if (SCH_EDIT && SCH_EDIT.on) setSchEdit(false); }
-  function setSchEdit(on) { SCH_EDIT.on = on; const b = document.getElementById('schEdit'); if (b) b.setAttribute('aria-pressed', String(on)); if (on) setView('sin'); else drawDepotPlan(); }
+  function setSchEdit(on) { SCH_EDIT.on = on; document.body.classList.toggle('schedit', on); const b = document.getElementById('schEdit'); if (b) b.setAttribute('aria-pressed', String(on)); if (on) setView('sin'); else drawDepotPlan(); }
   const SWMEM = {};                       // the last position seen of each depot switch: the pair of track pieces a train went over
   const octi = (p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1]; return Math.abs(dx) >= Math.abs(dy) ? [p, [q[0] - Math.sign(dx) * Math.abs(dy), p[1]], q] : [p, q]; };
   const alongPts = (pts, f) => { const L = []; let tot = 0; for (let i = 1; i < pts.length; i++) { L.push(Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); tot += L[i - 1]; }
@@ -8718,6 +8729,17 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // (as on the panels, Giovanni 9 Nov 2026, the Rogoredo depot board: a piece leaving a switch goes off it at 45 degrees and
   // then runs level; between two switches, or two plain nodes, the slant in the middle)
   var SIN_DEG = {};
+  // the strips of the line (Giovanni 16 Nov 2026): SCH.strips = { cuts: [x...], h: px from one strip to the next, lead: px
+  // before the start of a strip }; sinSi: the strip of a point of the long drawing, sinT: where it is drawn on strip s
+  var SIN_ST = null;
+  function sinStrips(SCH, N) {
+    if (SIN_WHICH !== 'line' || !SCH.strips || !(SCH.strips.cuts || []).length) return null;
+    const c = SCH.strips.cuts.slice().sort((a, b) => a - b), x0 = Math.min(...Object.values(N).map(p => p[0])), lead = SCH.strips.lead || 30, h = SCH.strips.h || 190;
+    const off = [0, ...c.map(x => x - x0 + lead)]; return { c, off, dy: off.map((_, i) => i * h), h }; }
+  const sinSi = (ST, x) => ST ? ST.c.filter(c => x > c).length : 0;
+  const sinT = (ST, p, s) => ST ? [p[0] - ST.off[s], p[1] + ST.dy[s]] : p;
+  // back from the screen to the long drawing: the strip whose rows are nearest to y
+  const sinBack = (ST, p) => { if (!ST) return p; let s = 0; for (let i = 1; i < ST.dy.length; i++) if (Math.abs(p[1] - ST.dy[i] - 218) < Math.abs(p[1] - ST.dy[s] - 218)) s = i; return [p[0] + ST.off[s], p[1] - ST.dy[s]]; };
   function octiSw(p, q, swA, swB) {
     const dx = q[0] - p[0], dy = q[1] - p[1], ax = Math.abs(dx), ay = Math.abs(dy), sx = Math.sign(dx) || 1;
     if (ay < 0.5 || ax < 0.5) return [p, q];
@@ -8843,6 +8865,20 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     for (const sg of SCH.signals || []) { if (!SE.has(sg.e) || (sg.d !== 1 && sg.d !== -1)) continue; const S_ = sigOf(sg); if (S_ && (S_.asp === 'go' || S_.asp === 'sgo') && !S_.illegal) litWalk(sg.e, sg.f, sg.d); }
     let base = '', over = '', marks = '', X0 = Infinity, Y0 = Infinity, X1 = -Infinity, Y1 = -Infinity;
     const grow = ([x, y]) => { X0 = Math.min(X0, x); Y0 = Math.min(Y0, y); X1 = Math.max(X1, x); Y1 = Math.max(Y1, y); };
+    // the line on three strips, one under the other (Giovanni 16 Nov 2026: all the line on one screen): cut at x where
+    // there is plain track only (data/sinottico_linea_m3.json "strips"); each strip with binario 2 above and binario 1
+    // below as before. Everything is worked out on the long drawing and moved onto its strip only when drawn (T, sSplit),
+    // so the file, the editor's numbers and the sections stay as they are
+    const ST = sinStrips(SCH, N); SIN_ST = ST;
+    const T = ST ? p => sinT(ST, p, sinSi(ST, p[0])) : p => p;
+    const sSplit = P => { if (!ST || P.length < 2) return [P.map(T)];
+      const out = []; let s0 = sinSi(ST, P[0][0]), cur = [sinT(ST, P[0], s0)];
+      for (let i = 1; i < P.length; i++) { const A = P[i - 1], B = P[i], s1 = sinSi(ST, B[0]);
+        if (s1 !== s0) { const dir = s1 > s0 ? 1 : -1;
+          for (let k = s0; k !== s1; k += dir) { const c = ST.c[dir > 0 ? k : k - 1], t = (c - A[0]) / ((B[0] - A[0]) || 1), I = [c, A[1] + (B[1] - A[1]) * t];
+            cur.push(sinT(ST, I, k)); out.push(cur); cur = [sinT(ST, I, k + dir)]; } s0 = s1; }
+        cur.push(sinT(ST, B, s1)); }
+      out.push(cur); return out.filter(q => q.length > 1); };
     const FULL = {}, GAP = SIN_WHICH === 'line' ? 2.6 : 1.8;
     const plen = P => { let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); return L; };
     for (const ei of SCH.edges) { const e = NE[ei], full = sinFull(N, V, e, ei); if (!full) continue; FULL[ei] = full;
@@ -8852,26 +8888,27 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       const shorten = (P, fromEnd) => { const A = fromEnd ? P[P.length - 1] : P[0], B = fromEnd ? P[P.length - 2] : P[1], d = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1, k = Math.min(7, d / 2) / d, C = [A[0] + (B[0] - A[0]) * k, A[1] + (B[1] - A[1]) * k];
         return fromEnd ? [...P.slice(0, -1), C] : [C, ...P.slice(1)]; };
       if (cut(false)) pts = shorten(pts, false); if (cut(true)) pts = shorten(pts, true);
-      pts.forEach(grow);
+      sSplit(pts).forEach(q => q.forEach(grow));
       const L = plen(pts) || 1, kind = NE[ei].cat === 'test' ? ' test' : NE[ei].cat === 'main' ? ' main' : '';
       for (const [, f0, f1, sid, s0, s1] of SEC.byEdge[ei] || []) {
         if (f1 <= p0 + 1e-4 || f0 >= p1 - 1e-4) continue;
         let a = (fd(ei, Math.max(f0, p0)) - q0) / ((q1 - q0) || 1), b = (fd(ei, Math.min(f1, p1)) - q0) / ((q1 - q0) || 1);
         if (s0) a += GAP / L; if (s1) b -= GAP / L; if (b - a < 0.5 / L) continue;
         const c = occS.has(sid) ? ' occ' : litS.has(sid) ? ' lit' : '';
-        base += `<path class="tk${kind}${c}" data-e="${ei}" data-s="${sid}"${c === ' occ' ? ' data-occ="1"' : ''} d="${roundPath(subPts(pts, Math.max(0, a), Math.min(1, b)), 6)}"/>`; }
+        base += `<path class="tk${kind}${c}" data-e="${ei}" data-s="${sid}"${c === ' occ' ? ' data-occ="1"' : ''} d="${sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))).map(q => roundPath(q, 6)).join('')}"/>`; }
     }
     // the trains: their number where their middle is; grey on time, green 30 s or more early, red 30 s or more late
     const AGK = {}; F.ag.agents().forEach(a => { AGK[a.k] = a; });
     for (const [k, [ei, f]] of Object.entries(live.mid)) { const full = FULL[ei]; if (!full) continue; const [p0, p1] = sinPart(SCH, ei); if (f < p0 || f > p1) continue;
-      const q0 = fd(ei, p0), q1 = fd(ei, p1), m = alongPts(p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, (fd(ei, f) - q0) / ((q1 - q0) || 1)), r = realTrain(F, F.trains[k], state.t), lab = r ? r.n : +k + 1;
+      const q0 = fd(ei, p0), q1 = fd(ei, p1), m = T(alongPts(p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, (fd(ei, f) - q0) / ((q1 - q0) || 1))), r = realTrain(F, F.trains[k], state.t), lab = r ? r.n : +k + 1;
       const a = AGK[k], late = a && a.status === 'service' && a.late != null ? a.late : 0, tc = late >= 30 ? 'late' : late <= -30 ? 'early' : 'ok';
       marks += `<g class="trn ${tc}" data-k="${k}"><rect x="${m[0] - 20}" y="${m[1] - 16}" width="40" height="12" rx="3"/><text x="${m[0]}" y="${m[1] - 7}">${lab}</text></g>`; }
     // the stations: their platforms, a frame round each, the number of the track above it
-    for (const pf of SCH.platforms || []) { marks += `<rect class="plat" x="${pf.x0}" y="${pf.y - 5}" width="${Math.max(4, pf.x1 - pf.x0)}" height="10" rx="1.5"><title>${pf.st} · binario ${pf.bin}</title></rect>` +
-      `<text class="binno" x="${(pf.x0 + pf.x1) / 2}" y="${pf.y - 7.5}">${pf.bin}</text>`; grow([pf.x0, pf.y - 12]); grow([pf.x1, pf.y + 6]); }
+    for (const pf0 of SCH.platforms || []) { const [x0, y] = T([pf0.x0, pf0.y]), pf = { x0, x1: x0 + pf0.x1 - pf0.x0, y };
+      marks += `<rect class="plat" x="${pf.x0}" y="${pf.y - 5}" width="${Math.max(4, pf.x1 - pf.x0)}" height="10" rx="1.5"><title>${pf0.st} · binario ${pf0.bin}</title></rect>` +
+      `<text class="binno" x="${(pf.x0 + pf.x1) / 2}" y="${pf.y - 7.5}">${pf0.bin}</text>`; grow([pf.x0, pf.y - 12]); grow([pf.x1, pf.y + 6]); }
     // where the track leaves the line for another (the M2 link): that line's logo
-    for (const bd of SCH.badges || []) { marks += `<g class="badge ${bd.kind || ''}"><rect x="${bd.x - 12}" y="${bd.y - 8}" width="24" height="16" rx="3.5"/><text x="${bd.x}" y="${bd.y + 4.2}">${bd.text}</text></g>`; grow([bd.x - 14, bd.y - 10]); grow([bd.x + 14, bd.y + 10]); }
+    for (const bd0 of SCH.badges || []) { const [bx, by] = T([bd0.x, bd0.y]), bd = Object.assign({}, bd0, { x: bx, y: by }); marks += `<g class="badge ${bd.kind || ''}"><rect x="${bd.x - 12}" y="${bd.y - 8}" width="24" height="16" rx="3.5"/><text x="${bd.x}" y="${bd.y + 4.2}">${bd.text}</text></g>`; grow([bd.x - 14, bd.y - 10]); grow([bd.x + 14, bd.y + 10]); }
     // the signals: as on the screens of the Posto Centrale (Giovanni 9 Nov 2026): beside the track, on the right of the
     // trains it is for, its foot at the signal, the head turned to the trains coming; the M3 heads have two lamps only:
     // red, and white (via libera = red and white lit together); the illegal ones (square heads) only when asked for
@@ -8880,9 +8917,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       const S_ = sigOf(sg), a = S_ && S_.asp || 'stop', tag = S_ ? S_.tag : '#A' + String(sg.n).padStart(2, '0'), ill = !!(S_ && S_.illegal);
       if (ill && !SIN_ILL) continue;
       const q0 = fd(sg.e, p0), q1 = fd(sg.e, p1), P_ = p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, g = x => (fd(sg.e, x) - q0) / ((q1 - q0) || 1);
-      const m = alongPts(P_, g(sg.f));
+      const m = T(alongPts(P_, g(sg.f)));
       if (sg.d !== 1 && sg.d !== -1) { marks += `<circle class="sg" data-n="${sg.n}" cx="${m[0]}" cy="${m[1] - 4.5}" r="2.8" fill="${ASP[a] || '#e5383b'}"><title>${tag}</title></circle>${SIN_NUM ? `<text class="sgn" x="${m[0] + 4}" y="${m[1] - 7}">${sg.n}</text>` : ''}`; continue; }
-      const m1 = alongPts(P_, Math.max(0, g(sg.f) - 0.003)), m2 = alongPts(P_, Math.min(1, g(sg.f) + 0.003));
+      const m1 = T(alongPts(P_, Math.max(0, g(sg.f) - 0.003))), m2 = T(alongPts(P_, Math.min(1, g(sg.f) + 0.003)));
       let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
       const K = SIN_WHICH === 'line' ? 1 : 0.8, nx = -ty, ny = tx, B = [m[0] + nx * 6.5 * K, m[1] + ny * 6.5 * K], ang = Math.atan2(-ty, -tx) * 180 / Math.PI;
       const lit = a === 'go' || a === 'sgo';
@@ -8890,53 +8927,181 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         `<circle class="sg" data-n="${sg.n}" cx="6.6" cy="0" r="2.2" fill="#ff2a2a"/><circle class="sgw" cx="12.4" cy="0" r="2.2" fill="${lit ? '#ffffff' : '#3b3f46'}"/></g>` +
         (SIN_NUM ? `<text class="sgn" x="${B[0] + nx * 8 * K}" y="${B[1] + ny * 8 * K + 3}">${sg.n}</text>` : ''); }
     // the places by name (two places at the same point of the drawing, as the two of a rimessa track: one each side)
-    const plG = []; for (const pl of SCH.places || []) { const p = N[pl.node]; if (!p || !at[pl.node]) continue;
+    const plG = []; for (const pl of SCH.places || []) { const p = N[pl.node] && T(N[pl.node]); if (!p || !at[pl.node]) continue;
       const g = plG.find(g => g.some(([, q]) => Math.abs(q[0] - p[0]) < 16 && Math.abs(q[1] - p[1]) < 3)); if (g) g.push([pl, p]); else plG.push([[pl, p]]); }
     for (const g of plG) g.sort((u, v) => u[1][0] - v[1][0]).forEach(([pl, p], i) => { const dx = g.length > 1 ? (i - (g.length - 1) / 2) * 30 : 0;
       marks += `<text class="pl" x="${p[0] + dx}" y="${p[1] + 12}">${pl.name}</text>`; });
-    for (const lb of SCH.labels || []) { marks += `<text class="lab" x="${lb.x}" y="${lb.y}">${lb.text}</text>`; grow([lb.x - 30, lb.y - 14]); grow([lb.x + 30, lb.y + 4]); }
+    // (names too close to the one before on the same strip go one line higher: Turati, Montenapoleone, Duomo; Corvetto…)
+    const LBS = (SCH.labels || []).map(lb0 => { const [lx, ly] = T([lb0.x, lb0.y]); return { x: lx, y: ly, text: lb0.text, s: sinSi(ST, lb0.x) }; }).sort((u, v) => u.s - v.s || u.x - v.x);
+    const LW = SIN_WHICH === 'line' ? 4.4 : 3.6;
+    LBS.forEach((lb, i) => { const pv = LBS[i - 1]; if (pv && pv.s === lb.s && lb.x - pv.x < (pv.text.length + lb.text.length) * LW + 6 && pv.y === lb.y) lb.y -= 13; });
+    for (const lb of LBS) { marks += `<text class="lab" x="${lb.x}" y="${lb.y}">${lb.text}</text>`; grow([lb.x - 30, lb.y - 14]); grow([lb.x + 30, lb.y + 4]); }
+    // where the line goes on: at the end of a strip and at the start of the next one
+    if (ST) ST.c.forEach((c, k) => { const ya = sinT(ST, [c, 218], k), yb = sinT(ST, [c, 218], k + 1);
+      marks += `<g class="cont"><text x="${ya[0] + 6}" y="${ya[1] + 4}">continua ↓</text><text class="r" x="${yb[0] - 6}" y="${yb[1] + 4}">↓ continua</text></g>`;
+      grow([ya[0] + 70, ya[1]]); grow([yb[0] - 70, yb[1]]); });
     if (SCH_EDIT.on) {
-      for (const [n, p] of Object.entries(N)) if (at[n]) marks += `<rect class="nd" data-nd="${n}" x="${p[0] - 3.5}" y="${p[1] - 3.5}" width="7" height="7"/>`;
-      for (const [ei, v] of Object.entries(V)) if (FULL[ei] && v) v.forEach((p, i) => { marks += `<circle class="vp" data-e="${ei}" data-i="${i}" cx="${p[0]}" cy="${p[1]}" r="2.6"/>`; });
+      // (the number by each node; orange the ones less than 10 px from another; the chosen ones last, on top)
+      const near = new Set(schSusp(F, SCH, N, V).near.flatMap(([a, b]) => [a, b]));
+      const ids = Object.keys(N).filter(n => at[n]).sort((a, b) => SCH_EDIT.sel.includes(a) - SCH_EDIT.sel.includes(b));
+      for (const n of ids) { const p = T(N[n]);
+        // (the numbers of nodes close together one above the other, not on top of each other)
+        const k = near.has(n) ? ids.filter(m => m < n && near.has(m) && Math.hypot(N[m][0] - N[n][0], N[m][1] - N[n][1]) < SIN_NEAR).length : 0;
+        marks += `<g class="ndg${SCH_EDIT.sel.includes(n) ? ' sel' : ''}${near.has(n) ? ' near' : ''}" data-g="${n}"><rect class="nd" data-nd="${n}" x="${p[0] - 3.5}" y="${p[1] - 3.5}" width="7" height="7"/><text class="ndn" x="${p[0] + 5}" y="${p[1] - 5 - 8 * k}">${n}</text></g>`; }
+      for (const [ei, v] of Object.entries(V)) if (FULL[ei] && v) v.forEach((p0, i) => { const p = T(p0); marks += `<circle class="vp" data-e="${ei}" data-i="${i}" cx="${p[0]}" cy="${p[1]}" r="2.6"/>`; });
     }
     if (!isFinite(X0)) { X0 = Y0 = 0; X1 = Y1 = 100; }
     const vb = [Math.floor(X0 - 24), Math.floor(Y0 - 26), Math.ceil(X1 - X0 + 48), Math.ceil(Y1 - Y0 + 44)];
     const sx = body.scrollLeft, sy = body.scrollTop;
     // (both fit the width at first, the whole line in view; + and − to go nearer: Giovanni 9 Nov 2026)
     const wcss = Math.round(SIN_Z[SIN_WHICH] * 100) + '%';
-    body.innerHTML = `<svg viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg" style="width:${wcss}"${SCH_EDIT.on ? ' class="edit"' : ''}><g>${base}</g><g>${over}</g>${marks}</svg>`;
+    body.innerHTML = `<svg viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg" style="width:${wcss}"${SCH_EDIT.on ? ` class="edit${SIN_Z[SIN_WHICH] >= 2.4 ? ' zhi' : ''}"` : ''}><g>${base}</g><g>${over}</g>${marks}</svg>`;
     body.scrollLeft = sx; body.scrollTop = sy;
     body.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
     if (SCH_EDIT.on) bindSchDrag(F, SCH);
   }
+  // ---- the sinottico editor (Giovanni 16 Nov 2026: nodes almost on top of each other, pieces too short to drag, nodes off
+  // the rows, the grid in the way). Only the drawing changes, in this browser, until the file is exported: never the game
+  // nor the build's data.
+  // The rows: the line on rows 18 px apart from the north track (y 200; tools/sinottico.py), the main ones the two tracks
+  // and the one between them; the depot on rows 11 px apart from y 40
+  const SIN_ROWS = { line: { y0: 200, dy: 18, main: [200, 218, 236] }, dep: { y0: 40, dy: 11, main: null } };
+  const SIN_NEAR = 10;                                                     // px: nodes, and pieces, closer than this
+  const schRowY = y => { const R = SIN_ROWS[SIN_WHICH]; return Math.round((y - R.y0) / R.dy) * R.dy + R.y0; };
+  const schMainY = y => { const R = SIN_ROWS[SIN_WHICH]; return R.main ? R.main.reduce((b, r) => Math.abs(r - y) < Math.abs(b - y) ? r : b) : schRowY(y); };
+  const schOnRow = y => { const R = SIN_ROWS[SIN_WHICH]; return R.main ? R.main.some(r => Math.abs(r - y) < 0.5) : Math.abs(schRowY(y) - y) < 0.5; };
+  // what to look at again: nodes less than 10 px apart, pieces drawn shorter than 10 px, nodes off the (main) rows
+  function schSusp(F, SCH, N, V) {
+    const NE = F.engine.net.edges, shown = new Set(), near = [], short = [], off = [];
+    for (const ei of SCH.edges) { const e = NE[ei]; shown.add(String(e.a)); shown.add(String(e.b)); }
+    const ids = [...shown].filter(n => N[n]).sort((a, b) => N[a][0] - N[b][0]);
+    for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
+      const p = N[ids[i]], q = N[ids[j]]; if (q[0] - p[0] >= SIN_NEAR) break;
+      const d = Math.hypot(q[0] - p[0], q[1] - p[1]); if (d < SIN_NEAR) near.push([ids[i], ids[j], d]); }
+    for (const ei of SCH.edges) { const e = NE[ei], p = N[e.a], q = N[e.b]; if (!p || !q) continue;
+      const pts = [p, ...((V[ei] && V[ei].length) ? V[ei] : []), q], pr = sinPart(SCH, ei); let L = 0;
+      for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]);
+      L *= (pr[1] - pr[0]); if (L < SIN_NEAR) short.push([ei, String(e.a), String(e.b), L]); }
+    for (const n of ids) if (!schOnRow(N[n][1])) off.push([n, N[n][1]]);
+    return { near, short, off };
+  }
+  // undo and redo, every change (a node, a bend, a merge, an alignment); "Annulla le modifiche" throws them all away
+  const schHist = () => SCH_EDIT.hist[SIN_WHICH];
+  const schSnap = () => JSON.stringify(SCH_EDIT.ed[SIN_WHICH] || null);
+  function schPush() { const h = schHist(); h.u.push(schSnap()); if (h.u.length > 300) h.u.shift(); h.r = []; schButtons(); }
+  function schBack(from, to) { const h = schHist(); if (!h[from].length) return; h[to].push(schSnap());
+    SCH_EDIT.ed[SIN_WHICH] = JSON.parse(h[from].pop());
+    try { if (SCH_EDIT.ed[SIN_WHICH]) sinSave(); else localStorage.removeItem(SIN_KEY[SIN_WHICH]); } catch (e) {}
+    schButtons(); drawDepotPlan(); }
+  function schButtons() { const h = schHist(), u = document.getElementById('schU'), r = document.getElementById('schR');
+    if (u) u.disabled = !h.u.length; if (r) r.disabled = !h.r.length;
+    const g = document.getElementById('schGrid'), gr = document.getElementById('schGroup');
+    if (g) g.setAttribute('aria-pressed', String(SCH_EDIT.grid)); if (gr) gr.setAttribute('aria-pressed', String(SCH_EDIT.group));
+    const sl = document.getElementById('schSel'); if (sl) sl.textContent = SCH_EDIT.sel.length ? 'Scelti: ' + SCH_EDIT.sel.map(n => 'nodo ' + n).join(', ') + '.' : 'Nessun nodo scelto.'; }
+  const schSetNodes = obj => { sinEd().nodes = Object.assign({}, sinEd().nodes || {}, obj); sinSave(); };
+  const schCount = () => { const ed = SCH_EDIT.ed[SIN_WHICH] || {}; return Object.keys(ed.nodes || {}).length + ' nodi spostati, ' + Object.keys(ed.via || {}).length + ' tratte con curve cambiate (in questo browser). Esporta il file per tenerli.'; };
+  const schNote = t => { const nt = document.getElementById('schNote'); if (nt) nt.textContent = t; };
+  // the nodes less than 10 px from one, itself first
+  const schCluster = (N, n, shownIds) => [n, ...shownIds.filter(m => m !== n && N[m] && Math.hypot(N[m][0] - N[n][0], N[m][1] - N[n][1]) < SIN_NEAR).sort((a, b) => a - b)];
+  // the nodes that move with the chosen ones: with "Unisci i nodi vicini" also those less than 10 px from them
+  const schMoving = (N, shownIds) => { const m = new Set(SCH_EDIT.sel); if (SCH_EDIT.group) for (const n of SCH_EDIT.sel) schCluster(N, n, shownIds).forEach(x => m.add(x)); return [...m]; };
+  const schCtx = () => { const F = m3eng(), SCH = F && sinSchema(F); if (!SCH) return null;
+    const N = schNodes(SCH), V = schVia(SCH), NE = F.engine.net.edges, shown = new Set(); SCH.edges.forEach(ei => { shown.add(String(NE[ei].a)); shown.add(String(NE[ei].b)); });
+    return { F, SCH, N, V, shown: [...shown] }; };
+  function schMoveBy(dx, dy) { const c = schCtx(); if (!c || !SCH_EDIT.sel.length) return; schPush();
+    const o = {}; for (const n of schMoving(c.N, c.shown)) o[n] = [Math.round((c.N[n][0] + dx) * 10) / 10, Math.round((c.N[n][1] + dy) * 10) / 10];
+    schSetNodes(o); schNote(schCount()); drawDepotPlan(); }
+  function schAlign() { const c = schCtx(); if (!c || !SCH_EDIT.sel.length) return; schPush(); const o = {};
+    if (SCH_EDIT.sel.length === 1) { const n = SCH_EDIT.sel[0]; o[n] = [c.N[n][0], schMainY(c.N[n][1])]; schNote(`Nodo ${n} sulla riga ${o[n][1]}.`); }
+    else { const x = c.N[SCH_EDIT.sel[0]][0]; for (const n of SCH_EDIT.sel.slice(1)) o[n] = [x, c.N[n][1]]; schNote(`Nodi ${SCH_EDIT.sel.slice(1).join(', ')} allo stesso x del nodo ${SCH_EDIT.sel[0]} (${x}).`); }
+    schSetNodes(o); drawDepotPlan(); }
+  function schSeparate() { const c = schCtx(); if (!c || !SCH_EDIT.sel.length) return;
+    const D = Math.max(2, Math.min(200, +document.getElementById('schSepD').value || 20));
+    const g = SCH_EDIT.sel.length > 1 ? SCH_EDIT.sel.slice() : schCluster(c.N, SCH_EDIT.sel[0], c.shown);
+    if (g.length < 2) { schNote(`Nessun nodo a meno di ${SIN_NEAR} px dal nodo ${SCH_EDIT.sel[0]}.`); return; }
+    schPush(); g.sort((a, b) => c.N[a][0] - c.N[b][0] || a - b);
+    const cx = g.reduce((s, n) => s + c.N[n][0], 0) / g.length, o = {};
+    g.forEach((n, i) => { o[n] = [Math.round(cx + (i - (g.length - 1) / 2) * D), c.N[n][1]]; });
+    schSetNodes(o); schNote(`Nodi ${g.join(', ')} in fila, ${D} px l'uno dall'altro.`); drawDepotPlan(); }
+  // the list of what to look at again: a click chooses the node(s) and brings them in view
+  var SCH_SUSP_KEY = '';
+  function schSuspList(F, SCH, N, V) {
+    const box = document.getElementById('schSusp'); if (!box) return;
+    const S = schSusp(F, SCH, N, V), f = d => d.toFixed(1).replace('.', ',');
+    const rows = [...S.near.map(([a, b, d]) => [`${a},${b}`, `Nodi ${a} e ${b} vicini: ${f(d)} px`]),
+      ...S.short.map(([ei, a, b, L]) => [`${a},${b}`, `Tratto ${a} – ${b} corto: ${f(L)} px`]),
+      ...S.off.map(([n, y]) => [n, `Nodo ${n} fuori dalle righe${SIN_ROWS[SIN_WHICH].main ? ' principali (' + SIN_ROWS[SIN_WHICH].main.join(', ') + ')' : ''}: y ${f(y)}`])];
+    const key = SIN_WHICH + JSON.stringify(rows); if (key === SCH_SUSP_KEY) return; SCH_SUSP_KEY = key;
+    document.getElementById('schSuspN').textContent = rows.length;
+    box.innerHTML = rows.map(([sel, t]) => `<button data-sel="${sel}">${t}</button>`).join('') || '<p class="note">Niente da segnalare.</p>';
+    box.querySelectorAll('button').forEach(b => b.onclick = () => { SCH_EDIT.sel = b.dataset.sel.split(','); schButtons(); drawDepotPlan();
+      const r = planEl.querySelector(`.dp-body rect.nd[data-nd="${SCH_EDIT.sel[0]}"]`), body = planEl.querySelector('.dp-body');
+      if (r && body) { const a = r.getBoundingClientRect(), bb = body.getBoundingClientRect(); body.scrollLeft += a.left - bb.left - bb.width / 2; body.scrollTop += a.top - bb.top - bb.height / 2; } });
+  }
   function bindSchDrag(F, SCH) {
     const svgEl = planEl.querySelector('.dp-body svg'); if (!svgEl) return;
     const toSvg = ev => { const pt = svgEl.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY; const q = pt.matrixTransform(svgEl.getScreenCTM().inverse()); return [q.x, q.y]; };
-    const note = t => { const nt = document.getElementById('schNote'); if (nt) nt.textContent = t; };
-    const count = () => { const ed = SCH_EDIT.ed[SIN_WHICH] || {}; return Object.keys(ed.nodes || {}).length + ' nodi spostati, ' + Object.keys(ed.via || {}).length + ' tratte con curve cambiate (in questo browser). Esporta il file per tenerli.'; };
-    svgEl.querySelectorAll('rect.nd').forEach(r => r.onpointerdown = ev => { ev.preventDefault(); SCH_EDIT.drag = { n: r.dataset.nd, el: r, kind: 'node' }; r.setPointerCapture(ev.pointerId); });
+    const shownIds = [...svgEl.querySelectorAll('rect.nd')].map(r => r.dataset.nd);
+    schSuspList(F, SCH, schNodes(SCH), schVia(SCH)); schButtons();
+    // a node: the one clicked; clicked again in the same spot, the next one less than 10 px from it (a repeated click goes
+    // round them); with Maiusc (or Ctrl) it is added to, or taken from, the chosen ones
+    svgEl.querySelectorAll('rect.nd').forEach(r => r.onpointerdown = ev => { ev.preventDefault();
+      const N = schNodes(SCH); let n = r.dataset.nd; const cl = schCluster(N, n, shownIds).sort((a, b) => a - b), key = cl.join(','), pk = SCH_EDIT.pick;
+      if (cl.length > 1 && pk && pk.key === key && Date.now() - pk.t < 5000) n = cl[(cl.indexOf(pk.n) + 1) % cl.length];
+      SCH_EDIT.pick = { key, n, t: Date.now() };
+      if (ev.shiftKey || ev.ctrlKey || ev.metaKey) { SCH_EDIT.sel = SCH_EDIT.sel.includes(n) ? SCH_EDIT.sel.filter(x => x !== n) : [...SCH_EDIT.sel, n]; schButtons(); drawDepotPlan(); return; }
+      SCH_EDIT.sel = [n]; schButtons();
+      const moving = schMoving(N, shownIds), [px, py] = toSvg(ev);
+      SCH_EDIT.drag = { kind: 'node', n, p0: [px, py], orig: Object.fromEntries(moving.map(m => [m, N[m].slice()])), moved: false };
+      svgEl.querySelectorAll('.ndg.sel').forEach(g => g.classList.remove('sel')); const g = svgEl.querySelector(`.ndg[data-g="${n}"]`); if (g) g.classList.add('sel');
+      r.setPointerCapture(ev.pointerId); });
     svgEl.querySelectorAll('circle.vp').forEach(c => c.onpointerdown = ev => { ev.preventDefault();
       const ei = c.dataset.e, i = +c.dataset.i, V = schVia(SCH);
-      if (ev.altKey) { const v = (V[ei] || []).slice(); v.splice(i, 1); sinEd().via = Object.assign({}, sinEd().via || {}, { [ei]: v }); sinSave(); note(count()); drawDepotPlan(); return; }
-      SCH_EDIT.drag = { e: ei, i, el: c, kind: 'via' }; c.setPointerCapture(ev.pointerId); });
+      if (ev.altKey) { schPush(); const v = (V[ei] || []).slice(); v.splice(i, 1); sinEd().via = Object.assign({}, sinEd().via || {}, { [ei]: v }); sinSave(); schNote(schCount()); drawDepotPlan(); return; }
+      const s0 = sinSi(SIN_ST, ((V[ei] || [])[i] || [0])[0]);
+      SCH_EDIT.drag = { e: ei, i, el: c, kind: 'via', s: s0 }; c.setPointerCapture(ev.pointerId); });
     // a double click on a track: a new bend there (the piece keeps its shape: its corners become bends too)
     svgEl.querySelectorAll('path.tk').forEach(p => p.ondblclick = ev => { ev.preventDefault();
       const ei = p.dataset.e, e = F.engine.net.edges[ei], N = schNodes(SCH), V = schVia(SCH), full = sinFull(N, V, e, ei); if (!full) return;
-      const [x, y] = toSvg(ev); let best = null;
+      const [x, y] = sinBack(SIN_ST, toSvg(ev)); let best = null;
       for (let i = 1; i < full.length; i++) { const A = full[i - 1], B = full[i], dx = B[0] - A[0], dy = B[1] - A[1], L2 = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((x - A[0]) * dx + (y - A[1]) * dy) / L2)), d = Math.hypot(x - A[0] - u * dx, y - A[1] - u * dy); if (!best || d < best[0]) best = [d, i]; }
       const v = full.slice(1, -1).map(q => [Math.round(q[0]), Math.round(q[1])]); v.splice(best[1] - 1, 0, [Math.round(x), Math.round(y)]);
-      sinEd().via = Object.assign({}, sinEd().via || {}, { [ei]: v }); sinSave(); note(count()); drawDepotPlan(); });
+      schPush(); sinEd().via = Object.assign({}, sinEd().via || {}, { [ei]: v }); sinSave(); schNote(schCount()); drawDepotPlan(); });
     svgEl.onpointermove = ev => { const d = SCH_EDIT.drag; if (!d) return; const [x, y] = toSvg(ev);
-      if (d.kind === 'node') { d.x = Math.round(x / 10) * 10; d.y = Math.round((y - 40) / 11) * 11 + 40; d.el.setAttribute('x', d.x - 3.5); d.el.setAttribute('y', d.y - 3.5); }
-      else { d.x = Math.round(x); d.y = Math.round(y); d.el.setAttribute('cx', d.x); d.el.setAttribute('cy', d.y); } };
-    svgEl.onpointerup = () => { const d = SCH_EDIT.drag; SCH_EDIT.drag = null; if (!d || d.x == null) return;
-      if (d.kind === 'node') sinEd().nodes = Object.assign({}, sinEd().nodes || {}, { [d.n]: [d.x, d.y] });
-      else { const v = (schVia(SCH)[d.e] || []).slice(); v[d.i] = [d.x, d.y]; sinEd().via = Object.assign({}, sinEd().via || {}, { [d.e]: v }); }
-      sinSave(); note(count()); drawDepotPlan(); };
+      if (d.kind === 'node') {
+        if (!d.moved && Math.hypot(x - d.p0[0], y - d.p0[1]) < 1.5) return;          // (a click, not a move)
+        d.moved = true; const o = d.orig[d.n]; let tx = o[0] + x - d.p0[0], ty = o[1] + y - d.p0[1];
+        if (SCH_EDIT.grid) { tx = Math.round(tx / 10) * 10; ty = schRowY(ty); } else { tx = Math.round(tx); ty = Math.round(ty); }
+        const dx = tx - o[0], dy = ty - o[1]; d.to = {};
+        for (const [m, q] of Object.entries(d.orig)) { const nx = Math.round((q[0] + dx) * 10) / 10, ny = Math.round((q[1] + dy) * 10) / 10; d.to[m] = [nx, ny];
+          const g = svgEl.querySelector(`.ndg[data-g="${m}"]`); if (!g) continue; const r = g.querySelector('rect'), t = g.querySelector('text');
+          const ty0 = +t.getAttribute('y') - (+r.getAttribute('y') + 3.5), [sx_, sy_] = sinT(SIN_ST, [nx, ny], sinSi(SIN_ST, nx));   // (its offset, kept; on its strip)
+          r.setAttribute('x', sx_ - 3.5); r.setAttribute('y', sy_ - 3.5); t.setAttribute('x', sx_ + 5); t.setAttribute('y', sy_ + ty0); } }
+      else { d.el.setAttribute('cx', x); d.el.setAttribute('cy', y); const ab = SIN_ST ? [x + SIN_ST.off[d.s], y - SIN_ST.dy[d.s]] : [x, y]; d.x = Math.round(ab[0]); d.y = Math.round(ab[1]); } };
+    svgEl.onpointerup = () => { const d = SCH_EDIT.drag; SCH_EDIT.drag = null; if (!d) return;
+      if (d.kind === 'node') { if (d.moved && d.to) { schPush(); schSetNodes(d.to); schNote(schCount()); } drawDepotPlan(); return; }
+      if (d.x == null) return;
+      schPush(); const v = (schVia(SCH)[d.e] || []).slice(); v[d.i] = [d.x, d.y]; sinEd().via = Object.assign({}, sinEd().via || {}, { [d.e]: v });
+      sinSave(); schNote(schCount()); drawDepotPlan(); };
   }
+  // the keys: arrows move the chosen node(s) 1 px (10 with Maiusc), Ctrl+Z / Ctrl+Y (or Ctrl+Maiusc+Z) undo and redo
+  document.addEventListener('keydown', ev => {
+    if (!SCH_EDIT.on || planEl.hidden || /^(INPUT|SELECT|TEXTAREA)$/.test((ev.target && ev.target.tagName) || '')) return;
+    const k = ev.key, step = ev.shiftKey ? 10 : 1, mv = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[k];
+    if (mv && SCH_EDIT.sel.length) { ev.preventDefault(); schMoveBy(mv[0], mv[1]); return; }
+    if ((ev.ctrlKey || ev.metaKey) && (k === 'z' || k === 'Z')) { ev.preventDefault(); schBack(ev.shiftKey ? 'r' : 'u', ev.shiftKey ? 'u' : 'r'); return; }
+    if ((ev.ctrlKey || ev.metaKey) && (k === 'y' || k === 'Y')) { ev.preventDefault(); schBack('r', 'u'); return; }
+    if (k === 'Escape' && SCH_EDIT.sel.length) { SCH_EDIT.sel = []; schButtons(); drawDepotPlan(); }
+  });
   document.getElementById('schEdit').onclick = () => setSchEdit(!SCH_EDIT.on);
-  document.getElementById('schWhich').onchange = e => { SIN_WHICH = e.target.value; planEl.innerHTML = ''; if (SCH_EDIT.on) setView('sin'); };
-  document.getElementById('schUndo').onclick = () => { SCH_EDIT.ed[SIN_WHICH] = null; try { localStorage.removeItem(SIN_KEY[SIN_WHICH]); } catch (e) {} document.getElementById('schNote').textContent = 'Modifiche annullate.'; drawDepotPlan(); };
+  document.getElementById('schWhich').onchange = e => { SIN_WHICH = e.target.value; SCH_EDIT.sel = []; SCH_SUSP_KEY = ''; planEl.innerHTML = ''; schButtons(); if (SCH_EDIT.on) setView('sin'); };
+  document.getElementById('schUndo').onclick = () => { schPush(); SCH_EDIT.ed[SIN_WHICH] = null; try { localStorage.removeItem(SIN_KEY[SIN_WHICH]); } catch (e) {} schNote('Modifiche annullate (Annulla le riporta).'); drawDepotPlan(); };
+  document.getElementById('schU').onclick = () => schBack('u', 'r');
+  document.getElementById('schR').onclick = () => schBack('r', 'u');
+  document.getElementById('schGrid').onclick = () => { SCH_EDIT.grid = !SCH_EDIT.grid; schButtons(); };
+  document.getElementById('schGroup').onclick = () => { SCH_EDIT.group = !SCH_EDIT.group; schButtons(); };
+  document.getElementById('schAlign').onclick = schAlign;
+  document.getElementById('schSep').onclick = schSeparate;
   document.getElementById('schExport').onclick = () => { const F = m3eng(); const SCH = F && sinSchema(F); if (!SCH) return;
     const out = Object.assign({}, SCH, { nodes: schNodes(SCH), via: schVia(SCH) });
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' })); a.download = SIN_FILE[SIN_WHICH]; a.click(); };
