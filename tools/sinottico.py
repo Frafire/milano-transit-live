@@ -128,9 +128,40 @@ def deposito(m3='m3.json'):
             if key in seen: pos[n][1] += SY; moved += 1
             else: seen[key] = n
         if not moved: break
+    # every piece with its own shape (Giovanni 16 Nov 2026, with his sketch: the loops round the yard, the officina, the
+    # test loop round everything; "le linee del deposito devono essere dritte"): the real track turned and stretched like
+    # the nodes, fewer points, each bit then level, at 45 degrees or upright
+    polys = {i: dec(e['p']) for i, e in enumerate(E)}
+    def xc(x):                                            # (the same stretch as the nodes, between them by proportion)
+        if x <= K[0]: return XK[0] - (K[0] - x) * SX
+        if x >= K[-1]: return XK[-1] + (x - K[-1]) * SX
+        i = next(j for j in range(1, len(K)) if K[j] >= x); u = (x - K[i - 1]) / ((K[i] - K[i - 1]) or 1); return XK[i - 1] + (XK[i] - XK[i - 1]) * u
+    def octi(A, B):
+        dx, dy = B[0] - A[0], B[1] - A[1]
+        if abs(dx) < 2 or abs(dy) < 2 or abs(abs(dx) - abs(dy)) < 2: return [B]
+        m = min(abs(dx), abs(dy)); sx, sy = (1 if dx > 0 else -1), (1 if dy > 0 else -1)
+        if abs(dx) > abs(dy): h = (abs(dx) - m) / 2; return [[A[0] + sx * h, A[1]], [A[0] + sx * (h + m), B[1]], B]
+        v = (abs(dy) - m) / 2; return [[A[0], A[1] + sy * v], [B[0], A[1] + sy * (v + m)], B]
+    via = {}
+    for i in DEP:
+        e = E[i]; P = polys[i]
+        if len(P) < 3 and abs(pos[e['a']][1] - pos[e['b']][1]) < 0.5: continue
+        Q = []
+        for (x, y) in P:
+            rx, ry = x * c - y * s_, x * s_ + y * c; Q.append([xc(rx), (ymax - ry) / ROW_M * SY + 60])
+        if math.dist(Q[0], pos[e['a']]) > math.dist(Q[0], pos[e['b']]): Q = Q[::-1]
+        # (the ends where the nodes are, the error spread along)
+        ea = [pos[e['a']][0] - Q[0][0], pos[e['a']][1] - Q[0][1]]; eb = [pos[e['b']][0] - Q[-1][0], pos[e['b']][1] - Q[-1][1]]
+        L = [0.0]
+        for k in range(1, len(Q)): L.append(L[-1] + math.dist(Q[k - 1], Q[k]))
+        Q = [[q[0] + ea[0] + (eb[0] - ea[0]) * L[k] / (L[-1] or 1), q[1] + ea[1] + (eb[1] - ea[1]) * L[k] / (L[-1] or 1)] for k, q in enumerate(Q)]
+        Q = rdp([tuple(q) for q in Q], 12.0)
+        out = []
+        for k in range(1, len(Q)): out += octi(out[-1] if out else list(Q[0]), list(Q[k])) if math.dist(Q[k - 1], Q[k]) > 120 else [list(Q[k])]
+        v = [[round(q[0], 1), round(q[1], 1)] for q in out[:-1]]
+        if v: via[str(i)] = v
     # the signals: on the depot's pieces and on the tails of San Donato (the agents read those from this file:
     # sdTailSig); the page draws the ones on the pieces drawn
-    polys = {i: dec(e['p']) for i, e in enumerate(E)}
     near = [i for i, e in enumerate(E) if i in set(DEP) or i in set(net.get('sd_tail_edges') or [])]
     sigs = add_dirs(net, find_signals(net, near, polys))
     places = [{'node': p['node'], 'name': p['name']} for p in net.get('depot', []) if p['node'] in pos]
@@ -138,7 +169,7 @@ def deposito(m3='m3.json'):
                    'dell\'anello di prova, il binario vero girato in orizzontale e ingrandito (2,4 px al metro, una riga di 28 px '
                    'ogni 4 m); nodes = dove sta ogni nodo (px), via = curve (si aggiungono nell\'editor), signals = la tratta e '
                    'quanto lungo (0-1), places = i posti. tools/sinottico.py deposito lo rifà da capo; l\'editor lo corregge.',
-         'angle_deg': round(math.degrees(th), 1), 'edges': DEP, 'nodes': {str(n): pos[n] for n in nodes}, 'via': {}, 'part': {},
+         'angle_deg': round(math.degrees(th), 1), 'edges': DEP, 'nodes': {str(n): pos[n] for n in nodes}, 'via': via, 'part': {},
          'signals': sigs, 'places': places}
     OUT = os.path.join(ROOT, 'data', 'schema_deposito_m3.json'); json.dump(S, open(OUT, 'w'), ensure_ascii=False, indent=1)
     W = max(v[0] for v in pos.values()); H = max(v[1] for v in pos.values())
