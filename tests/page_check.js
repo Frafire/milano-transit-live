@@ -687,10 +687,18 @@ const SCENARIOS = {
       document.querySelector('#depotPlan .dp-sw button[data-w="line"]').click(); await sleep(1500);
       const line = { tk: new Set([...document.querySelectorAll('#depotPlan path.tk')].map(x => x.dataset.e)).size, want: (F.engine.net.schema_line || { edges: [] }).edges.length, labels: document.querySelectorAll('#depotPlan text.lab').length,
         plat: document.querySelectorAll('#depotPlan rect.plat').length, m2: document.querySelectorAll('#depotPlan g.badge').length };
+      // the three strips (Giovanni 16 Nov 2026): all of it within the page's width at the first zoom, the track going on
+      // at each cut (a piece crossing a cut drawn on both strips, none cut in half), the "continua" marks
+      { const SL = F.engine.net.schema_line, cuts = (SL.strips || {}).cuts || [], body = document.querySelector('#depotPlan .dp-body'), svg = body.querySelector('svg'), vb = svg.viewBox.baseVal;
+        const NE = F.engine.net.edges, NN = SL.nodes, cross = SL.edges.filter(ei => { const a = NN[NE[ei].a], b = NN[NE[ei].b]; return a && b && cuts.some(c => Math.min(a[0], b[0]) < c && c < Math.max(a[0], b[0])); });
+        const parts = ei => [...document.querySelectorAll(`#depotPlan path.tk[data-e="${ei}"]`)].reduce((n, x) => n + (x.getAttribute('d').match(/M/g) || []).length, 0);
+        line.strips = { cuts: cuts.length, fit: body.scrollWidth <= body.clientWidth + 1, cross: cross.length, both: cross.every(ei => parts(ei) >= 2), cont: document.querySelectorAll('#depotPlan g.cont text').length,
+          inside: [...document.querySelectorAll('#depotPlan path.tk, #depotPlan rect.plat')].every(x => { const b = x.getBBox(); return b.x >= vb.x - 1 && b.x + b.width <= vb.x + vb.width + 1; }), w: Math.round(vb.width), h: Math.round(vb.height) };
+        line.stripsOk = cuts.length === 2 && line.strips.fit && line.strips.cross === 2 * cuts.length && line.strips.both && line.strips.cont === 2 * cuts.length && line.strips.inside && vb.width < 1300; }
       document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); await sleep(500);
       document.getElementById('dpClose').click(); await sleep(200);
       const back = document.getElementById('depotPlan').hidden;
-      return { ok: res.every(r => r.same && r.want > 0 && r.sigs === r.sigWant && r.edges === SCH.edges.length && r.station) && line.tk === line.want && line.want > 50 && line.labels >= 21 && line.plat >= 42 && line.m2 >= 1 && back, res, line, back };
+      return { ok: res.every(r => r.same && r.want > 0 && r.sigs === r.sigWant && r.edges === SCH.edges.length && r.station) && line.tk === line.want && line.want > 50 && line.labels >= 21 && line.plat >= 42 && line.m2 >= 1 && line.stripsOk && back, res, line, back };
     });
   },
   async sineditor(p) {   // the sinottico editor (Giovanni 16 Nov 2026): numbers, a repeated click between two nodes on top of each
@@ -721,8 +729,8 @@ const SCENARIOS = {
     r.list = await p.evaluate(() => { document.getElementById('schSuspBox').open = true; return [...document.querySelectorAll('#schSusp button')].map(x => x.textContent); });
     r.listOk = r.list.some(t => /Nodi 1(16|41) e 1(16|41)/.test(t)) && r.list.some(t => /Tratto .* corto/.test(t)) && r.list.some(t => /Nodo 173 fuori/.test(t));
     await p.evaluate(() => [...document.querySelectorAll('#schSusp button')].find(x => /Nodo 173 fuori/.test(x.textContent)).click()); await sleep(300);
-    await p.evaluate(() => document.getElementById('schAlign').click()); await sleep(300); r.align = await yOf('173');
-    r.alignOk = !!r.align && Math.abs(r.align[1] - 200) < 0.05;
+    const a0 = await yOf('173'); await p.evaluate(() => document.getElementById('schAlign').click()); await sleep(300); r.align = [a0, await yOf('173')];
+    r.alignOk = !!a0 && Math.abs(r.align[1][1] - a0[1] - 18) < 0.05;                 // (182 -> 200, on its strip)
     await p.evaluate(() => { document.getElementById('schUndo').click(); try { localStorage.removeItem('mtl-sinlinea-edit'); localStorage.removeItem('mtl-schema-edit'); } catch (e) {}
       document.getElementById('schEdit').click(); document.getElementById('dpClose').click(); });
     r.ok = r.labels[0] > 50 && r.labels[0] === r.labels[1] && r.labels[2] && r.near >= 6 && r.cycleOk && r.keysOk && r.sepOk && r.listOk && r.alignOk;

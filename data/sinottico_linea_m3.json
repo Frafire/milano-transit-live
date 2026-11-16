@@ -6857,5 +6857,14 @@
    "y": 218.0,
    "kind": "m2"
   }
- ]
+ ],
+ "strips": {
+  "cuts": [
+   959,
+   2027
+  ],
+  "h": 190,
+  "lead": 30,
+  "_about": "tagli del disegno in tre strisce (tools/sinottico.py strisce): solo binari di corsa, niente scambi né banchine"
+ }
 }

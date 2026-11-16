@@ -326,14 +326,56 @@ def linea(m3='m3.json'):
                      'dove il raccordo non è più della linea. Si corregge nell\'editor dei binari (Sinottico, Linea) e si esporta.',
            'edges': edges, 'nodes': {str(n): pos[n] for n in sorted(pos)}, 'via': {}, 'part': part, 'fmap': fmap,
            'signals': sig, 'places': [], 'labels': labels, 'platforms': platforms, 'badges': badges}
+    out['strips'] = strisce(out, E)
     OUT = os.path.join(ROOT, 'data', 'sinottico_linea_m3.json')
     json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1)
     print('sinottico della linea: %d tratte (%d verso il deposito, a metà), %d nodi, %d segnali, %d stazioni, %d loghi M2, largo %d px (la linea %d m)'
           % (len(edges), len(back), len(pos), len(sig), len(labels), len(badges), X0, TOT))
 
 
+def strisce(S, E, n=3, h=190, lead=30):
+    """the line on n strips one under the other (Giovanni 16 Nov 2026: all the line on one screen): the cuts where only the two
+    main tracks pass (no switch or node within 20 px, no platform within 12 px, no M2 logo), as near as can be to strips
+    of the same width. Only where the drawing is cut: the nodes keep their places (the web page moves each strip)"""
+    N, V = S['nodes'], S.get('via') or {}
+    xs = [v[0] for v in N.values()]; X0, X1 = min(xs), max(xs)
+    bad = [(p['x0'] - 12, p['x1'] + 12) for p in S.get('platforms', [])] + [(v[0] - 20, v[0] + 20) for v in N.values()] + \
+          [(b['x'] - 20, b['x'] + 20) for b in S.get('badges', [])]
+    polys = []
+    for ei in S['edges']:
+        a, b = str(E[ei]['a']), str(E[ei]['b'])
+        if a in N and b in N: polys.append([q[0] for q in [N[a]] + list(V.get(str(ei)) or []) + [N[b]]])
+    free = [x for x in range(int(X0) + 50, int(X1) - 50) if not any(a <= x <= b for a, b in bad)
+            and sum(1 for P in polys if min(P) < x < max(P)) == 2]
+    best = None
+    import itertools
+    for cs in itertools.combinations(free[::2], n - 1):
+        if any(cs[i + 1] - cs[i] < 200 for i in range(len(cs) - 1)): continue
+        w = [cs[0] - X0] + [cs[i + 1] - cs[i] for i in range(len(cs) - 1)] + [X1 - cs[-1]]
+        if best is None or max(w) < best[0]: best = (max(w), list(cs), w)
+    if not best: return None
+    # (each cut in the middle of its free stretch, as far as can be from the switches and the platforms: Sondrio)
+    fs = set(free); cs = []
+    for c in best[1]:
+        lo, hi = c, c
+        while lo - 1 in fs: lo -= 1
+        while hi + 1 in fs: hi += 1
+        cs.append((lo + hi) // 2)
+    w = [cs[0] - X0] + [cs[i + 1] - cs[i] for i in range(len(cs) - 1)] + [X1 - cs[-1]]
+    if max(w) <= best[0] * 1.03: best = (max(w), cs, w)
+    print('strisce: tagli a x %s, larghe %s px' % (best[1], [round(v) for v in best[2]]))
+    return {'cuts': best[1], 'h': h, 'lead': lead, '_about': 'tagli del disegno in tre strisce (tools/sinottico.py strisce): solo binari di corsa, niente scambi né banchine'}
+
+
+def strisce_file(m3='m3.json'):
+    """only the strips, on the file as it is (with the nodes moved by hand in the editor)"""
+    _, net = load(m3); F = os.path.join(ROOT, 'data', 'sinottico_linea_m3.json'); S = json.load(open(F))
+    S['strips'] = strisce(S, net['edges']); json.dump(S, open(F, 'w'), ensure_ascii=False, indent=1)
+
+
 if __name__ == '__main__':
     what = sys.argv[1] if len(sys.argv) > 1 else ''
     if what == 'deposito': deposito()
     elif what == 'linea': linea()
+    elif what == 'strisce': strisce_file()
     else: print(__doc__)
