@@ -4122,7 +4122,10 @@ window.MTL_CAPS = __CAPS__;
     // (names too close to the one before on the same strip go one line higher: Turati, Montenapoleone, Duomo; Corvetto…)
     const LBS = (SCH.labels || []).map(lb0 => { const [lx, ly] = T([lb0.x, lb0.y]); return { x: lx, y: ly, text: lb0.text, s: sinSi(ST, lb0.x) }; }).sort((u, v) => u.s - v.s || u.x - v.x);
     const LW = SIN_WHICH === 'line' ? 4.4 : 3.6;
-    LBS.forEach((lb, i) => { const pv = LBS[i - 1]; if (pv && pv.s === lb.s && lb.x - pv.x < (pv.text.length + lb.text.length) * LW + 6 && pv.y === lb.y) lb.y -= 13; });
+    { const y0 = Math.max(...LBS.map(l => l.y - (ST ? ST.dy[l.s] : 0))), placed = [];          // (on as many lines as it takes)
+      for (const lb of LBS) { const base = y0 + (ST ? ST.dy[lb.s] : 0); let lv = 0;
+        while (placed.some(q => q.s === lb.s && q.lv === lv && Math.abs(lb.x - q.x) < (q.text.length + lb.text.length) * LW + 6) && lv < 4) lv++;
+        lb.y = base - 13 * lv; lb.lv = lv; placed.push(lb); } }
     for (const lb of LBS) { marks += `<text class="lab" x="${lb.x}" y="${lb.y}">${lb.text}</text>`; grow([lb.x - 30, lb.y - 14]); grow([lb.x + 30, lb.y + 4]); }
     // where the line goes on: at the end of a strip and at the start of the next one
     if (ST) ST.c.forEach((c, k) => { const ya = sinT(ST, [c, 218], k), yb = sinT(ST, [c, 218], k + 1);

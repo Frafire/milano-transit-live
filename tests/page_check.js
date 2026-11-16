@@ -694,7 +694,7 @@ const SCENARIOS = {
         const parts = ei => [...document.querySelectorAll(`#depotPlan path.tk[data-e="${ei}"]`)].reduce((n, x) => n + (x.getAttribute('d').match(/M/g) || []).length, 0);
         line.strips = { cuts: cuts.length, fit: body.scrollWidth <= body.clientWidth + 1, cross: cross.length, both: cross.every(ei => parts(ei) >= 2), cont: document.querySelectorAll('#depotPlan g.cont text').length,
           inside: [...document.querySelectorAll('#depotPlan path.tk, #depotPlan rect.plat')].every(x => { const b = x.getBBox(); return b.x >= vb.x - 1 && b.x + b.width <= vb.x + vb.width + 1; }), w: Math.round(vb.width), h: Math.round(vb.height) };
-        line.stripsOk = cuts.length === 2 && line.strips.fit && line.strips.cross === 2 * cuts.length && line.strips.both && line.strips.cont === 2 * cuts.length && line.strips.inside && vb.width < 1300; }
+        line.stripsOk = cuts.length === 2 && line.strips.fit && line.strips.cross === 2 * cuts.length && line.strips.both && line.strips.cont === 2 * cuts.length && line.strips.inside && vb.width < (Math.max(...Object.values(NN).map(q => q[0])) - Math.min(...Object.values(NN).map(q => q[0]))) / 2; }
       document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); await sleep(500);
       document.getElementById('dpClose').click(); await sleep(200);
       const back = document.getElementById('depotPlan').hidden;
@@ -702,39 +702,46 @@ const SCENARIOS = {
     });
   },
   async sineditor(p) {   // the sinottico editor (Giovanni 16 Nov 2026): numbers, a repeated click between two nodes on top of each
-    // other, arrows, undo and redo, separate, align to the row, the list of what to look at; nothing left in the browser
+    // other, arrows, undo and redo, separate, align to the row, the list of what to look at; nothing left in the browser.
+    // Two nodes on top of each other: the first pair in the list (the depot has some), then the line for the rows
     const sleep = ms => new Promise(r => setTimeout(r, ms)), r = {};
-    await p.evaluate(() => { document.querySelector('.drawer .tab[data-mode="schema"]').click(); const w = document.getElementById('schWhich'); w.value = 'line'; w.dispatchEvent(new Event('change'));
-      document.getElementById('schEdit').click(); for (let i = 0; i < 4; i++) document.getElementById('dpIn').click(); });
-    await sleep(1500);
+    const which = async w => { await p.evaluate(w => { const s = document.getElementById('schWhich'); s.value = w; s.dispatchEvent(new Event('change')); }, w); await sleep(1500); };
+    await p.evaluate(() => { document.querySelector('.drawer .tab[data-mode="schema"]').click(); document.getElementById('schEdit').click(); });
+    await which('dep'); await p.evaluate(() => { for (let i = 0; i < 4; i++) document.getElementById('dpIn').click(); }); await sleep(1200);
     const yOf = n => p.evaluate(n => { const e = document.querySelector(`#depotPlan rect.nd[data-nd="${n}"]`); return e ? [+e.getAttribute('x') + 3.5, +e.getAttribute('y') + 3.5] : null; }, n);
     const sel = () => p.evaluate(() => document.getElementById('schSel').textContent);
+    const list = () => p.evaluate(() => { document.getElementById('schSuspBox').open = true; return [...document.querySelectorAll('#schSusp button')].map(x => x.textContent); });
     r.labels = await p.evaluate(() => [document.querySelectorAll('#depotPlan rect.nd').length, document.querySelectorAll('#depotPlan text.ndn').length, document.querySelector('#depotPlan svg').classList.contains('zhi')]);
     r.near = await p.evaluate(() => document.querySelectorAll('#depotPlan .ndg.near').length);
+    const L1 = await list(), pr = L1.map(t => t.match(/^Nodi (\d+) e (\d+) vicini: ([\d,]+) px/)).find(m => m && parseFloat(m[3].replace(',', '.')) < 1);
+    r.pair = pr ? [pr[1], pr[2]] : null;
     const click = async n => { const box = await p.evaluate(n => { const e = document.querySelector(`#depotPlan rect.nd[data-nd="${n}"]`); e.scrollIntoView({ block: 'center', inline: 'center' }); const b = e.getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, n);
       await p.mouse.click(box[0], box[1]); await sleep(300); };
-    await click('116'); const s1 = await sel(); await click('116'); const s2 = await sel();
-    r.cycle = [s1, s2]; const one = (s1.match(/nodo (\d+)/) || [])[1], two = (s2.match(/nodo (\d+)/) || [])[1];
-    r.cycleOk = !!one && !!two && one !== two && ['116', '141'].includes(one) && ['116', '141'].includes(two);
+    let two = null;
+    if (r.pair) { await click(r.pair[0]); const s1 = await sel(); await click(r.pair[0]); const s2 = await sel();
+      r.cycle = [s1, s2]; const one = (s1.match(/nodo (\d+)/) || [])[1]; two = (s2.match(/nodo (\d+)/) || [])[1];
+      r.cycleOk = !!one && !!two && one !== two && r.pair.includes(one) && r.pair.includes(two); }
     const p0 = await yOf(two); await p.keyboard.press('ArrowRight'); await sleep(300); const p1 = await yOf(two);
     await p.keyboard.press('Shift+ArrowDown'); await sleep(300); const p2 = await yOf(two);
     await p.keyboard.press('Control+z'); await sleep(300); const p3 = await yOf(two); await p.keyboard.press('Control+y'); await sleep(300); const p4 = await yOf(two);
     await p.keyboard.press('Control+z'); await p.keyboard.press('Control+z'); await sleep(300); const p5 = await yOf(two);
-    r.keys = [p0, p1, p2, p3, p4, p5];
-    const eq = (u, v) => Math.abs(u - v) < 0.05;
-    r.keysOk = eq(p1[0] - p0[0], 1) && eq(p2[1] - p1[1], 10) && eq(p3[1], p1[1]) && eq(p4[1], p2[1]) && eq(p5[0], p0[0]) && eq(p5[1], p0[1]);
+    r.keys = [p0, p1, p2, p3, p4, p5]; const eq = (u, v) => Math.abs(u - v) < 0.05;
+    r.keysOk = !!p0 && eq(p1[0] - p0[0], 1) && eq(p2[1] - p1[1], 10) && eq(p3[1], p1[1]) && eq(p4[1], p2[1]) && eq(p5[0], p0[0]) && eq(p5[1], p0[1]);
     await p.evaluate(() => { document.getElementById('schSepD').value = 20; document.getElementById('schSep').click(); }); await sleep(300);
-    const a = await yOf('116'), b = await yOf('141'); r.sep = [a, b]; r.sepOk = Math.abs(Math.abs(a[0] - b[0]) - 20) < 0.6 && Math.abs(a[1] - b[1]) < 0.05;
+    const a = await yOf(r.pair[0]), b = await yOf(r.pair[1]); r.sep = [a, b]; r.sepOk = Math.abs(Math.abs(a[0] - b[0]) - 20) < 0.6 && Math.abs(a[1] - b[1]) < 0.05;
     await p.evaluate(() => document.getElementById('schU').click()); await sleep(300);
-    r.list = await p.evaluate(() => { document.getElementById('schSuspBox').open = true; return [...document.querySelectorAll('#schSusp button')].map(x => x.textContent); });
-    r.listOk = r.list.some(t => /Nodi 1(16|41) e 1(16|41)/.test(t)) && r.list.some(t => /Tratto .* corto/.test(t)) && r.list.some(t => /Nodo 173 fuori/.test(t));
-    await p.evaluate(() => [...document.querySelectorAll('#schSusp button')].find(x => /Nodo 173 fuori/.test(x.textContent)).click()); await sleep(300);
-    const a0 = await yOf('173'); await p.evaluate(() => document.getElementById('schAlign').click()); await sleep(300); r.align = [a0, await yOf('173')];
-    r.alignOk = !!a0 && Math.abs(r.align[1][1] - a0[1] - 18) < 0.05;                 // (182 -> 200, on its strip)
+    r.listOk = L1.some(t => /^Nodi \d+ e \d+ vicini/.test(t)) && L1.some(t => /^Tratto .* corto/.test(t));
+    await p.evaluate(() => { document.getElementById('schUndo').click(); }); await sleep(300);
+    // the line: a node off the main rows to the nearest one
+    await which('line'); const L2 = await list(), off = L2.map(t => t.match(/^Nodo (\d+) fuori dalle righe principali \([^)]*\): y ([\d,]+)/)).find(m => m && Math.abs(parseFloat(m[2].replace(',', '.')) - 182) < 0.5);
+    r.off = off ? off[1] : null;
+    if (off) { await p.evaluate(n => [...document.querySelectorAll('#schSusp button')].find(x => x.dataset.sel === n).click(), off[1]); await sleep(300);
+      const a0 = await yOf(off[1]); await p.evaluate(() => document.getElementById('schAlign').click()); await sleep(300); r.align = [a0, await yOf(off[1])];
+      r.alignOk = !!a0 && Math.abs(r.align[1][1] - a0[1] - 18) < 0.05; }                  // (182 -> 200, on its strip)
     await p.evaluate(() => { document.getElementById('schUndo').click(); try { localStorage.removeItem('mtl-sinlinea-edit'); localStorage.removeItem('mtl-schema-edit'); } catch (e) {}
       document.getElementById('schEdit').click(); document.getElementById('dpClose').click(); });
-    r.ok = r.labels[0] > 50 && r.labels[0] === r.labels[1] && r.labels[2] && r.near >= 6 && r.cycleOk && r.keysOk && r.sepOk && r.listOk && r.alignOk;
-    if (r.ok) delete r.list; return r;
+    r.ok = r.labels[0] > 50 && r.labels[0] === r.labels[1] && r.labels[2] && r.near >= 2 && !!r.pair && r.cycleOk && r.keysOk && r.sepOk && r.listOk && r.alignOk;
+    return r;
   },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again
     return p.evaluate(async () => {

@@ -228,9 +228,12 @@ def linea(m3='m3.json'):
     sS = [where_xy(*at_d(SS, x)[1:])[1] for x in DG['S']['stops']]
     TRAIN = 2 * d.get('half', 52.5) if isinstance(d.get('half'), (int, float)) else 105.0
     plats = []
+    # (Giovanni 16 Nov 2026: "le banchine nel disegno non sono allineate una sopra l'altra": both tracks' platforms of a
+    # station side by side, where the northbound train stands; the stops of the southbound side are not where its
+    # platform is drawn)
     for i, nm in enumerate(names):
-        s_n = sN[i]; s_s = min(sS, key=lambda x: abs(x - s_n))
-        plats.append((nm, (s_n - TRAIN, s_n), (s_s, s_s + TRAIN)))
+        s_n = sN[i]
+        plats.append((nm, (s_n - TRAIN, s_n), (s_n - TRAIN, s_n)))
     first_st, last_st = min(min(p[1][0], p[2][0]) for p in plats), max(max(p[1][1], p[2][1]) for p in plats)
     sw_s = sorted(W[n][1] for n in deg if deg[n] >= 3)
     sig = add_dirs(net, find_signals(net, edges, polys))
@@ -239,19 +242,21 @@ def linea(m3='m3.json'):
         for j in range(1, len(P)): C.append(C[-1] + math.dist(P[j - 1], P[j]))
         u = sg['f'] * C[-1]; j = next((i for i in range(1, len(P)) if C[i] >= u), len(P) - 1); q = (u - C[j - 1]) / ((C[j] - C[j - 1]) or 1)
         return where_xy(P[j - 1][0] + (P[j][0] - P[j - 1][0]) * q, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * q)[1]
-    ZONE = 55.0
+    # (Giovanni 16 Nov 2026: "piccole le zone dove non ci sono punti critici, più grandi e più dettagliate le zone con i
+    # punti critici": the switches drawn bigger, the plain track between stations smaller)
+    ZONE = 70.0
     knots = sorted({0.0, TOT, *[sig_s(sg) for sg in sig], *[x for s_ in sw_s for x in (s_ - ZONE, s_, s_ + ZONE)],
                     *[x for p in plats for x in (*p[1], *p[2])]})
     K = [knots[0]]
     for x in knots[1:]:
         if x - K[-1] > 3: K.append(x)
     # px for each stretch between two knots
-    PX_ZONE, PX_PLAT = 0.6, 26.0 / TRAIN
+    PX_ZONE, PX_PLAT = 0.9, 26.0 / TRAIN
     def width(a, b):
         L = b - a; m = (a + b) / 2
         if any(abs(m - x) <= ZONE for x in sw_s) or m < first_st - 5 or m > last_st + 5: return max(4.0, L * PX_ZONE)
         if any(p[1][0] - 1 <= m <= p[1][1] + 1 or p[2][0] - 1 <= m <= p[2][1] + 1 for p in plats): return L * PX_PLAT
-        return 4.0 + 8.0 * min(1.0, L / 450.0)
+        return 3.0 + 5.0 * min(1.0, L / 450.0)
     XK = [0.0]
     for i in range(1, len(K)): XK.append(XK[-1] + width(K[i - 1], K[i]))
     X0 = XK[-1] + 30                                      # (Comasina on the left: x grows from Comasina)
@@ -287,6 +292,40 @@ def linea(m3='m3.json'):
         px, py = pos[near]; dfar = where(far); xf = X(dfar[1]) if abs(X(dfar[1]) - px) > 20 else px + 40
         pos[far] = [round(xf, 1), py + 2 * ROW if py >= YS - 1 else py - 2 * ROW if py <= YN + 1 else py + 2 * ROW]
         part[str(i)] = [0, 0.5] if e['a'] == near else [0.5, 1]; edges.append(i)
+    # the crossovers at 45 degrees ("un po' di ordine negli scambi"): the two switches of a crossover as far apart along
+    # the line as the rows are, about their middle (a scissors: both crossovers on the same middle)
+    for i in edges:
+        e = E[i]
+        if e.get('cat') != 'crossover' or str(i) in part: continue
+        pa, pb = pos.get(e['a']), pos.get(e['b'])
+        if not pa or not pb or abs(pa[1] - pb[1]) < 1: continue
+        dy = abs(pa[1] - pb[1]); sg = 1 if pb[0] >= pa[0] else -1; mid = (pa[0] + pb[0]) / 2
+        pa[0] = round(mid - sg * dy / 2, 1); pb[0] = round(mid + sg * dy / 2, 1)
+    # two tracks side by side drawn on the same row (San Donato: the tail and binario 3 towards the tails; the two tracks
+    # of the M2 link): one of them one row further out (in the middle, between the main tracks: one a little above, the
+    # other a little below). The one that moves: the higher numbers of the pairs on top of each other, and the nodes
+    # between them on that same track (touching two of them, or only them)
+    nbr = collections.defaultdict(set)
+    for i in edges:
+        nbr[E[i]['a']].add(E[i]['b']); nbr[E[i]['b']].add(E[i]['a'])
+    for _ in range(3):
+        pairs = [(a_, b_) for a_ in pos for b_ in pos if a_ < b_ and b_ not in nbr[a_] and abs(pos[a_][1] - pos[b_][1]) < 0.5
+                 and abs(pos[a_][1] - YN) > 0.5 and abs(pos[a_][1] - YS) > 0.5 and abs(pos[a_][0] - pos[b_][0]) < 10]
+        if not pairs: break
+        row = lambda n: [m for m in nbr[n] if abs(pos[m][1] - pos[n][1]) < 0.5]
+        for y0 in sorted({pos[a_][1] for a_, _ in pairs}):                       # (each row on its own)
+            A, B = {a_ for a_, b_ in pairs if pos[a_][1] == y0}, {b_ for a_, b_ in pairs if pos[a_][1] == y0}
+            grow_ = True
+            while grow_:
+                grow_ = False
+                for n in pos:
+                    if n in A or n in B or abs(pos[n][1] - y0) > 0.5 or not row(n): continue
+                    if all(m in B for m in row(n)) or sum(m in B for m in row(n)) >= 2: B.add(n); grow_ = True   # (on B's track)
+            if abs(y0 - (YN + YS) / 2) < 0.5:
+                for n in A: pos[n][1] = y0 - ROW / 2
+                for n in B: pos[n][1] = y0 + ROW / 2
+            else:
+                for n in B: pos[n][1] = y0 - ROW if y0 < YN else y0 + ROW
     # fmap: the pieces drawn level, metres -> drawing
     fmap = {}
     for i in edges:
