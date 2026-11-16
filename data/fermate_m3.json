@@ -1,6 +1,10 @@
 {
  "_about": "Correzioni alla posizione delle fermate dell'orario ATM (GTFS) della M3, in metri verso nord e verso est. Le usa tools/build_data.py (STOP_FIX) per la mappa, per dove si fermano i treni, le banchine e i segnali di partenza calcolati. I segnali piazzati da Giovanni non si spostano.",
  "stops": {
-  "CENTRALE FS": {"nord_m": 35.1, "est_m": 2.6, "_perche": "Giovanni 16/11/2026: la stazione è troppo indietro, deve uscire dalla curva ed essere sul rettilineo; i segnali fuori dalla stazione sono giusti. 35 m verso Comasina lungo il binario (direzione 4 gradi): la banchina comincia dove finisce la curva."}
+  "CENTRALE FS": {
+   "nord_m": 45.2,
+   "est_m": 3.3,
+   "_perche": "Giovanni 16/11/2026: la stazione è troppo indietro, deve uscire dalla curva ed essere sul rettilineo; i segnali fuori dalla stazione sono giusti. Prima 35 m, poi altri 10 (Giovanni, sera): 45 m verso Comasina lungo il binario (direzione 4 gradi)."
+  }
  }
 }

@@ -1577,7 +1577,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
     <div class="row"><select id="schWhich" aria-label="Quale sinottico"><option value="dep">Deposito</option><option value="line">Linea</option></select><button id="schEdit" aria-pressed="false">Modifica il disegno</button><button id="schExport">Esporta il file</button><button id="schUndo">Annulla le modifiche</button></div>
     <div class="row"><button id="schU" title="Ctrl+Z" disabled>Annulla</button><button id="schR" title="Ctrl+Y" disabled>Ripeti</button><button id="schGrid" aria-pressed="true">Griglia</button><button id="schGroup" aria-pressed="false" title="Trascinando un nodo, quelli a meno di 10 px vengono con lui">Unisci i nodi vicini</button></div>
     <div class="row"><button id="schAlign" title="Un nodo: sulla riga più vicina. Due o più: tutti allo stesso x del primo scelto">Allinea alla riga</button><button id="schSep" title="Mette i nodi scelti (o quelli vicini al nodo scelto) in fila, a questa distanza">Separa di</button><input id="schSepD" type="number" value="20" min="2" max="200" step="1" aria-label="Distanza in px"> px</div>
-    <div class="row"><button id="schPts" title="Le tratte dei nodi scelti: un punto in più a metà di ogni pezzo, da trascinare (doppio clic su un binario: un punto lì; Alt + clic su un punto: lo toglie)">Più punti</button></div>
+    <div class="row"><button id="schStr" title="Toglie le curve: le tratte dei nodi scelti (nessuno scelto: tutte) diventano dritte, in piano e poi a 45 gradi tra un nodo e l'altro. Ctrl+Z la annulla">Raddrizza</button> <button id="schPts" title="Le tratte dei nodi scelti: un punto in più a metà di ogni pezzo, da trascinare (doppio clic su un binario: un punto lì; Alt + clic su un punto: lo toglie)">Più punti</button></div>
     <p class="note" id="schSel">Nessun nodo scelto.</p>
     <details id="schSuspBox"><summary>Nodi sospetti: <span id="schSuspN">0</span></summary><div id="schSusp"></div></details>
     <p class="note" id="schNote"></p>
@@ -9304,7 +9304,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       for (const [ei, v] of Object.entries(V)) if (FULL[ei] && v) v.forEach((p0, i) => { const p = T(p0); marks += `<circle class="vp" data-e="${ei}" data-i="${i}" cx="${p[0]}" cy="${p[1]}" r="2.6"/>`; });
     }
     if (!isFinite(X0)) { X0 = Y0 = 0; X1 = Y1 = 100; }
-    const vb = [Math.floor(X0 - 24), Math.floor(Y0 - 26), Math.ceil(X1 - X0 + 48), Math.ceil(Y1 - Y0 + 44)];
+    // (room all round to move things by hand: 300 px on the left and above, Giovanni 16 Nov 2026 "a sinistra non ho spazio")
+    const PADL = SCH_EDIT.on ? 300 : 120, PADT = SCH_EDIT.on ? 200 : 26;
+    const vb = [Math.floor(X0 - PADL), Math.floor(Y0 - PADT), Math.ceil(X1 - X0 + PADL + 24 + (SCH_EDIT.on ? 300 : 0)), Math.ceil(Y1 - Y0 + PADT + 18 + (SCH_EDIT.on ? 200 : 0))];
     const sx = body.scrollLeft, sy = body.scrollTop;
     // (both fit the width at first, the whole line in view; + and − to go nearer: Giovanni 9 Nov 2026)
     // (the drawings made from zero, Giovanni 16 Nov 2026, "fai il piano più grande": drawn at their own size, 1.3 px a unit for
@@ -9385,6 +9387,13 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     schSetNodes(o); schNote(`Nodi ${g.join(', ')} in fila, ${D} px l'uno dall'altro.`); drawDepotPlan(); }
   // more points to shape by hand (Giovanni 16 Nov 2026: "la possibilità di aumentare i punti per modificare graficamente"):
   // every piece of the chosen nodes gets a point in the middle of each of its straight bits (its corners become points too)
+  // straight lines (Giovanni 16 Nov 2026: "mi ci vorrebbe uno strumento per fare le righe dritte"): the bends of the pieces
+  // of the chosen nodes taken away (no node chosen: of every piece), so each is drawn level then at 45 degrees
+  function schStraight() { const c = schCtx(); if (!c) return; const NE = c.F.engine.net.edges, sel = new Set(SCH_EDIT.sel.map(String)), all = !sel.size;
+    const ed = sinEd(), via = Object.assign({}, c.V); let n = 0;
+    for (const ei of c.SCH.edges) { const e = NE[ei]; if (!all && !sel.has(String(e.a)) && !sel.has(String(e.b))) continue; if (via[ei] && via[ei].length) n++; via[ei] = []; }
+    if (!n) { schNote(all ? 'Non ci sono curve da togliere.' : 'Le tratte dei nodi scelti sono già dritte.'); return; }
+    schPush(); ed.via = via; sinSave(); schNote(`${n} tratte raddrizzate${all ? ' (tutte)' : ''}. Ctrl+Z per tornare indietro.`); drawDepotPlan(); }
   function schPoints() { const c = schCtx(); if (!c || !SCH_EDIT.sel.length) { schNote('Scegli prima uno o più nodi: le loro tratte avranno più punti.'); return; }
     const NE = c.F.engine.net.edges, sel = new Set(SCH_EDIT.sel.map(String)), via = {};
     for (const ei of c.SCH.edges) { const e = NE[ei]; if (!sel.has(String(e.a)) && !sel.has(String(e.b))) continue;
@@ -9473,6 +9482,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   document.getElementById('schAlign').onclick = schAlign;
   document.getElementById('schSep').onclick = schSeparate;
   document.getElementById('schPts').onclick = schPoints;
+  document.getElementById('schStr').onclick = schStraight;
   document.getElementById('schExport').onclick = () => { const F = m3eng(); const SCH = F && sinSchema(F); if (!SCH) return;
     const out = Object.assign({}, SCH, { nodes: schNodes(SCH), via: schVia(SCH) });
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' })); a.download = SIN_FILE[SIN_WHICH]; a.click(); };
