@@ -42,6 +42,16 @@ print("stop_times loaded", file=sys.stderr)
 stops = {}
 for r in rd("stops.txt"):
     stops[r["stop_id"]] = (r["stop_name"], float(r["stop_lat"]), float(r["stop_lon"]))
+# corrections to where a stop is (STOP_FIX: data/fermate_m3.json, the M3 only; Giovanni 16 Nov 2026, Centrale FS out of
+# the curve): metres north and east, by stop name
+import os
+if os.environ.get("STOP_FIX"):
+    _fix = json.load(open(os.environ["STOP_FIX"])).get("stops", {})
+    for _k, (_nm, _la, _lo) in list(stops.items()):
+        _f = _fix.get(_nm.upper())
+        if _f:
+            stops[_k] = (_nm, _la + _f.get("nord_m", 0) / KY, _lo + _f.get("est_m", 0) / (111320 * math.cos(math.radians(_la))))
+            print("stop moved:", _nm, _f.get("nord_m", 0), "m north,", _f.get("est_m", 0), "m east", file=sys.stderr)
 
 used_shapes = {t[1] for t in trips.values()}
 shp = collections.defaultdict(list)

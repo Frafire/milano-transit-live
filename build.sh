@@ -12,7 +12,7 @@ find "$ROOT/data" -maxdepth 1 -type f -exec cp {} "$B"/ \;
 export PYTHONPATH="$ROOT/tools" GTFS
 cd "$B"
 echo "== timetable for service day $DAY"
-python3 "$ROOT/tools/build_data.py" "$GTFS" "$DAY" data.json
+STOP_FIX="$ROOT/data/fermate_m3.json" python3 "$ROOT/tools/build_data.py" "$GTFS" "$DAY" data.json
 gzip -9 -kf data.json
 echo "== M3";  LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log
 if [ -n "${ALL_LINES:-}" ]; then
@@ -51,7 +51,7 @@ for pair in "sat:$SAT_DAY" "sun:$SUN_DAY"; do
   n="${pair%%:*}"; d="${pair##*:}"; BD="$ROOT/build_$n"; mkdir -p "$BD"
   find "$ROOT/data" -maxdepth 1 -type f -exec cp {} "$BD"/ \;
   echo "== $n: timetable for service day $d"
-  (cd "$BD" && python3 "$ROOT/tools/build_data.py" "$GTFS" "$d" data.json > bd.log && gzip -9 -kf data.json && LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log && \
+  (cd "$BD" && STOP_FIX="$ROOT/data/fermate_m3.json" python3 "$ROOT/tools/build_data.py" "$GTFS" "$d" data.json > bd.log && gzip -9 -kf data.json && LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log && \
     grep -h "tail clashes\|not covered" m3.log && node "$ROOT/tools/precompute_live.js" > pre.log && python3 "$ROOT/tests/check_tails.py" && python3 "$ROOT/tests/check_depot.py" && \
     node "$ROOT/tests/day_agents_check.js" 5 24 && node "$ROOT/tests/timetable_check.js" && (node "$ROOT/tests/headway_check.js" || echo "WARNING ($n): trains closer than 2 minutes"))
 done
@@ -67,7 +67,7 @@ for nome in expo2015 milanocortina2026; do
     BD="$ROOT/build_storico/${nome}_$n"; mkdir -p "$BD"
     find "$ROOT/data" -maxdepth 1 -type f -exec cp {} "$BD"/ \;
     echo "== M3 $nome ($n): service day $d"
-    (cd "$BD" && python3 "$ROOT/tools/build_data.py" "$G" "$d" data.json > bd.log && gzip -9 -kf data.json && FLOTTA="${nome//[!0-9]/}" WASH_CACHE_DIR="$B" LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log && \
+    (cd "$BD" && STOP_FIX="$ROOT/data/fermate_m3.json" python3 "$ROOT/tools/build_data.py" "$G" "$d" data.json > bd.log && gzip -9 -kf data.json && FLOTTA="${nome//[!0-9]/}" WASH_CACHE_DIR="$B" LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log && \
       grep -h "real fleet\|tail clashes" m3.log && timeout 1800 node "$ROOT/tools/precompute_live.js" > pre.log && \
       { python3 "$ROOT/tests/check_tails.py" && python3 "$ROOT/tests/check_depot.py" && node "$ROOT/tests/day_agents_check.js" 5 24 && node "$ROOT/tests/timetable_check.js"; } > checks.log 2>&1 && echo "   checks ok") \
       || echo "WARNING (M3 $nome $n, not playable yet): see build_storico/${nome}_$n/checks.log"
