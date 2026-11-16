@@ -28,8 +28,8 @@ assert 'unpkg' not in t and 'src="engine.js"' not in t and 'src="agents.js"' not
 d = base64.b64encode(open('data.json.gz', 'rb').read()).decode()
 # M3 only for now (the page shows only M3); ALL_LINES=1 packs every line again
 fleets = [json.load(open(f)) for f in (('m1.json', 'm3.json', 'm4.json', 'b130.json', 'b64.json') if os.environ.get('ALL_LINES') else ('m3.json',))]
-m = base64.b64encode(gzip.compress(json.dumps({'fleets': fleets}, separators=(',', ':')).encode(), 9)).decode()
-live = base64.b64encode(gzip.compress(open('m3_live.json', 'rb').read(), 9)).decode() if os.path.exists('m3_live.json') else ''
+m = base64.b64encode(gzip.compress(json.dumps({'fleets': fleets}, separators=(',', ':')).encode(), 9, mtime=0)).decode()
+live = base64.b64encode(gzip.compress(open('m3_live.json', 'rb').read(), 9, mtime=0)).decode() if os.path.exists('m3_live.json') else ''
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 logo = os.path.join(web, 'img', 'm3_logo.png')        # the M3 mark on the train card (Giovanni's image)
 t = t.replace('__M3LOGO__', 'data:image/png;base64,' + base64.b64encode(open(logo, 'rb').read()).decode() if os.path.exists(logo) else '')
@@ -58,16 +58,16 @@ for suf, dn in (('6', 'build_sat'), ('7', 'build_sun')):
     bd = os.path.join(os.path.dirname(os.path.abspath('.')), dn)
     if all(os.path.exists(os.path.join(bd, f)) for f in ('data.json.gz', 'm3.json', 'm3_live.json')):
         d2 = base64.b64encode(open(os.path.join(bd, 'data.json.gz'), 'rb').read()).decode()
-        m2 = base64.b64encode(gzip.compress(json.dumps({'fleets': [json.load(open(os.path.join(bd, 'm3.json')))]}, separators=(',', ':')).encode(), 9)).decode()
-        l2 = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm3_live.json'), 'rb').read(), 9)).decode()
+        m2 = base64.b64encode(gzip.compress(json.dumps({'fleets': [json.load(open(os.path.join(bd, 'm3.json')))]}, separators=(',', ':')).encode(), 9, mtime=0)).decode()
+        l2 = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm3_live.json'), 'rb').read(), 9, mtime=0)).decode()
         write_pack('M3', suf, d2, m2, l2)
 # the historical timetables of the M3 (../build_storico/<nome>_<1|6|7>, build.sh): dati/m3_<nome>_<1|6|7>.js, loaded only
 # with gioca.html?orario=<nome> (not playable yet: the menu shows them "in arrivo")
 for bd in sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath('.')), 'build_storico', '*_[167]'))):
     if all(os.path.exists(os.path.join(bd, f)) for f in ('data.json.gz', 'm3.json', 'm3_live.json')):
         d2 = base64.b64encode(open(os.path.join(bd, 'data.json.gz'), 'rb').read()).decode()
-        m2 = base64.b64encode(gzip.compress(json.dumps({'fleets': [json.load(open(os.path.join(bd, 'm3.json')))]}, separators=(',', ':')).encode(), 9)).decode()
-        l2 = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm3_live.json'), 'rb').read(), 9)).decode()
+        m2 = base64.b64encode(gzip.compress(json.dumps({'fleets': [json.load(open(os.path.join(bd, 'm3.json')))]}, separators=(',', ':')).encode(), 9, mtime=0)).decode()
+        l2 = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm3_live.json'), 'rb').read(), 9, mtime=0)).decode()
         write_pack('M3', os.path.basename(bd), d2, m2, l2)
 # the other lines' data, each from its own file (tools/assemble_<line>.py): nothing of theirs in this file
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
