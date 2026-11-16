@@ -256,14 +256,18 @@ def linea(m3='m3.json'):
         L = b - a; m = (a + b) / 2
         if any(abs(m - x) <= ZONE for x in sw_s) or m < first_st - 5 or m > last_st + 5: return max(4.0, L * PX_ZONE)
         if any(p[1][0] - 1 <= m <= p[1][1] + 1 or p[2][0] - 1 <= m <= p[2][1] + 1 for p in plats): return L * PX_PLAT
-        return 3.0 + 5.0 * min(1.0, L / 450.0)
+        # (Giovanni 16 Nov 2026, later: "ha esagerato… crea più grandi i pezzi con poche cose": the stretch between two
+        # stations long enough to see it as a section, and its signals)
+        return 14.0 + 22.0 * min(1.0, L / 600.0)
     XK = [0.0]
     for i in range(1, len(K)): XK.append(XK[-1] + width(K[i - 1], K[i]))
     X0 = XK[-1] + 30                                      # (Comasina on the left: x grows from Comasina)
     def X(s_):
         s_ = max(K[0], min(K[-1], s_)); i = max(1, next((j for j in range(1, len(K)) if K[j] >= s_), len(K) - 1))
         u = (s_ - K[i - 1]) / ((K[i] - K[i - 1]) or 1); return round(X0 - (XK[i - 1] + (XK[i] - XK[i - 1]) * u), 1)
-    YN, YS, ROW = 200.0, 236.0, 18.0
+    # (three rows between the main tracks: the two tracks of the M2 link side by side between them, Giovanni 16 Nov
+    # 2026 "M2 è più stretto datti una riga in più"; a middle track, as at Brenta, on the first of them)
+    YN, YS, ROW = 200.0, 254.0, 18.0
     # which side of the northbound track the southbound one is (and the other way): a node of neither is between them
     # (the middle track of Brenta) or out beyond one of them (tails, sidings)
     def side_to(P, x, y):
@@ -283,7 +287,7 @@ def linea(m3='m3.json'):
         elif on(n, north_e): y = YN
         else:
             nx_, ny_ = NODES[str(n)][1] * KX, NODES[str(n)][0] * KY; a_ = side_to(S2, nx_, ny_) * refN; b_ = side_to(SS, nx_, ny_) * refS
-            y = (YN + YS) / 2 if a_ > 0.5 and b_ > 0.5 else YS + ROW if a_ > 0 else YN - ROW
+            y = YN + ROW if a_ > 0.5 and b_ > 0.5 else YS + ROW if a_ > 0 else YN - ROW
         pos[n] = [x, y]
     # the track back to the depot: its far node out below, half of it drawn
     part = {}
@@ -321,9 +325,8 @@ def linea(m3='m3.json'):
                 for n in pos:
                     if n in A or n in B or abs(pos[n][1] - y0) > 0.5 or not row(n): continue
                     if all(m in B for m in row(n)) or sum(m in B for m in row(n)) >= 2: B.add(n); grow_ = True   # (on B's track)
-            if abs(y0 - (YN + YS) / 2) < 0.5:
-                for n in A: pos[n][1] = y0 - ROW / 2
-                for n in B: pos[n][1] = y0 + ROW / 2
+            if YN < y0 < YS:
+                for n in B: pos[n][1] = y0 + ROW
             else:
                 for n in B: pos[n][1] = y0 - ROW if y0 < YN else y0 + ROW
     # fmap: the pieces drawn level, metres -> drawing
@@ -365,14 +368,14 @@ def linea(m3='m3.json'):
                      'dove il raccordo non è più della linea. Si corregge nell\'editor dei binari (Sinottico, Linea) e si esporta.',
            'edges': edges, 'nodes': {str(n): pos[n] for n in sorted(pos)}, 'via': {}, 'part': part, 'fmap': fmap,
            'signals': sig, 'places': [], 'labels': labels, 'platforms': platforms, 'badges': badges}
-    out['strips'] = strisce(out, E)
+    out['strips'] = strisce(out, E, 4)
     OUT = os.path.join(ROOT, 'data', 'sinottico_linea_m3.json')
     json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1)
     print('sinottico della linea: %d tratte (%d verso il deposito, a metà), %d nodi, %d segnali, %d stazioni, %d loghi M2, largo %d px (la linea %d m)'
           % (len(edges), len(back), len(pos), len(sig), len(labels), len(badges), X0, TOT))
 
 
-def strisce(S, E, n=3, h=190, lead=30):
+def strisce(S, E, n=4, h=210, lead=30):
     """the line on n strips one under the other (Giovanni 16 Nov 2026: all the line on one screen): the cuts where only the two
     main tracks pass (no switch or node within 20 px, no platform within 12 px, no M2 logo), as near as can be to strips
     of the same width. Only where the drawing is cut: the nodes keep their places (the web page moves each strip)"""
@@ -386,12 +389,14 @@ def strisce(S, E, n=3, h=190, lead=30):
         if a in N and b in N: polys.append([q[0] for q in [N[a]] + list(V.get(str(ei)) or []) + [N[b]]])
     free = [x for x in range(int(X0) + 50, int(X1) - 50) if not any(a <= x <= b for a, b in bad)
             and sum(1 for P in polys if min(P) < x < max(P)) == 2]
-    best = None
-    import itertools
-    for cs in itertools.combinations(free[::2], n - 1):
-        if any(cs[i + 1] - cs[i] < 200 for i in range(len(cs) - 1)): continue
-        w = [cs[0] - X0] + [cs[i + 1] - cs[i] for i in range(len(cs) - 1)] + [X1 - cs[-1]]
-        if best is None or max(w) < best[0]: best = (max(w), list(cs), w)
+    # (each cut at the free x nearest to where the strips would be equal; then in the middle of its free stretch)
+    best, cs = None, []
+    for k in range(1, n):
+        t = X0 + (X1 - X0) * k / n; ok = [x for x in free if not cs or x > cs[-1] + 200]
+        if not ok: break
+        cs.append(min(ok, key=lambda x: abs(x - t)))
+    if len(cs) == n - 1:
+        w = [cs[0] - X0] + [cs[i + 1] - cs[i] for i in range(len(cs) - 1)] + [X1 - cs[-1]]; best = (max(w), cs, w)
     if not best: return None
     # (each cut in the middle of its free stretch, as far as can be from the switches and the platforms: Sondrio)
     fs = set(free); cs = []

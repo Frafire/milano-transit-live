@@ -694,7 +694,7 @@ const SCENARIOS = {
         const parts = ei => [...document.querySelectorAll(`#depotPlan path.tk[data-e="${ei}"]`)].reduce((n, x) => n + (x.getAttribute('d').match(/M/g) || []).length, 0);
         line.strips = { cuts: cuts.length, fit: body.scrollWidth <= body.clientWidth + 1, cross: cross.length, both: cross.every(ei => parts(ei) >= 2), cont: document.querySelectorAll('#depotPlan g.cont text').length,
           inside: [...document.querySelectorAll('#depotPlan path.tk, #depotPlan rect.plat')].every(x => { const b = x.getBBox(); return b.x >= vb.x - 1 && b.x + b.width <= vb.x + vb.width + 1; }), w: Math.round(vb.width), h: Math.round(vb.height) };
-        line.stripsOk = cuts.length === 2 && line.strips.fit && line.strips.cross === 2 * cuts.length && line.strips.both && line.strips.cont === 2 * cuts.length && line.strips.inside && vb.width < (Math.max(...Object.values(NN).map(q => q[0])) - Math.min(...Object.values(NN).map(q => q[0]))) / 2; }
+        line.stripsOk = cuts.length >= 2 && line.strips.fit && line.strips.cross === 2 * cuts.length && line.strips.both && line.strips.cont === 2 * cuts.length && line.strips.inside && vb.width < (Math.max(...Object.values(NN).map(q => q[0])) - Math.min(...Object.values(NN).map(q => q[0]))) / 2; }
       document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); await sleep(500);
       document.getElementById('dpClose').click(); await sleep(200);
       const back = document.getElementById('depotPlan').hidden;

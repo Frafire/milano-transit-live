@@ -322,7 +322,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 #depotPlan { --sin-bg: #0b2a5b; --sin-hd: #08204a; --sin-tk: #93a3b8; position: fixed; inset: 3vh 3vw; z-index: 3000; background: var(--sin-bg); color: #e8eef6; border-radius: 10px; box-shadow: 0 8px 40px rgba(0,0,0,.6); display: flex; flex-direction: column; overflow: hidden; }
 #depotPlan[hidden] { display: none; }
 #depotPlan.line { --sin-bg: #a3a8d0; --sin-tk: #2f86dc; color: #1d2140; }
-#depotPlan.line .tk { stroke: #2f86dc; stroke-width: 2.6; } #depotPlan.line .tk.main { stroke: #36c93a; stroke-width: 3.2; } #depotPlan.line text { fill: #1d2140; } #depotPlan.line .lab { fill: #1d2140; }
+#depotPlan.line .tk { stroke: #2f86dc; stroke-width: 2.6; } #depotPlan.line .tk.main { stroke: #6b7080; stroke-width: 3.2; } #depotPlan.line text { fill: #1d2140; } #depotPlan.line .lab { fill: #1d2140; }
 #depotPlan.line .lit { stroke: #ffffff; stroke-width: 3.6; } #depotPlan.line .occ { stroke: #e8402a; } #depotPlan.line .sg { stroke: #1d2140; } #depotPlan.line .sgn { fill: #1d2140; }
 #depotPlan .dp-hd { color: #e8eef6; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; background: var(--sin-hd); border-bottom: 1px solid rgba(255,255,255,.12); font: 14px var(--display); } #depotPlan .dp-hd span { color: #a9bad0; font-size: 12px; flex: 1; min-width: 200px; }
 #depotPlan .dp-hd button { background: #e8eef6; color: #0b2a5b; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; font: 600 13px var(--display); } #depotPlan #dpIn, #depotPlan #dpOut { padding: 6px 10px; min-width: 32px; }
@@ -341,11 +341,12 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 #depotPlan .ndg.near .nd { fill: #ff7a59; } #depotPlan .ndg.sel .nd { fill: #3fd0ff; stroke: #fff; stroke-width: 1.5; }
 /* (editing: the editor's panel stays above the sinottico, beside it) */
 body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; }
+#depotPlan g.sgi[data-tag], #depotPlan circle.sg[data-tag] { cursor: pointer; } #depotPlan g.sgi[data-tag]:hover .sgc { stroke-width: 1.6; stroke: #ffcf3f; }
 #depotPlan .cont text { font: italic 600 10px system-ui, sans-serif; fill: #1d2b55; } #depotPlan .cont text.r { text-anchor: end; }
 #schSusp button { display: block; width: 100%; text-align: left; margin: 2px 0; font-size: 12px; } #schSepD { width: 58px; } #depotPlan .vp { fill: #7fe0ff; stroke: #0b2a5b; stroke-width: 1; cursor: move; } #depotPlan svg.edit .tk { cursor: copy; }
 #depotPlan .trn rect { fill: #8a8f99; stroke: #fff; stroke-width: .8; } #depotPlan .trn.late rect { fill: #e5383b; } #depotPlan .trn.early rect { fill: #2fa84f; }
 #depotPlan path.tk { stroke-linecap: butt; } #depotPlan path.tk.lit { stroke: #ffffff; stroke-width: 3.4; stroke-dasharray: none; } #depotPlan path.tk.occ { stroke: #ff3b3f; stroke-width: 4.2; stroke-dasharray: none; }
-#depotPlan.line path.tk { stroke: #36c93a; stroke-width: 3.2; } #depotPlan.line path.tk.lit { stroke: #ffffff; stroke-width: 3.6; } #depotPlan.line path.tk.occ { stroke: #e8402a; stroke-width: 4.2; }
+#depotPlan.line path.tk { stroke: #6b7080; stroke-width: 3.2; } #depotPlan.line path.tk.lit { stroke: #ffffff; stroke-width: 3.6; } #depotPlan.line path.tk.occ { stroke: #e8402a; stroke-width: 4.2; }
 #depotPlan .plat { fill: rgba(86,224,234,.22); stroke: #2bb7c4; stroke-width: 1.2; } #depotPlan .binno { font-size: 8px; font-weight: 700; fill: #1d2140; }
 #depotPlan .badge rect { fill: #5f9732; stroke: #fff; stroke-width: 1; } #depotPlan .badge text { fill: #fff; font-size: 10px; font-weight: 800; } #depotPlan .trn text { fill: #fff; font-size: 9px; font-weight: 700; } #depotPlan .trn { cursor: pointer; }
 .bdlabel { position: absolute; transform: translate(-50%, -26px); white-space: nowrap; font: 700 10px/1 var(--display); letter-spacing: .06em; color: #111; background: #ffb400; border-radius: 3px; padding: 2px 5px; box-shadow: 0 1px 4px rgba(0,0,0,.6); }
@@ -3927,7 +3928,7 @@ window.MTL_CAPS = __CAPS__;
   const sinSi = (ST, x) => ST ? ST.c.filter(c => x > c).length : 0;
   const sinT = (ST, p, s) => ST ? [p[0] - ST.off[s], p[1] + ST.dy[s]] : p;
   // back from the screen to the long drawing: the strip whose rows are nearest to y
-  const sinBack = (ST, p) => { if (!ST) return p; let s = 0; for (let i = 1; i < ST.dy.length; i++) if (Math.abs(p[1] - ST.dy[i] - 218) < Math.abs(p[1] - ST.dy[s] - 218)) s = i; return [p[0] + ST.off[s], p[1] - ST.dy[s]]; };
+  const sinBack = (ST, p) => { if (!ST) return p; let s = 0; for (let i = 1; i < ST.dy.length; i++) if (Math.abs(p[1] - ST.dy[i] - 227) < Math.abs(p[1] - ST.dy[s] - 227)) s = i; return [p[0] + ST.off[s], p[1] - ST.dy[s]]; };
   function octiSw(p, q, swA, swB) {
     const dx = q[0] - p[0], dy = q[1] - p[1], ax = Math.abs(dx), ay = Math.abs(dy), sx = Math.sign(dx) || 1;
     if (ay < 0.5 || ax < 0.5) return [p, q];
@@ -4106,12 +4107,12 @@ window.MTL_CAPS = __CAPS__;
       if (ill && !SIN_ILL) continue;
       const q0 = fd(sg.e, p0), q1 = fd(sg.e, p1), P_ = p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, g = x => (fd(sg.e, x) - q0) / ((q1 - q0) || 1);
       const m = T(alongPts(P_, g(sg.f)));
-      if (sg.d !== 1 && sg.d !== -1) { marks += `<circle class="sg" data-n="${sg.n}" cx="${m[0]}" cy="${m[1] - 4.5}" r="2.8" fill="${ASP[a] || '#e5383b'}"><title>${tag}</title></circle>${SIN_NUM ? `<text class="sgn" x="${m[0] + 4}" y="${m[1] - 7}">${sg.n}</text>` : ''}`; continue; }
+      if (sg.d !== 1 && sg.d !== -1) { marks += `<circle class="sg" data-n="${sg.n}" data-tag="${tag}" cx="${m[0]}" cy="${m[1] - 4.5}" r="2.8" fill="${ASP[a] || '#e5383b'}"><title>${tag}</title></circle>${SIN_NUM ? `<text class="sgn" x="${m[0] + 4}" y="${m[1] - 7}">${sg.n}</text>` : ''}`; continue; }
       const m1 = T(alongPts(P_, Math.max(0, g(sg.f) - 0.003))), m2 = T(alongPts(P_, Math.min(1, g(sg.f) + 0.003)));
       let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
       const K = SIN_WHICH === 'line' ? 1 : 0.8, nx = -ty, ny = tx, B = [m[0] + nx * 6.5 * K, m[1] + ny * 6.5 * K], ang = Math.atan2(-ty, -tx) * 180 / Math.PI;
       const lit = a === 'go' || a === 'sgo';
-      marks += `<g class="sgi${ill ? ' ill' : ''}${lit ? ' go' : ''}" transform="translate(${P1(B)}) rotate(${Math.round(ang)}) scale(${K})"><title>${tag}${ill ? ' (illegale)' : ''} · ${lit ? 'via libera' : 'rosso'}</title><path class="sgb" d="M0,-3.2V3.2M0,0H3"/><rect class="sgc" x="3" y="-3.4" width="13" height="6.8" rx="${ill ? 0 : 3.4}"/>` +
+      marks += `<g class="sgi${ill ? ' ill' : ''}${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(B)}) rotate(${Math.round(ang)}) scale(${K})"><title>${tag}${ill ? ' (illegale)' : ''} · ${lit ? 'via libera' : 'rosso'}</title><path class="sgb" d="M0,-3.2V3.2M0,0H3"/><rect class="sgc" x="3" y="-3.4" width="13" height="6.8" rx="${ill ? 0 : 3.4}"/>` +
         `<circle class="sg" data-n="${sg.n}" cx="6.6" cy="0" r="2.2" fill="#ff2a2a"/><circle class="sgw" cx="12.4" cy="0" r="2.2" fill="${lit ? '#ffffff' : '#3b3f46'}"/></g>` +
         (SIN_NUM ? `<text class="sgn" x="${B[0] + nx * 8 * K}" y="${B[1] + ny * 8 * K + 3}">${sg.n}</text>` : ''); }
     // the places by name (two places at the same point of the drawing, as the two of a rimessa track: one each side)
@@ -4128,7 +4129,7 @@ window.MTL_CAPS = __CAPS__;
         lb.y = base - 13 * lv; lb.lv = lv; placed.push(lb); } }
     for (const lb of LBS) { marks += `<text class="lab" x="${lb.x}" y="${lb.y}">${lb.text}</text>`; grow([lb.x - 30, lb.y - 14]); grow([lb.x + 30, lb.y + 4]); }
     // where the line goes on: at the end of a strip and at the start of the next one
-    if (ST) ST.c.forEach((c, k) => { const ya = sinT(ST, [c, 218], k), yb = sinT(ST, [c, 218], k + 1);
+    if (ST) ST.c.forEach((c, k) => { const ya = sinT(ST, [c, 227], k), yb = sinT(ST, [c, 227], k + 1);
       marks += `<g class="cont"><text x="${ya[0] + 6}" y="${ya[1] + 4}">continua ↓</text><text class="r" x="${yb[0] - 6}" y="${yb[1] + 4}">↓ continua</text></g>`;
       grow([ya[0] + 70, ya[1]]); grow([yb[0] - 70, yb[1]]); });
     if (SCH_EDIT.on) {
@@ -4149,6 +4150,8 @@ window.MTL_CAPS = __CAPS__;
     body.innerHTML = `<svg viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg" style="width:${wcss}"${SCH_EDIT.on ? ` class="edit${SIN_Z[SIN_WHICH] >= 2.4 ? ' zhi' : ''}"` : ''}><g>${base}</g><g>${over}</g>${marks}</svg>`;
     body.scrollLeft = sx; body.scrollTop = sy;
     body.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
+    // a signal: its card, on the map (Giovanni 16 Nov 2026: "i semafori devono essere cliccabili")
+    if (!SCH_EDIT.on) body.querySelectorAll('g.sgi[data-tag], circle.sg[data-tag]').forEach(g => g.onclick = ev => { ev.stopPropagation(); setView('map'); openSignal(g.dataset.tag); });
     if (SCH_EDIT.on) bindSchDrag(F, SCH);
   }
   // ---- the sinottico editor (Giovanni 16 Nov 2026: nodes almost on top of each other, pieces too short to drag, nodes off
@@ -4156,7 +4159,7 @@ window.MTL_CAPS = __CAPS__;
   // nor the build's data.
   // The rows: the line on rows 18 px apart from the north track (y 200; tools/sinottico.py), the main ones the two tracks
   // and the one between them; the depot on rows 11 px apart from y 40
-  const SIN_ROWS = { line: { y0: 200, dy: 18, main: [200, 218, 236] }, dep: { y0: 40, dy: 11, main: null } };
+  const SIN_ROWS = { line: { y0: 200, dy: 18, main: [200, 218, 236, 254] }, dep: { y0: 40, dy: 11, main: null } };
   const SIN_NEAR = 10;                                                     // px: nodes, and pieces, closer than this
   const schRowY = y => { const R = SIN_ROWS[SIN_WHICH]; return Math.round((y - R.y0) / R.dy) * R.dy + R.y0; };
   const schMainY = y => { const R = SIN_ROWS[SIN_WHICH]; return R.main ? R.main.reduce((b, r) => Math.abs(r - y) < Math.abs(b - y) ? r : b) : schRowY(y); };
