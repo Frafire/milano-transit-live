@@ -19,7 +19,7 @@ via = bends of a piece (px, in order from its node a to its node b); part = a pi
 from node a); signals = the piece each signal is on and how far along (0-1); places = the depot places by node; labels =
 names written in the drawing; platforms, badges, fmap: the line's.
 """
-import json, math, os, sys, collections, cmath
+import json, re, math, os, sys, collections, cmath
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 KX, KY = 111320 * math.cos(math.radians(45.43)), 111320
@@ -208,7 +208,15 @@ def linea(m3='m3.json'):
     deg = collections.Counter(n for i in edges for n in (E[i]['a'], E[i]['b']))
     names = DG['names']; stN = DG['N']['stops']; sN = [at_d(S2, x)[0] for x in stN]
     TRAIN = 2 * d['half'] if isinstance(d.get('half'), (int, float)) else 105.0
-    plats = [(nm, (sN[i] - TRAIN, sN[i])) for i, nm in enumerate(names)]
+    # the platforms as in the game (Giovanni 16 Nov 2026: "alcune banchine sono troppo lunghe riporta quelle del gioco"): the
+    # zones of the build (degraded.platforms: the stop, half a train and 5 m each side) on binario 2 (the path N) and on
+    # binario 1 (the path S), each where it is
+    ZN = {}
+    for a_, b_, i in DG['platforms'][str(pN)]: ZN.setdefault(i, (at_d(S2, a_)[0], at_d(S2, b_)[0]))
+    def s_of(P, dd): q = at_d(P, dd); return where_xy(q[1], q[2])[1]
+    ZS = {}
+    for a_, b_, i in DG['platforms'][str(pS)]: ZS.setdefault(i, tuple(sorted((s_of(SS, a_), s_of(SS, b_)))))
+    plats = [(nm, ZN[i]) for i, nm in enumerate(names) if i in ZN] + [(nm, ZS[i]) for i, nm in enumerate(names) if i in ZS]
     sw_s = sorted(W[n][1] for n in nearn if deg[n] >= 3)
     sig = add_dirs(net, find_signals(net, edges, polys))
     def sig_s(sg):
@@ -223,7 +231,7 @@ def linea(m3='m3.json'):
     ev = sorted(ev); K = [ev[0]]
     for x in ev[1:]:
         if x - K[-1] > 0.5: K.append(x)
-    MIN, PLAT, PXM, CAP, ZONE = 34.0, 150.0, 0.3, 300.0, 70.0
+    MIN, PLAT, PXM, CAP, ZONE = 34.0, 105.0, 0.3, 300.0, 70.0      # (a platform: 1 px a metre)
     def width(a, b):
         L = b - a; m = (a + b) / 2
         for _, (p0, p1) in plats:
@@ -297,6 +305,27 @@ def linea(m3='m3.json'):
                 sx = 1 if X(W[n][1]) >= px else -1
                 pos[n] = [round(px + sx * max(60.0, min(240.0, e['len'] * PXM)), 1), py + out * 2 * ROW if py in (YN, YS) or py < YN or py > YS else py + 2 * ROW]
                 far.append(n); break
+    # a piece going from one row to another (a station's third track, a tail, a siding): at 45 degrees where it leaves the
+    # track it comes from (the end on binario 1 or 2, or its node a), then level (Giovanni 16 Nov 2026: binario 3 of San
+    # Donato runs beside binario 2 along the platform)
+    via = {}
+    for i in edges:
+        e = E[i]
+        if e.get('cat') == 'crossover': continue
+        pa, pb = pos.get(e['a']), pos.get(e['b'])
+        if not pa or not pb: continue
+        dy = abs(pa[1] - pb[1]); dx = abs(pa[0] - pb[0])
+        if dy < 1 or dx < dy + 8: continue
+        main_ = lambda q: abs(q[1] - YN) < 0.5 or abs(q[1] - YS) < 0.5
+        A_, B_ = (pb, pa) if main_(pb) and not main_(pa) else (pa, pb)          # (A_: where it leaves the track)
+        sx = 1 if B_[0] > A_[0] else -1; turn = [round(A_[0] + sx * dy, 1), B_[1]]
+        via[str(i)] = [turn] if A_ is pa else [turn]
+    def drawn_x(ei, f):
+        e = E[ei]; pa, pb = pos[e['a']], pos[e['b']]; pts = [pa] + via.get(str(ei), []) + [pb]
+        L = [math.dist(pts[k - 1], pts[k]) for k in range(1, len(pts))]; x_ = f * sum(L)
+        for k, l in enumerate(L):
+            if x_ <= l or k == len(L) - 1: u = x_ / l if l else 0; return (pts[k][0] + (pts[k + 1][0] - pts[k][0]) * u, pts[k][1] + (pts[k + 1][1] - pts[k][1]) * u)
+            x_ -= l
     # fmap: the pieces drawn level, metres -> drawing
     fmap = {}
     for i in edges:
@@ -320,18 +349,80 @@ def linea(m3='m3.json'):
     nice = lambda nm: {'DUOMO M3': 'Duomo'}.get(nm, ' '.join(w if w in ('FS', 'FN', 'T.I.B.B.') else w.capitalize() for w in nm.split()))
     labels, platforms = [], []
     top = min(v[1] for v in pos.values())
+    # the tracks by name: the places of the itineraries (data/itineraries_m3.json: "banchina Sondrio binario 1", "Comasina
+    # tronchetto 1 posizione 2"...); the pieces without one by what they are
+    IT = json.load(open(os.path.join(ROOT, 'data', 'itineraries_m3.json')))['itineraries']
+    NM = {}
+    for x in IT:
+        if not x['edges']: continue
+        for nm_, ei in ((x['to'], x['edges'][-1][0]), (x['frm'], x['edges'][0][0])):
+            nm_ = re.sub(r' posizione \d+$', '', nm_)
+            if ei in set(edges) and (ei not in NM or len(nm_) > len(NM[ei]) and 'lato' not in nm_): NM[ei] = nm_
+    names_e = {}
+    for i in edges:
+        e = E[i]; nm_ = NM.get(i)
+        if not nm_: nm_ = 'binario 2' if i in north_e else 'binario 1' if i in south_e else {'crossover': 'comunicazione', 'link': 'raccordo M2', 'siding': 'binario di servizio'}.get(e.get('cat'), e.get('cat'))
+        names_e[str(i)] = nm_
+    # the tails (Giovanni: "segna i tronchetti sempre di grigio… con la scritta sopra in piccolo tronchetto 1 o tronchetto 2
+    # (comasina pos 1 - pos 2..)"): the pieces that end a train's run, their name, at Comasina their positions (where the
+    # itineraries to "posizione 1, 2" end: the signals; the third up to the end)
+    tails = []
+    for i in edges:
+        nm_ = NM.get(i, '')
+        if not re.search(r'tronchett|tronchino|rimessa', nm_): continue
+        e = E[i]; pa, pb = pos.get(e['a']), pos.get(e['b'])
+        if not pa or not pb: continue
+        short = re.sub(r'^(San Donato|Comasina|Brenta|Centrale|Repubblica) ', '', nm_).replace(' di ricovero (A33)', '')
+        t = {'e': i, 'text': short, 'x': round((pa[0] + pb[0]) / 2, 1), 'y': min(pa[1], pb[1]) - 9, 'pos': []}
+        ends = sorted({sg_.get('n') for x in IT if x['edges'] and x['edges'][-1][0] == i and x.get('end_signal') for sg_ in [{'n': x['end_signal']}]})
+        if ends:
+            fs = sorted({sgx['f'] for sgx in sig if sgx['e'] == i and sgx['n'] in ends})
+            entry_a = any(x['edges'][-1][1] == e['a'] for x in IT if x['edges'] and x['edges'][-1][0] == i)
+            cuts = ([0.0] + fs + [1.0]) if entry_a else ([1.0] + fs[::-1] + [0.0])
+            for k in range(len(cuts) - 1):
+                f_ = (cuts[k] + cuts[k + 1]) / 2
+                t['pos'].append({'text': 'pos %d' % (k + 1), 'x': round(pa[0] + (pb[0] - pa[0]) * f_, 1), 'y': min(pa[1], pb[1]) - 9})
+        tails.append(t)
+    # the platforms: binari 1 and 2 at every station; at San Donato also binario 3 (the labels of the map: binari 1, 2, 3)
+    def on_edge(ei, la, lo, half_m):
+        P = polys[ei]; x_, y_ = lo * KX, la * KY; C = [0.0]
+        for j in range(1, len(P)): C.append(C[-1] + math.dist(P[j - 1], P[j]))
+        best = None
+        for j in range(1, len(P)):
+            ax, ay = P[j - 1]; bx, by = P[j]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy or 1; u = max(0, min(1, ((x_ - ax) * dx + (y_ - ay) * dy) / L2))
+            dd = math.hypot(x_ - ax - u * dx, y_ - ay - u * dy)
+            if best is None or dd < best[0]: best = (dd, C[j - 1] + u * (C[j] - C[j - 1]))
+        L = C[-1] or 1; return max(0, (best[1] - half_m) / L), min(1, (best[1] + half_m) / L)
+    SDE = {}
+    for nm_, ei in ((v, k) for k, v in NM.items()):
+        m_ = re.match(r'San Donato binario (\d)', nm_)
+        if m_: SDE[m_.group(1)] = ei
+    sd_done = False
     for nm, pn in plats:
         xa, xb = sorted((X(pn[0]), X(pn[1])))
-        platforms += [{'st': nice(nm), 'x0': xa, 'x1': xb, 'y': YN, 'bin': '2'}, {'st': nice(nm), 'x0': xa, 'x1': xb, 'y': YS, 'bin': '1'}]
-        labels.append({'text': nice(nm), 'x': round((xa + xb) / 2, 1), 'y': min(YN - 2 * ROW, top - ROW) - 6})
+        if nm == names[0] and SDE and d.get('labels'):
+            if sd_done: continue
+            sd_done = True
+            for lb in d['labels']:
+                ei = SDE.get(lb['t']); e = E[ei] if ei is not None else None
+                if not e or e['a'] not in pos or e['b'] not in pos: continue
+                f0, f1 = on_edge(ei, lb['la'], lb['lo'], TRAIN / 2 + 5); q0, q1 = drawn_x(ei, f0), drawn_x(ei, f1)
+                # (the three side by side, as they are: where the game's platform is on binario 2)
+                platforms.append({'st': nice(nm), 'x0': xa, 'x1': xb, 'y': q1[1], 'bin': lb['t']})
+            labels.append({'text': nice(nm), 'x': round((xa + xb) / 2, 1), 'y': min(YN - 2 * ROW, top - ROW) - 6})
+            continue
+        north = (nm, pn) in [(n_, z_) for n_, z_ in plats[:len(ZN)]]
+        platforms.append({'st': nice(nm), 'x0': xa, 'x1': xb, 'y': YN if north else YS, 'bin': '2' if north else '1'})
+        if north: labels.append({'text': nice(nm), 'x': round((xa + xb) / 2, 1), 'y': min(YN - 2 * ROW, top - ROW) - 6})
     out = {'_about': 'Sinottico della linea M3, rifatto da zero (tools/sinottico.py linea; Giovanni 16/11/2026): una riga sola da San '
                      'Donato a Comasina (Comasina a sinistra), tutte le tratte che non sono del deposito e tutti i loro segnali; non in '
                      'scala: tra due cose da vedere (nodo, segnale, fine banchina) almeno 34 px, scambi più grandi, banchina 150 px, '
                      'binario in piano 0,3 px al metro (al massimo 300 px). Binario 2 (verso Comasina) sopra, binario 1 (verso San '
                      'Donato) sotto, tre righe di 28 px in mezzo. nodes = dove sta ogni nodo (px), via = curve (si aggiungono '
                      'nell\'editor), fmap = dove cade ogni punto di una tratta in piano, platforms = le banchine, badges = il logo M2.',
-           'edges': edges, 'nodes': {str(n): pos[n] for n in sorted(pos)}, 'via': {}, 'part': {}, 'fmap': fmap,
-           'signals': sig, 'places': [], 'labels': labels, 'platforms': platforms, 'badges': badges, 'strips': None}
+           'edges': edges, 'nodes': {str(n): pos[n] for n in sorted(pos)}, 'via': via, 'part': {}, 'fmap': fmap,
+           'signals': sig, 'places': [], 'labels': labels, 'platforms': platforms, 'badges': badges, 'strips': None,
+           'tails': tails, 'names': names_e}
     OUT = os.path.join(ROOT, 'data', 'sinottico_linea_m3.json')
     json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1)
     print('sinottico della linea: %d tratte, %d nodi (%d fuori dalla linea), %d segnali, %d stazioni, %d loghi M2, una riga larga %d px (la linea %d m)'

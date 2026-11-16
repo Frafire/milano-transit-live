@@ -1035,6 +1035,9 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan .trn text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
 #depotPlan .cont text { fill: #cfd4d9; }
 #depotPlan .vp { stroke: #26292c; }
+#depotPlan path.tk.tail, #depotPlan.line path.tk.tail { stroke: #7a8188; }
+#depotPlan .tailn { font: 600 8.5px var(--display); fill: #c9ced3; } #depotPlan .posn { font: 600 7.5px var(--display); fill: #9aa1a8; }
+#depotPlan .trkn { font: 800 12px var(--display); fill: #ffe14a; paint-order: stroke; stroke: #000; stroke-width: 3px; pointer-events: none; }
 .bdlabel { position: absolute; transform: translate(-50%, -26px); white-space: nowrap; font: 700 10px/1 var(--display); letter-spacing: .06em; color: #111; background: #ffb400; border-radius: 3px; padding: 2px 5px; box-shadow: 0 1px 4px rgba(0,0,0,.6); }
 .viewsw { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 3100; display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--panel-solid); }
 .viewsw button { background: none; color: var(--fg); border: 0; padding: 6px 14px; font: 600 13px var(--display); cursor: pointer; } .viewsw button[aria-pressed="true"] { background: var(--signal); color: #111; }
@@ -9138,6 +9141,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   var PIANO_PH = false;          // (opened as Piano linea: the Deposito tab shows the placeholder)
   var SIN_GO = null;            // (the signals at via libera now, by number: the sections behind them are white)
   var SIN_ILL = false;          // (the illegal signals: hidden unless asked for; Giovanni 9 Nov 2026)
+  var SIN_NAMES = false;        // (the names of the tracks and the numbers of the pieces, big: Giovanni 16 Nov 2026)
   var SIN_NUM = false;          // (the signal numbers on the sinottico: off by default, they crowded it; Giovanni 3 Nov 2026)
   var SIN_Z = { dep: 1, line: 1 };   // the zoom of each sinottico (the − and + buttons)
   function drawDepotPlan() {
@@ -9147,9 +9151,10 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (!planEl.querySelector('.dp-hd')) {
       planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti gialli data a un treno · segnali: rosso, rosso e bianco via libera · treni: numero bianco in orario, verde in anticipo, rosso in ritardo (30 s)</span>` +
         `<div class="dp-sw"><button data-w="dep" aria-pressed="${SIN_WHICH === 'dep'}">Deposito</button><button data-w="line" aria-pressed="${SIN_WHICH === 'line'}">Linea</button></div>` +
-        `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><label class="dp-opt"><input type="checkbox" id="dpIll" ${SIN_ILL ? 'checked' : ''}> segnali illegali</label><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
+        `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><label class="dp-opt"><input type="checkbox" id="dpIll" ${SIN_ILL ? 'checked' : ''}> segnali illegali</label><label class="dp-opt"><input type="checkbox" id="dpNames" ${SIN_NAMES ? 'checked' : ''}> nomi dei binari</label><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
       document.getElementById('dpClose').onclick = () => setView('map');
       document.getElementById('dpNum').onchange = e => { SIN_NUM = e.target.checked; drawDepotPlan(); };
+      document.getElementById('dpNames').onchange = e => { SIN_NAMES = e.target.checked; drawDepotPlan(); };
       document.getElementById('dpIll').onchange = e => { SIN_ILL = e.target.checked; drawDepotPlan(); };
       document.getElementById('dpIn').onclick = () => { SIN_Z[SIN_WHICH] = Math.min(4, SIN_Z[SIN_WHICH] * 1.25); drawDepotPlan(); };
       document.getElementById('dpOut').onclick = () => { SIN_Z[SIN_WHICH] = Math.max(0.4, SIN_Z[SIN_WHICH] / 1.25); drawDepotPlan(); };
@@ -9215,7 +9220,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
             cur.push(sinT(ST, I, k)); out.push(cur); cur = [sinT(ST, I, k + dir)]; } s0 = s1; }
         cur.push(sinT(ST, B, s1)); }
       out.push(cur); return out.filter(q => q.length > 1); };
-    const FULL = {}, GAP = SIN_WHICH === 'line' ? 2.6 : 1.8;
+    const FULL = {}, GAP = SIN_WHICH === 'line' ? 2.6 : 1.8, TAILS = new Set((SCH.tails || []).map(t => t.e));
     const plen = P => { let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); return L; };
     for (const ei of SCH.edges) { const e = NE[ei], full = sinFull(N, V, e, ei); if (!full) continue; FULL[ei] = full;
       const [p0, p1] = sinPart(SCH, ei), q0 = fd(ei, p0), q1 = fd(ei, p1); let pts = p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full;
@@ -9225,7 +9230,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         return fromEnd ? [...P.slice(0, -1), C] : [C, ...P.slice(1)]; };
       if (cut(false)) pts = shorten(pts, false); if (cut(true)) pts = shorten(pts, true);
       sSplit(pts).forEach(q => q.forEach(grow));
-      const L = plen(pts) || 1, kind = NE[ei].cat === 'test' ? ' test' : NE[ei].cat === 'main' ? ' main' : '';
+      const L = plen(pts) || 1, kind = TAILS.has(ei) ? ' tail' : NE[ei].cat === 'test' ? ' test' : NE[ei].cat === 'main' ? ' main' : '';
       for (const [, f0, f1, sid, s0, s1] of SEC.byEdge[ei] || []) {
         if (f1 <= p0 + 1e-4 || f0 >= p1 - 1e-4) continue;
         let a = (fd(ei, Math.max(f0, p0)) - q0) / ((q1 - q0) || 1), b = (fd(ei, Math.min(f1, p1)) - q0) / ((q1 - q0) || 1);
@@ -9247,6 +9252,12 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       marks += `<rect class="plat" x="${pf.x0}" y="${pf.y - 5}" width="${Math.max(4, pf.x1 - pf.x0)}" height="10" rx="1.5"><title>${pf0.st} · binario ${pf0.bin}</title></rect>` +
       `<text class="binno" x="${(pf.x0 + pf.x1) / 2}" y="${pf.y - 7.5}">${({ 1: 'I', 2: 'II' })[pf0.bin] || pf0.bin}</text>`; grow([pf.x0, pf.y - 12]); grow([pf.x1, pf.y + 6]); }
     // where the track leaves the line for another (the M2 link): that line's logo
+    // the tails (Giovanni 16 Nov 2026): grey, their name small above, at Comasina their positions
+    for (const tl of SCH.tails || []) { const [x, y] = T([tl.x, tl.y]); marks += `<text class="tailn" x="${x}" y="${y}">${tl.text}</text>`;
+      for (const ps of tl.pos || []) { const [px, py] = T([ps.x, ps.y + 21]); marks += `<text class="posn" x="${px}" y="${py}">${ps.text}</text>`; } }
+    // the names of the tracks, big, with the number of the piece (to talk about them: "nomi dei binari")
+    if (SIN_NAMES && SCH.names) for (const ei of SCH.edges) { const full = FULL[ei], nm = SCH.names[ei]; if (!full || !nm) continue;
+      const m = T(alongPts(full, 0.5)); marks += `<text class="trkn" x="${m[0]}" y="${m[1] + 18}">${nm} · ${ei}</text>`; }
     for (const bd0 of SCH.badges || []) { const [bx, by] = T([bd0.x, bd0.y]), bd = Object.assign({}, bd0, { x: bx, y: by }); marks += `<g class="badge ${bd.kind || ''}"><rect x="${bd.x - 12}" y="${bd.y - 8}" width="24" height="16" rx="3.5"/><text x="${bd.x}" y="${bd.y + 4.2}">${bd.text}</text></g>`; grow([bd.x - 14, bd.y - 10]); grow([bd.x + 14, bd.y + 10]); }
     // the signals: as on the screens of the Posto Centrale (Giovanni 9 Nov 2026): beside the track, on the right of the
     // trains it is for, its foot at the signal, the head turned to the trains coming; the M3 heads have two lamps only:
