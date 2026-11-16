@@ -50,6 +50,7 @@
       radioEl.hidden = false;
       if (!radioMsgs.length) say('', tx('canale.aperto'), 'sys');
       drawRadioLog(); drawRadioCmds();
+      if (env.onRadio) env.onRadio(F, tr);          // (the Posto Centrale: the train's conversation in the Radio window)
     }
     document.getElementById('radioClose').onclick = () => { radioEl.hidden = true; showRoute(null, null); };
     // (no free text to the driver: Giovanni, 1 Nov 2026; the drivers' own calls stay)
@@ -172,6 +173,7 @@
     // the DCT on a station: takes its pending call, or is already on the line, or calls it
     function openStationRadio(F, X) {
       const c = conv(F, X); c.open = true; phoneEl.hidden = false; select(X);
+      if (env.onPhone) env.onPhone(F, X);          // (the Posto Centrale: the Telefono of the Radio window, on this station)
       if (c.line && stClosed(F, X)) c.line = false;          // (the station closed meanwhile: nobody there any more)
       if (c.line && osAway(F, X)) c.line = false;             // (a fire: the OS is having the station evacuated)
       if (c.pending && osAway(F, X)) { c.pending = false; c.line = false; sayPhone('', tx('stazione.telefono.nessuna_risposta'), 'err', X); drawPhone(); return; }
@@ -654,7 +656,7 @@
       const G = F.engine.G, ag = F.ag, em = { ag };
       ag.agents().forEach((a, k) => {
         const tr = F.trains[k], no = trainNo(F, tr), c = CALLS[k] = CALLS[k] || {};
-        const call = text => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + no, text, 'call'); };
+        const call = text => { if (env.onCall) env.onCall(F, tr); if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + no, text, 'call'); };
         // depot on manual: 2 minutes before moving (or on reaching a red depot signal) the driver asks for it, again after 1 minute
         const dq = depotAsk(F, k);
         if (dq && !dq.open) {
@@ -697,7 +699,7 @@
         if (c.p2 && (!a.red || !tr.alts[c.p2.ai] || tr.alts[c.p2.ai].plat !== 2)) c.p2 = null;
         if (c.vlimTo != null && !a.vlim) { const where = G.names[c.vlimTo]; c.vlimTo = null;
           if (!radioEl.hidden && radioTrain && radioTrain.tr === tr) say('T' + no, tx('treno.velocita.fine_limitazione', { treno: no, stazione: cap(where) }), 'dr'); }
-        if (a.late != null && a.late > 600 && (!c.late || em.ag.S.t - c.late > 900)) {
+        if (a.late != null && a.late > 600 && a.why !== 'tensione' && (!c.late || em.ag.S.t - c.late > 900)) {      // (without power: no call for the delay, Giovanni 16 Nov 2026)
           c.late = em.ag.S.t;
           call(tx('chiamata.ritardo', { treno: no, ritardo: Math.round(a.late / 60) }));
         }
@@ -736,7 +738,7 @@
         }
         if (!w.called && state.t - w.since >= w.wait) {
           w.called = true; dcoCalls.push({ t: state.t, train: trainNo(F, tr), sig: w.name });
-          if (radioEl.hidden) openRadio(F, tr);
+          if (env.onCall) env.onCall(F, tr); if (radioEl.hidden) openRadio(F, tr);
           radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000);
           say('T' + trainNo(F, tr), tx('chiamata.rosso.cinque_minuti', { treno: trainNo(F, tr), segnale: w.name }), 'call');
         }
@@ -754,7 +756,8 @@
     }
 
 
-    return { say, sayPhone, osIncoming, phonePending, phoneConv: X => CONV.get(X), drawPhoneCmds, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
+    return { say, sayPhone, osIncoming, phonePending, phoneConv: X => CONV.get(X), closeConv,
+             phoneList: () => [...CONV.values()].filter(c => c.open).map(c => ({ X: c.X, name: c.name, pending: !!c.pending, line: !!c.line })), drawPhoneCmds, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
              radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain };
   }
   const api = { create };

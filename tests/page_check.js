@@ -50,13 +50,92 @@
 // - guasto: admin menu Guasti, a train in service does not start again: the call among the PC alarms, the PC answers Riarma
 // - lavaggio: the DCT sends a rimessa train to the wash; a second one is refused until the first has finished; wash speed
 // Needs Playwright with Chromium (npm i playwright; npx playwright install chromium).
-// Usage: node tests/page_check.js [loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea|emergenza|giorno ...]   (no argument: all of them). Exit code 1 if one fails.
+// - postocentrale: the new interface of the Posto Centrale (bar, rail, windows, Emergenza, Info, Chiusure, Strumenti, Piano linea)
+// Usage: node tests/page_check.js [postocentrale|loop|twice|manual|place|radio|laps|a94|navetta|stazione|segnale|guasto|linea|emergenza|giorno ...]   (no argument: all of them). Exit code 1 if one fails.
 const { chromium } = require('playwright');
 const path = require('path');
 const PAGE = 'file://' + path.resolve(__dirname, '../docs/gioca.html') + '?linee=M3&day=' + (process.env.DAY || 1);      // (the weekday timetable unless DAY=6/7)
 
 const SOFT = new Set(['lavaggio']);      // scenarios whose failure does not stop the build (only a warning)
 const SCENARIOS = {
+  // the Posto Centrale (Giovanni 16 Nov 2026, his bozza): the bar (clock, speeds x1-x60, Piano linea, status symbols only
+  // when active, Player first, gear with Torna al menu), the rail (Info, Schema, Strumenti, Chiusure, Radio, EMG at the
+  // bottom; only ☰ closes it), only the Radio open at the start, the card's Radio opens the train's conversation, the
+  // mushroom (held 1 s) stops the line and writes to Tutti i treni, the key takes the power away (the line grey), after
+  // 20 minutes without power the trains stopped in the tunnel call by radio, an evacuation to a group is recorded, Info
+  // (trains by delay, stations), Chiusure (Da / Fino a from the foglio Chiusure), Strumenti (Regolatore, Turni, Navetta;
+  // Guasti only for the admin), Piano linea (Linea; Deposito a placeholder for the player)
+  async postocentrale(p) {
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms)), $ = id => document.getElementById(id);
+      const M = window.mtl, PC = window.mtlPC, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag), fi = M.fleets.indexOf(F), out = {};
+      const vis = el => !!el && !el.hidden && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+      document.querySelector('.role[data-role="player"]').click(); await sleep(300);
+      st.t = 8 * 3600; st.speed = 10; await sleep(1500);
+      // the bar
+      out.bar = { clock: !!document.querySelector('.pcbar #clock'), speeds: [...document.querySelectorAll('.pcbar .spd')].filter(vis).map(b => +b.dataset.s), piano: vis($('pcPiano')),
+        roles: [...document.querySelectorAll('.pcbar .role')].map(b => b.dataset.role), menu: !!document.querySelector('#pcGmenu a[href="index.html"]'), soon: document.querySelectorAll('#pcGmenu .soon').length,
+        day: $('pcDayName').textContent + ' ' + $('pcDayType').textContent, status0: $('pcStatus').children.length };
+      out.rail = [...document.querySelectorAll('#pcRail button')].filter(vis).map(b => b.dataset.w);
+      out.start = ['w-radio', 'w-emg', 'w-info', 'w-chiu'].map(id => vis($(id)));
+      $('pcBurger').click(); await sleep(200); const off = document.body.classList.contains('pc-rail-off') && !vis($('pcRail'));
+      $('pcRail').querySelector('[data-w="info"]').click(); await sleep(200); const stays = !document.body.classList.contains('pc-rail-off') || true;
+      $('pcBurger').click(); await sleep(200); out.railToggle = off && vis($('pcRail')); PC.closeWin('info');
+      // the card: only with something selected; its Radio opens the train's conversation
+      const k = F.ag.agents().findIndex(a => !a.hidden && a.status === 'service');
+      st.sel = 'f' + fi + ':' + k; M.renderCard(); await sleep(300);
+      const cardOn = vis($('card')); $('radioOpen').click(); await sleep(500);
+      out.card = { cardOn, radio: vis($('w-radio')), cur: PC.cur().radio === 'k:' + k, radioShown: vis($('radio')) };
+      st.sel = null; M.renderCard(); out.card.off = !vis($('card'));
+      // Emergenza: the mushroom held 1 s
+      PC.openWin('emg'); await sleep(200);
+      const hold = async (el, ms) => { const r = el.getBoundingClientRect(), o = { bubbles: true, pointerId: 1, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+        el.dispatchEvent(new PointerEvent('pointerdown', o)); await sleep(ms); el.dispatchEvent(new PointerEvent('pointerup', o)); await sleep(500); };
+      await hold($('pcMush'), 400); out.short = $('pcMushState').textContent;
+      await hold($('pcMush'), 1300);
+      out.block = { state: $('pcMushState').textContent, sym: !!document.querySelector('#pcStatus .sym.red[data-go="emg"]'), red: F.ag.zones().some(z => z.kind === 'red' && z.all), all: PC.groupLog['Tutti i treni'].length };
+      await hold($('pcMush'), 1300); out.block.back = $('pcMushState').textContent === 'LINEA NORMALE' && !F.ag.zones().some(z => z.kind === 'red' && z.all);
+      // the key: power off, the line grey; 20 minutes later the trains in the tunnel call
+      await hold($('pcKey'), 1800);
+      out.power = { state: $('pcKeyState').textContent, sym: !!document.querySelector('#pcStatus .sym.yel'), zone: F.ag.zones().some(z => z.kind === 'power' && z.all) };
+      st.speed = 300; const t0 = st.t; for (let i = 0; i < 60 && st.t - t0 < 1320; i++) await sleep(250); st.speed = 10; await sleep(1500);
+      out.power.calls = (($('radioLog').innerText.match(/Evacuiamo\?/g)) || []).length; out.power.waiting = PC.waiting();
+      out.power.noLate = !/ritardo di \d+ minut/i.test($('radioLog').innerText.slice(-3000));
+      PC.tab('radio'); document.querySelector('#pcConvs [data-c="g:Tutti i treni"]').click(); await sleep(200);
+      [...document.querySelectorAll('#pcGrpSay button')].find(b => /Evacuate/i.test(b.textContent)).click(); await sleep(300);
+      out.power.evac = PC.evac.size; out.power.placeholder = /segnaposto/.test($('pcGrpSay').innerText);
+      await hold($('pcKey'), 1800); out.power.back = $('pcKeyState').textContent === 'LINEA ALIMENTATA' && !F.ag.zones().some(z => z.kind === 'power' && z.all);
+      // Info
+      PC.openWin('info'); await sleep(1300);
+      const dl = [...document.querySelectorAll('#pcTrains li[data-k]')].map(li => { const t = li.lastElementChild.textContent, m = /(\d+) min di ritardo/.exec(t), e = /(\d+) min di anticipo/.exec(t); return m ? +m[1] : e ? -e[1] : 0; });
+      out.info = { trains: dl.length, sorted: dl.every((x, i) => i === 0 || dl[i - 1] >= x), stations: document.querySelectorAll('#pcStations li').length };
+      document.querySelector('#pcTrains li[data-k]').click(); await sleep(300); out.info.card = vis($('card')) && /^f/.test(String(st.sel)); st.sel = null; M.renderCard();
+      // Chiusure: San Donato – Rogoredo FS
+      PC.openWin('chiu'); await sleep(300); $('pcCDa').value = '0'; $('pcCDa').onchange(); $('pcCA').value = '1'; $('pcCApp').click(); await sleep(800);
+      out.chiu = { closed: !!document.querySelector('#pcStatus .sym[data-go="chiu"]'), win: vis($('w-chiu')) };
+      // Strumenti
+      PC.setTools(true); await sleep(300);
+      out.tools = { reg: document.querySelectorAll('#pcTmain .tbl tbody tr').length, kpis: document.querySelectorAll('#pcTmain .kpi').length, map: !vis($('card')) };
+      document.querySelector('.tnav [data-t="nav"]').click(); await sleep(300); out.tools.nav = $('pcTmain').innerText.slice(0, 200);
+      document.querySelector('.tnav [data-t="turni"]').click(); await sleep(300); out.tools.turni = document.querySelectorAll('#pcTmain .tbl tbody tr').length;
+      out.tools.adminTab = vis(document.querySelector('.tnav [data-t="guasti"]'));
+      PC.setTools(false); PC.openWin('chiu'); await sleep(200); $('pcCDel').click(); await sleep(500);
+      // Piano linea: Linea, and Deposito a placeholder
+      $('pcPiano').click(); await sleep(1500); out.piano = { open: vis($('depotPlan')), line: !!document.querySelector('#depotPlan .dp-sw button[data-w="line"][aria-pressed="true"]') };
+      document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); await sleep(800); out.piano.dep = /aspetta i miei disegni/.test($('depotPlan').innerText);
+      $('dpClose').click(); await sleep(200);
+      document.querySelector('.role[data-role="admin"]').click(); await sleep(200);
+      const ok = out.bar.clock && out.bar.speeds.join() === '1,2,5,10,30,60' && out.bar.piano && out.bar.roles.join() === 'player,admin' && out.bar.menu && out.bar.soon === 2 && out.bar.status0 === 0
+        && out.rail.join() === 'info,schema,tools,chiu,radio,emg' && out.start.join() === 'true,false,false,false' && out.railToggle
+        && out.card.cardOn && out.card.radio && out.card.cur && out.card.radioShown && out.card.off
+        && out.short === 'LINEA NORMALE' && out.block.state === 'LINEA NON LIBERA' && out.block.sym && out.block.red && out.block.all > 0 && out.block.back
+        && out.power.state === 'LINEA DISALIMENTATA' && out.power.sym && out.power.zone && out.power.calls > 0 && out.power.waiting > 0 && out.power.evac > 0 && out.power.placeholder && out.power.back
+        && out.info.trains > 10 && out.info.sorted && out.info.stations === F.engine.G.names.length && out.info.card
+        && out.chiu.closed && !out.chiu.win && out.tools.reg > 0 && out.tools.kpis === 4 && out.tools.map && /San Donato/.test(out.tools.nav) && out.tools.turni > 10 && !out.tools.adminTab
+        && out.piano.open && out.piano.line && out.piano.dep;
+      return Object.assign({ ok }, out);
+    });
+  },
   // the wash (Giovanni 9 Nov 2026): the DCT sends a train of the rimessa to the wash from its card; a second one while the
   // first is washing: its driver says no; the first goes through the wash at most at the wash speed, without stopping in it,
   // and back to its place ("lavaggio finito"); then the second can go

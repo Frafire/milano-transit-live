@@ -427,10 +427,313 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 .sig svg { display: block; }
 .sig span { position: absolute; left: 16px; top: -2px; font: 700 11px var(--display); color: #fff; background: #0b0b0b; padding: 0 4px; border-radius: 3px; white-space: nowrap; }
 .arrow-ic { transform: translate(-50%, -50%); }
+/* ================= POSTO CENTRALE (Giovanni 16 Nov 2026, his bozza): bar, rail, windows, Strumenti, dock ================= */
+:root { --night: #0b2233; --tile: rgba(30,86,122,.78); --tile-hi: rgba(42,112,156,.92); --led: #ff9416; --crt: #8dff9e; --crt-bg: #071109; --m3: #fbb816; --admin: #b48cff; --red: #e5383b;
+  --dots: "Doto", "Courier New", monospace; --pix: "VT323", ui-monospace, monospace; --pc-top: 52px; --pc-left: 92px; --pc-bot: 32px; }
+#map { top: var(--pc-top); left: var(--pc-left); bottom: var(--pc-bot); right: 0; }
+.pcbar { position: fixed; z-index: 2000; top: 0; left: 0; right: 0; display: flex; align-items: stretch; background: var(--night); border-bottom: 1px solid var(--line); min-height: 52px; padding-top: env(safe-area-inset-top, 0px); }
+.pcbar > * { display: flex; align-items: center; padding: 6px 12px; border-right: 1px solid var(--line); flex: none; }
+.pcburger { background: none; border: 0; cursor: pointer; width: 56px; justify-content: center; color: var(--signal); }
+.pcburger svg { width: 24px; height: 24px; } .pcburger[aria-pressed=true] { background: var(--tile-hi); }
+.pcclock { gap: 10px; position: relative; }
+.pcbar .clock { position: relative; background: #0b0a08; border: 2px solid #4b5055; border-radius: 3px; color: var(--led); font: 900 24px/1 var(--dots); padding: 4px 8px 3px; text-shadow: 0 0 6px rgba(255,140,20,.65); letter-spacing: 0; }
+.pcbar .clock::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle, transparent 52%, rgba(0,0,0,.6) 62%); background-size: 3px 3px; }
+.pcbar .clock .s { font-size: 15px; color: var(--led); opacity: .8; }
+.pcday { background: none; border: 0; cursor: pointer; text-align: left; font: 600 12px/1.15 var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 0; }
+.pcday b { display: block; color: #fff; font-size: 14px; } .pcday:hover b { color: var(--signal); }
+.pcdays { position: absolute; left: 8px; top: calc(100% + 6px); z-index: 2100; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; padding: 10px; width: 300px; box-shadow: 0 14px 30px rgba(0,0,0,.6); flex-direction: column; gap: 8px; }
+.pcdays:not([hidden]) { display: flex; } .pcdays .days { display: flex; flex-wrap: wrap; gap: 4px; } .pcdays .day { font-size: 12px; color: var(--muted); }
+.pcspeed { gap: 2px; }
+.pcspeed button { background: rgba(0,0,0,.3); border: 0; padding: 7px 9px; font: 700 14px var(--display); color: var(--muted); cursor: pointer; border-radius: 3px; min-width: 0; }
+.pcspeed button[aria-pressed=true] { background: var(--signal); color: var(--night); }
+.pcspeed #play { color: #fff; }
+.pcpl { background: none; border: 0; cursor: pointer; gap: 8px; font: 800 15px var(--display); letter-spacing: .08em; text-transform: uppercase; color: #fff; }
+.pcpl svg { width: 22px; height: 22px; color: var(--signal); } .pcpl[aria-pressed=true] { background: var(--m3); color: var(--night); } .pcpl[aria-pressed=true] svg { color: var(--night); }
+.pcstatus { flex: 1 !important; gap: 6px; min-width: 0; justify-content: flex-end; }
+.sym { position: relative; width: 38px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 5px; cursor: pointer; background: rgba(0,0,0,.35); padding: 0; }
+.sym svg { width: 22px; height: 22px; }
+.sym .n { position: absolute; right: -3px; top: -4px; min-width: 16px; height: 16px; border-radius: 8px; font: 800 11px/16px var(--display); text-align: center; background: #fff; color: #111; padding: 0 3px; }
+.sym.red { color: #ff5b4f; box-shadow: inset 0 0 0 2px #ff5b4f; animation: pcpulse 1s infinite; }
+.sym.yel { color: var(--signal); box-shadow: inset 0 0 0 2px var(--signal); }
+.sym.org { color: var(--led); box-shadow: inset 0 0 0 2px var(--led); }
+.sym.grn { color: var(--crt); box-shadow: inset 0 0 0 2px var(--crt); animation: pcpulse 1s infinite; }
+.sym::after { content: attr(data-tip); position: absolute; top: calc(100% + 6px); right: 0; white-space: nowrap; font: 700 12px var(--display); letter-spacing: .06em; text-transform: uppercase; background: #000; color: #fff; padding: 4px 7px; opacity: 0; pointer-events: none; transition: opacity .15s; z-index: 5; }
+.sym:hover::after, .sym:focus-visible::after { opacity: 1; }
+@keyframes pcpulse { 50% { opacity: .5; } }
+.pcroles .roles { background: none; border: 0; padding: 0; gap: 2px; }
+.pcroles .role { background: rgba(0,0,0,.3); border: 0; padding: 7px 10px; font: 700 13px var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); cursor: pointer; border-radius: 3px; }
+.pcroles .role[aria-pressed=true] { background: #fff; color: var(--night); }
+.pcroles .role[data-role=admin][aria-pressed=true] { background: var(--admin); }
+body:not(.player)::after { content: ''; position: fixed; inset: 0; border: 3px solid var(--admin); pointer-events: none; z-index: 5000; }
+.pcgearw { position: relative; border-right: 0 !important; padding: 0 !important; }
+.pcgear { background: none; border: 0; cursor: pointer; width: 54px; height: 100%; display: grid; place-items: center; color: var(--muted); }
+.pcgear:hover, .pcgear[aria-expanded=true] { color: #fff; background: rgba(255,255,255,.06); } .pcgear svg { width: 24px; height: 24px; }
+.pcgmenu { position: absolute; right: 6px; top: calc(100% + 6px); width: 270px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 14px 30px rgba(0,0,0,.6); padding: 6px; z-index: 2100; }
+.pcgmenu > a, .pcgmenu > button { display: flex; gap: 10px; align-items: center; width: 100%; box-sizing: border-box; text-align: left; background: none; border: 0; padding: 10px; border-radius: 6px; cursor: pointer; font: 600 14px var(--body); color: var(--fg); text-decoration: none; }
+.pcgmenu > a:hover, .pcgmenu > button:hover { background: rgba(255,255,255,.08); }
+.pcgmenu svg { width: 18px; height: 18px; color: var(--signal); flex: none; }
+.pcgmenu .soon { color: var(--muted); cursor: default; } .pcgmenu .soon::after { content: 'presto'; margin-left: auto; font: 700 11px var(--display); letter-spacing: .08em; text-transform: uppercase; }
+.pcgmenu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; } .pcglbl { font: 700 11px var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 4px 10px; }
+#pcMapOpts .basemap { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px 6px; }
+.pcrail { position: fixed; z-index: 1900; top: var(--pc-top); bottom: var(--pc-bot); left: 0; width: 92px; display: flex; flex-direction: column; background: var(--night); border-right: 1px solid var(--line); overflow-y: auto; }
+body.pc-rail-off .pcrail { display: none; }
+.pcrail button { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 14px 4px 12px; background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; cursor: pointer; color: #fff; font: 700 12px var(--display); letter-spacing: .07em; text-transform: uppercase; }
+.pcrail button svg { width: 26px; height: 26px; color: var(--signal); }
+.pcrail button:hover { background: rgba(255,255,255,.05); }
+.pcrail button[aria-pressed=true] { background: var(--tile-hi); box-shadow: inset 4px 0 0 var(--signal); }
+.pcrail .emg { margin-top: auto; border-top: 1px solid var(--line); color: #ff7a70; } .pcrail .emg svg { color: #ff5b4f; }
+.pcrail .emg[aria-pressed=true] { background: rgba(229,56,59,.35); box-shadow: inset 4px 0 0 var(--red); }
+.pcrail .adm, .pcrail .adm svg { color: var(--admin); }
+.pcstage { position: fixed; z-index: 1500; top: var(--pc-top); left: var(--pc-left); right: 0; bottom: var(--pc-bot); pointer-events: none; }
+.pcstage > * { pointer-events: auto; }
+.pcfoot { position: fixed; z-index: 2000; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--night); border-top: 1px solid var(--line); padding: 3px 12px calc(3px + env(safe-area-inset-bottom, 0px)); font-size: 11.5px; color: var(--muted); min-height: 32px; box-sizing: border-box; }
+.pcdock { display: flex; gap: 6px; flex-wrap: wrap; }
+.pcdock button { background: var(--tile); border: 1px solid var(--line); border-radius: 0; padding: 4px 10px; font: 700 12px var(--display); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; color: #fff; }
+.pcdock button.ring { animation: pcpulse 1s infinite; border-color: var(--crt); }
+.leaflet-bottom { bottom: 0; }
+/* the panel of the old days: admin only, beside the rail */
+.console { top: 10px; left: 10px; max-height: calc(100% - 20px); }
+.console .brand .roles, .console .conmin { display: none; }
+body.player .console, body.pc-console-off .console { display: none !important; }
+.pcstage .console { position: absolute; }
+/* the card of a train or a station: on the right, black */
+.card { top: calc(var(--pc-top) + 12px); right: 12px; max-height: calc(100vh - var(--pc-top) - var(--pc-bot) - 24px); background: rgba(6,8,10,.94); border-radius: 12px; z-index: 1600; }
+/* the windows */
+.pcwin { position: absolute; z-index: 20; background: rgba(11,34,51,.97); border: 1px solid rgba(255,255,255,.25); box-shadow: 0 14px 34px rgba(0,0,0,.55); display: flex; flex-direction: column; max-width: calc(100% - 20px); max-height: calc(100% - 20px); }
+.pcwin .wh { display: flex; align-items: center; gap: 8px; padding: 0 0 0 12px; background: var(--tile); cursor: move; user-select: none; touch-action: none; min-height: 38px; flex: none; }
+.pcwin .wh b { font: 800 15px var(--display); letter-spacing: .08em; text-transform: uppercase; flex: 1; }
+.pcwin .wb { width: 38px; height: 38px; border: 0; border-radius: 0; background: none; cursor: pointer; font: 700 18px var(--body); color: #fff; padding: 0; }
+.pcwin .wb:hover { background: rgba(255,255,255,.12); } .pcwin .wx { background: #b3261e; } .pcwin .wx:hover { background: #d93a30; }
+.pcwin .wbody { overflow: auto; min-height: 0; }
+.pcwin.emgwin .wh { background: #7a1712; }
+#w-radio { width: 620px; height: 440px; left: 16px; bottom: 16px; }
+#w-emg { width: 470px; left: 440px; top: 16px; } #w-info { width: 400px; height: 460px; left: 16px; top: 16px; } #w-chiu { width: 430px; left: 200px; top: 30px; max-height: calc(100% - 60px); }
+.rtabs { display: flex; border-bottom: 2px solid #2a3a2e; background: #12241a; flex: none; }
+.rtabs button { background: none; border: 0; border-radius: 0; padding: 7px 16px; font: 20px var(--pix); color: #5f9a6b; cursor: pointer; text-transform: uppercase; }
+.rtabs button[aria-selected=true] { color: var(--crt); background: var(--crt-bg); }
+.rtabs button.calling { background: #2c6a1d; color: #fff; animation: pcpulse 1s infinite; }
+.rgrid { display: grid; grid-template-columns: 170px 1fr; flex: 1; min-height: 0; background: var(--crt-bg); font: 18px/1.15 var(--pix); color: var(--crt); }
+.convs { border-right: 2px solid #2a3a2e; overflow-y: auto; }
+.convs .c { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 6px 8px; border-bottom: 1px solid #1d2e22; cursor: pointer; }
+.convs .c.grp { color: #ffd23f; background: #101c12; } .convs .c.grp span::before { content: '◉ '; }
+.convs .sep { border-bottom: 2px solid #2a3a2e; }
+.convs .c.on { background: #1b3322; color: #fff; }
+.convs .c.new { animation: pcpulse 1s infinite; color: #fff; background: #1f4a1a; }
+.convs .c button { background: none; border: 0; color: #5f9a6b; cursor: pointer; font: 18px var(--pix); padding: 0 2px; }
+.convs .add { color: #5f9a6b; justify-content: center !important; }
+.convs select { width: calc(100% - 12px); margin: 4px 6px; background: #071109; color: var(--crt); border: 2px solid #3b5e45; font: 16px var(--pix); }
+.chat { display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
+.grpchat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.grpchat .msgs { flex: 1; overflow-y: auto; padding: 6px 10px; } .grpchat .msgs p { margin: 0 0 4px; } .grpchat .t { color: #5f9a6b; } .grpchat .me { color: #ffd23f; }
+.say { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 8px; border-top: 2px solid #2a3a2e; }
+.say button, .pcextra button { font: 17px var(--pix); background: #071109; color: var(--crt); border: 2px solid #3b5e45; border-radius: 0; padding: 1px 8px; cursor: pointer; text-transform: uppercase; }
+.say button:hover, .pcextra button:hover { background: #12241a; }
+.say .prop, .pcextra .prop { font: 12px var(--body); color: #8fb89a; align-self: center; }
+.pcextra { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 6px 8px; border-top: 2px solid #2a3a2e; background: #0c1a10; flex: none; }
+.pcextra .lbl { width: 100%; color: #ffb020; font-size: 16px; }
+.pcempty { padding: 14px; color: #6f8f77; }
+/* the radio and the telephone of today, inside the window */
+#w-radio .radio { position: static; transform: none; width: auto; border: 0; box-shadow: none; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#w-radio .radio[hidden], #w-radio.tab-radio #phone, #w-radio.tab-tel #radio, #w-radio.grp-on .radio { display: none !important; }
+#w-radio .radio .rhd { cursor: default; } #w-radio .radio .rx { display: none; }
+#w-radio .radio .log { max-height: none; flex: 1; min-height: 40px; }
+#w-radio .radio .cmds { max-height: 45%; overflow-y: auto; flex: none; }
+#w-radio #phoneWho { display: none; }
+/* Emergenza */
+.emgg { display: grid; grid-template-columns: 1fr 1fr; }
+.emgg > div { padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.emgg > div + div { border-left: 1px solid var(--line); }
+.emgg h3 { margin: 0; font: 800 17px var(--display); letter-spacing: .08em; text-transform: uppercase; } .emgg h3.r { color: #ff7a70; } .emgg h3.y { color: var(--signal); }
+.mush { position: relative; width: 130px; height: 130px; border-radius: 50%; border: 0; padding: 0; background: radial-gradient(circle at 38% 32%, #ff8a80, #d0241b 45%, #7d0f0a 100%); box-shadow: 0 8px 0 #4a0806, 0 12px 20px rgba(0,0,0,.6), inset 0 -6px 10px rgba(0,0,0,.35); cursor: pointer; touch-action: none; }
+.mush.held { transform: translateY(5px); box-shadow: 0 3px 0 #4a0806, 0 6px 12px rgba(0,0,0,.6), inset 0 -6px 10px rgba(0,0,0,.35); }
+.mush.on { background: radial-gradient(circle at 38% 32%, #ffb3ab, #ff3b30 45%, #a3150e 100%); box-shadow: 0 3px 0 #4a0806, 0 0 30px rgba(255,59,48,.8); transform: translateY(5px); }
+.prog { position: absolute; inset: -9px; width: calc(100% + 18px); height: calc(100% + 18px); pointer-events: none; }
+.prog circle { fill: none; stroke: #fff; stroke-width: 5; stroke-dasharray: 465; stroke-dashoffset: 465; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.keysw { position: relative; width: 130px; height: 130px; border-radius: 50%; background: radial-gradient(circle, #3a3f45, #1c1f23 70%); border: 4px solid #6b7178; box-sizing: border-box; cursor: grab; touch-action: none; }
+.keysw .k { position: absolute; left: 50%; top: 50%; width: 22px; height: 86px; margin: -43px 0 0 -11px; background: linear-gradient(90deg, #2a2a2a, #555 50%, #2a2a2a); border-radius: 6px; transform: rotate(-45deg); transition: transform .25s; box-shadow: 0 2px 6px rgba(0,0,0,.6); }
+.keysw .k::after { content: ''; position: absolute; left: 50%; top: 6px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--signal); }
+.keysw.off .k { transform: rotate(45deg); }
+.keylab { display: flex; justify-content: space-between; width: 170px; font: 700 12px var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.keylab span.on { color: var(--signal); } .keylab span:not(.on) { color: var(--muted); }
+.estate { font: 900 14px var(--dots); padding: 5px 8px; background: #0b0a08; border: 2px solid #4b5055; border-radius: 3px; }
+.estate.ok { color: var(--crt); } .estate.bad { color: #ff5b4f; } .estate.warn { color: var(--signal); }
+.how { font-size: 12px; color: var(--muted); }
+.emgnote { border-top: 1px solid var(--line); padding: 8px 14px 12px; font-size: 12px; color: var(--muted); }
+.pcmore { border-top: 1px solid var(--line); padding: 8px 14px; font-size: 13px; } .pcmore summary { cursor: pointer; color: var(--muted); font: 700 12px var(--display); letter-spacing: .08em; text-transform: uppercase; }
+.pcmore > section, .pcmore > div { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.pcwin .pad { padding: 12px 14px; }
+.pcwin .sec, .pctools .sec { font: 800 13px var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--m3); margin: 4px 0 6px; } .pcwin .sec.red { color: #ff7a70; }
+.pcwin .list { list-style: none; margin: 0 0 12px; padding: 0; }
+.pcwin .list li { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; padding: 5px 4px; border-bottom: 1px solid rgba(255,255,255,.06); cursor: pointer; font-size: 13.5px; }
+.pcwin .list li:hover { background: rgba(255,255,255,.06); }
+.pcwin .list .tn { font: 700 13px var(--display); text-align: center; background: var(--m3); color: #111; border-radius: 3px; }
+.pcwin .list .tn.st { background: #fff; } .pcwin .list .late { color: #ff8a7a; font-weight: 600; } .pcwin .list .ok { color: var(--crt); } .pcwin .list .early { color: #7fd4ff; }
+.pcwin .list .w { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; } .pcwin .list .w b { color: #fff; font-weight: 600; }
+#pcGuasti #pcAlarms { margin: 0 0 12px; max-height: none; } #pcGuasti #pcAlarms li { grid-template-columns: 1fr; padding: 5px 4px; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 13px; }
+#pcGuasti #pcAlarms .where { white-space: normal; color: var(--fg); } #pcGuasti #pcAlarms li.late .where { color: #ff8a7a; } #pcGuasti .fxb { display: flex; gap: 4px; flex-wrap: wrap; } #pcGuasti .fxb button { font-size: 12px; padding: 3px 8px; }
+.frow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.frow label { font: 700 12px var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); min-width: 52px; }
+.frow select { flex: 1; min-width: 0; }
+.pcwin .act { display: flex; gap: 8px; justify-content: flex-end; margin: 4px 0 10px; }
+.pcwin .btn, .pctools .btn, .pctools .sbtn { background: var(--tile); border: 1px solid var(--line); padding: 8px 12px; cursor: pointer; font: 700 13px var(--display); letter-spacing: .06em; text-transform: uppercase; border-radius: 4px; color: #fff; }
+.pcwin .btn:hover { background: var(--tile-hi); } .pcwin .btn.pri { background: var(--signal); color: var(--night); border-color: var(--signal); }
+.pcnote { font-size: 12px; color: #ffb020; margin: 0 0 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.chip { background: rgba(229,56,59,.18); border: 1px solid rgba(229,56,59,.5); padding: 4px 8px; font-size: 12.5px; display: flex; gap: 6px; align-items: center; border-radius: 4px; }
+.chip button { background: none; border: 0; color: #fff; cursor: pointer; padding: 0 2px; }
+/* Strumenti, full screen over the map */
+.pctools { position: absolute; inset: 0; z-index: 9000; background: var(--night); display: grid; grid-template-columns: 220px 1fr; }
+.tnav { background: #0a1c2a; border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 0; gap: 2px; }
+.tnav h2 { margin: 0 16px 12px; font: 800 22px var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--signal); display: flex; align-items: center; gap: 8px; } .tnav h2 svg { width: 22px; height: 22px; }
+.tnav button { text-align: left; background: none; border: 0; border-radius: 0; padding: 12px 16px; cursor: pointer; color: var(--muted); font: 700 16px var(--display); letter-spacing: .06em; text-transform: uppercase; border-left: 4px solid transparent; }
+.tnav button:hover { color: #fff; background: rgba(255,255,255,.04); }
+.tnav button[aria-selected=true] { color: #fff; background: var(--tile-hi); border-left-color: var(--signal); }
+.tnav .adm { color: var(--admin); } body.player .tnav .adm { display: none; }
+.tnav .close { margin-top: auto; margin-inline: 16px; text-align: center; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; color: #fff; }
+.tmain { overflow: auto; padding: 18px 22px 30px; min-width: 0; }
+.tmain h3 { margin: 0 0 4px; font: 800 26px var(--display); text-transform: uppercase; letter-spacing: .03em; color: var(--signal); }
+.tmain .lead { margin: 0 0 14px; color: var(--muted); max-width: 75ch; }
+.kpis { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.kpi { background: var(--tile); padding: 10px 14px; min-width: 130px; border-radius: 6px; } .kpi b { display: block; font: 800 28px/1 var(--display); color: var(--signal); } .kpi.bad b { color: #ff7a70; } .kpi span { font-size: 12.5px; color: var(--muted); }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.tbl th { text-align: left; font: 700 12px var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,.25); }
+.tbl td { padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,.07); } .tbl tr.bad td { background: rgba(229,56,59,.12); }
+.tag2 { font: 700 11px var(--display); letter-spacing: .06em; text-transform: uppercase; padding: 3px 7px; border-radius: 3px; white-space: nowrap; }
+.tag2.ok { background: rgba(126,224,143,.15); color: #7ee08f; } .tag2.bad { background: #e5383b; color: #fff; } .tag2.dep { background: rgba(127,212,255,.15); color: #7fd4ff; } .tag2.mov { background: rgba(255,207,63,.15); color: var(--signal); }
+.tbl .tnum { font: 700 14px var(--display); background: var(--m3); color: #111; border-radius: 3px; padding: 2px 7px; }
+.pctools .sbtn { padding: 4px 9px; font-size: 12px; white-space: nowrap; } .pctools .sbtn[disabled] { opacity: .35; cursor: not-allowed; }
+.pctools select { max-width: 220px; }
+.twrap { overflow-x: auto; } .fakenote { font-size: 12px; color: var(--muted); margin-top: 10px; }
+.empty2 { padding: 26px; border: 1px dashed rgba(255,255,255,.25); border-radius: 8px; color: var(--muted); max-width: 560px; }
+.empty2 b { display: block; color: #fff; font: 800 18px var(--display); text-transform: uppercase; margin-bottom: 6px; }
+.pctools .oldbox { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; max-width: 520px; display: flex; flex-direction: column; gap: 8px; }
+#turniBtn, #regoBtn { display: none !important; } body.schedit .pcstage { display: none; } body.pc-tools-on .card { display: none !important; }
+/* Piano linea: the sinottico in the stage */
+#depotPlan { inset: var(--pc-top) 0 var(--pc-bot) var(--pc-left); border-radius: 0; z-index: 1450; }
+#depotPlan .dp-ph { padding: 40px; color: #cfd6dc; font: 600 16px var(--body); } #depotPlan .dp-ph b { display: block; font: 800 20px var(--display); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+@media (max-width: 900px) {
+  :root { --pc-left: 0px; }
+  .pcbar { flex-wrap: wrap; } .pcbar > * { padding: 5px 7px; }
+  .pcday { display: none; } .pcbar .clock { font-size: 19px; }
+  .pcspeed { order: 8; flex-basis: 100% !important; border-top: 1px solid var(--line); justify-content: space-between; box-sizing: border-box; }
+  .pcspeed button { padding: 6px 0; font-size: 14px; flex: 1; }
+  .pcpl { margin-right: auto; }
+  .pcpl span { display: none; }
+  .pcstatus { order: 9; flex-basis: 100% !important; border-top: 1px solid var(--line); justify-content: flex-start; padding: 4px 8px !important; }
+  .pcstatus:empty { display: none !important; }
+  .pcroles .role { padding: 6px 6px; font-size: 12px; }
+  .pcburger { width: 44px; } .pcgear { width: 42px; }
+  .pcrail { box-shadow: 10px 0 30px rgba(0,0,0,.5); z-index: 1950; }
+  .card, .card.stcard, .card.trcard, .card.depcard { left: 8px; right: 8px; top: auto; bottom: calc(var(--pc-bot) + 8px); width: auto; max-height: 60%; }
+  .pcwin { left: 6px !important; right: 6px; top: 6px !important; bottom: auto !important; width: auto !important; max-width: none; height: auto !important; max-height: calc(100% - 12px); }
+  #w-radio .rgrid { grid-template-columns: 116px 1fr; height: 340px; }
+  .emgg { grid-template-columns: 1fr; } .emgg > div + div { border-left: 0; border-top: 1px solid var(--line); }
+  .pctools { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .tnav { flex-direction: row; overflow-x: auto; padding: 0; } .tnav h2 { display: none; }
+  .tnav button { border-left: 0; border-bottom: 3px solid transparent; white-space: nowrap; padding: 10px 12px; font-size: 14px; } .tnav button[aria-selected=true] { border-bottom-color: var(--signal); }
+  .tnav .close { margin: 6px; }
+  .pcfoot > span { display: none; }
+  .console { left: 6px; right: 6px; width: auto; }
+  #depotPlan .dp-hd > span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .sym, .rtabs button.calling, .pcdock button.ring, .convs .c.new { animation: none; } .keysw .k { transition: none; } }
 </style>
 </head>
 <body>
 <div id="map" role="application" aria-label="Map of Milan with moving vehicles"></div>
+<!-- ================= POSTO CENTRALE (Giovanni 16 Nov 2026, from his bozza-posto-centrale-M3.html): the bar on top, the
+     rail on the left (opened and closed only by ☰), the windows (Radio, Emergenza, Info, Chiusure), Strumenti full
+     screen and the dock at the bottom. The old controls are moved in here by the script (same ids, same handlers). -->
+<header class="pcbar" id="pcbar">
+  <button class="pcburger" id="pcBurger" aria-pressed="true" title="Apri / chiudi il pannello" aria-label="Apri o chiudi il pannello"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <div class="pcclock" id="pcClock"><button class="pcday" id="pcDay" aria-expanded="false" title="Cambia giorno"><b id="pcDayName">—</b><span id="pcDayType"></span></button>
+    <div class="pcdays" id="pcDays" hidden></div></div>
+  <div class="pcspeed" id="pcSpeed" role="group" aria-label="Velocità"></div>
+  <button class="pcpl" id="pcPiano" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 9h20M2 15h20"/><circle cx="7" cy="9" r="2" fill="currentColor"/><circle cx="16" cy="15" r="2" fill="currentColor"/></svg><span>Piano linea</span></button>
+  <div class="pcstatus" id="pcStatus" aria-label="Stato della linea"></div>
+  <div class="pcroles" id="pcRoles"></div>
+  <div class="pcgearw">
+    <button class="pcgear" id="pcGear" aria-expanded="false" aria-label="Impostazioni"><svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M10.3 2h3.4l.5 2.6c.7.2 1.3.5 1.9.9l2.4-1.2 2.4 2.4-1.2 2.4c.4.6.7 1.2.9 1.9l2.6.5v3.4l-2.6.5c-.2.7-.5 1.3-.9 1.9l1.2 2.4-2.4 2.4-2.4-1.2c-.6.4-1.2.7-1.9.9l-.5 2.6h-3.4l-.5-2.6c-.7-.2-1.3-.5-1.9-.9l-2.4 1.2-2.4-2.4 1.2-2.4c-.4-.6-.7-1.2-.9-1.9L2 13.7v-3.4l2.6-.5c.2-.7.5-1.3.9-1.9L4.3 5.5l2.4-2.4 2.4 1.2c.6-.4 1.2-.7 1.9-.9zM12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2z"/></svg></button>
+    <div class="pcgmenu" id="pcGmenu" hidden role="menu">
+      <a role="menuitem" href="index.html" id="pcToMenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/></svg>Torna al menu principale</a>
+      <hr><div class="pcglbl">Mappa</div><div id="pcMapOpts"></div><hr>
+      <button role="menuitem" class="soon" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg>Suoni</button>
+      <button role="menuitem" class="soon" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5M12 17v.5"/></svg>Come si gioca</button>
+    </div>
+  </div>
+</header>
+<nav class="pcrail" id="pcRail" aria-label="Pannello">
+  <button data-w="info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5" stroke-linecap="round"/></svg>Info</button>
+  <button data-w="schema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8h20M2 16h20"/><path d="M8 8l8 8"/><circle cx="5" cy="8" r="1.5" fill="currentColor"/><circle cx="19" cy="16" r="1.5" fill="currentColor"/></svg>Schema</button>
+  <button data-w="tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14.5 5.5a4 4 0 0 0-5 5L3 17l4 4 6.5-6.5a4 4 0 0 0 5-5l-2.6 2.6-2.8-.6-.6-2.8z"/></svg>Strumenti</button>
+  <button data-w="chiu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12h20"/><path d="M8 6v12M16 6v12" stroke-width="3"/></svg>Chiusure</button>
+  <button data-w="radio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="7" width="19" height="13" rx="2"/><circle cx="8" cy="13.5" r="3"/><path d="M14 11.5h5M14 15h5M6 7l9-4"/></svg>Radio</button>
+  <button data-w="admin" class="adm admin-only" title="Il pannello di sempre: mappe, linee, motore, editor dei binari"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h13"/></svg>Admin</button>
+  <button data-w="emg" class="emg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5" stroke-linecap="round"/></svg>EMG</button>
+</nav>
+<div class="pcstage" id="pcStage">
+  <section class="pcwin" id="w-radio" data-title="Radio – DCT" hidden aria-label="Radio e telefono">
+    <div class="wh"><b>Radio – DCT</b><button class="wb wm" title="Riduci" aria-label="Riduci">–</button><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
+    <div class="rtabs" role="tablist"><button data-r="radio" role="tab" aria-selected="true">Radio</button><button data-r="tel" role="tab" aria-selected="false" id="pcTelTab">Telefono</button></div>
+    <div class="rgrid"><div class="convs" id="pcConvs"></div>
+      <div class="chat" id="pcChat">
+        <div class="grpchat" id="pcGrp" hidden><div class="msgs" id="pcGrpMsgs" aria-live="polite"></div><div class="say" id="pcGrpSay"></div></div>
+        <div class="pcextra" id="pcExtra" hidden></div>
+        <div class="pcempty" id="pcEmpty" hidden></div>
+      </div></div>
+  </section>
+  <section class="pcwin emgwin" id="w-emg" data-title="Emergenza" hidden aria-label="Emergenza">
+    <div class="wh"><b>Emergenza</b><button class="wb wm" title="Riduci" aria-label="Riduci">–</button><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
+    <div class="wbody">
+      <div class="emgg">
+        <div><h3 class="r">Blocco linea</h3>
+          <button class="mush" id="pcMush" aria-label="Blocco linea: tieni premuto 1 secondo"><svg class="prog" viewBox="0 0 160 160"><circle cx="80" cy="80" r="74" id="pcMushProg"/></svg></button>
+          <span class="estate ok" id="pcMushState">LINEA NORMALE</span><span class="how">Tieni premuto 1 secondo</span></div>
+        <div><h3 class="y">Elettrica</h3>
+          <div class="keysw" id="pcKey" role="switch" aria-checked="true" tabindex="0" aria-label="Alimentazione della linea: trascina o tieni premuto"><div class="k"></div><svg class="prog" viewBox="0 0 160 160"><circle cx="80" cy="80" r="74" id="pcKeyProg"/></svg></div>
+          <div class="keylab"><span class="on" id="pcKOn">Alimentata</span><span id="pcKOff">Disalimentata</span></div>
+          <span class="estate ok" id="pcKeyState">LINEA ALIMENTATA</span><span class="how">Gira la chiave: trascina, o tieni premuto 1,5 secondi</span></div>
+      </div>
+      <div class="emgnote">Senza tensione i treni restano senza trazione. Su ordine del DCT si evacua o si aspetta la fine dell'operazione. I treni non chiamano per il ritardo: dopo 20 minuti fermi, senza ordine di evacuazione, chiamano via radio per chiedere cosa fare.</div>
+      <details class="pcmore" id="pcEmgMore"><summary>Su una tratta o una stazione (come oggi)</summary></details>
+    </div>
+  </section>
+  <section class="pcwin" id="w-info" data-title="Pannello info" hidden aria-label="Pannello info">
+    <div class="wh"><b>Pannello info</b><button class="wb wm" title="Riduci" aria-label="Riduci">–</button><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
+    <div class="wbody pad"><div id="pcGuasti"><div class="sec red">Guasti e allarmi</div></div><div class="sec">Treni</div><ul class="list" id="pcTrains"></ul><div class="sec">Stazioni</div><ul class="list" id="pcStations"></ul>
+      <details class="pcmore" id="pcInfoMore"><summary>Segnali, bivi, aspetti e codici (come oggi)</summary></details></div>
+  </section>
+  <section class="pcwin" id="w-chiu" data-title="Chiusure" hidden aria-label="Chiusure">
+    <div class="wh"><b>Chiusure</b><button class="wb wm" title="Riduci" aria-label="Riduci">–</button><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
+    <div class="wbody pad">
+      <div class="sec">Chiusura tratta</div>
+      <div class="frow"><label for="pcCDa">Da</label><select id="pcCDa"></select></div>
+      <div class="frow"><label for="pcCA">Fino a</label><select id="pcCA"></select></div>
+      <div class="act"><button class="btn" id="pcCDel">Elimina</button><button class="btn pri" id="pcCApp">Applica e chiudi</button></div>
+      <p class="pcnote" id="pcCNote" hidden></p>
+      <div class="chips" id="pcCList"></div>
+      <div class="sec">Chiusura stazione</div>
+      <div class="frow"><label for="pcSSt">Stazione</label><select id="pcSSt"></select></div>
+      <div class="act"><button class="btn" id="pcSDel">Togli</button><button class="btn pri" id="pcSApp">Applica e chiudi</button></div>
+      <div class="chips" id="pcSList"></div>
+      <details class="pcmore" id="pcChiuMore"><summary>Binari alle stazioni di fine tratta, chiusura totale (come oggi)</summary></details>
+    </div>
+  </section>
+  <section class="pctools" id="pcTools" hidden aria-label="Strumenti">
+    <nav class="tnav" role="tablist">
+      <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M14.5 5.5a4 4 0 0 0-5 5L3 17l4 4 6.5-6.5a4 4 0 0 0 5-5l-2.6 2.6-2.8-.6-.6-2.8z"/></svg>Strumenti</h2>
+      <button role="tab" data-t="reg" aria-selected="true">Regolatore</button>
+      <button role="tab" data-t="turni" aria-selected="false">Turni del giorno</button>
+      <button role="tab" data-t="nav" aria-selected="false">Navetta</button>
+      <button role="tab" data-t="guasti" aria-selected="false" class="adm">Guasti · admin</button>
+      <button class="close" id="pcToolsClose">◄ Torna alla mappa</button>
+    </nav>
+    <div class="tmain" id="pcTmain"></div>
+    <div id="pcToolsKeep" hidden></div>
+  </section>
+</div>
+<footer class="pcfoot" id="pcFoot"><div class="pcdock" id="pcDock"></div><span>Simulazione non ufficiale, non affiliata ad ATM</span></footer>
+
 <div class="loading" id="loading">Loading timetable…</div>
 
 <section class="console" aria-label="Simulation controls">
@@ -448,12 +751,13 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
   </div>
   <div class="row keep">
     <button id="play" aria-label="Pause">❚❚</button>
-    <button class="spd" data-s="1">1×</button>
-    <button class="spd" data-s="2">2×</button>
-    <button class="spd" data-s="5">5×</button>
-    <button class="spd" data-s="10">10×</button>
-    <button class="spd" data-s="60" aria-pressed="true">60×</button>
-    <button class="spd" data-s="300">300×</button>
+    <button class="spd" data-s="1">×1</button>
+    <button class="spd" data-s="2">×2</button>
+    <button class="spd" data-s="5">×5</button>
+    <button class="spd" data-s="10">×10</button>
+    <button class="spd" data-s="30">×30</button>
+    <button class="spd" data-s="60" aria-pressed="true">×60</button>
+    <button class="spd admin-only" data-s="300" title="Solo admin">×300</button>
   </div>
   <input type="range" class="keep admin-only" id="slider" min="10800" max="97140" step="60" value="12600" aria-label="Time of day, service day 03:00 to 02:59">
 
@@ -1046,6 +1350,7 @@ window.MTL_CAPS = __CAPS__;
   map.on('zoomend', syncPlat);
   // one line's fleet from the built data (draw: its tracks, stations and platforms on the map; once, at the start. The
   // change of day at night builds the fleet of the new day's data without drawing again: the same infrastructure)
+  var LINEPL = {};               // (the polylines in the line's colour, by line: grey when the line has no power)
   function buildFleet(F, fiHere, draw, live) {
     const li = routes.findIndex(r => r.id === F.line); if (li < 0) return null;
     const look = F.mode === 'bus' ? { ...LOOK.BUS, cars: (F.size || 12) >= 18 ? 2 : 1, size: F.size || 12 } : (LOOK[F.line] || LOOK.M3);
@@ -1062,7 +1367,7 @@ window.MTL_CAPS = __CAPS__;
     const drawn_ = F.net ? F.net.edges.map(e => ({ c: e.cat, p: e.p })) : F.tracks;   // M3: drawn from the engine's network
     if (draw) ['yard', 'test', 'link', 'siding', 'crossover', 'main'].forEach(cat => drawn_.filter(t => t.c === cat).forEach(t => {
       const pts = decodeFlat(t.p);
-      (TS[cat] || TS.siding).forEach(st => L.polyline(pts, { ...st, interactive: false }).addTo(g));
+      (TS[cat] || TS.siding).forEach(st => { const pl = L.polyline(pts, { ...st, interactive: false }).addTo(g); if (st.color === look.color) (LINEPL[F.line] = LINEPL[F.line] || []).push([pl, st.color]); });
     }));
     // station boards (M3, M4): click a station to see the next trains
     const boards = (F.boards || []).map(b => {
@@ -3877,7 +4182,7 @@ window.MTL_CAPS = __CAPS__;
   // its own Mappa button goes back)
   const setView = (v, which) => { if (which) SIN_WHICH = which; viewSw.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v))); planEl.hidden = v !== 'sin'; if (v === 'sin') { planEl.innerHTML = ''; drawDepotPlan(); } };
   viewSw.querySelectorAll('button').forEach(b => b.onclick = () => setView(b.dataset.view));
-  function openDepotPlan() { setView('sin', 'dep'); }
+  function openDepotPlan() { PIANO_PH = false; setView('sin', 'dep'); }
   // ---- the two sinottici (Giovanni 9 Nov 2026): the depot (data/schema_deposito_m3.json, from #A04 and #A05 on, his
   // shape with the real bends of the track: tools/sinottico.py deposito) and the line (data/sinottico_linea_m3.json, a
   // first drawing made by tools/sinottico.py linea, to shape here). Our blue behind; the track grey; a route set for a
@@ -3991,6 +4296,7 @@ window.MTL_CAPS = __CAPS__;
       const pc = sg.d === -1 ? l.find(p => Math.abs(p[2] - f) < 0.0015) : l.find(p => Math.abs(p[1] - f) < 0.0015); if (pc) (entry[pc[3]] = entry[pc[3]] || []).push(sg); }
     return (SCH.__sec = { n: SCH.edges.length, pieces, byEdge, entry });
   }
+  var PIANO_PH = false;          // (opened as Piano linea: the Deposito tab shows the placeholder)
   var SIN_GO = null;            // (the signals at via libera now, by number: the sections behind them are white)
   var SIN_ILL = false;          // (the illegal signals: hidden unless asked for; Giovanni 9 Nov 2026)
   var SIN_NUM = false;          // (the signal numbers on the sinottico: off by default, they crowded it; Giovanni 3 Nov 2026)
@@ -4011,6 +4317,8 @@ window.MTL_CAPS = __CAPS__;
       planEl.querySelectorAll('.dp-sw button').forEach(b => b.onclick = () => { SIN_WHICH = b.dataset.w; planEl.innerHTML = ''; drawDepotPlan(); });
     }
     const body = planEl.querySelector('.dp-body');
+    // (Piano linea, Deposito: Giovanni draws it; until then a placeholder for the player. The admin keeps today's drawing)
+    if (SIN_WHICH === 'dep' && PIANO_PH && isPlayer) { body.innerHTML = '<div class="dp-ph"><b>Deposito di San Donato</b>Segnaposto: aspetta i miei disegni.</div>'; return; }
     if (!SCH) { body.innerHTML = `<p class="dp-none">${SIN_WHICH === 'line' ? 'Sinottico della linea mancante: fallo con tools/sinottico.py linea (data/sinottico_linea_m3.json).' : 'Schema del deposito mancante.'}</p>`; return; }
     if (!SIGS) SIGS = buildSignals(F); sigAspects(F);
     // (a signal of the drawing is the map's one with its index in the net: the block signals carry the block's number on
@@ -4773,7 +5081,7 @@ window.MTL_CAPS = __CAPS__;
     const bb = L.latLngBounds(segs.flatMap(([pid, d0, d1]) => [trackAt(F, pid, d0), trackAt(F, pid, d1)]));
     if (!map.getBounds().contains(bb)) map.fitBounds(bb.pad(0.6), { maxZoom: 16 });
   }
-  const MR = MTLRadio.create({ tx: (...a) => tx(...a), rand: () => prand(), D, trips, state, P2WAY, osOpen: (F, X, t) => osOpen(F, X, t), osHours: F => osHoursOf(F), fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
+  const MR = MTLRadio.create({ onRadio: (...a) => pcHook('radio', ...a), onCall: (...a) => pcHook('call', ...a), onPhone: (...a) => pcHook('phone', ...a), tx: (...a) => tx(...a), rand: () => prand(), D, trips, state, P2WAY, osOpen: (F, X, t) => osOpen(F, X, t), osHours: F => osHoursOf(F), fmt: (...a) => fmt(...a), showRoute: (...a) => showRoute(...a),
     get p2Msg() { return p2Msg; }, set p2Msg(v) { p2Msg = v; },
     resetSigs: () => { if (SIGS) SIGS.forEach(x => { x.a = null; }); },
     trackAt: (...a) => trackAt(...a),
@@ -5113,6 +5421,7 @@ window.MTL_CAPS = __CAPS__;
     const G = F.engine.G, half = F.engine.half, last = G.names.length - 1, stopOf = (dir, i) => dir === 'N' ? G.N.stops[i] : G.S.stops[last - i];
     for (const z of Z) for (const dir of ['N', 'S']) {
       if (z.kind === 'vista' && z.done[dir]) continue;
+      if (z.kind === 'power' && z.all) continue;           // (the whole line without power: the line itself goes grey, Posto Centrale)
       const pid = G[dir].pid, [lo, hi] = z.all ? [0, Math.max(...F.engine.pathEdges[pid].e.map(x => x[3]))] : z.a === z.b ? [stopOf(dir, z.a) - half - 30, stopOf(dir, z.a) + half + 30] : dir === 'N' ? [stopOf('N', z.a) + half + 5, stopOf('N', z.b) - half - 5] : [stopOf('S', z.b) + half + 5, stopOf('S', z.a) - half - 5];
       const pts = [], n = Math.max(2, Math.ceil((hi - lo) / 20)); for (let i = 0; i <= n; i++) pts.push(trackAt(F, pid, lo + (hi - lo) * i / n));
       L.polyline(pts, { color: ZCOL[z.kind] || '#fff', weight: 10, opacity: .45, interactive: false }).addTo(zoneLayer);
@@ -5214,7 +5523,7 @@ window.MTL_CAPS = __CAPS__;
       if (dx || dy) map.panBy([dx, dy], { animate: false });
     }
     draw();
-    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); osTick(); comInvioTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
+    if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); osTick(); comInvioTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); pcHook('tick'); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
     if (now - lastCard > (typeof state.sel === 'string' && (state.sel[0] === 'b' || state.sel[0] === 'q') ? 500 : 1000)) { lastCard = now; const ae = document.activeElement; if (state.sel != null && !(ae && ae.tagName === 'SELECT' && card.contains(ae))) renderCard(); }     // (not while the player is choosing in a menu of the card)
     requestAnimationFrame(frame);
@@ -5236,7 +5545,413 @@ window.MTL_CAPS = __CAPS__;
     });
     bar.addEventListener('dblclick', e => { if (e.target.closest('button')) return; el.style.left = el.style.top = el.style.bottom = ''; el.classList.remove('moved'); try { localStorage.removeItem(key); } catch (e2) {} });
   }
-  ['radio', 'phone'].forEach(id => { const el = document.getElementById(id); if (el) movable(el); });
+  ['radio', 'phone'].forEach(id => { const el = document.getElementById(id); if (el && !el.closest('.pcwin')) movable(el); });
+  // ================= POSTO CENTRALE (Giovanni 16 Nov 2026, from his bozza-posto-centrale-M3.html) =================
+  // The bar on top (☰, clock with day and timetable, speeds, Piano linea, the status symbols, Player/Admin, gear), the
+  // rail on the left (Info, Schema, Strumenti, Chiusure, Radio, EMG; it stays open after a choice, only ☰ closes it),
+  // the windows (Radio, Emergenza, Info, Chiusure: dragged by their title, – to the dock at the bottom, ✕ closes) and
+  // Strumenti full screen. The controls of the old panel are moved in here (same ids, same handlers): nothing of the
+  // simulation changes. Placeholders are marked "segnaposto" here and on the screen.
+  var PCH = {};
+  function pcHook(k, ...a) { if (PCH[k]) PCH[k](...a); }
+  (function () {
+    const $ = id => document.getElementById(id), body = document.body, phoneW = () => innerWidth <= 900;
+    const G_RADIO = ['Tutti i treni', 'Treni per San Donato', 'Treni per Comasina'], G_TEL = ['Tutte le stazioni'];
+    const GLOG = {}; [...G_RADIO, ...G_TEL].forEach(g => { GLOG[g] = []; });
+    const TC = [];                   // the single conversations of the radio: { k, fresh }
+    const EVAC = new Map();          // the evacuations ordered by the DCT: agent k -> game time (Emergenza, point 6)
+    const RW = { tab: 'radio', cur: { radio: 'g:Tutti i treni', tel: 'g:Tutte le stazioni' }, adding: null };
+    const esc = x => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const capS = x => cap(String(x || '').toLowerCase());
+    const F3 = () => { const F = m3eng(); return F && F.ag ? F : null; };
+    const tno = (F, k) => { const r = realTrain(F, F.trains[k], state.t); return r && r.n ? r.n : k + 1; };
+    const clockTxt = () => fmt(state.t, true)[0];
+
+    // ---------- the old controls into their new places ----------
+    const con = document.querySelector('.console');
+    $('pcClock').prepend($('clock'));
+    $('pcDays').append(con.querySelector('.days'), $('day'));
+    $('pcSpeed').append($('play'), ...document.querySelectorAll('.spd'));
+    const roles = con.querySelector('.roles'); roles.append(roles.querySelector('[data-role="admin"]')); $('pcRoles').append(roles);   // (Player first)
+    $('pcMapOpts').append(document.querySelector('.basemap'));
+    $('pcGuasti').append($('pcAlarms'));
+    $('w-radio').querySelector('.chat').append($('radio'), $('phone'));
+    $('pcChat').append($('pcExtra'));                     // (under the train's radio)
+    const depRow = $('depotAuto').closest('.row'); $('pcToolsKeep').append(depRow, $('ilNote'));
+    $('pcChiuMore').append(document.querySelector('section.closures'));
+    $('pcEmgMore').append(...[...document.querySelectorAll('section.m3panel.faults')].filter(x => !x.classList.contains('admin-only')));
+    $('pcToolsKeep').append(...[...document.querySelectorAll('section.m3panel.faults.admin-only')]);
+    $('pcInfoMore').append(...['segnali_kit', 'bivi', 'aspetti_codici'].map(c => document.querySelector(`section.m3panel[data-cap="${c}"]`)).filter(Boolean));
+    $('pcStage').append(con);
+    { const sec = document.querySelector('section.pcal'); if (sec) sec.hidden = true;
+      const mn = $('mapNote'); if (mn) { const box = mn.parentNode; $('pcMapOpts').append(mn); if (box && !box.querySelector('button, select, input')) box.hidden = true; } }
+
+    // ---------- the bar: day, speeds, Piano linea, gear ----------
+    function dayLabel() {
+      $('pcDayName').textContent = (DAYS[dayPick] || '').replace(/^./, c => c.toUpperCase());
+      $('pcDayType').textContent = /^6/.test(SUF) || SUF === '6' ? 'orario del sabato' : SUF === '7' || /_7$/.test(SUF) ? 'orario festivo' : /expo|cortina/i.test(SUF) ? 'orario speciale' : 'orario feriale';
+    }
+    $('pcDay').onclick = e => { e.stopPropagation(); const o = $('pcDays').hidden; $('pcDays').hidden = !o; $('pcDay').setAttribute('aria-expanded', String(o)); };
+    $('pcGear').onclick = e => { e.stopPropagation(); const o = $('pcGmenu').hidden; $('pcGmenu').hidden = !o; $('pcGear').setAttribute('aria-expanded', String(o)); };
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.pcgearw')) { $('pcGmenu').hidden = true; $('pcGear').setAttribute('aria-expanded', 'false'); }
+      if (!e.target.closest('.pcclock')) { $('pcDays').hidden = true; $('pcDay').setAttribute('aria-expanded', 'false'); } });
+    function setPiano(on) { if (on) { PIANO_PH = true; setView('sin', 'line'); } else setView('map'); railMark('schema', on); $('pcPiano').setAttribute('aria-pressed', String(on)); }
+    $('pcPiano').onclick = () => setPiano(planEl.hidden);
+
+    // ---------- the rail and the layout ----------
+    function layout() {
+      const top = $('pcbar').offsetHeight, foot = $('pcFoot').offsetHeight, railOn = !body.classList.contains('pc-rail-off');
+      const R = document.documentElement.style; R.setProperty('--pc-top', top + 'px'); R.setProperty('--pc-bot', foot + 'px');
+      R.setProperty('--pc-left', railOn && !phoneW() ? $('pcRail').offsetWidth + 'px' : '0px');
+      map.invalidateSize({ pan: false });
+    }
+    function setRail(on) { body.classList.toggle('pc-rail-off', !on); $('pcBurger').setAttribute('aria-pressed', String(on)); layout(); }
+    $('pcBurger').onclick = () => setRail(body.classList.contains('pc-rail-off'));
+    addEventListener('resize', layout);
+    function railMark(k, on) { const b = document.querySelector(`.pcrail [data-w="${k}"]`); if (b) b.setAttribute('aria-pressed', String(!!on)); }
+    $('pcRail').querySelectorAll('[data-w]').forEach(b => b.onclick = () => { const k = b.dataset.w;
+      if (k === 'schema') return setPiano(planEl.hidden);
+      if (k === 'tools') return setTools($('pcTools').hidden);
+      if (k === 'admin') { body.classList.toggle('pc-console-off'); railMark('admin', !body.classList.contains('pc-console-off')); return; }
+      $(WIN[k]).hidden ? openWin(k) : closeWin(k); });
+
+    // ---------- the windows ----------
+    const WIN = { radio: 'w-radio', emg: 'w-emg', info: 'w-info', chiu: 'w-chiu' }; let ztop = 30;
+    const front = el => { el.style.zIndex = ++ztop; };
+    function openWin(k) { const el = $(WIN[k]); el.hidden = false; front(el); dockDel(k); railMark(k, true); draw(k); }
+    function closeWin(k) { $(WIN[k]).hidden = true; dockDel(k); railMark(k, false); }
+    function minWin(k) { $(WIN[k]).hidden = true; railMark(k, false); dockAdd(k); }
+    function dockAdd(k) { if ($('pcDock').querySelector(`[data-k="${k}"]`)) return; const b = document.createElement('button'); b.dataset.k = k; b.textContent = $(WIN[k]).dataset.title; b.onclick = () => openWin(k); $('pcDock').append(b); }
+    function dockDel(k) { const b = $('pcDock').querySelector(`[data-k="${k}"]`); if (b) b.remove(); }
+    const draw = k => { if (k === 'radio') drawRadio(true); else if (k === 'info') drawInfo(); else if (k === 'chiu') drawChiu(); else if (k === 'emg') drawEmg(); };
+    Object.entries(WIN).forEach(([k, id]) => { const el = $(id), h = el.querySelector('.wh');
+      el.addEventListener('pointerdown', () => front(el));
+      el.querySelector('.wm').onclick = () => minWin(k); el.querySelector('.wx').onclick = () => closeWin(k);
+      h.addEventListener('pointerdown', e => { if (e.target.closest('button') || phoneW()) return;
+        const st = $('pcStage').getBoundingClientRect(), r = el.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top; h.setPointerCapture(e.pointerId);
+        el.style.left = (r.left - st.left) + 'px'; el.style.top = (r.top - st.top) + 'px'; el.style.bottom = 'auto'; el.style.right = 'auto';
+        h.onpointermove = m => { el.style.left = Math.max(0, Math.min(st.width - 80, m.clientX - st.left - ox)) + 'px'; el.style.top = Math.max(0, Math.min(st.height - 40, m.clientY - st.top - oy)) + 'px'; };
+        h.onpointerup = () => { h.onpointermove = null; }; }); });
+
+    // ---------- the card: the train's Radio opens its conversation, the station's Telefono its OS ----------
+    let calling = null;              // (a train calling: its radio opens by itself, but it stays a new conversation to answer)
+    PCH.radio = (F, tr) => { const k = F.trains.indexOf(tr); if (k < 0) return; if (!TC.some(c => c.k === k)) TC.push({ k, fresh: false });
+      if (calling === k) { calling = null; if (!$('w-radio').hidden) drawRadio(true); return; }
+      RW.tab = 'radio'; RW.cur.radio = 'k:' + k; const c = TC.find(c => c.k === k); if (c) c.fresh = false;
+      if ($('w-radio').hidden) openWin('radio'); else drawRadio(true); };
+    PCH.call = (F, tr) => { const k = F.trains.indexOf(tr); if (k < 0) return; calling = k; setTimeout(() => { if (calling === k) calling = null; }, 0); let c = TC.find(c => c.k === k); if (!c) TC.push(c = { k, fresh: true }); else if (RW.cur.radio !== 'k:' + k || $('w-radio').hidden) c.fresh = true; };
+    const stOpen = MR.openStationRadio;        // (the card's TELEFONO DELLA STAZIONE, the alarms, the rings on the map)
+    function phoneTo(F, X) { RW.tab = 'tel'; RW.cur.tel = 's:' + X; if ($('w-radio').hidden) openWin('radio'); else drawRadio(true); }
+    PCH.phone = (F, X) => phoneTo(F, X);
+
+    // ---------- Radio: Radio and Telefono, the group calls on top, then the single conversations ----------
+    // (the group phrases are placeholders: the real ones go in the Radio sheet of the Excel. The single conversations
+    // use the radio and the telephone of today, with the phrases of the Excel)
+    const GPHR = {
+      'Tutti i treni': [['Fermatevi', 'Tutti i treni si fermino alla prossima stazione e attendano istruzioni.'], ['Ripartite', 'Riprendete la marcia secondo orario.'], ['Evacuate', 'Evacuate i treni: accompagnate i passeggeri alla stazione più vicina.', 'evac'], ['Attendete', 'Restate fermi: attendete la fine dell’operazione.']],
+      'Treni per San Donato': [['Fermatevi', 'Treni per San Donato: fermatevi alla prossima stazione e attendete istruzioni.'], ['Ripartite', 'Treni per San Donato: riprendete la marcia.'], ['Evacuate', 'Treni per San Donato: evacuate i treni.', 'evac'], ['Attendete', 'Treni per San Donato: attendete la fine dell’operazione.']],
+      'Treni per Comasina': [['Fermatevi', 'Treni per Comasina: fermatevi alla prossima stazione e attendete istruzioni.'], ['Ripartite', 'Treni per Comasina: riprendete la marcia.'], ['Evacuate', 'Treni per Comasina: evacuate i treni.', 'evac'], ['Attendete', 'Treni per Comasina: attendete la fine dell’operazione.']],
+      'Tutte le stazioni': [['Avviso', 'A tutte le stazioni: servizio regolare.'], ['Servizio limitato', 'A tutte le stazioni: annunciate il servizio limitato.'], ['Chiudete gli accessi', 'A tutte le stazioni: chiudete gli accessi.']] };
+    const dirOf = (F, k) => { const st = trainState(F, F.trains[k], state.t); const h = st.trip >= 0 && trips[st.trip] ? trips[st.trip].h : ''; return /donato/i.test(h) ? 'S' : /comasina/i.test(h) ? 'C' : ''; };
+    const inLine = F => F.ag.agents().filter(a => !a.hidden && a.status !== 'parked' && a.status !== 'depot' && a.mode !== 'static');
+    function groupSay(g, text, who = 'DCT', kind) {
+      GLOG[g].push([clockTxt(), who, String(text).replace(/^DCT:\s*/, '')]);
+      const F = F3();
+      if (kind === 'evac' && F) { const want = g === 'Treni per San Donato' ? 'S' : g === 'Treni per Comasina' ? 'C' : null;
+        inLine(F).filter(a => !want || dirOf(F, a.k) === want).forEach(a => { if (!EVAC.has(a.k)) EVAC.set(a.k, F.ag.S.t); }); }
+      if (!$('w-radio').hidden) drawRadio(true);
+    }
+    let convH = '';
+    function drawRadio(force) {
+      const w = $('w-radio'); if (w.hidden && !force) return; const F = F3();
+      w.classList.toggle('tab-radio', RW.tab === 'radio'); w.classList.toggle('tab-tel', RW.tab === 'tel');
+      w.querySelectorAll('.rtabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.r === RW.tab)));
+      const ring = MR.phonePending().length > 0; $('pcTelTab').classList.toggle('calling', ring);
+      // (the radio of today talks to one train: the conversation shown is that train's, also when a call opened it)
+      if (F && RW.tab === 'radio' && /^k:/.test(RW.cur.radio) && MR.isOpen() && MR.current()) { const k = F.trains.indexOf(MR.current().tr);
+        if (k >= 0) { if (!TC.some(c => c.k === k)) TC.push({ k, fresh: false }); RW.cur.radio = 'k:' + k; } }
+      const cur = RW.cur[RW.tab], G = RW.tab === 'radio' ? G_RADIO : G_TEL;
+      let h = G.map(g => `<div class="c grp${cur === 'g:' + g ? ' on' : ''}" data-c="g:${esc(g)}"><span>${esc(g)}</span></div>`).join('') + '<div class="sep"></div>';
+      if (F && RW.tab === 'radio') h += TC.map(c => `<div class="c${cur === 'k:' + c.k ? ' on' : ''}${c.fresh ? ' new' : ''}" data-c="k:${c.k}"><span>Treno ${esc(tno(F, c.k))}</span><button data-x="k:${c.k}" aria-label="Chiudi la conversazione">✕</button></div>`).join('');
+      if (F && RW.tab === 'tel') h += MR.phoneList().map(c => `<div class="c${cur === 's:' + c.X ? ' on' : ''}${c.pending ? ' new' : ''}" data-c="s:${c.X}"><span>${c.pending ? '☎ ' : ''}${esc(c.name)}</span><button data-x="s:${c.X}" aria-label="Chiudi la conversazione">✕</button></div>`).join('');
+      if (F && RW.adding === RW.tab) h += RW.tab === 'radio'
+        ? `<select id="pcAddSel" aria-label="Treno da chiamare"><option value="">Treno…</option>${inLine(F).map(a => ({ k: a.k, n: tno(F, a.k) })).sort((p, q) => p.n - q.n).map(x => `<option value="${x.k}">Treno ${esc(x.n)}</option>`).join('')}</select>`
+        : `<select id="pcAddSel" aria-label="Stazione da chiamare"><option value="">Stazione…</option>${F.engine.G.names.map((n, X) => `<option value="${X}">${esc(capS(n))}</option>`).join('')}</select>`;
+      else if (F) h += `<div class="c add" data-add="1">+ ${RW.tab === 'tel' ? 'stazione' : 'treno'}</div>`;
+      if (h !== convH && !(document.activeElement && document.activeElement.id === 'pcAddSel')) { convH = h; $('pcConvs').innerHTML = h; const sel = $('pcAddSel'); if (sel) sel.onchange = () => addConv(sel.value); }
+      // the right side: a group call, or the radio / telephone of today
+      const grp = cur && cur.startsWith('g:'); w.classList.toggle('grp-on', !!grp); $('pcGrp').hidden = !grp;
+      const none = !grp && (RW.tab === 'radio' ? !(F && cur && MR.isOpen() && MR.current() && 'k:' + F.trains.indexOf(MR.current().tr) === cur) : !(cur && cur.startsWith('s:')));
+      $('pcEmpty').hidden = !none || grp; w.classList.toggle('none-on', none && !grp);
+      if (none && !grp) $('pcEmpty').textContent = 'Scegli una conversazione a sinistra, o chiama con ' + (RW.tab === 'tel' ? '+ stazione' : '+ treno') + '.';
+      if (grp) { const g = cur.slice(2), L_ = GLOG[g] || [];
+        const mh = (L_.length ? L_.map(([t, who, m]) => `<p><span class="t">${t}</span> <span class="${who === 'DCT' ? 'me' : ''}">${esc(who)}:</span> ${esc(m)}</p>`).join('') : `<p class="t">Chiamata a ${esc(g.toLowerCase())}: quello che dici lo sentono tutti.</p>`);
+        if ($('pcGrpMsgs').dataset.h !== mh) { $('pcGrpMsgs').dataset.h = mh; $('pcGrpMsgs').innerHTML = mh; $('pcGrpMsgs').scrollTop = 1e6; }
+        const sh = (GPHR[g] || []).map(([l, m, kind], i) => `<button data-gi="${i}"${kind === 'evac' ? ' title="L’ordine di evacuazione viene registrato"' : ''}>${esc(l)}</button>`).join('') + '<span class="prop">frasi segnaposto: vanno nel foglio Radio dell’Excel</span>';
+        if ($('pcGrpSay').dataset.h !== sh + g) { $('pcGrpSay').dataset.h = sh + g; $('pcGrpSay').innerHTML = sh; $('pcGrpSay').querySelectorAll('[data-gi]').forEach(b => b.onclick = () => { const [, m, kind] = GPHR[g][+b.dataset.gi]; groupSay(g, m, 'DCT', kind); }); } }
+      drawExtra(F, grp ? null : cur);
+      const d = $('pcDock').querySelector('[data-k="radio"]'); if (d) d.classList.toggle('ring', waiting() > 0);
+    }
+    // under the train's radio: the answers to its call for a failure (as in the Allarmi), and without power evacuate / wait
+    function drawExtra(F, cur) {
+      const ex = $('pcExtra'); let h = '';
+      if (F && RW.tab === 'radio' && cur && cur.startsWith('k:')) { const k = +cur.slice(2);
+        for (const f of (F.ag.FX ? F.ag.FX.list() : []).filter(f => f.call && f.k === k)) h += `<span class="lbl">Chiamata per guasto: rispondi</span>` + f.call.answers.map(([a, l]) => `<button data-fxid="${f.id}" data-fxa="${a}">${esc(l)}</button>`).join('');
+        const a = F.ag.agents()[k];
+        if (a && !a.hidden && pcF(F, 'power')) h += `<span class="lbl">Treno senza tensione${EVAC.has(k) ? ': evacuazione ordinata alle ' + fmt(EVAC.get(k)) : WAITOK.has(k) ? ': attende la fine dell’operazione (dalle ' + fmt(WAITOK.get(k)) + ')' : ''}</span>` + (EVAC.has(k) ? '' : `<button data-ev="1">Evacua il treno</button>${WAITOK.has(k) ? '' : '<button data-ev="0">Attendi la fine dell’operazione</button>'}<span class="prop">Attendi: ordine segnaposto, senza frase (va nel foglio Radio)</span>`); }
+      if (ex.dataset.h === h) return; ex.dataset.h = h; ex.innerHTML = h; ex.hidden = !h;
+      ex.querySelectorAll('[data-fxid]').forEach(b => b.onclick = () => { fxAnswer(F, +b.dataset.fxid, b.dataset.fxa); drawRadio(); });
+      ex.querySelectorAll('[data-ev]').forEach(b => b.onclick = () => { const k = +cur.slice(2), no = tno(F, k);
+        if (b.dataset.ev === '1') { EVAC.set(k, F.ag.S.t); say('DCT', tx('energia.evacuate'), 'pc'); }
+        else WAITOK.set(k, F.ag.S.t);          // (no phrase yet for "wait": a row to add to the foglio Radio)
+        drawRadio(); });
+    }
+    function addConv(v) { const F = F3(); RW.adding = null; if (!F || v === '') { drawRadio(true); return; }
+      if (RW.tab === 'radio') { MR.openRadio(F, F.trains[+v]); } else stOpen(F, +v); }
+    $('pcConvs').addEventListener('click', e => { const F = F3(); if (!F) return;
+      const x = e.target.closest('[data-x]'); if (x) { e.stopPropagation(); const id = x.dataset.x;
+        if (id[0] === 'k') { const k = +id.slice(2), i = TC.findIndex(c => c.k === k); if (i >= 0) TC.splice(i, 1); if (MR.current() && F.trains.indexOf(MR.current().tr) === k) MR.radioEl.hidden = true; if (RW.cur.radio === id) RW.cur.radio = 'g:Tutti i treni'; }
+        else { MR.closeConv(+id.slice(2)); if (RW.cur.tel === id) RW.cur.tel = 'g:Tutte le stazioni'; }
+        drawRadio(true); return; }
+      if (e.target.closest('[data-add]')) { RW.adding = RW.tab; drawRadio(true); const s = $('pcAddSel'); if (s) s.focus(); return; }
+      const c = e.target.closest('[data-c]'); if (!c) return; const id = c.dataset.c; RW.cur[RW.tab] = id;
+      if (id[0] === 'k') { const k = +id.slice(2), t = TC.find(z => z.k === k); if (t) t.fresh = false; MR.openRadio(F, F.trains[k]); }
+      else if (id[0] === 's') stOpen(F, +id.slice(2));
+      drawRadio(true); });
+    $('w-radio').querySelectorAll('.rtabs button').forEach(b => b.onclick = () => { RW.tab = b.dataset.r; RW.adding = null; drawRadio(true); });
+    const waiting = () => TC.filter(c => c.fresh).length + MR.phonePending().length;
+
+    // ---------- Emergenza: Blocco linea (the mushroom, held 1 s) and Elettrica (the key) ----------
+    // Blocco linea is the Rosso totale of today (all the signals red, every train brakes) and Elettrica the power taken
+    // off the whole line (the same zones as the Emergenze of today, web/faults.js): their state comes from there, so the
+    // Allarmi's Togli and these buttons always agree.
+    const pcF = (F, zone) => F && F.ag.FX ? F.ag.FX.list().find(f => f.kind === 'pc' && f.zone === zone && f.all) : null;
+    function hold(el, ms, prog, done) { let t0 = 0, raf = 0, on = false;
+      const stop = () => { on = false; cancelAnimationFrame(raf); el.classList.remove('held'); prog(0); };
+      el.addEventListener('pointerdown', e => { e.preventDefault(); t0 = performance.now(); on = true; el.classList.add('held'); try { el.setPointerCapture(e.pointerId); } catch (x) {}
+        const step = now => { if (!on) return; const p = Math.min(1, (now - t0) / ms); prog(p); if (p >= 1) { stop(); done(); return; } raf = requestAnimationFrame(step); }; raf = requestAnimationFrame(step); });
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => el.addEventListener(ev, stop)); }
+    function blockLine() { const F = F3(); if (!F) return; const f = pcF(F, 'red');
+      if (f) { fxAnswer(F, f.id, 'fix'); groupSay('Tutti i treni', tx('emergenza.dct.tolto_rosso', { tratta: 'tutta la linea' })); }
+      else { F.ag.event({ kind: 'fault', what: 'pczone', zone: 'red', all: true }); fxFeed(F); groupSay('Tutti i treni', tx('emergenza.dct.pulsante_rosso_totale')); }
+      renderAlarms(); drawEmg(); status(); }
+    function power() { const F = F3(); if (!F) return; const f = pcF(F, 'power');
+      if (f) { fxAnswer(F, f.id, 'fix'); groupSay('Tutti i treni', tx('emergenza.dct.tolto_tensione', { tratta: 'tutta la linea' })); EVAC.clear(); WAITOK.clear(); CALLED.clear(); }
+      else { F.ag.event({ kind: 'fault', what: 'pczone', zone: 'power', all: true }); fxFeed(F); groupSay('Tutti i treni', tx('emergenza.dct.tolgo_tensione', { tratta: 'tutta la linea' })); }
+      renderAlarms(); drawEmg(); status(); }
+    hold($('pcMush'), 1000, p => { $('pcMushProg').style.strokeDashoffset = 465 * (1 - p); }, blockLine);
+    { const key = $('pcKey'); let x0 = null, turned = false;
+      key.addEventListener('pointerdown', e => { x0 = e.clientX; turned = false; });
+      key.addEventListener('pointermove', e => { if (x0 == null || turned) return; const F = F3(), on = !pcF(F, 'power'); if (on ? e.clientX - x0 > 30 : x0 - e.clientX > 30) { turned = true; power(); } });
+      key.addEventListener('pointerup', () => { x0 = null; });
+      key.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); power(); } });
+      hold(key, 1500, p => { $('pcKeyProg').style.strokeDashoffset = 465 * (1 - p); }, () => { if (!turned) power(); }); }
+    function drawEmg() { const F = F3(), b = !!pcF(F, 'red'), off = !!pcF(F, 'power');
+      $('pcMush').classList.toggle('on', b); const ms = $('pcMushState'); ms.className = 'estate ' + (b ? 'bad' : 'ok'); ms.textContent = b ? 'LINEA NON LIBERA' : 'LINEA NORMALE';
+      $('pcKey').classList.toggle('off', off); $('pcKey').setAttribute('aria-checked', String(!off)); $('pcKOn').classList.toggle('on', !off); $('pcKOff').classList.toggle('on', off);
+      const ks = $('pcKeyState'); ks.className = 'estate ' + (off ? 'warn' : 'ok'); ks.textContent = off ? 'LINEA DISALIMENTATA' : 'LINEA ALIMENTATA'; }
+    // 20 minutes without power and no order to evacuate: the trains stopped in the tunnel call the DCT and ask what to do
+    // (the phrase of the Excel for the failure "Mancanza di tensione", energia.evacuare_chiesto, and its trains: those
+    // standing between two stations. How many and which, for the whole line: a rule to put in the Excel; for now these)
+    const CALLED = new Set(), WAITOK = new Map();
+    const POWER_CALL_S = 1200;            // (Giovanni 16 Nov 2026: 20 minutes; to move to the Tempi sheet)
+    function powerCalls(F) { const f = pcF(F, 'power'); if (!f || F.ag.S.t - f.t0 < POWER_CALL_S) return; const G = F.engine.G;
+      inLine(F).filter(a => a.why === 'tensione' && a.stopAt == null && a.v === 0 && !EVAC.has(a.k) && !WAITOK.has(a.k) && !CALLED.has(a.k)).forEach(a => {
+        CALLED.add(a.k); const tr = F.trains[a.k], no = tno(F, a.k), at = a.at != null ? a.at : 0, nx = Math.min(G.names.length - 1, at + 1);
+        PCH.call(F, tr); say('T' + no, tx('energia.evacuare_chiesto', { tratta: capS(G.names[at]) + ' – ' + capS(G.names[nx]) }), 'call'); }); }
+    // the line without power: grey on the map
+    let greyNow = false;
+    function greyLine(off) { if (off === greyNow) return; greyNow = off; (LINEPL.M3 || []).forEach(([pl, c]) => pl.setStyle({ color: off ? '#7d8288' : c })); }
+
+    // ---------- the status symbols in the bar: only the active ones ----------
+    const ICON = {
+      stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M8 2h8l6 6v8l-6 6H8l-6-6V8z"/><path d="M7 12h10" stroke-width="3"/></svg>',
+      power: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M13 2 5 13h6l-1 9 8-12h-6z"/><path d="M3 3l18 18"/></svg>',
+      chiu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12h20"/><path d="M8 6v12M16 6v12" stroke-width="3"/></svg>',
+      guasto: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17v.5" stroke-linecap="round"/></svg>',
+      radio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="7" width="19" height="13" rx="2"/><circle cx="8" cy="13.5" r="3"/><path d="M14 11.5h5M14 15h5M6 7l9-4"/></svg>' };
+    const closedSt = F => Object.entries(F.ag.S.stn || {}).filter(([, v]) => v.closed).map(([x]) => +x);
+    function status() {
+      const F = F3(), s = [];
+      if (F) {
+        if (pcF(F, 'red')) s.push(`<button class="sym red" data-go="emg" data-tip="Linea non libera" aria-label="Linea non libera">${ICON.stop}</button>`);
+        if (pcF(F, 'power')) s.push(`<button class="sym yel" data-go="emg" data-tip="Linea disalimentata" aria-label="Linea disalimentata">${ICON.power}</button>`);
+        const em = closureNow(F), nc = (em && !em.reopened ? 1 : 0) + closedSt(F).length;
+        if (nc) s.push(`<button class="sym org" data-go="chiu" data-tip="Chiusure attive" aria-label="Chiusure attive: ${nc}">${ICON.chiu}<span class="n">${nc}</span></button>`);
+        const ng = F.ag.FX ? F.ag.FX.list().filter(f => f.kind !== 'pc' && f.kind !== 'vista').length : 0;
+        if (ng) s.push(`<button class="sym org" data-go="info" data-tip="Guasti" aria-label="Guasti: ${ng}">${ICON.guasto}<span class="n">${ng}</span></button>`);
+      }
+      const w = F ? waiting() : 0; if (w) s.push(`<button class="sym grn" data-go="radio" data-tip="Aspettano una risposta" aria-label="Aspettano una risposta: ${w}">${ICON.radio}<span class="n">${w}</span></button>`);
+      const h = s.join(''); if ($('pcStatus').dataset.h !== h) { $('pcStatus').dataset.h = h; $('pcStatus').innerHTML = h; layout(); }
+    }
+    $('pcStatus').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (!b) return; const k = b.dataset.go;
+      if (k === 'radio') { const F = F3(), c = TC.find(c => c.fresh), p = MR.phonePending()[0];
+        if (c && F) { RW.tab = 'radio'; RW.cur.radio = 'k:' + c.k; c.fresh = false; MR.openRadio(F, F.trains[c.k]); } else if (p && F) stOpen(F, p.X); }
+      openWin(k); });
+
+    // ---------- Info: the failures on top when there are any, the trains by delay, the stations ----------
+    function drawInfo() {
+      if ($('w-info').hidden) return; const F = F3(); if (!F) { $('pcTrains').innerHTML = '<li class="note">Solo M3</li>'; return; }
+      const fi = fleets.indexOf(F), t = state.t, G = F.engine.G;
+      const nAl = $('pcAlarms').querySelectorAll('li:not(.note)').length; $('pcGuasti').hidden = !nAl;
+      const rows = [];
+      F.trains.forEach((tr, k) => { const st = trainState(F, tr, t); if (st.status === 'parked' || st.status === 'depot') return; const a = F.ag.agents()[k]; if (a && a.hidden) return;
+        const d = delayOf(F, tr, t), m = Math.round(d / 60), dir = dirOf(F, k);
+        rows.push({ k, d, html: `<li data-k="${k}"><span class="tn">${esc(tno(F, k))}</span><span class="w">${dir ? '→ <b>' + (dir === 'S' ? 'San Donato' : 'Comasina') + '</b>' : a && a.status === 'turnback' ? 'cambio banco' : 'senza corsa'}${a && a.at != null ? ' · ' + esc(capS(G.names[a.at])) : ''}${EVAC.has(k) ? ' · evacuato' : ''}</span><span class="${m >= 2 ? 'late' : m <= -3 ? 'early' : 'ok'}">${m >= 1 ? m + ' min di ritardo' : m <= -1 ? (-m) + ' min di anticipo' : 'in orario'}</span></li>` }); });
+      rows.sort((p, q) => q.d - p.d || p.k - q.k);
+      const th = rows.map(r => r.html).join('') || '<li class="note">Nessun treno in linea</li>';
+      if ($('pcTrains').dataset.h !== th) { $('pcTrains').dataset.h = th; $('pcTrains').innerHTML = th; }
+      const cl = new Set(closedSt(F)), sh = G.names.map((n, X) => { const c = cl.has(X) || !osOpen(F, X, t); return `<li data-x="${X}"><span class="tn st">M3</span><span class="w">${esc(capS(n))}</span><span class="${c ? 'late' : 'ok'}">${c ? 'chiusa' : 'aperta'}</span></li>`; }).join('');
+      if ($('pcStations').dataset.h !== sh) { $('pcStations').dataset.h = sh; $('pcStations').innerHTML = sh; }
+      $('pcTrains').onclick = e => { const li = e.target.closest('[data-k]'); if (!li) return; state.sel = 'f' + fi + ':' + li.dataset.k; state.follow = false; renderCard(); };
+      $('pcStations').onclick = e => { const li = e.target.closest('[data-x]'); if (!li) return; const X = +li.dataset.x, nm = G.names[X].replace(/\s+M\d$/, '');
+        const bi = (F.boards || []).findIndex(b => b.n.toUpperCase().replace(/\s+M\d$/, '') === nm); if (bi < 0) return; state.sel = 'b' + fi + ':' + bi; state.follow = false; renderCard(); };
+    }
+
+    // ---------- Chiusure (to be redesigned later): a stretch from / to, a station ----------
+    // The stretch is one of the closures of the Excel (foglio Chiusure) with those two ends: the closing of today runs it
+    // (the tracks at the ends: below, as today). A station: the OS closes its accesses (as from the telephone).
+    let chiuFill = false;
+    function drawChiu() {
+      const F = F3(); if (!F) return; const G = F.engine.G;
+      if (!chiuFill) { chiuFill = true; const o = X => `<option value="${X}">${esc(capS(G.names[X]))}</option>`;
+        // (Da and Fino a: only the ends of the stretches of the foglio Chiusure)
+        const ends = [...new Set(CL_LIST().flatMap(c => [c.a, c.b]))].sort((p, q) => p - q);
+        const fill = () => { const a = +$('pcCDa').value, v = $('pcCA').value, to = ends.filter(X => CL_LIST().some(c => (c.a === a && c.b === X) || (c.b === a && c.a === X)));
+          $('pcCA').innerHTML = to.map(o).join(''); if (to.includes(+v)) $('pcCA').value = v; };
+        $('pcCDa').innerHTML = ends.map(o).join(''); $('pcCDa').onchange = fill; fill();
+        $('pcSSt').innerHTML = G.names.map((n, X) => o(X)).join(''); }
+      const em = closureNow(F);
+      const ch = em ? `<span class="chip">${esc(em.label)}${em.reopened ? ' · riaperta' : ''}<button data-cl="1" aria-label="Riapri la tratta">✕</button></span>` : '';
+      if ($('pcCList').dataset.h !== ch) { $('pcCList').dataset.h = ch; $('pcCList').innerHTML = ch; }
+      const sh = closedSt(F).map(X => `<span class="chip">${esc(capS(G.names[X]))}<button data-st="${X}" aria-label="Riapri la stazione">✕</button></span>`).join('');
+      if ($('pcSList').dataset.h !== sh) { $('pcSList').dataset.h = sh; $('pcSList').innerHTML = sh; }
+    }
+    const note = t => { const n = $('pcCNote'); n.hidden = !t; n.textContent = t || ''; };
+    $('pcCApp').onclick = () => { const F = F3(); if (!F) return; const a = +$('pcCDa').value, b = +$('pcCA').value, lo = Math.min(a, b), hi = Math.max(a, b);
+      if (a === b) return note('Scegli due stazioni diverse (per una stazione sola: Chiusura stazione).');
+      const i = CL_LIST().findIndex(c => c.a === lo && c.b === hi);
+      if (i < 0) return note('Questa tratta non è nel foglio Chiusure dell’Excel: lì ci sono le tratte che si possono chiudere e i binari alle stazioni di fine tratta.');
+      const o = [...clSel.options].find(x => +x.value === i); if (!o) return note('Tratta non disponibile adesso.');
+      clSel.value = o.value; if (clSel.onchange) clSel.onchange(); closeBtn.click(); note(''); drawChiu(); status(); closeWin('chiu'); };
+    $('pcCDel').onclick = () => { if (!reopenBtn.disabled) reopenBtn.click(); drawChiu(); status(); };
+    $('pcCList').onclick = e => { if (e.target.closest('[data-cl]') && !reopenBtn.disabled) { reopenBtn.click(); drawChiu(); status(); } };
+    const stSet = (X, close) => { const F = F3(); if (!F) return; F.ag.event({ kind: 'station', st: X, what: close ? 'close' : 'open' }); renderAlarms(); drawChiu(); status(); };
+    $('pcSApp').onclick = () => { stSet(+$('pcSSt').value, true); closeWin('chiu'); };
+    $('pcSDel').onclick = () => stSet(+$('pcSSt').value, false);
+    $('pcSList').onclick = e => { const b = e.target.closest('[data-st]'); if (b) stSet(+b.dataset.st, false); };
+
+    // ---------- Strumenti, full screen: Regolatore, Turni del giorno, Navetta, Guasti (admin) ----------
+    let ttab = 'reg';
+    function setTools(on) { $('pcTools').hidden = !on; body.classList.toggle('pc-tools-on', on); railMark('tools', on); if (on) drawTools(); }
+    $('pcToolsClose').onclick = () => setTools(false);
+    $('pcTools').querySelectorAll('.tnav [data-t]').forEach(b => b.onclick = () => { ttab = b.dataset.t; drawTools(); });
+    const HOLD = () => { const a = document.activeElement; return a && a.tagName === 'SELECT' && $('pcTmain').contains(a); };
+    function drawTools() {
+      if ($('pcTools').hidden || HOLD()) return; if (ttab === 'guasti' && isPlayer) ttab = 'reg';
+      $('pcTools').querySelectorAll('.tnav [data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === ttab)));
+      const m = $('pcTmain'), F = F3(); let h = '';
+      if (!F) h = `<h3>Strumenti</h3><div class="empty2"><b>Solo M3</b>Gli strumenti del DCT ci sono per ora solo sulla M3.</div>`;
+      else if (ttab === 'reg') h = toolReg(F); else if (ttab === 'turni') h = toolTurni(F); else if (ttab === 'nav') h = toolNav(F); else h = toolGuasti(F);
+      const keep = $('pcToolsKeep');
+      if (m.dataset.h !== h) { m.dataset.h = h; keep.hidden = true; $('pcTools').append(keep); m.innerHTML = h; bindTools(F); }
+    }
+    const names = F => F.engine.G.names, nmX = (F, X) => capS(names(F)[X] || '');
+    function toolReg(F) {
+      const t = state.t, L_ = coverage(F, t - 60, t + 3600), R = reserves(F), RC = comReserves(F), A = inLine(F);
+      const sc = L_.filter(x => x.by == null && x.how !== 'ibrido' && x.how !== 'libera');
+      const ds = A.map(a => delayOf(F, F.trains[a.k], t)), avg = ds.length ? ds.reduce((p, q) => p + q, 0) / ds.length / 60 : 0;
+      const who = x => x.by != null ? (realTrain(F, F.trains[x.by], t) || {}).units || '—' : '—';
+      const row = x => { const free = uncovered(F, x.m), open = x.by == null && x.how !== 'ibrido' && x.how !== 'libera', mine = x.by === x.m && x.how === 'orario';
+        const btn = open ? (free && (R.length || RC.length) ? `<select data-ins="${x.m}" aria-label="Riserva per la tabella ${F.trains[x.m].n}"><option value="">Riserva…</option>${R.map(y => `<option value="${y.k}">${esc(y.r.units)} (${esc(depotName(F, F.depot.at[y.k]))})</option>`).join('')}${RC.map(y => `<option value="${y.k}">${esc(y.r.units)} (Comasina)</option>`).join('')}</select> <button class="sbtn" data-insgo="${x.m}">Fai uscire una riserva</button>` : '<button class="sbtn" disabled title="Nessuna riserva pronta">Fai uscire una riserva</button>')
+          : mine ? `<button class="sbtn" data-wd="${x.m}" title="A fine corsa scarica e rientra">Ritira il treno</button>` : '';
+        return `<tr class="${open ? 'bad' : ''}"><td>${fmt(x.t)}</td><td>${esc(nmX(F, x.X))}</td><td><span class="tnum">${F.trains[x.m].n}</span></td><td>${esc(who(x))}${x.how === 'riserva' ? ' · riserva' : ''}</td><td>${open ? '<span class="tag2 bad">scoperta</span>' : x.how === 'libera' ? '<span class="tag2 mov">libera</span>' : '<span class="tag2 ok">coperta</span>'}</td><td>${btn}</td></tr>`; };
+      return `<h3>Regolatore</h3><p class="lead">L'orario come partenze da coprire. Una partenza è scoperta quando la sua tabella non ha un treno: fai uscire una riserva (${Math.round(PREP(F) / 60)} minuti per prepararla), o ritira un treno a fine corsa.</p>
+        <div class="kpis"><div class="kpi"><b>${A.length}</b><span>treni in linea</span></div><div class="kpi"><b>${R.length}</b><span>riserve in deposito${RC.length ? ' (+' + RC.length + ' a Comasina)' : ''}</span></div><div class="kpi${sc.length ? ' bad' : ''}"><b>${sc.length}</b><span>partenze scoperte nella prossima ora</span></div><div class="kpi"><b>${(avg >= 0 ? '+' : '') + avg.toFixed(1).replace('.', ',')}</b><span>minuti di ritardo medio</span></div></div>
+        <div class="twrap"><table class="tbl"><thead><tr><th>Ora</th><th>Capolinea</th><th>Tabella</th><th>Treno</th><th>Stato</th><th></th></tr></thead><tbody>${L_.slice(0, 40).map(row).join('') || '<tr><td colspan="6">Nessuna partenza nella prossima ora</td></tr>'}</tbody></table></div>`;
+    }
+    function toolTurni(F) {
+      const t = state.t, rows = F.trains.map((tr, k) => ({ tr, k, r: realTrain(F, tr, t) })).filter(x => isTab(x.tr)).sort((p, q) => firstDep(p.tr) - firstDep(q.tr));
+      const broken = new Set((F.ag.FX ? F.ag.FX.list() : []).filter(f => f.k != null && f.kind !== 'vista' && f.kind !== 'pc').map(f => f.k));
+      const lastArr = tr => { const g = tr.segs0 || tr.segs; let e = 0; g.forEach(s => { const z = s[3][s[3].length - 1]; if (z > e) e = z; }); return e; };
+      const stato = x => { const st = trainState(F, x.tr, t), a = F.ag.agents()[x.k]; if (broken.has(x.k)) return '<span class="tag2 bad">guasto</span>';
+        return st.status === 'parked' || st.status === 'depot' || (a && (a.hidden || a.status === 'parked')) ? '<span class="tag2 dep">in deposito</span>' : '<span class="tag2 mov">in linea</span>'; };
+      const canSwap = x => startKind(x.tr) === 'D' && standing(F, x.k);
+      const ok = y => y.r && !y.r.none && !y.r.missing && !(y.r.cars && y.r.cars < 6) && !inMaint(y.r.units) && (!(F.stock[y.r.u] || {}).trial || ADMIT.has(String(y.r.units)));
+      const pool = F.trains.map((tr, k) => ({ tr, k, r: realTrain(F, tr, t), tab: isTab(tr) })).filter(y => (y.tab || (!y.tr.cover && y.r && !y.r.none)) && canSwap(y) && ok(y));
+      const cell = x => { if (!canSwap(x)) return '<button class="sbtn" disabled title="Si cambia solo con il treno fermo al suo posto in deposito">Cambia treno</button>';
+        const o = pool.filter(y => y.k !== x.k); if (!o.length) return '<button class="sbtn" disabled title="Nessun altro treno fermo in deposito">Cambia treno</button>';
+        return `<select data-sw="${x.k}" aria-label="Nuovo treno della tabella ${x.tr.n}"><option value="">Cambia treno…</option>${o.map(y => `<option value="${y.k}">${esc(y.r.units)}${y.tab ? ' (tabella ' + y.tr.n + ')' : ' (riserva)'}</option>`).join('')}</select>`; };
+      const nRes = reserves(F).length;
+      return `<h3>Turni del giorno</h3><p class="lead">Ogni tabella ha un treno per tutto il giorno (${DAYS[dayPick]}). Il treno di una tabella si cambia finché i due treni sono fermi al loro posto in deposito: ognuno parte poi dal posto dell'altro.</p>
+        <div class="kpis"><div class="kpi"><b>${rows.length}</b><span>tabelle</span></div><div class="kpi"><b>${F.trains.filter(tr => { const r = realTrain(F, tr, t); return r && !r.none && !r.missing; }).length}</b><span>treni della flotta in servizio oggi</span></div><div class="kpi"><b>${nRes}</b><span>riserve pronte in deposito</span></div></div>
+        <div class="twrap"><table class="tbl"><thead><tr><th>Tabella</th><th>Treno</th><th>Uscita</th><th>Rientro</th><th>Stato</th><th></th></tr></thead><tbody>
+        ${rows.map(x => `<tr class="${broken.has(x.k) ? 'bad' : ''}"><td><span class="tnum">${x.tr.n}</span></td><td>${esc(x.r && !x.r.missing && !x.r.none ? x.r.units : 'nessun treno')}</td><td>${fmt(firstDep(x.tr))}</td><td>${fmt(lastArr(x.tr))}</td><td>${stato(x)}</td><td>${cell(x)}</td></tr>`).join('')}</tbody></table></div>
+        <div class="oldbox" id="pcKeepSlot"></div>`;
+    }
+    function toolNav(F) {
+      const em = closureNow(F);
+      if (!em || em.reopened) return `<h3>Navetta</h3><div class="empty2"><b>Nessuna tratta chiusa</b>La navetta serve quando una tratta è chiusa. Chiudi una tratta da Chiusure e qui vedi la navetta.</div>`;
+      const nav = F.ag.agents().filter(a => a.mode === 'navetta'), wait = F.ag.agents().filter(a => !a.hidden && a.status === 'stopped');
+      const where = a => a.at != null ? capS(names(F)[a.at]) : '—';
+      return `<h3>Navetta</h3><p class="lead">Tratta chiusa: <b>${esc(em.label)}</b>. La navetta sulla parte isolata la decide oggi la regola della chiusura (foglio Chiusure, binari alle stazioni di fine tratta): la scelta del treno a mano non è ancora collegata.</p>
+        <div class="twrap"><table class="tbl"><thead><tr><th>Treno</th><th>Dove si trova</th><th>Stato</th><th></th></tr></thead><tbody>
+        ${nav.map(a => `<tr><td><span class="tnum">${esc(tno(F, a.k))}</span></td><td>${esc(where(a))}</td><td><span class="tag2 mov">fa la navetta</span></td><td></td></tr>`).join('')}
+        ${wait.map(a => `<tr><td><span class="tnum">${esc(tno(F, a.k))}</span></td><td>${esc(where(a))}</td><td><span class="tag2 dep">fermo, attende il DCT</span></td><td><button class="sbtn" disabled title="Da collegare: oggi la navetta la sceglie la regola della chiusura">Fai la navetta</button></td></tr>`).join('')}
+        ${!nav.length && !wait.length ? '<tr><td colspan="4">Nessun treno candidato adesso</td></tr>' : ''}</tbody></table></div>`;
+    }
+    // D1-D5: the five groups of failures of web/faults.js (train, line, people and emergencies, units and rescue, the day)
+    const DGRP = [['D1', 'Guasti del treno', ['trazione', 'trazione_socimi', 'porta', 'freno', 'ato', 'allarme', 'porte_persone', 'malore_treno', 'riarmo', 'secondario']],
+      ['D2', 'Guasti della linea', ['segnale', 'sezione', 'scambio', 'tensione']], ['D3', 'Persone ed emergenze', ['persona', 'oggetto', 'malore_stazione', 'tunnel', 'investimento', 'incendio']],
+      ['D4', 'Unità e soccorso', ['udt', 'soccorso', 'atp']], ['D5', 'Sciopero e Prefettura', ['sciopero', 'prefettura']]];
+    function toolGuasti(F) {
+      const K = F.ag.FX ? F.ag.FX.kinds() : [], by = id => K.find(x => x.id === id);
+      return `<h3 style="color:var(--admin)">Guasti · admin</h3><p class="lead">Solo in Admin: provoca un guasto per provare le procedure. Il treno, il segnale o la stazione: a caso.</p>
+        <div class="twrap"><table class="tbl"><thead><tr><th>Codice</th><th>Guasto</th><th></th></tr></thead><tbody>
+        ${DGRP.map(([c, l, ids]) => { const o = ids.map(by).filter(Boolean); return `<tr><td>${c}</td><td>${l}<br><select data-dk="${c}" aria-label="${l}">${o.map(x => `<option value="${x.id}">${esc(x.label)}</option>`).join('')}</select></td><td><button class="sbtn" data-dgo="${c}"${o.length ? '' : ' disabled'}>Provoca</button></td></tr>`; }).join('')}
+        </tbody></table></div><p class="fakenote" id="pcDNote"></p><div class="oldbox" id="pcKeepSlot"></div>`;
+    }
+    function bindTools(F) {
+      const m = $('pcTmain'), slot = $('pcKeepSlot'), keep = $('pcToolsKeep');
+      if (slot) { keep.hidden = false; slot.append(keep); keep.querySelectorAll('section').forEach(s => { s.hidden = ttab !== 'guasti'; }); keep.querySelectorAll(':scope > .row, :scope > .note').forEach(r => { r.hidden = ttab !== 'turni'; }); }
+      if (!F) return;
+      m.querySelectorAll('[data-wd]').forEach(b => b.onclick = () => { withdraw(F, +b.dataset.wd); m.dataset.h = ''; drawTools(); });
+      m.querySelectorAll('[data-insgo]').forEach(b => b.onclick = () => { const sel = m.querySelector(`[data-ins="${b.dataset.insgo}"]`); if (!sel || sel.value === '') { if (sel) sel.focus(); return; }
+        const mm = +b.dataset.insgo, k = +sel.value, u = (realTrain(F, F.trains[k], state.t) || {}).units;
+        const r = comReserves(F).some(y => y.k === k) ? insertComReserve(F, k, mm) : insertReserve(F, k, mm);
+        if (r && r.com) say('', tx('dct.regola.inserisci_comasina', { treno: u, tabella: F.trains[mm].n, ora: fmt(r.t) }), 'sys');
+        else if (r && r.t != null) say('', tx('dct.regola.inserisci', { treno: u, posto: depotName(F, r.q), tabella: F.trains[mm].n, ora: fmt(r.t) }), 'sys');
+        else if (r) say('', tx('dct.regola.nessuna_corsa', { tabella: F.trains[mm].n, treno: u }), 'sys');
+        sel.blur(); m.dataset.h = ''; drawTools(); });
+      m.querySelectorAll('[data-sw]').forEach(sel => sel.onchange = () => { if (sel.value === '') return; const k = +sel.dataset.sw, j = +sel.value;
+        const a = realTrain(F, F.trains[k], state.t), b = realTrain(F, F.trains[j], state.t);
+        if (swapUnits(F, k, j)) say('', tx('dct.turni.cambio', { tabella: F.trains[k].n, treno: b.units, treno2: a.units }), 'sys'); sel.blur(); m.dataset.h = ''; drawTools(); });
+      m.querySelectorAll('[data-dgo]').forEach(b => b.onclick = () => { const kind = m.querySelector(`[data-dk="${b.dataset.dgo}"]`).value, kd = F.ag.FX.kinds().find(x => x.id === kind);
+        const r = F.ag.event(kd && kd.on !== 'train' ? { kind: 'fault', what: 'new', fault: kind, target: null } : { kind: 'fault', what: 'new', fault: kind });
+        $('pcDNote').textContent = r ? 'Guasto partito: ' + kd.label + '. Guarda Info e la radio.' : 'Non si può adesso: ' + kd.label + '.'; fxFeed(F); renderAlarms(); status(); });
+    }
+
+    // ---------- every second ----------
+    function tick() {
+      const F = F3(); dayLabel();
+      if ($('pcPiano').getAttribute('aria-pressed') !== String(!planEl.hidden)) { $('pcPiano').setAttribute('aria-pressed', String(!planEl.hidden)); railMark('schema', !planEl.hidden); }
+      if (F) {
+        // (the failures' calls for a train: its conversation in the Radio, new until the DCT opens it)
+        if (F.ag.FX) F.ag.FX.list().filter(f => f.call && f.k != null).forEach(f => { if (PCALL.has(f.id + ':' + f.call.t)) return; PCALL.add(f.id + ':' + f.call.t); if (f.callWho === 'ag') return; PCH.call(F, F.trains[f.k]); });
+        powerCalls(F); greyLine(!!pcF(F, 'power'));
+      }
+      status(); drawRadio(); drawInfo(); if (!$('w-chiu').hidden) drawChiu(); if (!$('w-emg').hidden) drawEmg(); if (!$('pcTools').hidden) drawTools();
+    }
+    const PCALL = new Set();
+    PCH.tick = tick;
+    // ---------- the start: only the Radio open (on the phone: in the dock); the rail closed on the phone ----------
+    if (phoneW()) { body.classList.add('pc-rail-off'); $('pcBurger').setAttribute('aria-pressed', 'false'); dockAdd('radio'); } else openWin('radio');
+    if (isPlayer) body.classList.add('pc-console-off'); else railMark('admin', true);
+    document.querySelectorAll('.role').forEach(b => b.addEventListener('click', () => { body.classList.toggle('pc-console-off', isPlayer); railMark('admin', !isPlayer); if (!$('pcTools').hidden) drawTools(); }));
+    layout(); setTimeout(layout, 300); dayLabel(); status();
+    window.mtlPC = { openWin, closeWin, minWin, setTools, setPiano, groupLog: GLOG, evac: EVAC, tab: t => { RW.tab = t; drawRadio(true); }, cur: () => RW.cur, waiting, status: () => $('pcStatus').innerHTML };
+  })();
   window.mtl = { map, state, fleets, setView, trainState: (F, tr, t) => trainState(F, tr, t), rego: { comReserves: F => comReserves(F), insertComReserve: (F, k, m) => insertComReserve(F, k, m), withdraw: (F, k) => withdraw(F, k), uncovered: (F, m) => uncovered(F, m), runsOf: (F, m) => runsOf(F, m) }, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), phone: { conv: X => MR.phoneConv(X), pending: () => MR.phonePending() }, osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
