@@ -766,14 +766,14 @@ const SCENARIOS = {
       document.querySelector('#depotPlan .dp-sw button[data-w="line"]').click(); await sleep(1500);
       const line = { tk: new Set([...document.querySelectorAll('#depotPlan path.tk')].map(x => x.dataset.e)).size, want: (F.engine.net.schema_line || { edges: [] }).edges.length, labels: document.querySelectorAll('#depotPlan text.lab').length,
         plat: document.querySelectorAll('#depotPlan rect.plat').length, m2: document.querySelectorAll('#depotPlan g.badge').length };
-      // the three strips (Giovanni 16 Nov 2026): all of it within the page's width at the first zoom, the track going on
-      // at each cut (a piece crossing a cut drawn on both strips, none cut in half), the "continua" marks
+      // the line on one row (Giovanni 16 Nov 2026: the strips taken away until he cuts it): everything inside the drawing
       { const SL = F.engine.net.schema_line, cuts = (SL.strips || {}).cuts || [], body = document.querySelector('#depotPlan .dp-body'), svg = body.querySelector('svg'), vb = svg.viewBox.baseVal;
         const NE = F.engine.net.edges, NN = SL.nodes, cross = SL.edges.filter(ei => { const a = NN[NE[ei].a], b = NN[NE[ei].b]; return a && b && cuts.some(c => Math.min(a[0], b[0]) < c && c < Math.max(a[0], b[0])); });
         const parts = ei => [...document.querySelectorAll(`#depotPlan path.tk[data-e="${ei}"]`)].reduce((n, x) => n + (x.getAttribute('d').match(/M/g) || []).length, 0);
         line.strips = { cuts: cuts.length, fit: body.scrollWidth <= body.clientWidth + 1, cross: cross.length, both: cross.every(ei => parts(ei) >= 2), cont: document.querySelectorAll('#depotPlan g.cont text').length,
           inside: [...document.querySelectorAll('#depotPlan path.tk, #depotPlan rect.plat')].every(x => { const b = x.getBBox(); return b.x >= vb.x - 1 && b.x + b.width <= vb.x + vb.width + 1; }), w: Math.round(vb.width), h: Math.round(vb.height) };
-        line.stripsOk = cuts.length >= 2 && line.strips.fit && line.strips.cross === 2 * cuts.length && line.strips.both && line.strips.cont === 2 * cuts.length && line.strips.inside && vb.width < (Math.max(...Object.values(NN).map(q => q[0])) - Math.min(...Object.values(NN).map(q => q[0]))) / 2; }
+        // (Giovanni 16 Nov 2026, later: made again from zero, "fai una riga che poi dividiamo": one row, no strips yet)
+        line.stripsOk = cuts.length === 0 && line.strips.cont === 0 && line.strips.inside && vb.width > 5000; }
       document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); await sleep(500);
       document.getElementById('dpClose').click(); await sleep(200);
       const back = document.getElementById('depotPlan').hidden;
@@ -784,6 +784,10 @@ const SCENARIOS = {
     // other, arrows, undo and redo, separate, align to the row, the list of what to look at; nothing left in the browser.
     // Two nodes on top of each other: the first pair in the list (the depot has some), then the line for the rows
     const sleep = ms => new Promise(r => setTimeout(r, ms)), r = {};
+    // (the drawings made again from zero have no nodes on top of each other: the joint of a place, 300000 put on 100000)
+    await p.evaluate(() => { const F = window.mtl.fleets.find(f => f.line === 'M3' && f.ag), q = F.engine.net.schema_depot.nodes['100000'];
+      localStorage.setItem('mtl-schema-edit-2', JSON.stringify({ nodes: { 300000: [q[0] + 0.5, q[1]] }, via: {} })); });
+    await p.reload(); await p.waitForTimeout(6000);
     const which = async w => { await p.evaluate(w => { const s = document.getElementById('schWhich'); s.value = w; s.dispatchEvent(new Event('change')); }, w); await sleep(1500); };
     await p.evaluate(() => { document.querySelector('.drawer .tab[data-mode="schema"]').click(); document.getElementById('schEdit').click(); });
     await which('dep'); await p.evaluate(() => { for (let i = 0; i < 4; i++) document.getElementById('dpIn').click(); }); await sleep(1200);
@@ -812,12 +816,12 @@ const SCENARIOS = {
     r.listOk = L1.some(t => /^Nodi \d+ e \d+ vicini/.test(t)) && L1.some(t => /^Tratto .* corto/.test(t));
     await p.evaluate(() => { document.getElementById('schUndo').click(); }); await sleep(300);
     // the line: a node off the main rows to the nearest one
-    await which('line'); const L2 = await list(), off = L2.map(t => t.match(/^Nodo (\d+) fuori dalle righe principali \([^)]*\): y ([\d,]+)/)).find(m => m && Math.abs(parseFloat(m[2].replace(',', '.')) - 182) < 0.5);
+    await which('line'); const L2 = await list(), off = L2.map(t => t.match(/^Nodo (\d+) fuori dalle righe principali \([^)]*\): y ([\d,]+)/)).find(m => m && Math.abs(parseFloat(m[2].replace(',', '.')) - 172) < 0.5);
     r.off = off ? off[1] : null;
     if (off) { await p.evaluate(n => [...document.querySelectorAll('#schSusp button')].find(x => x.dataset.sel === n).click(), off[1]); await sleep(300);
       const a0 = await yOf(off[1]); await p.evaluate(() => document.getElementById('schAlign').click()); await sleep(300); r.align = [a0, await yOf(off[1])];
-      r.alignOk = !!a0 && Math.abs(r.align[1][1] - a0[1] - 18) < 0.05; }                  // (182 -> 200, on its strip)
-    await p.evaluate(() => { document.getElementById('schUndo').click(); try { localStorage.removeItem('mtl-sinlinea-edit'); localStorage.removeItem('mtl-schema-edit'); } catch (e) {}
+      r.alignOk = !!a0 && Math.abs(r.align[1][1] - a0[1] - 28) < 0.05; }                  // (172 -> 200)
+    await p.evaluate(() => { document.getElementById('schUndo').click(); try { localStorage.removeItem('mtl-sinlinea-edit-2'); localStorage.removeItem('mtl-schema-edit-2'); } catch (e) {}
       document.getElementById('schEdit').click(); document.getElementById('dpClose').click(); });
     r.ok = r.labels[0] > 50 && r.labels[0] === r.labels[1] && r.labels[2] && r.near >= 2 && !!r.pair && r.cycleOk && r.keysOk && r.sepOk && r.listOk && r.alignOk;
     return r;

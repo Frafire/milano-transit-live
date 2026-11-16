@@ -1549,6 +1549,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
     <div class="row"><select id="schWhich" aria-label="Quale sinottico"><option value="dep">Deposito</option><option value="line">Linea</option></select><button id="schEdit" aria-pressed="false">Modifica il disegno</button><button id="schExport">Esporta il file</button><button id="schUndo">Annulla le modifiche</button></div>
     <div class="row"><button id="schU" title="Ctrl+Z" disabled>Annulla</button><button id="schR" title="Ctrl+Y" disabled>Ripeti</button><button id="schGrid" aria-pressed="true">Griglia</button><button id="schGroup" aria-pressed="false" title="Trascinando un nodo, quelli a meno di 10 px vengono con lui">Unisci i nodi vicini</button></div>
     <div class="row"><button id="schAlign" title="Un nodo: sulla riga più vicina. Due o più: tutti allo stesso x del primo scelto">Allinea alla riga</button><button id="schSep" title="Mette i nodi scelti (o quelli vicini al nodo scelto) in fila, a questa distanza">Separa di</button><input id="schSepD" type="number" value="20" min="2" max="200" step="1" aria-label="Distanza in px"> px</div>
+    <div class="row"><button id="schPts" title="Le tratte dei nodi scelti: un punto in più a metà di ogni pezzo, da trascinare (doppio clic su un binario: un punto lì; Alt + clic su un punto: lo toglie)">Più punti</button></div>
     <p class="note" id="schSel">Nessun nodo scelto.</p>
     <details id="schSuspBox"><summary>Nodi sospetti: <span id="schSuspN">0</span></summary><div id="schSusp"></div></details>
     <p class="note" id="schNote"></p>
@@ -9002,7 +9003,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // binari, tab Sinottico) moves the nodes and the bends, adds bends (double click on a track) and takes them away
   // (Alt + click on a bend); kept in this browser until exported.
   var SIN_WHICH = 'dep';
-  const SIN_KEY = { dep: 'mtl-schema-edit', line: 'mtl-sinlinea-edit' }, SIN_FILE = { dep: 'schema_deposito_m3.json', line: 'sinottico_linea_m3.json' };
+  // (-2: the drawings made from zero on 16 Nov 2026; the edits of the old ones are not used)
+  const SIN_KEY = { dep: 'mtl-schema-edit-2', line: 'mtl-sinlinea-edit-2' }, SIN_FILE = { dep: 'schema_deposito_m3.json', line: 'sinottico_linea_m3.json' };
   var SCH_EDIT = { on: false, drag: null, ed: { dep: null, line: null }, sel: [], grid: true, group: false, pick: null, hist: { dep: { u: [], r: [] }, line: { u: [], r: [] } } };   // (var: the editor's tabs may ask before this line)
   for (const w of ['dep', 'line']) { try { const v = JSON.parse(localStorage.getItem(SIN_KEY[w]) || 'null'); SCH_EDIT.ed[w] = v && (v.nodes || v.via) ? v : v ? { nodes: v } : null; } catch (e) {} }
   const sinSchema = F => SIN_WHICH === 'line' ? F.engine.net.schema_line : F.engine.net.schema_depot;
@@ -9266,7 +9268,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const vb = [Math.floor(X0 - 24), Math.floor(Y0 - 26), Math.ceil(X1 - X0 + 48), Math.ceil(Y1 - Y0 + 44)];
     const sx = body.scrollLeft, sy = body.scrollTop;
     // (both fit the width at first, the whole line in view; + and − to go nearer: Giovanni 9 Nov 2026)
-    const wcss = Math.round(SIN_Z[SIN_WHICH] * 100) + '%';
+    // (the drawings made from zero, Giovanni 16 Nov 2026, "fai il piano più grande": drawn at their own size, 1.3 px a unit for
+    // the line on one row, 0.9 for the depot, times the zoom; scrolled, not squeezed into the page)
+    const wcss = Math.round(vb[2] * (SIN_WHICH === 'line' ? 1.3 : 0.9) * SIN_Z[SIN_WHICH]) + 'px';
     body.innerHTML = `<svg viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg" style="width:${wcss}"${SCH_EDIT.on ? ` class="edit${SIN_Z[SIN_WHICH] >= 2.4 ? ' zhi' : ''}"` : ''}><g>${base}</g><g>${over}</g>${marks}</svg>`;
     body.scrollLeft = sx; body.scrollTop = sy;
     body.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
@@ -9279,7 +9283,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // nor the build's data.
   // The rows: the line on rows 18 px apart from the north track (y 200; tools/sinottico.py), the main ones the two tracks
   // and the one between them; the depot on rows 11 px apart from y 40
-  const SIN_ROWS = { line: { y0: 200, dy: 18, main: [200, 218, 236, 254] }, dep: { y0: 40, dy: 11, main: null } };
+  // (the drawings made again from zero, Giovanni 16 Nov 2026: rows of 28 px; on the line binario 2 at 200, binario 1 at 284)
+  const SIN_ROWS = { line: { y0: 200, dy: 28, main: [200, 228, 256, 284] }, dep: { y0: 60, dy: 28, main: null } };
   const SIN_NEAR = 10;                                                     // px: nodes, and pieces, closer than this
   const schRowY = y => { const R = SIN_ROWS[SIN_WHICH]; return Math.round((y - R.y0) / R.dy) * R.dy + R.y0; };
   const schMainY = y => { const R = SIN_ROWS[SIN_WHICH]; return R.main ? R.main.reduce((b, r) => Math.abs(r - y) < Math.abs(b - y) ? r : b) : schRowY(y); };
@@ -9337,6 +9342,16 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const cx = g.reduce((s, n) => s + c.N[n][0], 0) / g.length, o = {};
     g.forEach((n, i) => { o[n] = [Math.round(cx + (i - (g.length - 1) / 2) * D), c.N[n][1]]; });
     schSetNodes(o); schNote(`Nodi ${g.join(', ')} in fila, ${D} px l'uno dall'altro.`); drawDepotPlan(); }
+  // more points to shape by hand (Giovanni 16 Nov 2026: "la possibilità di aumentare i punti per modificare graficamente"):
+  // every piece of the chosen nodes gets a point in the middle of each of its straight bits (its corners become points too)
+  function schPoints() { const c = schCtx(); if (!c || !SCH_EDIT.sel.length) { schNote('Scegli prima uno o più nodi: le loro tratte avranno più punti.'); return; }
+    const NE = c.F.engine.net.edges, sel = new Set(SCH_EDIT.sel.map(String)), via = {};
+    for (const ei of c.SCH.edges) { const e = NE[ei]; if (!sel.has(String(e.a)) && !sel.has(String(e.b))) continue;
+      const full = sinFull(c.N, c.V, e, ei); if (!full) continue; const v = [];
+      for (let i = 1; i < full.length; i++) { const A = full[i - 1], B = full[i]; v.push([Math.round((A[0] + B[0]) / 2), Math.round((A[1] + B[1]) / 2)]); if (i < full.length - 1) v.push([Math.round(B[0]), Math.round(B[1])]); }
+      via[ei] = v; }
+    const n = Object.keys(via).length; if (!n) { schNote('Nessuna tratta disegnata per i nodi scelti.'); return; }
+    schPush(); sinEd().via = Object.assign({}, sinEd().via || {}, via); sinSave(); schNote(`${n} tratte con più punti: trascina i pallini.`); drawDepotPlan(); }
   // the list of what to look at again: a click chooses the node(s) and brings them in view
   var SCH_SUSP_KEY = '';
   function schSuspList(F, SCH, N, V) {
@@ -9416,6 +9431,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   document.getElementById('schGroup').onclick = () => { SCH_EDIT.group = !SCH_EDIT.group; schButtons(); };
   document.getElementById('schAlign').onclick = schAlign;
   document.getElementById('schSep').onclick = schSeparate;
+  document.getElementById('schPts').onclick = schPoints;
   document.getElementById('schExport').onclick = () => { const F = m3eng(); const SCH = F && sinSchema(F); if (!SCH) return;
     const out = Object.assign({}, SCH, { nodes: schNodes(SCH), via: schVia(SCH) });
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' })); a.download = SIN_FILE[SIN_WHICH]; a.click(); };
