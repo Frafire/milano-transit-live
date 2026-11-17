@@ -1,4 +1,4 @@
-"""The schema of the San Donato depot (sinottico, Giovanni 3 Nov 2026): a drawing like the wall of a control room, with
+"""The schema of the Rogoredo depot (ROD) (sinottico, Giovanni 3 Nov 2026): a drawing like the wall of a control room, with
 horizontal lines and 45-degree diagonals, not the geography. This tool makes a first one from the real track and writes it
 to data/schema_deposito_m3.json, the file that is then corrected by hand (the editor, later). Run it once from build/
 after a build (it reads m3.json); the build does not run it, so the corrections stay:
@@ -28,7 +28,7 @@ def dec(p):
 xy = lambda la, lo: (lo * KX, la * KY)
 BOX = (45.4272, 45.4340, 9.2510, 9.2605)                       # the depot (tools/build_line.py depot_box, a little larger: #A02-#A05)
 inbox = lambda n: BOX[0] <= NODES[str(n)][0] <= BOX[1] and BOX[2] <= NODES[str(n)][1] <= BOX[3]
-DEP = [i for i, e in enumerate(E) if inbox(e['a']) and inbox(e['b'])]            # (all the track in the box: the depot, the test loop, San Donato)
+DEP = [i for i, e in enumerate(E) if inbox(e['a']) and inbox(e['b'])]            # (all the track in the box: the depot ROD, the test loop, San Donato)
 nodes = sorted({E[i]['a'] for i in DEP} | {E[i]['b'] for i in DEP})
 # the angle of the shed tracks: the long straight-ish yard pieces, weighted by length
 acc = [0.0, 0.0]
@@ -72,7 +72,7 @@ for si, sg in enumerate(net['signals']):
         if r and r[0] < 3 and (best is None or r[0] < best[1]): best = (i, r[0], r[1])
     if best: sigs.append({'n': sg['n'], 'si': si, 'e': best[0], 'f': round(best[2], 3)})
 places = [{'node': p['node'], 'name': p['name']} for p in net.get('depot', []) if p['node'] in sch]
-out = {'_about': 'Schema del deposito di San Donato (sinottico, proposta di Giovanni 3 nov 2026): nodes = posizione di ogni nodo nel '
+out = {'_about': 'Schema del deposito Rogoredo (ROD) (sinottico, proposta di Giovanni 3 nov 2026): nodes = posizione di ogni nodo nel '
                  'disegno (px); le tratte si disegnano da nodo a nodo, orizzontale poi diagonale a 45 gradi. Fatto la prima volta da '
                  'tools/schema_deposito.py, poi si corregge a mano (i nodi). signals: la tratta e quanto lungo (0-1); places: i posti.',
        'angle_deg': round(math.degrees(th), 1), 'edges': DEP, 'nodes': {str(n): v for n, v in sorted(sch.items())}, 'signals': sigs, 'places': places}

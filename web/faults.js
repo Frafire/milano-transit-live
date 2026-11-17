@@ -68,7 +68,7 @@
     rientro: { label: 'Rientro per sciopero', on: 'none' },
     sciopero: { label: 'Sciopero', on: 'day' },
   };
-  const tag = n => '#A' + String(n).padStart(2, '0');
+  const tag = n => (typeof window !== 'undefined' && window.mtlSigName) ? window.mtlSigName(n) : '#A' + String(n).padStart(2, '0');   // (the real names where there are: S01A...)
   const G1 = 8.75 * 3600, G2a = 15 * 3600, G2b = 18 * 3600;             // the guaranteed service of a strike day
   const AUTO = 180, DAYS = 19 * 3600;                 // the DCT answers by itself after 3 minutes; ~19 hours of service a day
   const ANSWERS = { rearm: 'Riarma', agent: "Manda l'agente", tech: 'Tecnico a bordo', rescue: 'Manda il soccorso', ack: 'Ricevuto', vista: 'Marcia a vista',

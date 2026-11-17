@@ -1033,7 +1033,7 @@
     }
     // a train back from the depot (ROD: San Donato) or from a tail at Comasina: it takes the first timetable run not taken
     const wakeD = () => { const pe = pathEdges[G.S.pid].e; return pe[pe.length - 1][3] - half - 5; };
-    // nobody where a train comes out of the depot (San Donato)
+    // nobody where a train comes out of the depot (ROD, towards San Donato)
     function wakeFree() { const w = wakeD(); return !S.agents.some(x => !x.hidden && (x => x != null && Math.abs(x - w) < 2 * half + 250)(mapTo(x.pid, x.d, G.S.pid))); }
     function wake(a) {
       if (!a || a.attached != null) return false;

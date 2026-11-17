@@ -1,5 +1,5 @@
 {
-  "_about": "I capannoni del deposito di San Donato (M3): sagome date da Giovanni (9/11/2026, spigoli presi su Google Maps). Dentro, i treni vanno al massimo a shed_speed_kmh (data/operations_m3.json) finché non ne sono usciti tutti.",
+  "_about": "I capannoni del deposito Rogoredo (ROD, M3): sagome date da Giovanni (9/11/2026, spigoli presi su Google Maps). Dentro, i treni vanno al massimo a shed_speed_kmh (data/operations_m3.json) finché non ne sono usciti tutti.",
   "capannoni": [
     {
       "nome": "Rimessa vetture",

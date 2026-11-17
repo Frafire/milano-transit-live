@@ -793,6 +793,9 @@ const SCENARIOS = {
     const ed = () => p.evaluate(() => JSON.parse(localStorage.getItem('mtl-schema-edit-3') || 'null'));
     const keys = await p.evaluate(() => [...document.querySelectorAll('#depotPlan g.dk[data-dk^="disp:"]')].map(g => g.dataset.dk));
     r.windows = keys.length;
+    // (Giovanni 17 Nov 2026: in the depot black windows only at the door, and square)
+    r.square = await p.evaluate(() => [...document.querySelectorAll('#depotPlan g.disp rect')].every(e => e.getAttribute('width') === e.getAttribute('height')));
+    r.sheds = await p.evaluate(() => new Set([...document.querySelectorAll('#depotPlan rect.shed title')].map(t => t.textContent)).size);   // (the three sheds, tile by tile)
     let c = await box(`#depotPlan g.dk[data-dk="${keys[0]}"] rect`); await sleep(300); c = await box(`#depotPlan g.dk[data-dk="${keys[0]}"] rect`);
     await p.mouse.move(c[0], c[1]); await p.mouse.down(); await p.mouse.move(c[0] + 40, c[1] + 30, { steps: 6 }); await p.mouse.up(); await sleep(600);
     const e1 = await ed(); r.moved = !!(e1 && e1.deco && Array.isArray(e1.deco[keys[0]]));
@@ -805,7 +808,7 @@ const SCENARIOS = {
     r.sigBack = await p.evaluate(() => !!document.querySelector('#depotPlan g.dk[data-dk="sig:4"]'));
     const e2 = await ed(); r.store = e2 && e2.deco;
     await p.evaluate(() => { document.getElementById('schEdit').click(); localStorage.removeItem('mtl-schema-edit-3'); });
-    r.ok = r.windows > 5 && r.moved && /translate/.test(r.moveOnPage || '') && r.gone && r.sigGone && r.sigBack && r.store && r.store[keys[1]] === 'x' && !('sig:4' in r.store);
+    r.ok = r.windows >= 2 && r.windows <= 4 && r.square && r.sheds === 3 && r.moved && /translate/.test(r.moveOnPage || '') && r.gone && r.sigGone && r.sigBack && r.store && r.store[keys[1]] === 'x' && !('sig:4' in r.store);
     return r;
   },
   async sineditor(p) {   // the sinottico editor (Giovanni 16 Nov 2026): numbers, a repeated click between two nodes on top of each

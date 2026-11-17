@@ -1,4 +1,4 @@
-// The M3 depot (San Donato) and its test loop (anello di prova): who stands where, which place a train gets, and the
+// The M3 depot (Rogoredo, ROD) and its test loop (anello di prova): who stands where, which place a train gets, and the
 // trips round the test loop. Giovanni, 28 Oct.
 //
 // Places: trains have no fixed place. When a train leaves San Donato platform 1 for the depot (#A40 towards #A04) the

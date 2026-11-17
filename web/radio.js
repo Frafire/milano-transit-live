@@ -685,7 +685,7 @@
         const redCall = a.status === 'turnback' ? 300 : a.stopAt == null ? 30 : a.why === 'segnale' && !a.pcHold && !a.vlim ? 30 : Infinity;     // (at a station: 30 s too, unless the DCT ordered something)
         if (a.red && a.v === 0 && em.ag.S.t - a.red.since >= redCall && !c.red && !(dq && !dq.open && dq.red != null) && !(a.why === 'guasto' || a.why === 'tensione' || a.why === 'rosso' || a.why === 'fermo') && !(((a.red.now || a.red.why || {}).route || {}).sigFail != null || ((a.red.now || a.red.why || {}).route || {}).ghost != null || ((a.red.now || a.red.why || {}).route || {}).swHand != null)) {   // (depot signals on manual: their own calls; failures: their own calls)
           c.red = true; const w = a.red.now || a.red.why || {};
-          call(w.sig != null ? tx('chiamata.rosso.segnale', { treno: no, segnale: typeof w.sig === 'number' && w.route !== undefined ? '#A' + String(w.sig).padStart(2, '0') : sigNo(F, w.sig) })
+          call(w.sig != null ? tx('chiamata.rosso.segnale', { treno: no, segnale: typeof w.sig === 'number' && w.route !== undefined ? ((typeof window !== 'undefined' && window.mtlSigName) ? window.mtlSigName(w.sig) : '#A' + String(w.sig).padStart(2, '0')) : sigNo(F, w.sig) })
                              : tx('chiamata.rosso.dietro_treno', { treno: no, treno2: trainNo(F, F.trains[w.train] || tr) }));
         }
         if (!a.red && c.red) { c.red = false; say('T' + no, tx('chiamata.rosso.via_libera', { treno: no }), 'dr'); }

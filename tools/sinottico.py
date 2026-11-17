@@ -1,4 +1,4 @@
-"""Tools for the sinottici (the control-room drawings) of the M3: the depot of San Donato and the line.
+"""Tools for the sinottici (the control-room drawings) of the M3: the Rogoredo depot (ROD) and the line.
 
     cd build && python3 ../tools/sinottico.py tutto         # both, from zero (what the editor changed is lost: export it first)
     cd build && python3 ../tools/sinottico.py deposito      # the depot only
@@ -11,7 +11,7 @@ again). The build never runs this tool, so the hand work stays.
 
 Made again from zero on 16 Nov 2026 (Giovanni: "facciamolo ripartire da 0… metti tutti i binari giù… fai una riga che poi
 dividiamo… fai il piano più grande… uguale per il deposito"): every piece of the track is in one of the two drawings (the
-depot: the yard and the test loop in the box of San Donato; the line: everything else, the M2 link and the track to the
+depot: the yard and the test loop in the box of the depot (ROD); the line: everything else, the M2 link and the track to the
 depot included) and every signal on them; tests/sinottico_check.py fails the build when one is missing.
 
 On the tiles of the real board (Giovanni 16 Nov 2026, with frames of a video of the M3 depot's ACEI board: "puoi
@@ -118,7 +118,7 @@ def clean(P):
 
 
 # the depot (Giovanni 16 Nov 2026, from zero: "metti tutti i binari giù… fai il piano più grande… uguale per il
-# deposito"): its own pieces are the yard and the test loop in the box of San Donato; every other piece is the line's
+# deposito"): its own pieces are the yard and the test loop in the box of the depot (ROD); every other piece is the line's
 DEP_BOX = (45.4272, 45.4345, 9.2505, 9.2610)
 
 
@@ -309,7 +309,7 @@ def deposito(m3='m3.json'):
     # the others after them; San Donato written at the bottom
     sec0 = {'%d:%s' % (i, f): t for i, f, t in ((166, 0.98, '01'), (143, 0.05, '02'), (150, 0.01, '03'), (165, 0.99, '04'))} if door else {}
     texts = [{'x': pos[DOOR['2b']][0] + 2 * TILE, 'y': pos[DOOR['B2']][1] + 2 * TILE, 't': 'SAN DONATO', 'c': 'lab'}] if door else []
-    S = {'_about': 'Sinottico del deposito di San Donato, rifatto da zero (Giovanni 16/11/2026): tutti i binari del deposito e '
+    S = {'_about': 'Sinottico del deposito Rogoredo (ROD), rifatto da zero (Giovanni 16/11/2026): tutti i binari del deposito e '
                    'dell\'anello di prova, il binario vero girato in orizzontale e ingrandito (2,4 px al metro, una riga di 28 px '
                    'ogni 4 m); nodes = dove sta ogni nodo (px), via = curve (si aggiungono nell\'editor), signals = la tratta e '
                    'quanto lungo (0-1), places = i posti. tools/sinottico.py deposito lo rifà da capo; l\'editor lo corregge.',

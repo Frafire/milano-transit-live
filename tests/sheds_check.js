@@ -1,4 +1,4 @@
-// The depot sheds of San Donato (Giovanni 9 Nov 2026): the rimessa and the officina (data/capannoni_m3.json, traced on
+// The sheds of the Rogoredo depot, ROD (Giovanni 9 Nov 2026): the rimessa and the officina (data/capannoni_m3.json, traced on
 // his satellite photo); inside them at most shed_speed_kmh (5) until the whole train is out; two trains in the officina
 // from the start of the day, one of the 2nd lot of the first series (fleet_m3.OFFICINA), taking no tabella.
 // Checks: the outlines and the speed reach the page; the paths through the sheds carry their stretches; the officina trains

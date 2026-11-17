@@ -28,6 +28,7 @@ echo "== tests"
 python3 "$ROOT/tests/check_tails.py"
 python3 "$ROOT/tests/check_depot.py"
 python3 "$ROOT/tests/sinottico_check.py"      # (the drawings: nodes and pieces closer than 10 px, only reported)
+python3 "$ROOT/tests/nome_deposito_check.py"  # (the depot is "Deposito Rogoredo" (ROD), not San Donato: Giovanni 17 Nov 2026)
 node "$ROOT/tests/engine_test.js"
 node "$ROOT/tests/day_agents_check.js" 5 24
 node "$ROOT/tests/interlocking_check.js" 5 24

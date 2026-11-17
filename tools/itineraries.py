@@ -133,9 +133,9 @@ def plat_near(i, node, within=260):
     return best[1] if best else None
 
 
-EDGE_LABEL = {224: 'banchina Comasina binario 2 (arrivi)', 116: 'banchina Comasina binario 1 (partenze)', 166: 'deposito San Donato (ingresso)', 239: 'Brenta tronchetto',
+EDGE_LABEL = {224: 'banchina Comasina binario 2 (arrivi)', 116: 'banchina Comasina binario 1 (partenze)', 166: 'deposito Rogoredo (ingresso)', 239: 'Brenta tronchetto',
               184: 'Centrale tronchino di ricovero (A33)', 183: 'raccordo verso la M2', 129: 'Repubblica binario di rimessa'}
-EXTRA_START = {('SD', 'deposito San Donato (ingresso)', 'San Donato binario 1 (arrivi)'): ('A02', 'deposito San Donato (da A02)')}
+EXTRA_START = {('SD', 'deposito Rogoredo (ingresso)', 'San Donato binario 1 (arrivi)'): ('A02', 'deposito Rogoredo (da A02)')}
 # Comasina tails: three positions of 110 m each, position 1 the outermost (next to the switch), 3 the deepest
 # movements Giovanni classes differently from the geometry: (group, start signal, end signal) -> sense
 # SD 13->44: binario 1 into San Donato binario 2, half legal and half not, but standard: it happens a few times a month
@@ -143,7 +143,9 @@ SENSE_FIX = {('SD', 'A13', 'A44'): 'misto (ammesso in servizio)'}
 TAIL_POS = {190: (180, 'Comasina tronchetto 1'), 193: (182, 'Comasina tronchetto 2')}       # tail piece: (switch node, name)
 SLOT = 110.0
 # where the train ends up: the depot is one place, whichever track the train goes in by
-SAME_PLACE = {'deposito San Donato (ingresso)': 'deposito San Donato', 'San Donato uscita deposito': 'deposito San Donato'}
+ID_ORDER = {'uscita deposito Rogoredo': 'San Donato uscita deposito', 'deposito Rogoredo': 'deposito San Donato',
+            'deposito Rogoredo (ingresso)': 'deposito San Donato (ingresso)', 'deposito Rogoredo (da A02)': 'deposito San Donato (da A02)'}
+SAME_PLACE = {'deposito Rogoredo (ingresso)': 'deposito Rogoredo', 'uscita deposito Rogoredo': 'deposito Rogoredo'}
 
 
 def edge_name(i, node=None):
@@ -372,7 +374,10 @@ def run():
                 if m['frm'] == frm_ and m['to'] == to_:
                     ms.append(dict(m, start=[lab_, None, True], frm=where_, alt=[]))
         # order: legal first, then by entry
-        ms.sort(key=lambda m: (['legale', 'va contromano', 'rientra sul legale', 'contromano'].index(m['sense']), m['frm'], m['to']))
+        # (the IDs go by this order and the Excel rows go by ID: a renamed place keeps the order of its old name, so that
+        # no ID moves; Giovanni 17 Nov 2026, the depot is Rogoredo, not San Donato)
+        o = lambda x: ID_ORDER.get(x, x)
+        ms.sort(key=lambda m: (['legale', 'va contromano', 'rientra sul legale', 'contromano'].index(m['sense']), o(m['frm']), o(m['to'])))
         for n, m in enumerate(ms): m['id'] = '%s-%d' % (key, n + 1)
         for m in ms:       # after the numbering, so the IDs stay the same
             fx = SENSE_FIX.get((key, m['start'][0] if m['start'] else None, m['end'][0] if m['end'] else None))

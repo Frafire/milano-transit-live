@@ -44,7 +44,7 @@ Fatto: Gioca! → scelta del mezzo → linee metro (M1, M2, M3, M4+M5, insieme);
 ## 5 Altre linee metro
 
 - **In corso** — M2: binari, deposito, segnali (con il macchinista M2) (Entrambi): Chat a parte
-- **Più avanti** — Raccordo M2–M3 a Repubblica (solo il binario lato Caiazzo), precedenza 22 (Entrambi)
+- **Più avanti** — Raccordo M2–M3 tra Repubblica e Centrale FS (raccordo su entrambi i binari, per ora modellato solo il lato Caiazzo), precedenza 22 (Entrambi)
 - **Più avanti** — M1: depositi, segnali, manovre ai capolinea (Entrambi)
 - **Aspetta Giovanni** — M4: segni dei binari di Linate (Giovanni)
 - **Più avanti** — M5: binari, deposito, flotta (Entrambi)

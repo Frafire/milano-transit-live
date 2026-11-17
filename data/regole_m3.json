@@ -4261,7 +4261,7 @@
    "Tipo": "soccorso",
    "Guasto": "Soccorso con il trattorino",
    "Come si presenta (cosa vedono macchinista e PC)": "-",
-   "Cosa fa il macchinista (e quanto ci mette)": "Il trattorino parte da San Donato deposito o tronchetto centrale , 25 km/h, marcia a vista 5 km/h, accostamento 2 km/h; aggancia e traina (preferibilmente)",
+   "Cosa fa il macchinista (e quanto ci mette)": "Il trattorino parte dal deposito Rogoredo o dal tronchetto di Centrale FS, 25 km/h, marcia a vista 5 km/h, accostamento 2 km/h; aggancia e traina (preferibilmente)",
    "Cosa fa il PC": "Libera la strada al trattorino",
    "Quando diventa soccorso": "-",
    "Come si risolve / soccorso": "Traino fino al deposito",

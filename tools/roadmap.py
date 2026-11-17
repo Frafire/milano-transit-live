@@ -76,7 +76,7 @@ R = [
     ('4 Pagina iniziale', 'Dati', 'Dati divisi per linea e giorno, caricati a richiesta', 'Fatto', 'Claude', 'docs/dati/<linea>_<giorno>.js'),
     ('4 Pagina iniziale', 'Grafica', 'Sfondo del menu (foto) e schema della rete', 'Aspetta Giovanni', 'Giovanni', 'Fonte da confermare (CREDITS.md)'),
     ('5 Altre linee metro', 'M2', 'M2: binari, deposito, segnali (con il macchinista M2)', 'In corso', 'Entrambi', 'Chat a parte'),
-    ('5 Altre linee metro', 'M2', 'Raccordo M2–M3 a Repubblica (solo il binario lato Caiazzo), precedenza 22', 'Più avanti', 'Entrambi', ''),
+    ('5 Altre linee metro', 'M2', 'Raccordo M2–M3 tra Repubblica e Centrale FS (raccordo su entrambi i binari, per ora modellato solo il lato Caiazzo), precedenza 22', 'Più avanti', 'Entrambi', ''),
     ('5 Altre linee metro', 'M1', 'M1: depositi, segnali, manovre ai capolinea', 'Più avanti', 'Entrambi', ''),
     ('5 Altre linee metro', 'M4', 'M4: segni dei binari di Linate', 'Aspetta Giovanni', 'Giovanni', ''),
     ('5 Altre linee metro', 'M5', 'M5: binari, deposito, flotta', 'Più avanti', 'Entrambi', ''),

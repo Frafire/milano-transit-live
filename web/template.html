@@ -363,7 +363,7 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan .tk, #depotPlan.line .tk, #depotPlan path.tk, #depotPlan.line path.tk, #depotPlan .tk.main, #depotPlan.line .tk.main,
 #depotPlan path.tk.lit, #depotPlan path.tk.occ, #depotPlan.line path.tk.lit, #depotPlan.line path.tk.occ { stroke: #121212; stroke-width: 5; stroke-linecap: butt; stroke-dasharray: none; }
 #depotPlan path.tk.test { stroke: #121212; stroke-width: 3.2; stroke-dasharray: 9 4; }
-#depotPlan .lamp { fill: none; stroke-width: 3.4; stroke-linecap: round; stroke-dasharray: 0 6.5; pointer-events: none; }
+#depotPlan .lamp { fill: none; stroke-width: 3.4; stroke-linecap: round; stroke-dasharray: 0 4.6 0 4.6 0 12; pointer-events: none; }   /* (three lights close together, then a black gap: as on the board, Giovanni 17 Nov 2026) */
 #depotPlan .lamp.occ { stroke: #ff2b22; } #depotPlan .lamp.lit { stroke: #ffffff; }
 #depotPlan text, #depotPlan.line text { fill: #2b2a25; font-family: "DIN Condensed", "Arial Narrow", "Roboto Condensed", var(--display); }
 #depotPlan .lab, #depotPlan.line .lab { fill: #22211c; font: 700 15px "DIN Condensed", "Arial Narrow", "Roboto Condensed", var(--display); letter-spacing: .1em; text-transform: uppercase; }
@@ -376,7 +376,7 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan svg.edit g.dk, #depotPlan svg.edit g.dk * { pointer-events: auto; cursor: move; } #depotPlan svg.edit g.dk:hover { outline: 1px dashed #b3121a; }
 #depotPlan .swn { font: 600 8px var(--display); fill: #3a382f; } #depotPlan .secn { font: 600 7.5px var(--display); fill: #4a483f; pointer-events: none; } #depotPlan .binn { font: 700 9.5px var(--display); fill: #22211c; }
 #depotPlan .swl { fill: #3d3c35; stroke: #121212; stroke-width: .8; } #depotPlan .swl.on { fill: #fff6d0; } #depotPlan .swb { stroke: #121212; stroke-width: 1.4; }
-#depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
+#depotPlan .binf rect { fill: #d9d6c8; stroke: #3a382f; stroke-width: 1; } #depotPlan text.labs { font: 700 9.5px var(--display); fill: #22211c; letter-spacing: .05em; } #depotPlan text.sgname { font-size: 10px; font-weight: 600; fill: #2b2a25; } #depotPlan .darr { fill: #1b1b1b; stroke: var(--sin-bg); stroke-width: 1.2; } #depotPlan .darr.lit { fill: #f4f4ee; } #depotPlan .darr.occ { fill: #e5383b; } #depotPlan rect.shed { fill: #a6c7e0; stroke: none; } #depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
 #depotPlan .trn rect, #depotPlan .trn.late rect, #depotPlan .trn.early rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; }
 #depotPlan .trn text, #depotPlan .disp .trn text { fill: #ffffff; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
 #depotPlan .cont text { fill: #2b2a25; }
@@ -3077,8 +3077,8 @@ window.MTL_CAPS = __CAPS__;
     const its = RT_.fromSignal(n), sws = [...new Set(its.flatMap(x => x.switches))];
     const posTxt = p => 'come ' + p.ids.join(', ');
     const tno = k => { const tr = F.trains[k]; const rt = tr && realTrain(F, tr, state.t); return rt && rt.n ? rt.n : k + 1; };
-    let h = `<div class="hd"><span class="badge" style="background:${red ? '#d60012' : green ? '#1f9d55' : '#333'};color:#fff">${tag}</span>
-      <div><h2>Semaforo ${tag}</h2><div class="sub">${st.sigFail && st.sigFail[n] ? 'Guasto: resta rosso' : red ? 'Rosso fisso (DCT)' : green ? 'Via libera' : 'Rosso'}${RT_.isPcSignal(n) ? ' · comandato dal DCT' : ''}${setBy.length ? ' · itinerario ' + setBy.map(x => (x.id || '') + ' treno ' + tno(x.k)).join(', ') : ''}</div></div></div>
+    let h = `<div class="hd"><span class="badge" style="background:${red ? '#d60012' : green ? '#1f9d55' : '#333'};color:#fff">${sigName(n)}</span>
+      <div><h2>Semaforo ${sigName(n)}</h2><div class="sub">${st.sigFail && st.sigFail[n] ? 'Guasto: resta rosso' : red ? 'Rosso fisso (DCT)' : green ? 'Via libera' : 'Rosso'}${RT_.isPcSignal(n) ? ' · comandato dal DCT' : ''}${setBy.length ? ' · itinerario ' + setBy.map(x => (x.id || '') + ' treno ' + tno(x.k)).join(', ') : ''}</div></div></div>
       <div class="pcbtns">`;
     if (RT_.isPcSignal(n)) h += `<button data-pc="clear">Via libera al prossimo treno</button>`;
     const atSig = F.ag.agents().find(a => !a.hidden && a.v === 0 && a.red && ((a.red.now || a.red.why) || {}).sig === n);
@@ -4309,7 +4309,7 @@ window.MTL_CAPS = __CAPS__;
       <ul class="pclist"><li><span><b>${here}</b><small>treni ai loro posti</small></span></li><li><span><b>${coming}</b><small>in arrivo, con il posto già dato</small></span></li>
       <li><span><b>${W.loop.length ? W.loop.join(', ') : 'libero'}</b><small>anello di prova</small></span></li></ul>
       <div class="row" style="margin-top:10px;flex-wrap:wrap;gap:6px"><button id="rodAuto" aria-pressed="${auto}">Deposito: ${auto ? 'automatico' : 'manuale'}</button><button id="rodPlan">Schema del deposito</button><button id="rodTurni">Turni del giorno</button></div>
-      <p class="note">Automatico: i segnali del deposito (anche #A02-#A05 e #A98-#A99) si aprono da soli. Manuale: li apri tu, con un clic sul segnale.</p>
+      <p class="note">Automatico: i segnali del deposito (anche S01A, S01B, S02A, S02B e #A98-#A99) si aprono da soli. Manuale: li apri tu, con un clic sul segnale.</p>
       <div class="foot"><span></span><button id="cardClose">Chiudi</button></div>`;
     card.hidden = false;
     document.getElementById('cardClose').onclick = () => { state.sel = null; renderCard(); };
@@ -4457,6 +4457,10 @@ window.MTL_CAPS = __CAPS__;
   // (the file and the editor's changes): beside the longest bit of the section, at its middle, on the side with no other
   // track and no other window near (else none)
   var SIN_DISP = { key: null, list: [] };
+  // the sections of the depot's door (sec0: "piece:fraction" -> 01-04, as on the board)
+  function sinDoorSids(SCH, SEC) { const out = new Set();
+    for (const k of Object.keys(SCH.sec0 || {})) { const [ei, f] = k.split(':').map(Number), pc = (SEC.byEdge[ei] || []).find(q => f >= q[1] - 1e-4 && f <= q[2] + 1e-4); if (pc) out.add(pc[3]); }
+    return out; }
   function sinDisplays(SCH, SEC, FULL, fd) {
     const key = SIN_WHICH + '|' + SCH.edges.length + '|' + schSnap();
     if (SIN_DISP.key === key) return SIN_DISP.list;
@@ -4470,7 +4474,9 @@ window.MTL_CAPS = __CAPS__;
     const out = [];
     // (on the tiles, as on the board: a window two tiles wide in the row of tiles next to the track, its middle on a joint)
     const [TS, TX, TY] = SCH.tile || [28, 0, 0];
-    for (const [sid, s_] of Object.entries(sec).sort((u, v) => v[1].L - u[1].L)) { if (s_.L < 5 * TS) continue;
+    // the depot (Giovanni 17 Nov 2026): windows only at the door, its sections 01-04 (sec0), black squares there
+    const DOOR = SIN_WHICH === 'dep' ? sinDoorSids(SCH, SEC) : null;
+    for (const [sid, s_] of Object.entries(sec).sort((u, v) => v[1].L - u[1].L)) { if (DOOR ? !DOOR.has(+sid) : s_.L < 5 * TS) continue;
       const P = s_.best[0], m = alongPts(P, 0.5), m1 = alongPts(P, 0.45), m2 = alongPts(P, 0.55); let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
       const flat = Math.abs(ty) < 0.2, upright = Math.abs(tx) < 0.2; if (!flat && !upright) continue;
       for (const sd of [-1, 1]) { const c = flat ? [Math.round((m[0] - TX) / TS - 0.5) * TS + TX + TS / 2, m[1] + sd * TS] : [m[0] + sd * 2 * TS, Math.round((m[1] - TY) / TS) * TS + TY];
@@ -4484,7 +4490,7 @@ window.MTL_CAPS = __CAPS__;
   function drawDepotPlan() {
     const F = m3eng(); if (planEl.hidden || !F || !F.ag) return;
     if (SCH_EDIT.drag) return;                                    // (not while a node or a bend is being moved)
-    const SCH = sinSchema(F), title = SIN_WHICH === 'line' ? 'Linea M3 · sinottico' : 'Deposito di San Donato · sinottico';
+    const SCH = sinSchema(F), title = SIN_WHICH === 'line' ? 'Linea M3 · sinottico' : 'Deposito Rogoredo (ROD) · sinottico';
     if (!planEl.querySelector('.dp-hd')) {
       planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · marmotte del deposito: due luci in basso via impedita, verticali via libera · spia accanto allo scambio accesa: deviato (nomi degli scambi e numeri delle sezioni inventati, tranne la porta del deposito) · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s)</span>` +
         `<div class="dp-sw"><button data-w="dep" aria-pressed="${SIN_WHICH === 'dep'}">Deposito</button><button data-w="line" aria-pressed="${SIN_WHICH === 'line'}">Linea</button></div>` +
@@ -4499,7 +4505,7 @@ window.MTL_CAPS = __CAPS__;
     }
     const body = planEl.querySelector('.dp-body');
     // (Piano linea, Deposito: Giovanni draws it; until then a placeholder for the player. The admin keeps today's drawing)
-    if (SIN_WHICH === 'dep' && PIANO_PH && isPlayer) { body.innerHTML = '<div class="dp-ph"><b>Deposito di San Donato</b>Segnaposto: aspetta i miei disegni.</div>'; return; }
+    if (SIN_WHICH === 'dep' && PIANO_PH && isPlayer) { body.innerHTML = '<div class="dp-ph"><b>Deposito Rogoredo</b>Segnaposto: aspetta i miei disegni.</div>'; return; }
     if (!SCH) { body.innerHTML = `<p class="dp-none">${SIN_WHICH === 'line' ? 'Sinottico della linea mancante: fallo con tools/sinottico.py linea (data/sinottico_linea_m3.json).' : 'Schema del deposito mancante.'}</p>`; return; }
     if (!SIGS) SIGS = buildSignals(F); sigAspects(F);
     // (a signal of the drawing is the map's one with its index in the net: the block signals carry the block's number on
@@ -4572,16 +4578,40 @@ window.MTL_CAPS = __CAPS__;
         if (f1 <= p0 + 1e-4 || f0 >= p1 - 1e-4) continue;
         let a = (fd(ei, Math.max(f0, p0)) - q0) / ((q1 - q0) || 1), b = (fd(ei, Math.min(f1, p1)) - q0) / ((q1 - q0) || 1);
         if (s0) a += GAP / L; if (s1) b -= GAP / L; if (b - a < 0.5 / L) continue;
-        const c = occS.has(sid) ? ' occ' : litS.has(sid) ? ' lit' : '', d_ = sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))).map(q => roundPath(q, 1.5)).join('');
+        const c = occS.has(sid) ? ' occ' : litS.has(sid) ? ' lit' : '', d_ = sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))).map(q => roundPath(q, SIN_WHICH === 'dep' ? 0 : 1.5)).join('');
         // (as on the ACEI panels, Giovanni 16 Nov 2026: the black bar of the section, and over it its lamps: red dots
         // occupied, yellow dots given to a train)
         base += `<path class="tk${kind}${c}" data-e="${ei}" data-s="${sid}" d="${d_}"/>`;
         if (c) over += `<path class="lamp${c}" data-e="${ei}"${c === ' occ' ? ' data-occ="1"' : ''} d="${d_}"/>`; }
     }
+    // the sheds (Giovanni 17 Nov 2026: light blue where the trains are inside a shed, as a mosaic of whole tiles with the
+    // grid's lines over them): track by track, the tiles along the part of it inside a shed (sheds: per shed, the parts
+    // of each piece inside it), from the tile where the shed starts to the one where it ends (the washing track only
+    // between its two switches; the signals before a shed stay out of it)
+    let SHEDS = ''; const SHED_BOX = [];
+    { const [TS_, TX_, TY_] = SCH.tile || [28, 0, 0], H_ = TS_ / 2;
+      const fl = (v, o) => o + Math.floor((v - o) / TS_ + 1e-6) * TS_, ce = (v, o) => o + Math.ceil((v - o) / TS_ - 1e-6) * TS_;
+      const rect = (x0, y0, x1, y1, t) => `<rect class="shed" x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0}"><title>${t}</title></rect>`;
+      for (const sh of SCH.sheds || []) { const t = sh.nome || 'capannone', segs = [];
+        for (const [k, rs] of Object.entries(sh.parts || {})) { const full = FULL[+k]; if (!full) continue;
+          for (const [f0, f1] of rs) for (const q of sSplit(subPts(full, fd(+k, f0), fd(+k, f1)))) for (let i = 1; i < q.length; i++) {
+            const A = q[i - 1], B = q[i]; if (Math.hypot(B[0] - A[0], B[1] - A[1]) >= 1) segs.push([Math.min(A[0], B[0]), Math.min(A[1], B[1]), Math.max(A[0], B[0]), Math.max(A[1], B[1])]); } }
+        if (!segs.length) continue;
+        // (one block per shed, straight sides; a track inside it for a short part of it, the washing track, only
+        // its own tiles: a track inside for less than 70% of the shed)
+        const rows = {}; segs.forEach(g => { if (g[3] - g[1] < 1) { const r = rows[g[1]] || (rows[g[1]] = [Infinity, -Infinity]); r[0] = Math.min(r[0], g[0]); r[1] = Math.max(r[1], g[2]); } });
+        const X0 = Math.min(...segs.map(g => g[0])), X1 = Math.max(...segs.map(g => g[2])), W = X1 - X0 || 1;
+        const full_ = Object.entries(rows).filter(([, r]) => (r[1] - r[0]) / W >= 0.7).map(([y]) => +y);
+        if (full_.length) { const yA = Math.min(...full_), yB = Math.max(...full_), bx = [fl(X0, TX_), fl(yA - H_, TY_), Math.max(fl(X0, TX_) + TS_, ce(X1, TX_)), ce(yB + H_, TY_)];
+          SHEDS += rect(...bx, t); SHED_BOX.push(bx); }
+        for (const g of segs) { const y = g[1]; if (g[3] - g[1] < 1 && full_.includes(y)) continue;
+          SHEDS += rect(fl(g[0], TX_), fl(g[1] - H_, TY_), Math.max(fl(g[0], TX_) + TS_, ce(g[2], TX_)), ce(g[3] + H_, TY_), t); } } }
     // the black windows of the train numbers all over the board (Giovanni 16 Nov 2026, the depot's board: "su tutto il
     // riquadro… devono essere così"): one beside each section long enough (three tiles), on the side free of other track;
     // a train's number in the window of the section its middle is on (white on time, green 30 s or more early, red 30 s or
     // more late), at the train itself where its section has none
+    // the names written on the board for some signals (signames: the door's S01A S01B S02A S02B, Giovanni 17 Nov 2026)
+    const SGNM = sg => (SCH.signames || {})[sg.n] || null;
     const DECO = schDeco(SCH), DK = (key, html) => { const D = DECO[key]; if (D === 'x' || !html) return '';
       return `<g class="dk" data-dk="${key}"${Array.isArray(D) ? ` transform="translate(${D[0]},${D[1]})"` : ''}>${html}</g>`; };
     const DISP = sinDisplays(SCH, SEC, FULL, fd).filter(dp => DECO['disp:' + dp.sid] !== 'x');
@@ -4596,7 +4626,22 @@ window.MTL_CAPS = __CAPS__;
       else { const q0 = fd(ei, p0), q1 = fd(ei, p1), m = T(alongPts(p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, (fd(ei, f) - q0) / ((q1 - q0) || 1))); c = [m[0], m[1] - 13]; }
       const th = `<g class="trn ${tc}" data-k="${k}"><rect x="${(c[0] - 27).toFixed(1)}" y="${(c[1] - 7).toFixed(1)}" width="54" height="14" rx="1"/><text x="${c[0].toFixed(1)}" y="${(c[1] + 3.4).toFixed(1)}">${lab}</text></g>`;
       trnHtml.push(dkey ? DK(dkey, th) : th); }
-    for (const dp of DISP) { if (used.has(dp.sid)) continue; const c = T([dp.x, dp.y]); marks += DK('disp:' + dp.sid, `<g class="disp"><rect x="${(c[0] - 27).toFixed(1)}" y="${(c[1] - 7).toFixed(1)}" width="54" height="14" rx="1"/></g>`); grow([c[0] - 26, c[1] - 8]); grow([c[0] + 26, c[1] + 8]); }
+    for (const dp of DISP) { if (used.has(dp.sid)) continue; const c = T([dp.x, dp.y]); marks += DK('disp:' + dp.sid, SIN_WHICH === 'dep' ? `<g class="disp"><rect x="${(c[0] - 8).toFixed(1)}" y="${(c[1] - 8).toFixed(1)}" width="16" height="16"/></g>` : `<g class="disp"><rect x="${(c[0] - 27).toFixed(1)}" y="${(c[1] - 7).toFixed(1)}" width="54" height="14" rx="1"/></g>`); grow([c[0] - 26, c[1] - 8]); grow([c[0] + 26, c[1] + 8]); }
+    // the double arrows at the very end of the tracks from the line (Giovanni 17 Nov 2026, as on the board): they show
+    // the way of the block: the head towards the depot white when a route into the depot is set over the track, the head
+    // towards the line white for a route out of it (S02A or S02B at via libera), all red when a train is on it
+    { const exitGo = (SCH.signals || []).some(sg => (sg.n === 2 || sg.n === 3) && (x => x && (x.asp === 'go' || x.asp === 'sgo'))(sigOf(sg)));
+      (SCH.arrows || []).forEach((ar, i) => { const full = FULL[ar.e]; if (!full || full.length < 2) return; const atB = ar.end !== 'a';
+        const E_ = T(atB ? full[full.length - 1] : full[0]), I_ = T(atB ? full[full.length - 2] : full[1]);
+        let dx = E_[0] - I_[0], dy = E_[1] - I_[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;          // (outwards, to the line)
+        const f = atB ? 1 : 0, pc = (SEC.byEdge[ar.e] || []).find(p_ => f >= p_[1] - 1e-4 && f <= p_[2] + 1e-4), sid = pc && pc[3];
+        const occ = sid != null && occS.has(sid), lit = sid != null && litS.has(sid);
+        const cIn = occ ? ' occ' : lit && !exitGo ? ' lit' : '', cOut = occ ? ' occ' : lit && exitGo ? ' lit' : '', cSh = occ ? ' occ' : lit ? ' lit' : '';
+        const C = [E_[0] + dx * 22, E_[1] + dy * 22], P = (a, b) => `${(C[0] + dx * a - dy * b).toFixed(1)},${(C[1] + dy * a + dx * b).toFixed(1)}`;
+        marks += DK('arr:' + i, `<g class="darr2"><title>blocco verso il deposito${occ ? ': occupato' : lit ? (exitGo ? ': itinerario in uscita' : ': itinerario formato in entrata') : ''}</title>` +
+          `<polygon class="darr${cSh}" points="${P(-8, -1.6)} ${P(8, -1.6)} ${P(8, 1.6)} ${P(-8, 1.6)}"/>` +
+          `<polygon class="darr${cIn}" points="${P(-17, 0)} ${P(-8, -5)} ${P(-8, 5)}"/><polygon class="darr${cOut}" points="${P(17, 0)} ${P(8, -5)} ${P(8, 5)}"/></g>`);
+        grow([C[0] - 20, C[1] - 20]); grow([C[0] + 20, C[1] + 20]); }); }
     marks += trnHtml.join('');
     // the numbers of the sections (Giovanni 17 Nov 2026: the door's from the board, 01-04, the others made up after them,
     // top to bottom and left to right), small beside the longest bit of each; the tracks' names (Bin.1 the highest, Bin.4
@@ -4617,7 +4662,15 @@ window.MTL_CAPS = __CAPS__;
         const c = T(Math.abs(tx) >= Math.abs(ty) ? [q.m[0] - 14, q.m[1] - 7] : [q.m[0] - 16, q.m[1] + 3]);
         if (!fixed[sid] && placedN.some(o => Math.abs(o[0] - c[0]) < 16 && Math.abs(o[1] - c[1]) < 9)) { k--; continue; } placedN.push(c);
         marks += DK('sec:' + t, `<text class="secn" x="${c[0].toFixed(1)}" y="${c[1].toFixed(1)}">${t}</text>`); } }
-    for (const bn of SCH.bins || []) { const xs = bn.nodes.filter(n => N[n]); if (!xs.length) continue; const n0 = xs.reduce((u, v) => N[u][0] <= N[v][0] ? u : v), c = T([N[n0][0] - 12, N[n0][1] - 6]);
+    // (as on the board, Giovanni 17 Nov 2026: black, in the middle of the shed, in the tiles over its track, also for the
+    // tracks just outside it whose track runs under its middle (Bin.16-18); the others at the left of their places)
+    for (const bn of SCH.bins || []) { const xs = bn.nodes.filter(n => N[n]); if (!xs.length) continue; const n0 = xs.reduce((u, v) => N[u][0] <= N[v][0] ? u : v), y = N[n0][1];
+      const [TS_, TX_] = SCH.tile || [28, 0, 0];
+      const ext = xs.flatMap(n => (at[n] || []).flatMap(ei => (FULL[ei] || []).filter(q => Math.abs(q[1] - y) < 1).map(q => q[0])));
+      const bx = SHED_BOX.find(b => y > b[1] && y < b[3]) || SHED_BOX.find(b => y > b[1] - 4 * TS_ && y < b[3] + 4 * TS_ && ext.length && Math.min(...ext) < (b[0] + b[2]) / 2 && Math.max(...ext) > (b[0] + b[2]) / 2);
+      if (bx) { const cx = TX_ + Math.round(((bx[0] + bx[2]) / 2 - TX_) / TS_) * TS_, c = T([cx, y - TS_ / 2]);
+        marks += DK('bin:' + bn.t, `<text class="binn" x="${c[0].toFixed(1)}" y="${(c[1] + 3.5).toFixed(1)}" text-anchor="middle"><title>${bn.places.join(' · ')}</title>${bn.t}</text>`); continue; }
+      const c = T([N[n0][0] - 12, N[n0][1] - 6]);
       marks += DK('bin:' + bn.t, `<text class="binn" x="${c[0].toFixed(1)}" y="${c[1].toFixed(1)}" text-anchor="end"><title>${bn.places.join(' · ')}</title>${bn.t}</text>`); }
     for (const tx of SCH.texts || []) { const c = T([tx.x, tx.y]); marks += DK('txt:' + tx.t, `<text class="${tx.c || 'lab'}" x="${c[0]}" y="${c[1]}" text-anchor="middle">${tx.t}</text>`); grow([c[0] - 60, c[1] - 16]); grow([c[0] + 60, c[1] + 8]); }
     // the stations: their platforms, a frame round each, the number of the track above it
@@ -4653,20 +4706,21 @@ window.MTL_CAPS = __CAPS__;
         let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
         const side = (sg.b || ill) ? -1 : 1, nx = -ty * side, ny = tx * side, K = 0.9, O = [m[0] + nx * 9 * K, m[1] + ny * 9 * K], lit = a === 'sgo';
         const L3 = (x, y, on) => `<rect x="${x}" y="${y}" width="2.8" height="2.8" fill="${on ? '#ffffff' : '#3a3a3a'}"/>`;
-        marks += `<g class="sgi marm${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(O)}) scale(${K})"><title>${tag} (marmotta) · ${lit ? 'via libera' : 'via impedita'}</title>` +
+        marks += `<g class="sgi marm${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(O)}) scale(${K})"><title>${tagName(tag)} (marmotta) · ${lit ? 'via libera' : 'via impedita'}</title>` +
           `<path d="M-4.5,-5H0.5V-3.5H4.5V4H-4.5Z" fill="#101010"/><rect x="-4.5" y="4" width="9" height="1" fill="#8a8a8a"/>` +
           L3(-3.6, -4, lit) + L3(-3.6, 0, true) + L3(0.6, 0, !lit) + `<circle class="sg" data-n="${sg.n}" cx="0" cy="0" r="0"/></g>` +
-          (SIN_NUM ? `<text class="sgn" x="${O[0] + nx * 9}" y="${O[1] + ny * 9 + 3}">${sg.n}</text>` : '');
+          ((SIN_NUM || SGNM(sg)) ? `<text class="sgn" x="${O[0] + nx * 9}" y="${O[1] + ny * 9 + 3}">${SGNM(sg) || sg.n}</text>` : '');
         return; }
       let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
       const sqr = !!sg.b || ill, side = sqr ? -1 : 1, K = SIN_WHICH === 'line' ? 1 : 0.9, nx = -ty * side, ny = tx * side;
       const O = [m[0] - tx * 7 * K + nx * 8 * K, m[1] - ty * 7 * K + ny * 8 * K], ang = Math.atan2(ty, tx) * 180 / Math.PI;
       const lit = a === 'go' || a === 'sgo';
-      marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
+      marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${SGNM(sg) ? SGNM(sg) + ' = ' : ''}${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
         `<path class="sgb" d="M-14,-3.2V3.2M-14,0H-7"/><rect class="sgc" x="-7" y="-3.7" width="14" height="7.4" rx="${sqr ? 0.8 : 3.7}"/>` +
         (sqr ? `<rect x="-5.5" y="-2.2" width="4.4" height="4.4" fill="${lit ? '#ffffff' : '#4a4943'}"/><rect x="1.1" y="-2.2" width="4.4" height="4.4" fill="#ff2a2a"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="0"/></g>`
           : `<circle class="sgw" cx="-3.3" cy="0" r="2.3" fill="${lit ? '#ffffff' : '#4a4943'}"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="2.3" fill="#ff2a2a"/></g>`) +
-        (SIN_NUM ? `<text class="sgn" x="${O[0] + nx * 9 * K}" y="${O[1] + ny * 9 * K + 3}">${sg.n}</text>` : ''); };
+        (SGNM(sg) && (grow([O[0] + nx * 13 * K + 42, O[1]]), grow([O[0] + nx * 13 * K - 42, O[1]]), true) ? `<text class="sgn sgname" x="${(O[0] + nx * 13 * K).toFixed(1)}" y="${(O[1] + ny * 13 * K + 3).toFixed(1)}" style="text-anchor:${Math.abs(nx) < 0.5 ? 'middle' : nx > 0 ? 'start' : 'end'}">${SGNM(sg)}</text>`   // (the door's names beside the head, outwards, as on the board)
+          : SIN_NUM ? `<text class="sgn" x="${O[0] + nx * 9 * K}" y="${O[1] + ny * 9 * K + 3}">${sg.n}</text>` : ''); };
     for (const sg of SCH.signals || []) { const m0_ = marks.length; drawSig(sg); if (marks.length > m0_) marks = marks.slice(0, m0_) + DK('sig:' + sg.n, marks.slice(m0_)); }
     // the switches: a lamp beside each, on the straight side, lit when it is set for the turnout (Giovanni 16 Nov 2026: "si
     // illumina quando l'itinerario non è dritto"); dark when straight or not known
@@ -4683,6 +4737,15 @@ window.MTL_CAPS = __CAPS__;
       const swn = (SCH.swn || {})[n], c2 = T([N[n][0] + tr[0] * 9 + w[0] * 19, N[n][1] + tr[1] * 9 + w[1] * 19 + 3]);
       marks += DK('sw:' + n, `<rect class="swl${on ? ' on' : ''}" x="${(c[0] - 2.4).toFixed(1)}" y="${(c[1] - 2.4).toFixed(1)}" width="4.8" height="4.8"><title>scambio ${swn || n}: ${sp ? (on ? 'deviato' : 'dritto') : 'posizione non nota'}</title></rect>` +
         (swn ? `<text class="swn" x="${c2[0].toFixed(1)}" y="${c2[1].toFixed(1)}">${swn}</text>` : '')); }
+    // the names of the switches where two meet on one node (four legs: 60a and 59a of the crossover by 100 and 101, Giovanni
+    // 17 Nov 2026): in the corner with no track
+    for (const [n, list] of Object.entries(at)) { const swn = (SCH.swn || {})[n]; if (list.length !== 4 || !N[n] || !swn) continue;
+      const D = list.map(ei => { let P = FULL[ei]; if (!P) return null; if (NE[ei].a != n) P = [...P].reverse(); let B = P[1], acc = 0;
+        for (let i = 1; i < P.length; i++) { acc += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); B = P[i]; if (acc >= 20) break; }
+        const l = Math.hypot(B[0] - P[0][0], B[1] - P[0][1]) || 1; return [(B[0] - P[0][0]) / l, (B[1] - P[0][1]) / l]; }).filter(Boolean);
+      const cand = [[0.7, -0.7], [0.7, 0.7], [-0.7, -0.7], [-0.7, 0.7]], best = cand.map(v => [Math.min(...D.map(d => Math.acos(Math.max(-1, Math.min(1, v[0] * d[0] + v[1] * d[1]))))), v]).sort((u, v) => v[0] - u[0])[0][1];
+      const c2 = T([N[n][0] + best[0] * 16, N[n][1] + best[1] * 16 + 3]);
+      marks += DK('sw:' + n, `<text class="swn" x="${c2[0].toFixed(1)}" y="${c2[1].toFixed(1)}"><title>scambio ${swn}</title>${swn}</text>`); }
     // the places by name (two places at the same point of the drawing, as the two of a rimessa track: one each side)
     const plG = []; for (const pl of SCH.places || []) { const p = N[pl.node] && T(N[pl.node]); if (!p || !at[pl.node]) continue;
       const g = plG.find(g => g.some(([, q]) => Math.abs(q[0] - p[0]) < 16 && Math.abs(q[1] - p[1]) < 3)); if (g) g.push([pl, p]); else plG.push([[pl, p]]); }
@@ -4727,7 +4790,7 @@ window.MTL_CAPS = __CAPS__;
     // (the tiles of the board: 28 px, the tracks along their middles: SCH.tile = [size, x, y of a tile's middle])
     const [TS, TX, TY] = SCH.tile || [28, 0, 0], gx = TX - TS / 2, gy = TY - TS / 2;
     const grid = `<defs><pattern id="sinGrid" width="${TS}" height="${TS}" patternUnits="userSpaceOnUse" x="${gx}" y="${gy}"><path d="M${TS} 0H0V${TS}" fill="none" class="cell"/></pattern></defs><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" fill="url(#sinGrid)" pointer-events="none"/>`;
-    base = grid + base;
+    base = SHEDS + grid + base;                                   // (the sheds under the grid: its lines stay)
     body.innerHTML = `<svg viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg" style="width:${wcss}"${SCH_EDIT.on ? ` class="edit${SIN_Z[SIN_WHICH] >= 2.4 ? ' zhi' : ''}"` : ''}><g>${base}</g><g>${over}</g>${marks}</svg>`;
     body.scrollLeft = sx; body.scrollTop = sy;
     body.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
@@ -4777,7 +4840,7 @@ window.MTL_CAPS = __CAPS__;
   const schSetNodes = obj => { sinEd().nodes = Object.assign({}, sinEd().nodes || {}, obj); sinSave(); };
   const schCount = () => { const ed = SCH_EDIT.ed[SIN_WHICH] || {}, dc = Object.values(ed.deco || {}); return Object.keys(ed.nodes || {}).length + ' nodi spostati, ' + Object.keys(ed.via || {}).length + ' tratte con curve cambiate, ' + dc.filter(v => Array.isArray(v)).length + ' cose spostate e ' + dc.filter(v => v === 'x').length + ' tolte (in questo browser). Esporta il file per tenerli.'; };
   const schDecoName = key => { const [k, ...r] = key.split(':'), v = r.join(':');
-    return ({ sig: 'segnale #A' + String(v).padStart(2, '0'), disp: 'finestra del numero treno', sec: 'numero di sezione ' + v, sw: 'scambio (spia e nome)', bin: v, txt: 'scritta ' + v, plat: 'banchina', tail: 'nome del tronchetto', pos: 'posizione', badge: 'logo', pl: 'posto ' + v, lab: 'nome della stazione' })[k] || key; };
+    return ({ sig: 'segnale ' + sigName(v), disp: 'finestra del numero treno', sec: 'numero di sezione ' + v, sw: 'scambio (spia e nome)', bin: v, txt: 'scritta ' + v, plat: 'banchina', tail: 'nome del tronchetto', pos: 'posizione', badge: 'logo', pl: 'posto ' + v, lab: 'nome della stazione' })[k] || key; };
   // a thing moved by [dx, dy] (null: back where it was) or taken away ('x'); Ctrl+Z gives it back
   function schDecoSet(key, v) { schPush(); const ed = sinEd(); ed.deco = Object.assign({}, ed.deco || {}); if (v == null) delete ed.deco[key]; else ed.deco[key] = v;
     sinSave(); schNote((v === 'x' ? `Tolto: ${schDecoName(key)} (Ctrl+Z lo rimette). ` : '') + schCount()); drawDepotPlan(); }
@@ -5440,8 +5503,15 @@ window.MTL_CAPS = __CAPS__;
     SIGURL[a] = c.toDataURL(); });
   const sigLayer = L.layerGroup(), illLayer = L.layerGroup(); let showSigs = false, showIll = false, SIGS = null;
   try { showSigs = localStorage.getItem('mtl-sigs') === '1'; showIll = localStorage.getItem('mtl-sigs-ill') === '1'; } catch (e) {}
-  const tagHtml = tag => `<span class="sigtag admin-only">${tag}</span>`;   // #AXX, shown in admin mode only
-  const sigNo = (F, si) => '#A' + String(((F.engine.net.signals || [])[si] || {}).n || si + 1).padStart(2, '0');
+  const tagHtml = tag => `<span class="sigtag admin-only">${tagName(tag)}</span>`;   // #AXX, shown in admin mode only
+  // the names of the signals as the player sees them everywhere (Giovanni 17 Nov 2026: the depot door's real names,
+  // S01A S01B S02A S02B, "vanno su tutto"): from the depot's sinottico file (signames), the others #A and the number;
+  // the code still finds the signals by #A (tag)
+  function sigName(n) { n = +n; const F = ((window.mtl && window.mtl.fleets) || []).find(f => f.line === 'M3' && f.engine), m = F && F.engine.net.schema_depot && F.engine.net.schema_depot.signames;
+    return (m && m[n]) || '#A' + String(n).padStart(2, '0'); }
+  window.mtlSigName = sigName;
+  const tagName = tag => /^#A\d+$/.test(String(tag)) ? sigName(+String(tag).slice(2)) : tag;
+  const sigNo = (F, si) => sigName(((F.engine.net.signals || [])[si] || {}).n || si + 1);
   // interlocking notes for a signal's tooltip
   function ilBrief(F, si) { const IL = F.ag && F.ag.IL; return IL && si >= 0 && IL.brief ? IL.brief(si) : ''; }
   function ilNote(F, si) {
@@ -5765,8 +5835,8 @@ window.MTL_CAPS = __CAPS__;
       fl.filter(f => !f.call && f.kind !== 'vista').forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, g: f.kind === 'segnale' || f.kind === 'sezione' ? f.target : undefined, cls: 'fx', t: f.k != null ? `⚠ Treno ${tno(f.k)}: ${f.label} · ${fxPhase(f)}`
         : f.kind === 'pc' ? `⛔ DCT: ${f.zone === 'red' ? 'pulsante rosso' : f.zone === 'power' ? 'tensione tolta' : 'treni fermi'} · ${f.what}` : `⚠ ${f.label}: ${f.what} · ${fxPhase(f)}`, fx: f }));
       fl.filter(f => f.call).forEach(f => out.unshift({ k: f.k != null ? f.k : undefined, ph: f.callWho === 'ag' && f.st != null ? f.st : undefined, cls: 'late fx' + (f.callWho === 'ag' ? ' phone' : ''), t: (f.callWho === 'ag' ? '☎ ' : '📻 ') + f.call.text.replace(/\{T\}/g, tno(f.k)).replace(/\{R\}/g, tno(f.rk)), fx: f })); }
-    for (const n of Object.keys(rt.redFix || {})) out.push({ g: n, t: `#A${String(n).padStart(2, '0')} rosso fisso` });
-    for (const [n, r] of Object.entries(rt.pcRoutes || {})) out.push({ g: n, t: `Itinerario ${r.id} preparato da #A${String(n).padStart(2, '0')}` });
+    for (const n of Object.keys(rt.redFix || {})) out.push({ g: n, t: `${sigName(n)} rosso fisso` });
+    for (const [n, r] of Object.entries(rt.pcRoutes || {})) out.push({ g: n, t: `Itinerario ${r.id} preparato da ${sigName(n)}` });
     for (const nd of Object.keys(rt.swLock || {})) out.push({ t: `Scambio ${nd} bloccato` });
     for (const [x, v] of Object.entries(S_.stn || {})) { if (v.closed) out.push({ b: +x, t: `${cap(G.names[x])} chiusa al pubblico` }); if (v.msg) out.push({ b: +x, t: `${cap(G.names[x])}: schermi "${v.msg}"` }); }
     const em = closureNow(F); if (em) out.unshift({ cls: 'late', t: em.reopened ? `Tratta ${em.label} riaperta` : `Tratta ${em.label} chiusa` });

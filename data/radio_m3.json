@@ -1176,14 +1176,14 @@
   },
   "pezzo.deposito.entrata_deposito": {
    "chi": "macchinista",
-   "quando": "Movimento chiesto al segnale del deposito: dalla linea in deposito (#A04/#A05)",
+   "quando": "Movimento chiesto al segnale del deposito: dalla linea in deposito (S01A/S01B)",
    "testi": [
     "entrata in deposito"
    ]
   },
   "pezzo.deposito.entrata_linea": {
    "chi": "macchinista",
-   "quando": "Movimento chiesto al segnale del deposito: dal deposito in linea (#A02/#A03)",
+   "quando": "Movimento chiesto al segnale del deposito: dal deposito in linea (S02A/S02B)",
    "testi": [
     "entrata in linea"
    ]
