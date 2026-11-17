@@ -52,4 +52,11 @@ check(not d42, 'the first 42 (Assago - Famagosta) unchanged, %d deleted by Giova
 txt2 = open(os.path.join(F, 'm2_export_2026-11-06b.txt')).read(); EXP2 = json.loads(txt2[txt2.index('{'):])['signals']
 bad2 = [e['id'] for e in EXP2 if byid.get(e['id']) != {k: v for k, v in e.items() if k != 'moved'}]
 check(not bad2, 'export of 6 Nov 11:44: %d signals in the file, each field identical%s' % (len(EXP2) - len(bad2), ': ' + ', '.join(bad2) if bad2 else ''))
+# the export of 17 Nov (the Cologno branch, Cascina Gobba - Cologno Nord): in the file as given, except the names, set from
+# the colleague's list of the M2 signals (Elenco segnali, 16 Nov) by their place along the branch (and the numbers Giovanni
+# had put in desc, now in the name)
+txt3 = open(os.path.join(F, 'm2_export_2026-11-17.txt')).read(); EXP3 = json.loads(txt3[txt3.index('{'):])['signals']
+bad3 = [e['id'] for e in EXP3 if not byid.get(e['id']) or {k: v for k, v in byid[e['id']].items() if k not in ('name', 'desc')} != {k: v for k, v in e.items() if k not in ('moved', 'name', 'desc')}]
+named = [byid[e['id']]['name'] for e in EXP3 if byid.get(e['id']) and e['type'] == 'main']
+check(not bad3 and all(n.startswith('POSTO 2') for n in named), 'export of 17 Nov: %d signals in the file, each field identical but the name; %d main signals named from the list%s' % (len(EXP3) - len(bad3), len(named), ': ' + ', '.join(bad3) if bad3 else ''))
 sys.exit(1 if bad else 0)
