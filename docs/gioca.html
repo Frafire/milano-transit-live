@@ -1067,7 +1067,7 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 .trcard .pill { font: 700 11px/1 var(--display); letter-spacing: .05em; padding: 4px 7px; border-radius: 4px; background: #07090b; border: 1px solid var(--line); color: #cfd6dc; white-space: nowrap; }
 .trcard .pill.late { background: #e5383b; border-color: #e5383b; color: #fff; } .trcard .pill.early { background: #1f7a3a; border-color: #1f7a3a; color: #fff; }
 .trcard .info { color: var(--muted); font-size: 12.5px; line-height: 1.4; margin: 9px 0 0; padding-top: 8px; border-top: 1px solid var(--line); }
-.trcard .cab { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; justify-items: center; }
+.trcard .cab { display: grid; grid-template-columns: 2.1fr 1fr; gap: 8px; align-items: center; justify-items: center; }
 .trcard .cab .tfront, .trcard .cab .tfront[data-k] { width: 100%; }
 .trcard .cab .tacho { width: 92%; height: auto; aspect-ratio: 1; }
 .trcard .tile.door.wide { margin-top: 10px; padding: 9px 10px; font-size: 16px; }
@@ -1077,9 +1077,9 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 .trcard .next .nh::before { content: '▲ '; color: var(--signal); }
 .trcard .next p { margin: 5px 0 0; font-size: 13.5px; }
 .trcard .foot { position: sticky; bottom: -15px; margin: 12px -15px -15px; padding: 10px 15px 12px; background: var(--panel-solid); border-top: 1px solid var(--line); display: flex; justify-content: space-between; }
-.cab .tfront { width: 140px; height: auto; image-rendering: pixelated; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
-.cab .tfront[data-k^="meneghino"], .cab .tfront[data-k^="hitachi"] { image-rendering: auto; width: 150px; }
-.cab .tacho { width: 120px; height: 120px; flex: 0 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.cab .tfront { width: 189px; min-width: 0; flex: 0 1 auto; height: auto; image-rendering: pixelated; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.cab .tfront[data-k^="meneghino"], .cab .tfront[data-k^="hitachi"] { image-rendering: auto; width: 203px; }   /* (35% bigger: the signs' letters stay small, Giovanni 17 Nov 2026) */
+.cab .tacho { width: 96px; height: 96px; flex: 0 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
 .tile.delay.late { background: #e5383b; border-color: #e5383b; color: #fff; }
 .tile.delay.early { background: #1f7a3a; border-color: #1f7a3a; color: #fff; }
 .tile.door.open { background: #ffb020; border-color: #ffb020; color: #1a1200; }
@@ -6867,8 +6867,19 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   const F35W = { '.': ['0', '0', '0', '0', '1'], M: ['10001', '11011', '10101', '10001', '10001'], N: ['1001', '1101', '1011', '1001', '1001'], W: ['10001', '10001', '10101', '11011', '10001'], ' ': ['00', '00', '00', '00', '00'] };
   // the three kinds of M3 train: Tradizionale 1° lotto (blue sign, lights in the yellow band), 2° lotto (orange sign,
   // lights in a black band under a thin yellow one), Meneghino (silver with yellow edges, red sign, light boxes)
+  // the letters of the M3 signs (Giovanni 17 Nov 2026, with photos of 8109's sign in 2010): always the same size, the name in
+  // the middle of the sign; the size is the one at which the longest (number + MONTENAPOLEONE or FUORI SERVIZIO) just fits;
+  // the fronts are shown 35% bigger so the letters read as before
+  const SIGN_LONG = ['MONTENAPOLEONE', 'FUORI SERVIZIO'];
+  function signLayout(V, num, txt, colsOf) {
+    const p = Math.min((V.w - 8) / (Math.max(...SIGN_LONG.map(colsOf)) + colsOf('88') + 3), (V.h - 4) / 7);
+    const nx = V.x + 4, numEnd = num ? nx + (colsOf(num) + 3) * p : V.x + 4;
+    return { p, nx, tx: Math.max(numEnd, V.x + (V.w - colsOf(txt || '') * p) / 2) };
+  }
   const FRONT = { W: 56, H: 62, cache: new Map() };
   function trainFront(kind, dest, lights, no, car) {
+    // (the M3 signs write F.S. with the dots: CENTRALE F.S., ROGOREDO F.S., photos of 8109 in 2010)
+    if (/^(lotto1|lotto2|meneghino|hitachi)$/.test(kind)) dest = String(dest || '').replace(/\bFS\b/g, 'F.S.');
     const key = kind + '|' + dest + '|' + lights + '|' + (no || '') + '|' + (car || ''); if (FRONT.cache.has(key)) return FRONT.cache.get(key);
     if (kind === 'hitachi') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(hitachiSVG(dest, lights, no)); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url; }
     if (kind === 'meneghino') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(meneghinoSVG(dest, lights, no)); FRONT.cache.set(key, url); return url; }
@@ -6944,10 +6955,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       return `<g fill="${fill}" filter="url(#led)">${out}</g>`; };
     const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
     let sign = '';
-    const numEnd = num ? V.x + 5 + colsOf(num) * 2.3 + 5 : V.x + 4;
-    if (num) sign += ledText(num, V.x + 5, 2.3, '#3dff6e');
-    if (txt) { const cols = colsOf(txt), p = Math.min(2.45, (V.x + V.w - 4 - numEnd) / cols, (V.h - 4) / 7);
-      sign += ledText(txt, Math.max(numEnd, V.x + (V.w - cols * p) / 2), p, '#ff8a1a'); }
+    const L = signLayout(V, num, txt, colsOf);
+    if (num) sign += ledText(num, L.nx, L.p, '#3dff6e');
+    if (txt) sign += ledText(txt, L.tx, L.p, '#ff8a1a');
     // the two lamps of each unit are the same: white below when running, red above when standing
     const red = lights === 'red', on = red ? '#ff3826' : '#fffaf0', glow = red ? '#ff2a14' : '#fff4c8';
     const housing = (x, lx, sx) => `<rect x="${x}" y="139" width="47.5" height="40" rx="7" fill="url(#hsg)" stroke="#8e949a" stroke-width="1.3"/>
@@ -7021,9 +7031,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         x += (g[0].length + 1) * p; }
       return `<g fill="${fill}" filter="url(#led)">${out}</g>`; };
     const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
-    let sign = ''; const numEnd = num ? V.x + 5 + colsOf(num) * 2.1 + 6 : V.x + 4;
-    if (num) sign += ledText(num, V.x + 5, 2.1, '#4fb4ff');
-    if (txt) { const cols = colsOf(txt), p = Math.min(2.2, (V.x + V.w - 4 - numEnd) / cols, (V.h - 4) / 7); sign += ledText(txt, Math.max(numEnd, V.x + (V.w - cols * p) / 2), p, '#ff9a1f'); }
+    let sign = ''; const L = signLayout(V, num, txt, colsOf);
+    if (num) sign += ledText(num, L.nx, L.p, '#4fb4ff');
+    if (txt) sign += ledText(txt, L.tx, L.p, '#ff9a1f');
     const red = lights === 'red', on = red ? '#ff3a26' : '#f4fbff', glow = red ? 'url(#glr)' : 'url(#glw)';
     // one light unit: the housing (a slanted box with cut corners) and the LED strip inside it, an L lying down
     const unit = m => { const X = x => m ? 261 - x : x;
@@ -7098,9 +7108,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         x += (g[0].length + 1) * p; }
       return out; };
     const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
-    let sign = ''; const pn = 2.1, numEnd = num ? V.x + 4 + colsOf(num) * pn + 6 : V.x + 4;
-    if (num) sign += ledText(num, V.x + 4, pn);
-    if (txt) { const cols = colsOf(txt), p = Math.min(2.3, (V.x + V.w - 4 - numEnd) / cols, (V.h - 4) / 7); sign += ledText(txt, Math.max(numEnd, V.x + (V.w - cols * p) / 2), p); }
+    let sign = ''; const L = signLayout(V, num, txt, colsOf);
+    if (num) sign += ledText(num, L.nx, L.p);
+    if (txt) sign += ledText(txt, L.tx, L.p);
     const red = lights === 'red', warm = '#fff6dc', rd = '#ff2f22', offW = '#55544f', offR = '#4a2622';
     // a dark box with its two square lamps (white outside, red inside); side -1 left, 1 right
     const box = (x0, y0, w, h, side) => { const lw = (w - 12) / 2, lh = h - 8, xo = side < 0 ? x0 + 4 : x0 + w - 4 - lw, xi = side < 0 ? x0 + 8 + lw : x0 + 4;
@@ -7178,9 +7188,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         x += (g[0].length + 1) * p; }
       return out; };
     const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
-    let sign = ''; const numEnd = num ? V.x + 5 + colsOf(num) * 2.2 + 6 : V.x + 4;
-    if (num) sign += ledText(num, V.x + 5, 2.2);
-    if (txt) { const cols = colsOf(txt), p = Math.min(2.35, (V.x + V.w - 4 - numEnd) / cols, (V.h - 4) / 7); sign += ledText(txt, Math.max(numEnd, V.x + (V.w - cols * p) / 2), p); }
+    let sign = ''; const L = signLayout(V, num, txt, colsOf);
+    if (num) sign += ledText(num, L.nx, L.p);
+    if (txt) sign += ledText(txt, L.tx, L.p);
     const red = lights === 'red', warm = '#fff6dc', rd = '#ff2f22';
     // the lamps of one side: outer white, inner red (lit or not)
     const lamps = (xo, xi, y, w, h, rx) => `
