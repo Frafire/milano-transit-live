@@ -7086,12 +7086,12 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // wipers. The livery by the year of the timetable: before 2018 (the Expo 2015 timetable) the old one, a yellow stripe under
   // the windscreen, the lamps in the dark grey panel below it, the sign of pale dots; from 2018 the new one, the car's number
   // in white on the dark grey, the lamps in a yellow band lower down; 8029-8030 after its revamp (2022): the new lamps set
-  // into a light grey box on each side, two round lamps of the same size, the sign across the whole window
+  // into the yellow band in a box drawn by a light grey line, two round lamps exactly the same size, the sign across the whole window
   const TRAD_YEAR = (() => { const m = ORARIO.match(/(19|20)\d\d/); return m ? +m[0] : 2026; })();
   function trad1SVG(dest, lights, no, car) {
     const old = TRAD_YEAR < 2018, rev = !old && TRAD_YEAR >= 2022 && /^80(29|30)$/.test(String(car || ''));
     const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
-    const V = rev ? { x: 40, y: 11, w: 181, h: 21 } : { x: 56, y: 11, w: 149, h: 21 }, led = old ? '#d9cf9e' : '#e9f1ff';
+    const V = rev ? { x: 40, y: 11, w: 181, h: 21 } : { x: 44, y: 12, w: 173, h: 21 }, led = old ? '#d9cf9e' : '#e9f1ff';
     const ledText = (t, x0, p) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;
       for (const ch of t) { const g = F57[ch] || F57[' '];
         for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .42).toFixed(2)}"/>`;
@@ -7110,7 +7110,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         <path d="M${xo + 1} ${y0 + 5.5} h${lw - 2} M${xi + 1} ${y0 + 5.5} h${lw - 2}" stroke="#fff" stroke-opacity=".25" stroke-width=".8"/>`; };
     const carNo = String(car || '').replace(/[^0-9]/g, '').slice(0, 4);
     // the handle of the front door: the same place on every front (Giovanni 17 Nov 2026)
-    const handle = `<rect x="104" y="139" width="12" height="11" rx="1.5" fill="#c9970a" stroke="#8a6a08" stroke-width=".8"/><rect x="106" y="142" width="8" height="2.2" fill="#6d5308"/>`;
+    const handle = old ? `<rect x="104" y="139" width="12" height="11" rx="1.5" fill="#c9970a" stroke="#8a6a08" stroke-width=".8"/><rect x="106" y="142" width="8" height="2.2" fill="#6d5308"/>`
+      : `<rect x="104" y="139" width="12" height="11" rx="1.5" fill="#4a4e53" stroke="#26292c" stroke-width=".8"/><rect x="106" y="142" width="8" height="2.2" fill="#2a2d31"/>`;   // (all grey in the grey)
     let band;
     if (old) band = `
       <rect x="13" y="136" width="235" height="17" fill="url(#yl)"/>
@@ -7121,9 +7122,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       ${carNo ? `<text x="24" y="146" font-family="Arial,Helvetica,sans-serif" font-size="10" font-weight="700" fill="#f4f4f0">${carNo}</text>` : ''}
       <rect x="13" y="150" width="235" height="31" fill="url(#yl)"/>
       ${[[22, -1], [185, 1]].map(([x0, sd]) => { const cw = x0 + 13, cr = x0 + 41, co = sd < 0 ? cw : cr, ci = sd < 0 ? cr : cw;
-        return `<rect x="${x0}" y="153" width="54" height="25" rx="2" fill="#c9c6bb" stroke="#a9a69b" stroke-width=".8"/>
-        <circle cx="${co}" cy="165.5" r="7.2" fill="#8e8b82"/><circle cx="${co}" cy="165.5" r="6" fill="${red ? offW : '#fffaf0'}" ${red ? '' : 'filter="url(#glw)"'}/>
-        <circle cx="${ci}" cy="165.5" r="7.2" fill="#8e8b82"/><circle cx="${ci}" cy="165.5" r="6" fill="${red ? rd : '#b9b5aa'}" ${red ? 'filter="url(#glr)"' : ''}/>`; }).join('')}
+        return `<rect x="${x0}" y="153" width="54" height="25" rx="2" fill="none" stroke="#8f8c84" stroke-width="1.1"/>
+        <circle cx="${co}" cy="165.5" r="6.5" fill="${red ? offW : '#fffaf0'}" stroke="#8f8c84" stroke-width="1" ${red ? '' : 'filter="url(#gls)"'}/>
+        <circle cx="${ci}" cy="165.5" r="6.5" fill="${red ? rd : '#bdb9ae'}" stroke="#8f8c84" stroke-width="1" ${red ? 'filter="url(#gls)"' : ''}/>`; }).join('')}
       <rect x="13" y="181" width="235" height="6" fill="url(#dk)"/>`;
     else band = `
       <rect x="13" y="134" width="235" height="18" fill="url(#dk)"/>
@@ -7140,6 +7141,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         <linearGradient id="gl" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#55606b"/><stop offset=".35" stop-color="#262d34"/><stop offset="1" stop-color="#0e1216"/></linearGradient>
         <linearGradient id="yl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dfab0d"/><stop offset=".5" stop-color="#f7cb2a"/><stop offset="1" stop-color="#dfab0d"/></linearGradient>
         <filter id="glw" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="gls" x="-.5" y="-.5" width="2" height="2"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         <filter id="glr" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
         <filter id="led" x="-.1" y="-.6" width="1.2" height="2.2"><feGaussianBlur stdDeviation="${old ? .5 : .8}" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
