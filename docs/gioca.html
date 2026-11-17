@@ -1581,11 +1581,11 @@ body.player .console, body.pc-console-off .console { display: none !important; }
   </div>
 
   <section data-panel="schema" hidden>
-    <p class="note">Sinottico del deposito o della linea: trascina i nodi (i quadratini, con il numero vicino quando ci passi sopra) e le curve (i pallini). Con la griglia i nodi si agganciano a 10 px in orizzontale e a una riga in verticale; senza griglia si spostano di 1 px. Nodi a meno di 10 px l'uno dall'altro sono arancioni: clicca di nuovo nello stesso punto per passare all'altro. Clic con Maiusc: aggiungi un nodo alla selezione. Frecce: sposta il nodo scelto di 1 px (con Maiusc 10 px). Ctrl+Z annulla, Ctrl+Y ripeti. Doppio clic su un binario: una curva nuova lì. Alt + clic su una curva: la togli. Tutto il resto (segnali, marmotte, finestre nere del numero treno, spie e nomi degli scambi, numeri delle sezioni, Bin., posti, nomi, banchine, scritte) si trascina dove vuoi; per toglierlo Alt + clic, oppure clic e poi Canc; Ctrl+Z lo rimette. Le modifiche restano in questo browser finché non esporti il file da mettere in data/ (schema_deposito_m3.json o sinottico_linea_m3.json). La prima bozza della linea la fa tools/sinottico.py linea.</p>
+    <p class="note">Sinottico del deposito o della linea: trascina i nodi (i quadratini, con il numero vicino quando ci passi sopra) e le curve (i pallini). Con la griglia i nodi si agganciano a 10 px in orizzontale e a una riga in verticale; senza griglia si spostano di 1 px. Nodi a meno di 10 px l'uno dall'altro sono arancioni: clicca di nuovo nello stesso punto per passare all'altro. Clic con Maiusc: aggiungi un nodo alla selezione. Frecce: sposta il nodo scelto di 1 px (con Maiusc 10 px). Ctrl+Z annulla, Ctrl+Y ripeti. Doppio clic su un binario: una curva nuova lì. I pallini azzurri delle curve si vedono solo sui binari dei nodi scelti e sull'ultimo binario toccato (tutti con «Tutte le curve»). Alt + clic su una curva: la togli. Tutto il resto (segnali, marmotte, finestre nere del numero treno, spie e nomi degli scambi, numeri delle sezioni, Bin., posti, nomi, banchine, scritte) si trascina dove vuoi; per toglierlo Alt + clic, oppure clic e poi Canc; Ctrl+Z lo rimette. Le modifiche restano in questo browser finché non esporti il file da mettere in data/ (schema_deposito_m3.json o sinottico_linea_m3.json). La prima bozza della linea la fa tools/sinottico.py linea.</p>
     <div class="row"><select id="schWhich" aria-label="Quale sinottico"><option value="dep">Deposito</option><option value="line">Linea</option></select><button id="schEdit" aria-pressed="false">Modifica il disegno</button><button id="schExport">Esporta il file</button><button id="schUndo">Annulla le modifiche</button></div>
     <div class="row"><button id="schU" title="Ctrl+Z" disabled>Annulla</button><button id="schR" title="Ctrl+Y" disabled>Ripeti</button><button id="schGrid" aria-pressed="true">Griglia</button><button id="schGroup" aria-pressed="false" title="Trascinando un nodo, quelli a meno di 10 px vengono con lui">Unisci i nodi vicini</button></div>
     <div class="row"><button id="schAlign" title="Un nodo: sulla riga più vicina. Due o più: tutti allo stesso x del primo scelto">Allinea alla riga</button><button id="schSep" title="Mette i nodi scelti (o quelli vicini al nodo scelto) in fila, a questa distanza">Separa di</button><input id="schSepD" type="number" value="20" min="2" max="200" step="1" aria-label="Distanza in px"> px</div>
-    <div class="row"><button id="schStr" title="Toglie le curve: le tratte dei nodi scelti (nessuno scelto: tutte) diventano dritte, in piano e poi a 45 gradi tra un nodo e l'altro. Ctrl+Z la annulla">Raddrizza</button> <button id="schPts" title="Le tratte dei nodi scelti: un punto in più a metà di ogni pezzo, da trascinare (doppio clic su un binario: un punto lì; Alt + clic su un punto: lo toglie)">Più punti</button></div>
+    <div class="row"><button id="schAllVia" aria-pressed="false" title="Mostra i pallini delle curve di tutti i binari (di solito solo quelli dei nodi scelti e dell'ultimo binario toccato)">Tutte le curve</button> <button id="schStr" title="Toglie le curve: le tratte dei nodi scelti (nessuno scelto: tutte) diventano dritte, in piano e poi a 45 gradi tra un nodo e l'altro. Ctrl+Z la annulla">Raddrizza</button> <button id="schPts" title="Le tratte dei nodi scelti: un punto in più a metà di ogni pezzo, da trascinare (doppio clic su un binario: un punto lì; Alt + clic su un punto: lo toglie)">Più punti</button></div>
     <p class="note" id="schSel">Nessun nodo scelto.</p>
     <details id="schSuspBox"><summary>Nodi sospetti: <span id="schSuspN">0</span></summary><div id="schSusp"></div></details>
     <p class="note" id="schNote"></p>
@@ -9411,7 +9411,12 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         // (the numbers of nodes close together one above the other, not on top of each other)
         const k = near.has(n) ? ids.filter(m => m < n && near.has(m) && Math.hypot(N[m][0] - N[n][0], N[m][1] - N[n][1]) < SIN_NEAR).length : 0;
         marks += `<g class="ndg${SCH_EDIT.sel.includes(n) ? ' sel' : ''}${near.has(n) ? ' near' : ''}" data-g="${n}"><rect class="nd" data-nd="${n}" x="${p[0] - 3.5}" y="${p[1] - 3.5}" width="7" height="7"/><text class="ndn" x="${p[0] + 5}" y="${p[1] - 5 - 8 * k}">${n}</text></g>`; }
-      for (const [ei, v] of Object.entries(V)) if (FULL[ei] && v) v.forEach((p0, i) => { const p = T(p0); marks += `<circle class="vp" data-e="${ei}" data-i="${i}" cx="${p[0]}" cy="${p[1]}" r="2.6"/>`; });
+      // the bends' handles (Giovanni 17 Nov 2026: "ci sono troppi puntini blu"): only on the pieces of the chosen nodes and on
+      // the last piece touched; all of them with "Tutte le curve"
+      const selN = new Set(SCH_EDIT.sel.map(String)), NE_ = F.engine.net.edges;
+      for (const [ei, v] of Object.entries(V)) { if (!FULL[ei] || !v) continue; const e = NE_[ei];
+        if (!SCH_EDIT.allVia && String(SCH_EDIT.viaE) !== String(ei) && !(e && (selN.has(String(e.a)) || selN.has(String(e.b))))) continue;
+        v.forEach((p0, i) => { const p = T(p0); marks += `<circle class="vp" data-e="${ei}" data-i="${i}" cx="${p[0]}" cy="${p[1]}" r="2.6"/>`; }); }
     }
     if (!isFinite(X0)) { X0 = Y0 = 0; X1 = Y1 = 100; }
     // (room all round to move things by hand: 300 px on the left and above, Giovanni 16 Nov 2026 "a sinistra non ho spazio")
@@ -9558,13 +9563,13 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       const D = schDeco(SCH)[key], o = Array.isArray(D) ? D : [0, 0];
       SCH_EDIT.drag = { kind: 'deco', key, el: g, p0: toSvg(ev), o, moved: false }; g.setPointerCapture(ev.pointerId); });
     svgEl.querySelectorAll('circle.vp').forEach(c => c.onpointerdown = ev => { ev.preventDefault();
-      const ei = c.dataset.e, i = +c.dataset.i, V = schVia(SCH);
+      const ei = c.dataset.e, i = +c.dataset.i, V = schVia(SCH); SCH_EDIT.viaE = ei;
       if (ev.altKey) { schPush(); const v = (V[ei] || []).slice(); v.splice(i, 1); sinEd().via = Object.assign({}, sinEd().via || {}, { [ei]: v }); sinSave(); schNote(schCount()); drawDepotPlan(); return; }
       const s0 = sinSi(SIN_ST, ((V[ei] || [])[i] || [0])[0]);
       SCH_EDIT.drag = { e: ei, i, el: c, kind: 'via', s: s0 }; c.setPointerCapture(ev.pointerId); });
     // a double click on a track: a new bend there (the piece keeps its shape: its corners become bends too)
     svgEl.querySelectorAll('path.tk').forEach(p => p.ondblclick = ev => { ev.preventDefault();
-      const ei = p.dataset.e, e = F.engine.net.edges[ei], N = schNodes(SCH), V = schVia(SCH), full = sinFull(N, V, e, ei); if (!full) return;
+      const ei = p.dataset.e, e = F.engine.net.edges[ei], N = schNodes(SCH), V = schVia(SCH), full = sinFull(N, V, e, ei); if (!full) return; SCH_EDIT.viaE = ei;
       const [x, y] = sinBack(SIN_ST, toSvg(ev)); let best = null;
       for (let i = 1; i < full.length; i++) { const A = full[i - 1], B = full[i], dx = B[0] - A[0], dy = B[1] - A[1], L2 = dx * dx + dy * dy || 1, u = Math.max(0, Math.min(1, ((x - A[0]) * dx + (y - A[1]) * dy) / L2)), d = Math.hypot(x - A[0] - u * dx, y - A[1] - u * dy); if (!best || d < best[0]) best = [d, i]; }
       const v = full.slice(1, -1).map(q => [Math.round(q[0]), Math.round(q[1])]); v.splice(best[1] - 1, 0, [Math.round(x), Math.round(y)]);
@@ -9611,8 +9616,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   document.getElementById('schSep').onclick = schSeparate;
   document.getElementById('schPts').onclick = schPoints;
   document.getElementById('schStr').onclick = schStraight;
+  document.getElementById('schAllVia').onclick = ev => { SCH_EDIT.allVia = !SCH_EDIT.allVia; ev.target.setAttribute('aria-pressed', String(SCH_EDIT.allVia)); drawDepotPlan(); };
   document.getElementById('schExport').onclick = () => { const F = m3eng(); const SCH = F && sinSchema(F); if (!SCH) return;
-    const out = Object.assign({}, SCH, { nodes: schNodes(SCH), via: schVia(SCH), deco: schDeco(SCH) });
+    const out = Object.assign({}, SCH, { nodes: schNodes(SCH), via: schVia(SCH), deco: schDeco(SCH) }); delete out.__sec;   // (not the page's own cache of the sections)
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], { type: 'application/json' })); a.download = SIN_FILE[SIN_WHICH]; a.click(); };
   setInterval(drawDepotPlan, 1000);
   // ================= DEPOT (web/DepotM3.js: places and test loop) =================
