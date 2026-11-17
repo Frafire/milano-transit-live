@@ -2552,7 +2552,7 @@ window.MTL_CAPS = __CAPS__;
     const red = lights === 'red';
     let sign = '', nx = 262;
     if (num) { let x = nx; for (const ch of num) { const g = F57[ch]; for (let r = 0; r < 7; r++) for (let i = 0; i < 5; i++) if (g[r][i] === '1') sign += `<circle cx="${(x + (i + .5) * 5.6).toFixed(1)}" cy="${(153 - 19.6 + (r + .5) * 5.6).toFixed(1)}" r="2.4" fill="#f4f6ff"/>`; x += 6 * 5.6; } nx = x + 14; }
-    if (txt) sign += ledDest(txt, nx, 750, 153, 6.4, 4.8, '#ffa31a', 'la');     // ABBIATEGRASSO, CASCINA GOBBA fit (photos); longer names run
+    if (txt) sign += ledDest(txt, nx, 750, 153, 6.4, 4.4, '#ffa31a', 'la');     // ABBIATEGRASSO, CASCINA GOBBA (photos), PORTA GENOVA F.S. (Giovanni) fit; longer names run
     const loop = 'M102 563 L102 212 Q102 196 112 184 L178 100 Q190 85 212 85 L798 85 Q820 85 832 100 L898 184 Q908 196 908 212 L908 545';
     const BAND = loop + ' L815 650 L395 650 L318 718 M102 563 L300 750 L640 750 L702 688';
     // light unit (photo of 7 Nov): the half-disc outside as it is; at its base two circles, the grey ring and the lamp's lens in

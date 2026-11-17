@@ -1,52 +1,296 @@
 {
- "_nota": "Cosa scrive la veletta dei treni M2 per ogni destinazione dell'orario ATM (GTFS, trip_headsign), da Giovanni (9/11/2026). Le scritte si scrivono come sono (maiuscole e minuscole). 'speciali': scritte che non vengono dall'orario. 'abbreviate': solo sui treni elencati (data/flotta_m2.json, velette).",
- "destinazioni": {
-  "abbiategrasso": "ABBIATEGRASSO",
-  "gessate": "GESSATE",
-  "assago milanofiori forum": "ASSAGO MILANO FORUM",
-  "cologno nord": "COLOGNO NORD",
-  "cascina gobba": "CASCINA GOBBA",
-  "lambrate fs": "LAMBRATE FS"
+ "_nota": "Velette dei treni M2 (Giovanni e il collega macchinista, 9/11/2026). Ogni veletta viene da uno di tre elenchi: TWC (vecchio sistema, codice numerico, in dismissione), monitor da banco (abbreviazioni per il macchinista), PIS (monitor e velette interne). Dal 2022 la veletta esterna prende la scritta dal PIS, tranne P.ZA ABBIATEGRASSO che resta ABBIATEGRASSO; i treni in 'treni_monitor' la prendono sempre dall'elenco del monitor. Dove l'elenco non ha una scritta per quella destinazione: FUORI SERVIZIO; Dep. Gorgonzola (solo nel TWC): NONGESTITO. Maiuscole e minuscole come sono scritte. I Meneghino seguono più o meno lo stesso schema.",
+ "regole": {
+  "esterna": "pis",
+  "eccezioni_pis": {
+   "P.ZA ABBIATEGRASSO": "ABBIATEGRASSO"
+  },
+  "senza_scritta": "FUORI SERVIZIO",
+  "non_gestito": {
+   "Dep. Gorgonzola": "NONGESTITO"
+  }
+ },
+ "treni_monitor": [
+  "5051-5052",
+  "5065-5066"
+ ],
+ "stazioni": [
+  {
+   "orario": "gessate",
+   "nome": "Gessate",
+   "cod_twc": "36",
+   "twc": "GESSATE",
+   "monitor": "GESSATE",
+   "pis": "GESSATE"
+  },
+  {
+   "orario": "cascina antonietta",
+   "nome": "Cascina Antonietta",
+   "monitor": "CASCINAANT",
+   "pis": "CASCINA ANTONIETTA"
+  },
+  {
+   "nome": "Deposito Gorgonzola",
+   "cod_twc": "35",
+   "twc": "Dep. Gorgonzola"
+  },
+  {
+   "orario": "gorgonzola",
+   "nome": "Gorgonzola",
+   "cod_twc": "34",
+   "twc": "GORGONZOLA",
+   "monitor": "GORGONZOLA",
+   "pis": "GORGONZOLA"
+  },
+  {
+   "orario": "villa pompea",
+   "nome": "Villa Pompea",
+   "monitor": "VILLAPOMPEA",
+   "pis": "VILLA POMPEA"
+  },
+  {
+   "orario": "bussero",
+   "nome": "Bussero",
+   "monitor": "BUSSERO",
+   "pis": "BUSSERO"
+  },
+  {
+   "orario": "cassina de pecchi",
+   "nome": "Cassina de' Pecchi",
+   "cod_twc": "33",
+   "twc": "C.NA DE PECCHI",
+   "monitor": "CASSINADEP",
+   "pis": "CASSINA DE' PECCHI"
+  },
+  {
+   "orario": "villa fiorita",
+   "nome": "Villa Fiorita",
+   "monitor": "VILLAFIORITA",
+   "pis": "VILLA FIORITA"
+  },
+  {
+   "orario": "cernusco sul naviglio",
+   "nome": "Cernusco sul Naviglio",
+   "cod_twc": "32",
+   "twc": "CERNUSCO S.N.",
+   "monitor": "CERNUSCOSN",
+   "pis": "CERNUSCO SUL NAVIGLIO"
+  },
+  {
+   "orario": "cascina burrona",
+   "nome": "Cascina Burrona",
+   "monitor": "CASCINABUR",
+   "pis": "CASCINA BURRONA"
+  },
+  {
+   "orario": "vimodrone",
+   "nome": "Vimodrone",
+   "cod_twc": "31",
+   "twc": "VIMODRONE",
+   "monitor": "VIMODRONE",
+   "pis": "VIMODRONE"
+  },
+  {
+   "nome": "Deposito Cologno"
+  },
+  {
+   "orario": "cologno nord",
+   "nome": "Cologno Nord",
+   "cod_twc": "22",
+   "twc": "COLOGNO NORD",
+   "monitor": "COLOGNONORD",
+   "pis": "COLOGNO NORD"
+  },
+  {
+   "orario": "cologno centro",
+   "nome": "Cologno Centro",
+   "monitor": "COLOGNOCENTRO",
+   "pis": "COLOGNO CENTRO"
+  },
+  {
+   "orario": "cologno sud",
+   "nome": "Cologno Sud",
+   "monitor": "COLOGNOSUD",
+   "pis": "COLOGNO SUD"
+  },
+  {
+   "orario": "cascina gobba",
+   "nome": "Cascina Gobba",
+   "cod_twc": "21",
+   "twc": "C.NA GOBBA",
+   "monitor": "CASCINAGOBBA",
+   "pis": "CASCINA GOBBA"
+  },
+  {
+   "orario": "crescenzago",
+   "nome": "Crescenzago",
+   "monitor": "CRESCENZAGO",
+   "pis": "CRESCENZAGO"
+  },
+  {
+   "orario": "cimiano",
+   "nome": "Cimiano",
+   "cod_twc": "20",
+   "twc": "CIMIANO",
+   "monitor": "CIMIANO",
+   "pis": "CIMIANO"
+  },
+  {
+   "orario": "udine",
+   "nome": "Udine",
+   "monitor": "UDINE",
+   "pis": "UDINE"
+  },
+  {
+   "orario": "lambrate fs",
+   "nome": "Lambrate FS",
+   "cod_twc": "19",
+   "twc": "LAMBRATE",
+   "monitor": "LAMBRATEFS",
+   "pis": "LAMBRATE F.S."
+  },
+  {
+   "orario": "piola",
+   "nome": "Piola",
+   "monitor": "PIOLA",
+   "pis": "PIOLA"
+  },
+  {
+   "orario": "loreto m2",
+   "nome": "Loreto",
+   "cod_twc": "18",
+   "twc": "LORETO",
+   "monitor": "LORETO",
+   "pis": "LORETO"
+  },
+  {
+   "orario": "caiazzo",
+   "nome": "Caiazzo",
+   "cod_twc": "17",
+   "twc": "CAIAZZO",
+   "monitor": "CAIAZZO",
+   "pis": "CAIAZZO"
+  },
+  {
+   "orario": "centrale fs",
+   "nome": "Centrale FS",
+   "cod_twc": "16",
+   "twc": "CENTRALE",
+   "monitor": "CENTRALEFS",
+   "pis": "CENTRALE F.S."
+  },
+  {
+   "orario": "gioia",
+   "nome": "Gioia",
+   "monitor": "GIOIA",
+   "pis": "GIOIA"
+  },
+  {
+   "orario": "garibaldi fs",
+   "nome": "Garibaldi FS",
+   "cod_twc": "15",
+   "twc": "GARIBALDI",
+   "monitor": "GARIBALDIFS",
+   "pis": "GARIBALDI F.S."
+  },
+  {
+   "orario": "moscova",
+   "nome": "Moscova",
+   "monitor": "MOSCOVA",
+   "pis": "MOSCOVA"
+  },
+  {
+   "orario": "lanza",
+   "nome": "Lanza",
+   "monitor": "LANZA",
+   "pis": "LANZA"
+  },
+  {
+   "orario": "cadorna fn m2",
+   "nome": "Cadorna FN",
+   "cod_twc": "14",
+   "twc": "CADORNA",
+   "monitor": "CADORNAFN",
+   "pis": "CADORNA F.N. TRIENNALE"
+  },
+  {
+   "orario": "s.ambrogio",
+   "nome": "Sant'Ambrogio",
+   "monitor": "SANTAMBROGIO",
+   "pis": "SANT'AMBROGIO"
+  },
+  {
+   "orario": "s.agostino",
+   "nome": "Sant'Agostino",
+   "monitor": "SANTAGOSTINO",
+   "pis": "SANT'AGOSTINO"
+  },
+  {
+   "orario": "p.ta genova f.s.",
+   "nome": "Porta Genova FS",
+   "cod_twc": "13",
+   "twc": "P.TA GENOVA",
+   "monitor": "PTAGENOVA",
+   "pis": "PORTA GENOVA F.S."
+  },
+  {
+   "orario": "romolo",
+   "nome": "Romolo",
+   "cod_twc": "12",
+   "twc": "ROMOLO",
+   "monitor": "ROMOLO",
+   "pis": "ROMOLO"
+  },
+  {
+   "orario": "famagosta",
+   "nome": "Famagosta",
+   "cod_twc": "11",
+   "twc": "FAMAGOSTA",
+   "monitor": "FAMAGOSTA",
+   "pis": "FAMAGOSTA"
+  },
+  {
+   "nome": "Deposito Famagosta"
+  },
+  {
+   "orario": "abbiategrasso",
+   "nome": "Abbiategrasso",
+   "cod_twc": "40",
+   "twc": "ABBIATEGRASSO",
+   "monitor": "ABBIATEG",
+   "pis": "P.ZA ABBIATEGRASSO"
+  },
+  {
+   "orario": "assago milanofiori nord",
+   "nome": "Assago Milanofiori Nord",
+   "monitor": "ASSMNORD",
+   "pis": "ASSAGO MILANO NORD"
+  },
+  {
+   "orario": "assago milanofiori forum",
+   "nome": "Assago Milanofiori Forum",
+   "cod_twc": "41",
+   "twc": "ASSAGO M. FORUM",
+   "monitor": "ASSMFIORI",
+   "pis": "ASSAGO MILANO FORUM"
+  }
+ ],
+ "speciali": [
+  "FUORI SERVIZIO",
+  "NONGESTITO",
+  "PorteAperteATM"
+ ],
+ "casi": {
+  "5001-5002": {
+   "ASSAGO MILANO FORUM": "ASSAGO M. FORUM",
+   "nota": "da circa un anno (2025-2026), da tutte e due le cabine"
+  },
+  "5091-5092": {
+   "ASSAGO MILANO FORUM": "ASSAGO FORUM",
+   "nota": "per un paio d'anni, con la 5092 in testa (a memoria del collega), non più"
+  }
  },
  "note": {
   "lambrate fs": "limitazione serale per i lavori di potenziamento dell'infrastruttura del gestore"
- },
- "speciali": [
-  "FUORI SERVIZIO",
-  "PorteAperteATM"
- ],
- "limitazioni": {
-  "_nota": "Ogni stazione non capolinea, perché un treno può limitare ovunque (Giovanni 9/11/2026). Scritta = nome dell'orario ATM senza 'M2', confermata da Giovanni (9/11/2026). Cascina Gobba e Lambrate FS sono nelle destinazioni.",
-  "stazioni": {
-   "assago milanofiori nord": "ASSAGO MILANOFIORI NORD",
-   "famagosta": "FAMAGOSTA",
-   "romolo": "ROMOLO",
-   "p.ta genova f.s.": "P.TA GENOVA F.S.",
-   "s.agostino": "S.AGOSTINO",
-   "s.ambrogio": "S.AMBROGIO",
-   "cadorna fn m2": "CADORNA FN",
-   "lanza": "LANZA",
-   "moscova": "MOSCOVA",
-   "garibaldi fs": "GARIBALDI FS",
-   "gioia": "GIOIA",
-   "centrale fs": "CENTRALE FS",
-   "caiazzo": "CAIAZZO",
-   "loreto m2": "LORETO",
-   "piola": "PIOLA",
-   "udine": "UDINE",
-   "cimiano": "CIMIANO",
-   "crescenzago": "CRESCENZAGO",
-   "vimodrone": "VIMODRONE",
-   "cascina burrona": "CASCINA BURRONA",
-   "cernusco sul naviglio": "CERNUSCO SUL NAVIGLIO",
-   "villa fiorita": "VILLA FIORITA",
-   "cassina de pecchi": "CASSINA DE PECCHI",
-   "bussero": "BUSSERO",
-   "villa pompea": "VILLA POMPEA",
-   "gorgonzola": "GORGONZOLA",
-   "cascina antonietta": "CASCINA ANTONIETTA",
-   "cologno sud": "COLOGNO SUD",
-   "cologno centro": "COLOGNO CENTRO"
-  }
  }
 }
