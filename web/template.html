@@ -2055,7 +2055,7 @@ window.MTL_CAPS = __CAPS__;
   // the letters of the M3 signs (Giovanni 17 Nov 2026, with photos of 8109's sign in 2010): always the same size, the name in
   // the middle of the sign; the size is the one at which the longest (number + MONTENAPOLEONE or FUORI SERVIZIO) just fits;
   // the fronts are shown 35% bigger so the letters read as before
-  const SIGN_LONG = ['MONTENAPOLEONE', 'FUORI SERVIZIO'];
+  const SIGN_LONG = ['MONTENAPOLEONE', 'FUORI SERVIZIO', 'TRENO SPECIALE', 'SCUOLA GUIDA'];
   function signLayout(V, num, txt, colsOf) {
     const p = Math.min((V.w - 8) / (Math.max(...SIGN_LONG.map(colsOf)) + colsOf('88') + 3), (V.h - 4) / 7);
     const nx = V.x + 4, numEnd = num ? nx + (colsOf(num) + 3) * p : V.x + 4;
@@ -2429,6 +2429,18 @@ window.MTL_CAPS = __CAPS__;
   }
   const frontKind = rt => !rt || !rt.type ? null : /hitachi/i.test(rt.type) ? 'hitachi' : /meneghino/i.test(rt.type) ? 'meneghino' : /2°/.test(rt.type) ? 'lotto2' : 'lotto1';
   // what the sign shows and which lights: the run's destination; red lights standing in the depot or a tail
+  // the sign tried out by hand (Giovanni 17 Nov 2026: "l'opzione per testare le velette… solo se sono in manutenzione"): a
+  // train in the officina or in maintenance can show any sign, SCUOLA GUIDA and TRENO SPECIALE too; by units, until the
+  // page is loaded again or the train leaves maintenance
+  const VELTEST = {}, VEL_EXTRA = ['FUORI SERVIZIO', 'SCUOLA GUIDA', 'TRENO SPECIALE'];
+  const inMaintNow = (F, tr, rt) => !!(rt && !rt.none && !rt.missing && (rt.officina || inMaint(rt.units)
+    || (F.ag && F.ag.S && F.ag.S.faults && tr.agentK != null && F.ag.S.faults.list.some(f => f.k === tr.agentK && f.maint))));
+  function velBox(F, tr) {
+    const rt = realTrain(F, tr, state.t); if (F.line !== 'M3' || !F.engine || !inMaintNow(F, tr, rt)) return '';
+    const names = [...new Set(F.engine.G.names.map(n => String(n).toUpperCase().replace(/\s+M\d$/, '').trim()))].filter(Boolean), cur = VELTEST[rt.units] || '';
+    return `<div class="next"><div class="nh">Prova veletta</div><p class="sub">Il treno è in manutenzione: puoi provare tutte le scritte della veletta.</p>
+      <div class="row"><select id="velTest" aria-label="Scritta della veletta"><option value="">come in servizio</option>${VEL_EXTRA.concat(names).map(n => `<option${n === cur ? ' selected' : ''}>${n}</option>`).join('')}</select></div></div>`;
+  }
   function frontOf(F, tr, st) {
     const rt = realTrain(F, tr, state.t), kind = frontKind(rt); if (!kind) return null;
     let dest = '';
@@ -2441,6 +2453,7 @@ window.MTL_CAPS = __CAPS__;
     const red = st.status === 'parked' || st.status === 'turnback' && still || (a && (a.hidden || a.mode === 'static' || a.waiting && still)) || (still && st.status !== 'service' && st.status !== 'stopped');
     // the car at the front: the first number of the units (8103-8104 + ...: 8103)
     const car = rt && rt.units ? (String(rt.units).match(/\d{4}/) || [''])[0] : '';
+    if (rt && VELTEST[rt.units] && inMaintNow(F, tr, rt)) return { kind, dest: VELTEST[rt.units], lights: red ? 'red' : 'white', no: '', car };
     return { kind, dest: oos ? 'FUORI SERVIZIO' : dest, lights: red ? 'red' : 'white', no: rt && rt.tab == null ? '' : rt && rt.n != null ? String(rt.n) : String(tr.n || ''), car };      // the tabella's number, also out of service (Giovanni)
   }
   const TACHO = { target: -135, cur: null, run: false, last: 0 };
@@ -2537,13 +2550,14 @@ window.MTL_CAPS = __CAPS__;
     const logo = F.line === 'M3' && M3LOGO.startsWith('data:') ? `<img class="lnlogo" src="${M3LOGO}" alt="M3">` : `<span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>`;
     card.innerHTML = `<div class="hd">${logo}<div class="hdtx"><h2>${title}</h2>${what ? `<div class="what">${what}</div>` : ''}
         <div class="sub"><span>${no}</span>${stTxt}${F.bus ? '' : '<span class="pill" id="delayTile" hidden></span>'}</div></div></div>
-      ${info}${cab}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${trial && F.dm && tr.agentK != null && (F.dm.loopInfo(tr.agentK) || {}).onLoop ? '' : testLoopBox(F, tr, st)}${washBox(F, tr)}
+      ${info}${cab}${velBox(F, tr)}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${trial && F.dm && tr.agentK != null && (F.dm.loopInfo(tr.agentK) || {}).onLoop ? '' : testLoopBox(F, tr, st)}${washBox(F, tr)}
       <div class="foot"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="cardClose">Chiudi</button></div>`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
     document.getElementById('cardClose').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
     const ttBtn = document.getElementById('ttBtn'); if (ttBtn) ttBtn.onclick = () => { state.fullTT = !state.fullTT; renderCard(); };
     const rOpen = document.getElementById('radioOpen'); if (rOpen) rOpen.onclick = () => openRadio(F, tr);
+    const vt = document.getElementById('velTest'); if (vt) vt.onchange = () => { const r_ = realTrain(F, tr, state.t); if (r_) { if (vt.value) VELTEST[r_.units] = vt.value; else delete VELTEST[r_.units]; } renderCard(); };
     updateTiles();
     card.querySelectorAll('[data-fxid]').forEach(b => b.onclick = () => { fxAnswer(F, +b.dataset.fxid, b.dataset.fxa); renderCard(); });
     card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
