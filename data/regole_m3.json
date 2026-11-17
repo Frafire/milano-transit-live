@@ -151,11 +151,11 @@
    "note": "usato in: chiusura con navetta"
   },
   "3": {
-   "legale": true,
+   "legale": false,
    "aspetto": "rosso",
    "via_libera": "semi-automatico: dato dal PC, percorso del deposito libero",
    "comando": "semi-automatico",
-   "note": "usato in: chiusura con navetta"
+   "note": "usato in: chiusura con navetta; illegale (B, testa quadrata sul quadro del deposito): Giovanni 17 nov 2026"
   },
   "4": {
    "legale": true,
@@ -165,11 +165,11 @@
    "note": null
   },
   "5": {
-   "legale": true,
+   "legale": false,
    "aspetto": "rosso",
    "via_libera": "semi-automatico: dato dal PC, ingresso in deposito libero",
    "comando": "semi-automatico",
-   "note": null
+   "note": "illegale (B, testa quadrata sul quadro del deposito): Giovanni 17 nov 2026"
   },
   "6": {
    "legale": true,

@@ -122,11 +122,21 @@ def clean(P):
 DEP_BOX = (45.4272, 45.4345, 9.2505, 9.2610)
 
 
+def keep_deco(path):
+    """what Giovanni moved or took away in the editor (signals, windows, names…: deco, by key) stays when the drawing is made
+    again"""
+    try: return json.load(open(path)).get('deco') or {}
+    except Exception: return {}
+
+
 def split(net):
     """the pieces of the depot drawing and of the line drawing: each piece of the track in exactly one of them"""
     E, N = net['edges'], net['nodes']
     inb = lambda n: DEP_BOX[0] <= N[str(n)][0] <= DEP_BOX[1] and DEP_BOX[2] <= N[str(n)][1] <= DEP_BOX[3]
     dep = [i for i, e in enumerate(E) if e.get('cat') in ('yard', 'test') and inb(e['a']) and inb(e['b'])]
+    # (and the two tracks from the depot's door to San Donato, as on the depot's board: Giovanni 17 Nov 2026)
+    dn = {E[i]['a'] for i in dep} | {E[i]['b'] for i in dep}
+    dep += [i for i, e in enumerate(E) if i not in set(dep) and e.get('cat') == 'siding' and (e['a'] in dn or e['b'] in dn)]
     ds = set(dep)
     return dep, [i for i in range(len(E)) if i not in ds]
 
@@ -137,6 +147,7 @@ def deposito(m3='m3.json'):
     each piece level then at 45 degrees; the nodes and the bends then moved by hand in the editor"""
     d, net = load(m3); E, NODES = net['edges'], net['nodes']
     DEP, _ = split(net); nodes = sorted({E[i]['a'] for i in DEP} | {E[i]['b'] for i in DEP})
+    DOOR_E = [i for i in DEP if E[i].get('cat') == 'siding']; nodes0 = sorted({E[i]['a'] for i in DEP if i not in DOOR_E} | {E[i]['b'] for i in DEP if i not in DOOR_E})
     xy = lambda n: (NODES[str(n)][1] * KX, NODES[str(n)][0] * KY)
     acc = [0.0, 0.0]
     for i in DEP:
@@ -145,7 +156,7 @@ def deposito(m3='m3.json'):
         (x0, y0), (x1, y1) = xy(e['a']), xy(e['b']); a = math.atan2(y1 - y0, x1 - x0) * 2
         acc[0] += math.cos(a) * e['len']; acc[1] += math.sin(a) * e['len']
     th = math.atan2(acc[1], acc[0]) / 2; c, s_ = math.cos(-th), math.sin(-th)
-    rot = {n: (xy(n)[0] * c - xy(n)[1] * s_, xy(n)[0] * s_ + xy(n)[1] * c) for n in nodes}
+    rot = {n: (xy(n)[0] * c - xy(n)[1] * s_, xy(n)[0] * s_ + xy(n)[1] * c) for n in nodes0}
     SX, ROW_M, SY = 2.4, 4.0, 28.0
     ymax = max(v[1] for v in rot.values()); xmin = min(v[0] for v in rot.values())
     # (along: 2.4 px a metre, but two nodes never on the same tile: the joints in the middle of a place, 2-3 m)
@@ -162,11 +173,54 @@ def deposito(m3='m3.json'):
     # (two nodes on the same spot of the drawing, not joined: the second one row down, until it is free)
     for _ in range(6):
         moved = 0; seen = {}
-        for n in nodes:
+        for n in nodes0:
             key = (round(pos[n][0] / 12), pos[n][1])
             if key in seen: pos[n][1] += SY; moved += 1
             else: seen[key] = n
         if not moved: break
+    # the tracks of the places (Giovanni 17 Nov 2026: "bin 4 è il primo del capannone 1 - 2 - 3 sono i più alti e gli altri
+    # sono di conseguenza"): the two places of a track (joined by their joint of 2-3 m) on one row, the row no other track's
+    # place is on; then Bin.1, Bin.2… from the top
+    PL = {p['node']: p['name'] for p in net.get('depot', []) if p['node'] in pos}
+    tracks, done = [], set()
+    for n in sorted(PL):
+        if n in done: continue
+        mate = next((E[i]['b'] if E[i]['a'] == n else E[i]['a'] for i in DEP if n in (E[i]['a'], E[i]['b']) and E[i]['len'] < 5
+                     and (E[i]['b'] if E[i]['a'] == n else E[i]['a']) in PL), None)
+        T_ = [n] + ([mate] if mate is not None else []); done |= set(T_); tracks.append(T_)
+    for T_ in tracks:
+        if len(T_) == 2 and pos[T_[0]][1] != pos[T_[1]][1]:
+            busy = lambda y: sum(1 for U in tracks if U is not T_ for m in U if pos[m][1] == y)
+            y = min((pos[m][1] for m in T_), key=busy)
+            for m in T_: pos[m][1] = y
+    # (and the joints beyond the places, up to the switches: on the same row, as the track is one)
+    adj = {}
+    for i in DEP: adj.setdefault(E[i]['a'], []).append(i); adj.setdefault(E[i]['b'], []).append(i)
+    for T_ in tracks:
+        y = pos[T_[0]][1]
+        for n0 in T_:
+            for i0 in adj.get(n0, []):
+                cur, ei = n0, i0
+                for _ in range(6):
+                    nx = E[ei]['b'] if E[ei]['a'] == cur else E[ei]['a']
+                    if nx in T_ or nx in PL or len(adj.get(nx, [])) != 2: break
+                    pos[nx][1] = y; cur = nx; ei = next(j for j in adj[nx] if j != ei)
+    tracks.sort(key=lambda T_: (min(pos[m][1] for m in T_), min(pos[m][0] for m in T_)))
+    bins = [{'nodes': T_, 't': 'Bin.%d' % (k + 1), 'places': [PL[m] for m in T_]} for k, T_ in enumerate(tracks)]
+    # the depot's door as on the board (Giovanni 16-17 Nov 2026, the photos: "questa è l'entrata"): two tracks upright, the
+    # scissors between them (switches 1a, 1b, 2a, 2b), San Donato at the bottom; left the track of #A05 (in) and #A02 (out),
+    # right the one of #A04 (in) and #A03 (out)
+    DOOR = {'1a': 28, '1b': 154, '2a': 41, '2b': 43, 'x': 42, 'B0': 29, 'A0': 40, 'B1': 141, 'A1': 160, 'B2': 142}
+    DOOR_FLAT = (27, 37, 38, 39, 144, 148, 149, 168, 143, 132, 166)
+    door = all(v in pos or v in (160, 142) for v in DOOR.values()) and all(i in DEP for i in DOOR_FLAT)
+    if door:
+        xB, yT = pos[DOOR['2b']][0], pos[DOOR['2b']][1]
+        for k, (dx, dy) in {'2b': (0, 0), '1b': (4, 0), 'x': (2, 2), '1a': (0, 4), '2a': (4, 4), 'B0': (0, 5), 'A0': (4, 5),
+                            'B1': (0, 14), 'B2': (0, 18), 'A1': (4, 18)}.items():
+            pos[DOOR[k]] = [xB + dx * TILE, yT + dy * TILE]
+    else: print('deposito: the door of the depot not found (nodes changed?): drawn as the real track')
+    for n in nodes:
+        if n not in pos: pos[n] = [60.0, 60.0]
     # every piece with its own shape (Giovanni 16 Nov 2026, with his sketch: the loops round the yard, the officina, the
     # test loop round everything; "le linee del deposito devono essere dritte"): the real track turned and stretched like
     # the nodes, fewer points, each bit then level, at 45 degrees or upright
@@ -181,9 +235,35 @@ def deposito(m3='m3.json'):
         m = min(abs(dx), abs(dy)); sx, sy = (1 if dx > 0 else -1), (1 if dy > 0 else -1)
         if abs(dx) > abs(dy): h = (abs(dx) - m) / 2; return [[A[0] + sx * h, A[1]], [A[0] + sx * (h + m), B[1]], B]
         v = (abs(dy) - m) / 2; return [[A[0], A[1] + sy * v], [B[0], A[1] + sy * (v + m)], B]
+    UP = {}
+    if door:
+        far = {}
+        for k in ('1b', '2b'):
+            n = DOOR[k]; i = next(i for i in DEP if n in (E[i]['a'], E[i]['b']) and i not in DOOR_FLAT)
+            m = E[i]['b'] if E[i]['a'] == n else E[i]['a']; far[k] = (i, pos[n], pos[m], pos[m][0] - pos[m][1])
+        cB = far['2b'][3]; cA = max(far['1b'][3], cB + 2 * TILE)
+        UP = {far['1b'][0]: (far['1b'][1], far['1b'][2], cA), far['2b'][0]: (far['2b'][1], far['2b'][2], cB)}
     via = {}
     for i in DEP:
         e = E[i]; P = polys[i]
+        if door and i in DOOR_FLAT: continue
+        if door and i in UP:
+            # (out of the scissors upwards: upright, at 45 degrees, then level into the next node; the right-hand track
+            # outside the left-hand one, two tiles apart: the board's tracks never cross there)
+            A, B, cc = UP[i]
+            P_ = clean([A, [A[0], A[0] - cc], [B[1] + cc, B[1]], B])[1:-1]
+            if pos[e['a']] != A: P_ = P_[::-1]
+            if P_: via[str(i)] = P_
+            continue
+        if (e['a'] in PL) != (e['b'] in PL):
+            # (a place's track: level on its own row up to the switch at its end, then 45 degrees into it; not on the
+            # row of the next track, as the real track rounded to rows of 4 m did)
+            A, B = (pos[e['a']], pos[e['b']]) if e['a'] in PL else (pos[e['b']], pos[e['a']])
+            dy = abs(B[1] - A[1]); sx = 1 if B[0] > A[0] else -1
+            P_ = clean([A, [B[0] - sx * dy, A[1]], B])[1:-1] if dy > 0.5 and abs(B[0] - A[0]) > dy else []
+            if e['a'] not in PL: P_ = P_[::-1]
+            if P_: via[str(i)] = P_
+            continue
         if len(P) < 3 and abs(pos[e['a']][1] - pos[e['b']][1]) < 0.5: continue
         Q = []
         for (x, y) in P:
@@ -207,13 +287,35 @@ def deposito(m3='m3.json'):
     near = [i for i, e in enumerate(E) if i in set(DEP) or i in set(net.get('sd_tail_edges') or [])]
     sigs = heads(d, net, add_dirs(net, find_signals(net, near, polys)))
     places = [{'node': p['node'], 'name': p['name']} for p in net.get('depot', []) if p['node'] in pos]
+    # the names of the switches: the door's from the board (1a 1b 2a 2b), the others made up (Giovanni 17 Nov 2026: "numeri
+    # scambi e sezioni non li so quello che riesci a capire bene sennò inventali"): from the door leftwards, top to bottom;
+    # two switches joined by one piece at 45 degrees (a crossover) one number, a and b
+    deg = {}
+    for i in DEP: deg[E[i]['a']] = deg.get(E[i]['a'], 0) + 1; deg[E[i]['b']] = deg.get(E[i]['b'], 0) + 1
+    swn = {str(DOOR[k]): k for k in ('1a', '1b', '2a', '2b')} if door else {}
+    k_ = 3
+    for n in sorted((n for n in nodes if deg.get(n) == 3 and str(n) not in swn), key=lambda n: (-pos[n][0], pos[n][1])):
+        if str(n) in swn: continue
+        mate = None
+        for i in DEP:
+            e = E[i]
+            if n not in (e['a'], e['b']) or str(i) in via: continue
+            m = e['b'] if e['a'] == n else e['a']
+            if deg.get(m) == 3 and str(m) not in swn and abs(abs(pos[m][0] - pos[n][0]) - abs(pos[m][1] - pos[n][1])) < 1 and pos[m][1] != pos[n][1]: mate = m; break
+        if mate is not None: swn[str(n)] = '%da' % k_; swn[str(mate)] = '%db' % k_
+        else: swn[str(n)] = str(k_)
+        k_ += 1
+    # the sections of the door as on the board (01-04: below right, below left, above right, above left); the page numbers
+    # the others after them; San Donato written at the bottom
+    sec0 = {'%d:%s' % (i, f): t for i, f, t in ((166, 0.98, '01'), (143, 0.05, '02'), (150, 0.01, '03'), (165, 0.99, '04'))} if door else {}
+    texts = [{'x': pos[DOOR['2b']][0] + 2 * TILE, 'y': pos[DOOR['B2']][1] + 2 * TILE, 't': 'SAN DONATO', 'c': 'lab'}] if door else []
     S = {'_about': 'Sinottico del deposito di San Donato, rifatto da zero (Giovanni 16/11/2026): tutti i binari del deposito e '
                    'dell\'anello di prova, il binario vero girato in orizzontale e ingrandito (2,4 px al metro, una riga di 28 px '
                    'ogni 4 m); nodes = dove sta ogni nodo (px), via = curve (si aggiungono nell\'editor), signals = la tratta e '
                    'quanto lungo (0-1), places = i posti. tools/sinottico.py deposito lo rifà da capo; l\'editor lo corregge.',
          'tile': [TILE, 60, 60], 'angle_deg': round(math.degrees(th), 1), 'edges': DEP, 'nodes': {str(n): pos[n] for n in nodes}, 'via': via, 'part': {},
-         'signals': sigs, 'places': places}
-    OUT = os.path.join(ROOT, 'data', 'schema_deposito_m3.json'); json.dump(S, open(OUT, 'w'), ensure_ascii=False, indent=1)
+         'signals': sigs, 'places': places, 'bins': bins, 'swn': swn, 'sec0': sec0, 'texts': texts}
+    OUT = os.path.join(ROOT, 'data', 'schema_deposito_m3.json'); S['deco'] = keep_deco(OUT); json.dump(S, open(OUT, 'w'), ensure_ascii=False, indent=1)
     W = max(v[0] for v in pos.values()); H = max(v[1] for v in pos.values())
     print('sinottico del deposito: %d tratte, %d nodi, %d segnali (%d sulle tratte disegnate), %d posti, %d x %d px'
           % (len(DEP), len(pos), len(sigs), sum(1 for x in sigs if x['e'] in set(DEP)), len(places), W, H))
@@ -527,7 +629,7 @@ def linea(m3='m3.json'):
            'signals': sig, 'places': [], 'labels': labels, 'platforms': platforms, 'badges': badges, 'strips': None,
            'tails': tails, 'names': names_e}
     OUT = os.path.join(ROOT, 'data', 'sinottico_linea_m3.json')
-    json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1)
+    out['deco'] = keep_deco(OUT); json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1)
     print('sinottico della linea: %d tratte, %d nodi (%d fuori dalla linea), %d segnali, %d stazioni, %d loghi M2, una riga larga %d px (la linea %d m)'
           % (len(edges), len(pos), len(far), len(sig), len(labels), len(badges), X0, TOT))
 

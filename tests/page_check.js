@@ -780,6 +780,34 @@ const SCENARIOS = {
       return { ok: res.every(r => r.same && r.want > 0 && r.sigs === r.sigWant && r.edges === SCH.edges.length && r.station) && line.tk === line.want && line.want > 50 && line.labels >= 21 && line.plat >= 42 && line.m2 >= 1 && line.stripsOk && back, res, line, back };
     });
   },
+  async sindeco(p) {   // the sinottico editor (Giovanni 17 Nov 2026: "fai tutto spostabile ed eliminabile"): a window of the
+    // train numbers dragged, another taken away with Alt + clic, a signal taken away with a clic and Canc, Ctrl+Z gives it
+    // back; nothing left in the browser
+    const sleep = ms => new Promise(r => setTimeout(r, ms)), r = {};
+    await p.evaluate(() => { localStorage.removeItem('mtl-schema-edit-3'); });
+    await p.reload(); await p.waitForTimeout(6000);
+    await p.evaluate(() => { document.querySelector('.drawer .tab[data-mode="schema"]').click(); document.getElementById('schEdit').click(); });
+    await p.evaluate(() => { const s = document.getElementById('schWhich'); s.value = 'dep'; s.dispatchEvent(new Event('change')); }); await sleep(1500);
+    await p.evaluate(() => { for (let i = 0; i < 3; i++) document.getElementById('dpIn').click(); }); await sleep(1200);
+    const box = sel => p.evaluate(sel => { const e = document.querySelector(sel); if (!e) return null; e.scrollIntoView({ block: 'center', inline: 'center' }); const b = e.getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, sel);
+    const ed = () => p.evaluate(() => JSON.parse(localStorage.getItem('mtl-schema-edit-3') || 'null'));
+    const keys = await p.evaluate(() => [...document.querySelectorAll('#depotPlan g.dk[data-dk^="disp:"]')].map(g => g.dataset.dk));
+    r.windows = keys.length;
+    let c = await box(`#depotPlan g.dk[data-dk="${keys[0]}"] rect`); await sleep(300); c = await box(`#depotPlan g.dk[data-dk="${keys[0]}"] rect`);
+    await p.mouse.move(c[0], c[1]); await p.mouse.down(); await p.mouse.move(c[0] + 40, c[1] + 30, { steps: 6 }); await p.mouse.up(); await sleep(600);
+    const e1 = await ed(); r.moved = !!(e1 && e1.deco && Array.isArray(e1.deco[keys[0]]));
+    r.moveOnPage = await p.evaluate(k => { const g = document.querySelector(`#depotPlan g.dk[data-dk="${k}"]`); return g ? g.getAttribute('transform') : null; }, keys[0]);
+    c = await box(`#depotPlan g.dk[data-dk="${keys[1]}"] rect`); await p.keyboard.down('Alt'); await p.mouse.click(c[0], c[1]); await p.keyboard.up('Alt'); await sleep(600);
+    r.gone = await p.evaluate(k => !document.querySelector(`#depotPlan g.dk[data-dk="${k}"]`), keys[1]);
+    c = await box('#depotPlan g.dk[data-dk="sig:4"] g.sgi'); await p.mouse.click(c[0], c[1]); await sleep(300); await p.keyboard.press('Delete'); await sleep(600);
+    r.sigGone = await p.evaluate(() => !document.querySelector('#depotPlan g.dk[data-dk="sig:4"]'));
+    await p.keyboard.press('Control+z'); await sleep(600);
+    r.sigBack = await p.evaluate(() => !!document.querySelector('#depotPlan g.dk[data-dk="sig:4"]'));
+    const e2 = await ed(); r.store = e2 && e2.deco;
+    await p.evaluate(() => { document.getElementById('schEdit').click(); localStorage.removeItem('mtl-schema-edit-3'); });
+    r.ok = r.windows > 5 && r.moved && /translate/.test(r.moveOnPage || '') && r.gone && r.sigGone && r.sigBack && r.store && r.store[keys[1]] === 'x' && !('sig:4' in r.store);
+    return r;
+  },
   async sineditor(p) {   // the sinottico editor (Giovanni 16 Nov 2026): numbers, a repeated click between two nodes on top of each
     // other, arrows, undo and redo, separate, align to the row, the list of what to look at; nothing left in the browser.
     // Two nodes on top of each other: the first pair in the list (the depot has some), then the line for the rows
