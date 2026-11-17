@@ -6877,7 +6877,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (kind === 'leonardo' || kind === 'meneghinoM2') { if (FRONT.cache.size > 60) FRONT.cache.clear();
       const svg = kind === 'leonardo' ? leonardoSVG(dest, lights, no, car === 'green' || car === 'fineco' ? car : 'black') : meneghinoM2SVG(dest, lights, no, car === 'yellow' ? ['#cf9c06', '#f9cf27', '#d9a70d'] : ['#077a39', '#16a552', '#0a8a42']);
       const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); FRONT.cache.set(key, url); return url; }
-    if (kind === 'lotto1' || kind === 'lotto2') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(tradSVG(kind === 'lotto2', dest, lights, no, car)); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url; }
+    if (kind === 'lotto1' || kind === 'lotto2') { const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(kind === 'lotto1' ? trad1SVG(dest, lights, no, car) : tradSVG(true, dest, lights, no, car)); if (FRONT.cache.size > 60) FRONT.cache.clear(); FRONT.cache.set(key, url); return url; }
     const S = 5, W = FRONT.W, H = FRONT.H, c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
     const x = c.getContext('2d'), R = (cx, cy, w, h, col) => { x.fillStyle = col; x.fillRect(cx * S, cy * S, w * S, h * S); };
     const men = kind === 'meneghino', lot2 = kind === 'lotto2';
@@ -7081,6 +7081,92 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   //   2nd lot (old livery): a yellow stripe with the car number on its plate, the lamps in a black band;
   //   1st lot (revised, new livery): a grey band with the car number, the lamps in a yellow mask.
   // Each side: the outer lamp white (warm) when running, the inner one red when standing. White ribbed bumpers.
+  // the 1st lot of the traditional trains (Giovanni 17 Nov 2026, with photos of 8015, 8027, 8029, 8053, 8055, 8059, 8065): square
+  // lamps, two in a dark box on each side (white outside, red inside). The livery by the year of the timetable: before 2018
+  // (the Expo 2015 timetable) the old one, a yellow stripe under the windscreen with the car's number in black, the lamps in
+  // the dark grey panel below it, the sign of pale dots; from 2018 the new one, the number in white on the dark grey with the
+  // ATM mark, the lamps in a yellow band lower down, the sign of blue LEDs; 8029-8030 after its revamp (2022) a slightly
+  // different nose: a taller yellow band, round LED lamps, no dark boxes, the sign of blue LEDs across the whole window
+  const TRAD_YEAR = (() => { const m = ORARIO.match(/(19|20)\d\d/); return m ? +m[0] : 2026; })();
+  function trad1SVG(dest, lights, no, car) {
+    const old = TRAD_YEAR < 2018, rev = !old && TRAD_YEAR >= 2022 && /^80(29|30)$/.test(String(car || ''));
+    const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
+    const V = rev ? { x: 40, y: 11, w: 181, h: 21 } : { x: 56, y: 11, w: 149, h: 21 }, led = old ? '#d9cf9e' : '#6fb8ff';
+    const ledText = (t, x0, p) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;
+      for (const ch of t) { const g = F57[ch] || F57[' '];
+        for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .42).toFixed(2)}"/>`;
+        x += (g[0].length + 1) * p; }
+      return out; };
+    const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
+    let sign = ''; const pn = 2.1, numEnd = num ? V.x + 4 + colsOf(num) * pn + 6 : V.x + 4;
+    if (num) sign += ledText(num, V.x + 4, pn);
+    if (txt) { const cols = colsOf(txt), p = Math.min(2.3, (V.x + V.w - 4 - numEnd) / cols, (V.h - 4) / 7); sign += ledText(txt, Math.max(numEnd, V.x + (V.w - cols * p) / 2), p); }
+    const red = lights === 'red', warm = '#fff6dc', rd = '#ff2f22', offW = '#55544f', offR = '#4a2622';
+    // a dark box with its two square lamps (white outside, red inside); side -1 left, 1 right
+    const box = (x0, y0, w, h, side) => { const lw = (w - 12) / 2, lh = h - 8, xo = side < 0 ? x0 + 4 : x0 + w - 4 - lw, xi = side < 0 ? x0 + 8 + lw : x0 + 4;
+      return `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="1.5" fill="#0d0e10" stroke="#3b3e42" stroke-width=".8"/>
+        <rect x="${xo}" y="${y0 + 4}" width="${lw}" height="${lh}" rx=".8" fill="${red ? offW : warm}" ${red ? '' : 'filter="url(#glw)"'}/>
+        <rect x="${xi}" y="${y0 + 4}" width="${lw}" height="${lh}" rx=".8" fill="${red ? rd : offR}" ${red ? 'filter="url(#glr)"' : ''}/>
+        <path d="M${xo + 1} ${y0 + 5.5} h${lw - 2} M${xi + 1} ${y0 + 5.5} h${lw - 2}" stroke="#fff" stroke-opacity=".25" stroke-width=".8"/>`; };
+    const carNo = String(car || '').replace(/[^0-9]/g, '').slice(0, 4);
+    const atm = (x, y) => `<g transform="translate(${x} ${y})"><rect width="26" height="9" rx="1.5" fill="none" stroke="#e8e8e2" stroke-width="1"/><text x="13" y="7" font-family="Arial,Helvetica,sans-serif" font-size="7" font-weight="700" font-style="italic" fill="#e8e8e2" text-anchor="middle">ATM</text></g>`;
+    let band;
+    if (old) band = `
+      <rect x="13" y="136" width="235" height="17" fill="url(#yl)"/>
+      <rect x="104" y="139" width="12" height="11" rx="1.5" fill="#c9970a" stroke="#8a6a08" stroke-width=".8"/><rect x="106" y="142" width="8" height="2.2" fill="#6d5308"/>
+      ${carNo ? `<text x="137" y="150.5" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="700" fill="#111" text-anchor="middle" letter-spacing=".4">${carNo}</text>` : ''}
+      <rect x="13" y="153" width="235" height="34" fill="url(#dk)"/>
+      ${box(28, 160, 66, 21, -1)}${box(167, 160, 66, 21, 1)}`;
+    else if (rev) band = `
+      <rect x="13" y="134" width="235" height="16" fill="url(#dk)"/>
+      ${carNo ? `<text x="24" y="146" font-family="Arial,Helvetica,sans-serif" font-size="10" font-weight="700" fill="#f4f4f0">${carNo}</text>` : ''}${atm(212, 138)}
+      <rect x="13" y="150" width="235" height="31" fill="url(#yl)"/>
+      ${[[36, -1], [225, 1]].map(([cx, sd]) => `<circle cx="${cx}" cy="165.5" r="7.5" fill="#1a1b1d"/><circle cx="${cx}" cy="165.5" r="5.6" fill="${red ? offW : '#fffaf0'}" ${red ? '' : 'filter="url(#glw)"'}/>
+        <circle cx="${cx + sd * -17}" cy="165.5" r="5" fill="#1a1b1d"/><circle cx="${cx + sd * -17}" cy="165.5" r="3.6" fill="${red ? rd : offR}" ${red ? 'filter="url(#glr)"' : ''}/>`).join('')}
+      <rect x="13" y="181" width="235" height="6" fill="url(#dk)"/>`;
+    else band = `
+      <rect x="13" y="134" width="235" height="18" fill="url(#dk)"/>
+      ${carNo ? `<text x="24" y="147" font-family="Arial,Helvetica,sans-serif" font-size="10" font-weight="700" fill="#f4f4f0">${carNo}</text>` : ''}${atm(212, 139)}
+      <rect x="13" y="152" width="235" height="27" fill="url(#yl)"/>
+      ${box(22, 155, 54, 21, -1)}${box(185, 155, 54, 21, 1)}
+      <rect x="13" y="179" width="235" height="8" fill="url(#dk)"/>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-17 -3 296 279">
+      <defs>
+        <linearGradient id="rf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c0d0e"/><stop offset="1" stop-color="#1a1c1f"/></linearGradient>
+        <linearGradient id="bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3f3ef"/><stop offset=".6" stop-color="#e6e6e0"/><stop offset="1" stop-color="#cdcdc7"/></linearGradient>
+        <linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".07" stop-color="#000" stop-opacity="0"/><stop offset=".93" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
+        <linearGradient id="dk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3e43"/><stop offset="1" stop-color="#2b2f33"/></linearGradient>
+        <linearGradient id="gl" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#55606b"/><stop offset=".35" stop-color="#262d34"/><stop offset="1" stop-color="#0e1216"/></linearGradient>
+        <linearGradient id="yl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#dfab0d"/><stop offset=".5" stop-color="#f7cb2a"/><stop offset="1" stop-color="#dfab0d"/></linearGradient>
+        <filter id="glw" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glr" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="led" x="-.1" y="-.6" width="1.2" height="2.2"><feGaussianBlur stdDeviation="${old ? .5 : .8}" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <!-- the roof seen from the front, the white body with its big round top corners, the dark grey front inside it -->
+      <path d="M5 34 Q9 -9 66 -8 H195 Q252 -9 256 34 Z" fill="url(#rf)"/>
+      <path d="M3 44 Q3 3 50 3 H211 Q258 3 258 44 V203 H3 Z" fill="url(#bd)"/><path d="M3 44 Q3 3 50 3 H211 Q258 3 258 44 V203 H3 Z" fill="url(#sd)"/>
+      <path d="M13 42 Q13 8 50 7 H211 Q248 8 248 42 V187 H13 Z" fill="url(#dk)"/>
+      <rect x="${V.x - 2}" y="${V.y - 2}" width="${V.w + 4}" height="${V.h + 4}" rx="2" fill="#0b0c0d"/><rect x="${V.x}" y="${V.y}" width="${V.w}" height="${V.h}" rx="1" fill="${old ? '#171612' : '#05060a'}"/>
+      <g fill="${led}" filter="url(#led)">${sign}</g>
+      <!-- the windscreen: two side panes and the front door's pane between them, black frames, the wipers -->
+      <rect x="16" y="37" width="82" height="97" rx="2.5" fill="url(#gl)"/><rect x="163" y="37" width="82" height="97" rx="2.5" fill="url(#gl)"/>
+      <rect x="103" y="37" width="55" height="97" rx="2" fill="url(#gl)"/>
+      <path d="M26 130 L56 40 L64 40 L34 130 Z M173 130 L203 40 L211 40 L181 130 Z M112 126 L130 40 L135 40 L117 126 Z" fill="#fff" opacity=".06"/>
+      <path d="M40 128 L84 58 M222 128 L178 58" stroke="#0a0b0c" stroke-width="1.8" stroke-linecap="round"/><path d="M84 58 l4 -3 M178 58 l-4 -3" stroke="#0a0b0c" stroke-width="1.4"/>
+      ${band}
+      <!-- the front door: its outline from the windscreen to the bottom of the dark front, the ledge under it -->
+      <path d="M100.5 35 V188 H160.5 V35" fill="none" stroke="#0a0b0c" stroke-width="2"/>
+      <rect x="99" y="187" width="63" height="3.5" fill="#d9d9d3" stroke="#a9a9a3" stroke-width=".6"/>
+      <path d="M3 200 H258" stroke="#000" stroke-opacity=".22" stroke-width="1"/>
+      <!-- white ribbed bumpers, the coupler between them -->
+      <path d="M0 203 H261 V212 H0 Z" fill="#bdbdb7"/>
+      <rect x="4" y="212" width="80" height="30" rx="4" fill="#efefe9" stroke="#b5b5ae"/><rect x="177" y="212" width="80" height="30" rx="4" fill="#efefe9" stroke="#b5b5ae"/>
+      <path d="M8 218 H80 M8 224 H80 M8 230 H80 M8 236 H80 M181 218 H253 M181 224 H253 M181 230 H253 M181 236 H253" stroke="#c4c4bd" stroke-width="2"/>
+      <rect x="98" y="208" width="65" height="38" rx="3" fill="#1d1f22" stroke="#33373b"/>
+      <rect x="106" y="215" width="49" height="30" rx="2" fill="#c9c6bc" stroke="#8d8d87"/><circle cx="121" cy="230" r="7.5" fill="#2a2c2f"/><circle cx="141" cy="230" r="7.5" fill="#2a2c2f"/>
+      <path d="M126 245 q4 10 12 15" fill="none" stroke="#b5221c" stroke-width="2"/>
+    </svg>`;
+  }
   function tradSVG(lot2, dest, lights, no, car) {
     const txt = String(dest || '').toUpperCase().replace(/[^A-Z0-9 .'-]/g, ''), num = String(no || '').replace(/[^0-9]/g, '').slice(0, 2);
     const V = { x: 44, y: 14, w: 173, h: 20 }, led = lot2 ? '#ffb01e' : '#e9f1ff';
