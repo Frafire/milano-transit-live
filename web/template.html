@@ -885,7 +885,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
   </div>
   <div class="admin-only" data-cap="segnali_itinerari">
     <div class="label" style="margin-bottom:6px">M3 trains</div>
-    <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button><button id="platBtn" aria-pressed="false">Platforms</button><button id="sigsBtn" aria-pressed="false">Segnali</button><button id="illBtn" aria-pressed="false" title="Segnali sul senso illegale (sempre rossi)">Segnali illegali</button></div>
+    <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button><button id="platBtn" aria-pressed="false">Platforms</button><button id="sigsBtn" aria-pressed="false">Segnali</button><button id="illBtn" aria-pressed="false" title="Segnali sul senso illegale (di solito rossi, via libera per un treno sul binario illegale)">Segnali illegali</button></div>
     <div class="row"><button id="sigDelBtn" aria-pressed="false" title="Clic su un semaforo per toglierlo (finisce nell'export MTL-EDIT)">Togli semafori</button><button id="sigUndoBtn" title="Rimette tutti i semafori tolti">Rimetti tutti</button></div>
     <p class="note" id="sigDelNote" hidden></p>
     <p class="note">On: trains drive with acceleration and braking. Off: they follow the plan exactly.</p>
@@ -3224,17 +3224,27 @@ window.MTL_CAPS = __CAPS__;
     o.starts = o.segs.map(x => x[3][0]); relive(o); alt.plat = p;
   }
   let p2Msg = '';
+  // can the train still take another way: its front (and 15 m to stop) still on the stretch the two ways share. The
+  // orders of the radio were open only up to the planned time: a train late, held at the station's signal, could not be
+  // sent to binario 2 any more (Giovanni 18 Nov 2026: train 20 held at A13, binario 1 taken)
+  function altReach(F, tr, segs) { const k = F.trains.indexOf(tr), a = F.ag && k >= 0 ? F.ag.agents()[k] : null; if (!a || a.hidden || a.pid == null) return false;
+    const h = F.engine.half; return (segs || []).some(x => x && x[0] != null && x[0] !== a.pid && F.ag.mapTo(a.pid, a.d + h + 15, x[0]) != null && F.ag.mapTo(a.pid, a.d, x[0]) != null); }
+  const altRun = (F, tr, x) => { const k = F.trains.indexOf(tr), a = F.ag && k >= 0 ? F.ag.agents()[k] : null; return !!a && a.si >= x.i && a.si < x.i + (x.n || 1); };   // (the run it is on now)
+  const altOpen = (F, tr, a) => !!a && !a.done && state.t >= a.open && (state.t <= a.close || (altRun(F, tr, a) && altReach(F, tr, a.segs)));
   function orderP2(F, tr, k) {
     const a = tr.arr2[k], t = state.t;
-    if (!a || a.done || t < a.open || t > a.close) { p2Msg = 'Too late: the train is already at the station throat.'; return; }
+    if (!altOpen(F, tr, a)) { p2Msg = 'Too late: the train is already at the station throat.'; return; }
     const there = trainOnPlatform(F, P2WAY, t, tr);
     if (there) { p2Msg = `Order refused: platform 2 is not free (${trName(F, there, t)} is standing there).`; return; }
-    const users = platUsers(F, 2, a.from, a.dep, tr), moved = [];
+    const ag_ = F.ag ? F.ag.agents()[F.trains.indexOf(tr)] : null, users = platUsers(F, 2, a.from, a.dep, tr), moved = [], late = altRun(F, tr, a) && (t > a.close || !!(ag_ && ag_.v < 0.1));
+    // (a train late, held at the station, sent there by the DCT: the platform free now is enough, the trains planned there
+    // that cannot go to platform 3 wait for it to leave; Giovanni 18 Nov 2026)
+    const keep = [];
     for (const u of users) {
-      if (u.p2) { p2Msg = `Order refused: platform 2 is already promised to ${trName(F, u.o, t)}.`; return; }
-      if (platUsers(F, 1, u.alt.from, u.alt.dep, u.o).length || !u.alt.opts['1']) { p2Msg = `Order refused: ${trName(F, u.o, t)} needs platform 2 at ${fmt(u.alt.from)} and platform 3 is busy too.`; return; }
+      if (u.p2) { if (late) { keep.push(u); continue; } p2Msg = `Order refused: platform 2 is already promised to ${trName(F, u.o, t)}.`; return; }
+      if (platUsers(F, 1, u.alt.from, u.alt.dep, u.o).length || !u.alt.opts['1']) { if (late) { keep.push(u); continue; } p2Msg = `Order refused: ${trName(F, u.o, t)} needs platform 2 at ${fmt(u.alt.from)} and platform 3 is busy too.`; return; }
     }
-    users.forEach(u => { setPlat(u.o, u.alt, 1); moved.push(trName(F, u.o, t) + ' (departs ' + fmt(u.alt.dep) + ')'); });
+    users.filter(u => !keep.includes(u)).forEach(u => { setPlat(u.o, u.alt, 1); moved.push(trName(F, u.o, t) + ' (departs ' + fmt(u.alt.dep) + ')'); });
     const end = a.i + a.n, delta = a.segs.length - a.n;
     tr.segs.splice(a.i, a.n, ...JSON.parse(JSON.stringify(a.segs)));
     if (tr.env) tr.env.extra = {};                 // the run is re-planned: earlier radio orders no longer apply
@@ -3249,7 +3259,7 @@ window.MTL_CAPS = __CAPS__;
     if (!isPlayer || F.line !== 'M3' || !tr.arr2) return '';
     const t = state.t;
     if (tr.p2 && t <= tr.p2.dep) return `<div class="picker"><div class="label">Platform 2 order</div><p class="note">${p2Msg || 'Arrives on platform 2 and reverses there; leaves at ' + fmt(tr.p2.dep) + '.'}</p></div>`;
-    const k = tr.arr2.findIndex(a => !a.done && t >= a.open && t <= a.close);
+    const k = tr.arr2.findIndex(a => altOpen(F, tr, a));
     if (k < 0) return '';
     const busy = trainOnPlatform(F, P2WAY, t, tr);
     return `<div class="picker"><div class="label">San Donato arrival</div>
@@ -4443,7 +4453,11 @@ window.MTL_CAPS = __CAPS__;
     // (only behind a signal at via libera, Giovanni 10 Nov 2026: "rosso imperativo, il tratto davanti è grigio, oppure
     // rosso se un treno sta passando; se no il segnale è rosso bianco e il tratto davanti è bianco")
     const rt = F.ag.rt(), goN = SIN_GO || new Set();
-    for (const [k, rs] of Object.entries(rt.routes || {})) for (const r of rs || []) { if (r.ready === false || !goN.has(r.n)) continue;
+    // (not from the start of an itinerary formed on the depot's board: that one lights its own way, and the train's planned
+    // way from there, the other side of a switch, is not given; S01A to #A99, the "doppio tracciato")
+    const ilR = F.ag.il && F.ag.il(), NS_ = F.engine.net.signals || [], ACE = new Set();
+    for (const r of Object.values(ilR && ilR.routes || {})) { ACE.add(r.n); (r.mid || []).forEach(x => NS_[x] && ACE.add(NS_[x].n)); }
+    for (const [k, rs] of Object.entries(rt.routes || {})) for (const r of rs || []) { if (r.ready === false || !goN.has(r.n) || ACE.has(r.n)) continue;
       for (const pc of r.pieces || []) { const ei = pc[0]; if (!SE.has(ei)) continue; const L = NE[ei].len || 1; add(lit, ei, pc[1] / L, pc[2] / L, +k); } }
     const il = F.ag.il && F.ag.il(), IL = F.ag.IL, SP = F.engine.net.sigpos || {}, AG = F.ag.agents();
     const litPath = (pid, d0, d1, k) => { const pe = PE[pid]; if (!pe || d1 <= d0) return;
@@ -4459,12 +4473,12 @@ window.MTL_CAPS = __CAPS__;
   // byEdge[ei]: [ei, f0, f1, section, a signal at f0, a signal at f1]; entry[section]: the signals that let a train in
   function sinSections(SCH, NE, sigOf) {
     if (SCH.__sec && SCH.__sec.n === SCH.edges.length) return SCH.__sec;
-    const cuts = {}, ent = [], stopD = {};
+    const cuts = {}, ent = [], stopD = {}, stopI = {};
     // (the illegal signals cut the track too, Giovanni 18 Nov 2026: "il taglio fallo anche per gli illegali")
     for (const sg of SCH.signals || []) { if (!(sg.f > 0.002 && sg.f < 0.998)) { ent.push([sg, sg.f <= 0.002 ? 0 : 1]); continue; }
       (cuts[sg.e] = cuts[sg.e] || []).push(sg.f); ent.push([sg, sg.f]);
       // (which way the signals at a cut face, the illegal ones left out: a via libera lights on through the other cuts)
-      const S_ = sigOf && sigOf(sg), k = sg.e + ':' + Math.round(sg.f * 1000) / 1000; if (!(S_ && S_.illegal) && (sg.d === 1 || sg.d === -1)) (stopD[k] = stopD[k] || new Set()).add(sg.d); }
+      const S_ = sigOf && sigOf(sg), k = sg.e + ':' + Math.round(sg.f * 1000) / 1000; if (sg.d === 1 || sg.d === -1) { const M_ = S_ && S_.illegal ? stopI : stopD; (M_[k] = M_[k] || new Set()).add(sg.d); } }
     const pieces = [], byEdge = {}, par = [], find = i => par[i] === i ? i : (par[i] = find(par[i])), join = (i, j) => { par[find(i)] = find(j); };
     const ends = {};
     for (const ei of SCH.edges) { const c = [...new Set((cuts[ei] || []).map(f => Math.round(f * 1000) / 1000))].sort((x, y) => x - y), fs = [0, ...c, 1];
@@ -4476,7 +4490,7 @@ window.MTL_CAPS = __CAPS__;
     // at a switch the track that goes straight on is one section with it (Giovanni 18 Nov 2026: the section of a signal
     // protecting a station and a switch "si ferma allo scambio ma non fino all'inizio della stazione"); the leg that turns
     // off is a section of its own (a train on a crossover does not turn both tracks red)
-    const N_ = schNodes(SCH), V_ = schVia(SCH);
+    const N_ = schNodes(SCH), V_ = schVia(SCH), swJ = [];
     const dirAt = (ei, n) => { const e = NE[ei], P = [N_[e.a], ...(V_[ei] || V_[String(ei)] || []), N_[e.b]]; if (!P[0] || !P[P.length - 1]) return null;
       const [A, B] = e.a == n ? [P[0], P[1]] : [P[P.length - 1], P[P.length - 2]]; const dx = B[0] - A[0], dy = B[1] - A[1], l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
     Object.entries(ends).forEach(([n, l]) => { if (l.length === 2) { join(l[1], l[0]); return; } if (l.length < 3) return;
@@ -4485,13 +4499,17 @@ window.MTL_CAPS = __CAPS__;
       // other way, Giovanni 18 Nov 2026: "rosso anche il mini tronchetto? se lo scambio è a sinistra quella parte è
       // sicuramente non bloccata")
       const main_ = id => (NE[pieces[id][0]] || {}).cat === 'main';
-      for (let i = 0; i < l.length; i++) for (let j = i + 1; j < l.length; j++) if (main_(l[i]) && main_(l[j]) && ds[i] && ds[j] && ds[i][0] * ds[j][0] + ds[i][1] * ds[j][1] < -0.95) join(l[i], l[j]); });
-    pieces.forEach(pc => { pc[3] = find(pc[3]); });
+      // (kept apart here and joined on the board only while the switch is set straight on: set for the other leg, the
+      // straight part beyond it is not the train's, Giovanni 18 Nov 2026: "se lo scambio è a sinistra quella parte è
+      // sicuramente non bloccata")
+      for (let i = 0; i < l.length; i++) for (let j = i + 1; j < l.length; j++) if (main_(l[i]) && main_(l[j]) && ds[i] && ds[j] && ds[i][0] * ds[j][0] + ds[i][1] * ds[j][1] < -0.95) swJ.push([l[i], l[j], +n, pieces[l[i]][0], pieces[l[j]][0]]); });
+    pieces.forEach(pc => { pc[3] = find(pc[3]); }); swJ.forEach(x => { x[0] = find(x[0]); x[1] = find(x[1]); });
     const entry = {};
     for (const [sg, f] of ent) { const l = byEdge[sg.e]; if (!l) continue;
       const pc = sg.d === -1 ? l.find(p => Math.abs(p[2] - f) < 0.0015) : l.find(p => Math.abs(p[1] - f) < 0.0015); if (pc) (entry[pc[3]] = entry[pc[3]] || []).push(sg); }
-    const stops = (ei, f, dir) => !!(stopD[ei + ':' + Math.round(f * 1000) / 1000] || new Set()).has(dir);
-    return (SCH.__sec = { n: SCH.edges.length, pieces, byEdge, entry, stops });
+    // (a walk from an illegal signal, a train on the illegal: it stops at the next signal its way, illegal or not)
+    const stops = (ei, f, dir, ill) => { const k = ei + ':' + Math.round(f * 1000) / 1000; return !!((stopD[k] || new Set()).has(dir) || (ill && (stopI[k] || new Set()).has(dir))); };
+    return (SCH.__sec = { n: SCH.edges.length, pieces, byEdge, entry, stops, swJ });
   }
   var PIANO_PH = false;          // (opened as Piano linea: the Deposito tab shows the placeholder)
   var SIN_GO = null;            // (the signals at via libera now, by number: the sections behind them are white)
@@ -4579,33 +4597,47 @@ window.MTL_CAPS = __CAPS__;
     // the sections (Giovanni 9 Nov 2026, as on the panels: the track shown in sections, a gap where a signal is): red
     // the whole section a train is on (signal to signal; a train passing a signal holds both), white a section free and
     // given to a train (its signal at via libera, or a route set over it), the line's colour otherwise
-    const SEC = sinSections(SCH, NE, sigOf), occS = new Set(), litS = new Set();
+    const SEC = sinSections(SCH, NE, sigOf), occS = new Set(), litS = new Set(), litP = new Set();
+    // (the sections joined across a switch only while it is set straight on, or when how it is set is not known)
+    const DSU = {}, dfind = x => DSU[x] == null || DSU[x] === x ? x : (DSU[x] = dfind(DSU[x])), G = x => dfind(x);
+    for (const [a_, b_, n_, ea, eb] of SEC.swJ || []) { const sp = pos[n_]; if (!sp || (sp.includes(ea) && sp.includes(eb))) { const ra = dfind(a_), rb = dfind(b_); if (ra !== rb) DSU[ra] = rb; } }
     const TALP = new Set((SCH.signals || []).filter(sg => (x => x && x.sg && x.sg.talpa)(sigOf(sg))).map(sg => sg.e));
     SEC.pieces.forEach(([ei, f0, f1, sid]) => {
       // (the short piece between the two talpe of a rimessa track: a train standing at the end of its half only touches it)
       const need = TALP.has(ei) && f1 - f0 < 0.08 ? 0.6 * (f1 - f0) : 1e-4;
-      if ((live.occ.get(ei) || []).some(([a, b]) => Math.min(b, f1) - Math.max(a, f0) > need)) occS.add(sid);
-      if ((live.lit.get(ei) || []).some(([a, b]) => b > f0 + 1e-4 && a < f1 - 1e-4)) litS.add(sid); });
+      if ((live.occ.get(ei) || []).some(([a, b]) => Math.min(b, f1) - Math.max(a, f0) > need)) occS.add(G(sid));
+      if ((live.lit.get(ei) || []).some(([a, b]) => b > f0 + 1e-4 && a < f1 - 1e-4)) litS.add(G(sid)); });
     // a signal at via libera: white all the way ahead of it to the next signal, over the switches the way they are set
-    const litWalk = (ei, f, dir) => {
+    const litWalk = (ei, f, dir, ill, way) => {
       for (let guard = 0; guard < 40; guard++) {
         const l = SEC.byEdge[ei]; if (!l) return;
         const ps = dir > 0 ? l.filter(p => p[2] > f + 1e-4) : l.filter(p => p[1] < f - 1e-4).reverse();
         // (to the next signal for the same way: not at an illegal one or one facing the other way, Giovanni 18 Nov 2026:
         // "perchè A262 ha solo un piccolo trattino e non tutto?")
-        for (const p of ps) { litS.add(p[3]); if (dir > 0 ? p[5] && SEC.stops(ei, p[2], 1) : p[4] && SEC.stops(ei, p[1], -1)) return; }
+        // (along an itinerary's own way, piece by piece: a section joined straight on through a switch is not lit on the
+        // leg the itinerary does not take)
+        for (const p of ps) { if (way) litP.add(ei + ':' + p[1]); else litS.add(G(p[3])); if (dir > 0 ? p[5] && SEC.stops(ei, p[2], 1, ill) : p[4] && SEC.stops(ei, p[1], -1, ill)) return; }
         const e = NE[ei], n = dir > 0 ? e.b : e.a, list = at[n] || []; let nx = null;
-        if (list.length === 2) nx = list.find(x => x !== ei);
+        if (way) { const j = way.indexOf(ei); nx = j >= 0 && j + 1 < way.length ? way[j + 1] : null; if (nx != null && !list.includes(nx)) nx = null; }      // (an itinerary formed on the board: its own way, the switches as it sets them)
+        else if (list.length === 2) nx = list.find(x => x !== ei);
         else if (list.length >= 3) { const sp = pos[n]; if (!sp || !sp.includes(ei)) return; nx = sp.find(x => x !== ei); }
         if (nx == null || !SE.has(nx)) return;
         const e2 = NE[nx]; dir = e2.a === n ? 1 : -1; f = dir > 0 ? 0 : 1; ei = nx;
       } };
     // (the depot's itineraries colour their own pieces, below; a talpa never lights the way by itself)
     const RTE = new Map(), RTO = new Set();
-    if (SIN_WHICH === 'dep') for (const r of Object.values((F.ag.il && F.ag.il() || {}).routes || {})) { RTO.add(r.si); (r.mid || []).forEach(x => RTO.add(x));
+    // (by the signal's number: the board's signals carry no index of the engine, so the start of an itinerary at via libera
+    // lit its own way ahead too, the way the switches were last seen: the "doppio tracciato" of S01A to #A99)
+    const NSG = F.engine.net.signals || [];
+    if (SIN_WHICH === 'dep') for (const r of Object.values((F.ag.il && F.ag.il() || {}).routes || {})) { RTO.add(r.n); (r.mid || []).forEach(x => NSG[x] && RTO.add(NSG[x].n));
       for (const [ei, , f0, f1, c] of sinRouteLeft(F, r)) { if (!RTE.has(ei)) RTE.set(ei, []); RTE.get(ei).push([Math.min(f0, f1), Math.max(f0, f1), c]); } }
     const rtCls = (ei, f0, f1) => { const l = (RTE.get(ei) || []).filter(([a, b]) => Math.min(b, f1) - Math.max(a, f0) > 1e-3); return !l.length ? null : l.some(x => x[2] === 'occ') ? ' occ' : ' lit'; };
-    for (const sg of SCH.signals || []) { if (!SE.has(sg.e) || (sg.d !== 1 && sg.d !== -1)) continue; const S_ = sigOf(sg); if (S_ && (S_.asp === 'go' || S_.asp === 'sgo') && !S_.illegal && !(S_.sg && S_.sg.talpa) && !RTO.has(sg.si)) litWalk(sg.e, sg.f, sg.d); }
+    // (an itinerary of the line prepared on the board, or at via libera and not yet taken: white along its way, before the
+    // switches have moved; Giovanni 18 Nov 2026, A13 → A44 to binario 2)
+    const LPREP = new Set();
+    if (SIN_WHICH === 'line') for (const [n, P] of Object.entries(SIN_PREP)) { if (!P.line) continue; const it = (F.engine.net.itineraries || []).find(x => x.id === P.line), sg = (SCH.signals || []).find(x => x.n === +n);
+      if (!it || !sg || !SE.has(sg.e) || (sg.d !== 1 && sg.d !== -1)) continue; LPREP.add(+n); litWalk(sg.e, sg.f, sg.d, false, (it.ways || [])[0]); }
+    for (const sg of SCH.signals || []) { if (!SE.has(sg.e) || (sg.d !== 1 && sg.d !== -1) || LPREP.has(sg.n)) continue; const S_ = sigOf(sg); if (S_ && (S_.asp === 'go' || S_.asp === 'sgo') && !(S_.sg && S_.sg.talpa) && !RTO.has(sg.n)) litWalk(sg.e, sg.f, sg.d, !!S_.illegal); }
     let base = '', over = '', marks = '', X0 = Infinity, Y0 = Infinity, X1 = -Infinity, Y1 = -Infinity;
     const grow = ([x, y]) => { X0 = Math.min(X0, x); Y0 = Math.min(Y0, y); X1 = Math.max(X1, x); Y1 = Math.max(Y1, y); };
     // the line on three strips, one under the other (Giovanni 16 Nov 2026: all the line on one screen): cut at x where
@@ -4640,7 +4672,7 @@ window.MTL_CAPS = __CAPS__;
         if (f1 <= p0 + 1e-4 || f0 >= p1 - 1e-4) continue;
         let a = (fd(ei, Math.max(f0, p0)) - q0) / ((q1 - q0) || 1), b = (fd(ei, Math.min(f1, p1)) - q0) / ((q1 - q0) || 1);
         if (s0) a += GAP / L; if (s1) b -= GAP / L; if (b - a < 0.5 / L) continue;
-        const c = SIN_TEST ? ' lit' : rtCls(ei, f0, f1) || (occS.has(sid) ? ' occ' : litS.has(sid) ? ' lit' : ''), qs = sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))), d_ = qs.map(q => roundPath(q, SIN_WHICH === 'dep' ? 0 : 1.5)).join('');
+        const c = SIN_TEST ? ' lit' : rtCls(ei, f0, f1) || (occS.has(G(sid)) ? ' occ' : litS.has(G(sid)) || litP.has(ei + ':' + f0) ? ' lit' : ''), qs = sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))), d_ = qs.map(q => roundPath(q, SIN_WHICH === 'dep' ? 0 : 1.5)).join('');
         // (as on the ACEI panels, Giovanni 16 Nov 2026: the black bar of the section, and over it its lamps: red dots
         // occupied, yellow dots given to a train)
         base += `<path class="tk${kind}${c}" data-e="${ei}" data-s="${sid}" d="${d_}"/>`;
@@ -4709,7 +4741,7 @@ window.MTL_CAPS = __CAPS__;
         const E_ = T(atB ? full[full.length - 1] : full[0]), I_ = T(atB ? full[full.length - 2] : full[1]);
         let dx = E_[0] - I_[0], dy = E_[1] - I_[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;          // (outwards, to the line)
         const f = atB ? 1 : 0, pc = (SEC.byEdge[ar.e] || []).find(p_ => f >= p_[1] - 1e-4 && f <= p_[2] + 1e-4), sid = pc && pc[3];
-        const occ = sid != null && occS.has(sid), lit = sid != null && litS.has(sid);
+        const occ = sid != null && occS.has(G(sid)), lit = sid != null && litS.has(G(sid));
         // (red only the head the train goes to, Giovanni 18 Nov 2026, bug B'26: down to the line when it leaves the depot,
         // up into it when it comes in)
         let goesOut = null;
@@ -4777,7 +4809,7 @@ window.MTL_CAPS = __CAPS__;
     // of the trains it is for)
     const drawSig = sg => { const full = FULL[sg.e]; if (!full) return; const [p0, p1] = sinPart(SCH, sg.e); if (sg.f < p0 - 0.001 || sg.f > p1 + 0.001) return;
       const S_ = sigOf(sg), a = S_ && S_.asp || 'stop', tag = S_ ? S_.tag : '#A' + String(sg.n).padStart(2, '0'), ill = !!(S_ && S_.illegal);
-      if (ill && !SIN_ILL) return;
+      if (ill && !SIN_ILL && a !== 'go') return;          // (hidden unless asked for, or at via libera: a train on the illegal)
       const q0 = fd(sg.e, p0), q1 = fd(sg.e, p1), P_ = p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, g = x => (fd(sg.e, x) - q0) / ((q1 - q0) || 1);
       const m = T(alongPts(P_, g(sg.f)));
       if (sg.d !== 1 && sg.d !== -1) { marks += `<circle class="sg" data-n="${sg.n}" data-tag="${tag}" cx="${m[0]}" cy="${m[1] - 4.5}" r="2.8" fill="${ASP[a] || '#e5383b'}"><title>${tag}</title></circle>${SIN_NUM ? `<text class="sgn" x="${m[0] + 4}" y="${m[1] - 7}">${sg.n}</text>` : ''}`; return; }
@@ -5571,7 +5603,7 @@ window.MTL_CAPS = __CAPS__;
     relive: (...a) => relive(...a),
     reliveFleet: (...a) => reliveFleet(...a),
     setPlat: (...a) => setPlat(...a),
-    orderP2: (...a) => orderP2(...a),
+    orderP2: (...a) => orderP2(...a), altOpen: (...a) => altOpen(...a),
     closureNow: (...a) => closureNow(...a),
     depotAssign: (...a) => depotAssign(...a),
     depotName: (...a) => depotName(...a),
@@ -5823,8 +5855,8 @@ window.MTL_CAPS = __CAPS__;
       for (const a of F.ag.agents()) { if (!a || a.hidden) continue;
         const hit = (F.engine.net.sigpos[a.pid] || []).find(x => x[1] === r.si && x[0] >= a.d + half - 5 && x[0] - (a.d + half) < 80); if (!hit) continue;
         if (F.ag.IL.follows(r, a.pid, hit[0])) break;
-        const k = a.k, old = F.depot.target[k]; SIN_TRIED.add(r.id);
-        if (old == null) break;
+        // (once per itinerary; a train with no place given yet gets one along the itinerary too)
+        const k = a.k, old = F.depot.target[k] != null ? F.depot.target[k] : null; SIN_TRIED.add(r.id);
         const no = F.trains[k] ? trainNo(F, F.trains[k]) : k, tk = F.dm.taken();
         // (to a signal or the block: the free places whose way in goes along the itinerary, the nearest first; bug B 28:
         // S01A to A99 over the crossover, the train given a place behind A98 stood still)
@@ -5834,21 +5866,25 @@ window.MTL_CAPS = __CAPS__;
         const wayOf = q => ways(q).find(fol) || null;
         const cand = r.kind === 'trk' && r.place != null ? [r.place] : Object.keys(F.depotPaths).filter(q => !tk.has(q) && wayOf(q)).sort((x, y) => wayOf(x).in_end - wayOf(y).in_end);
         // (its own place by another way in: it keeps the place, only the way changes)
-        if (r.kind !== 'trk' && wayOf(old)) { const w = wayOf(old); delete F.depot.target[k];
+        if (r.kind !== 'trk' && old != null && wayOf(old)) { const w = wayOf(old); delete F.depot.target[k];
           if (F.dm.assign(k, old, w.main ? null : w)) { sinMsg(`Treno ${no}: segue l'itinerario ${sigName(r.n)} → ${r.toName}, posto ${F.dm.name(old)}.`); break; }
           F.depot.target[k] = old; }
         const q = cand.find(q_ => q_ !== old && !tk.has(q_));
-        if (r.kind === 'trk' && r.place != null && tk.has(r.place) && r.place !== old) { sinMsg(`Treno ${no}: ${F.dm.name(r.place)} è occupato, resta assegnato a ${F.dm.name(old)}.`); break; }
+        const was = old != null ? F.dm.name(old) : 'nessun posto';
+        if (r.kind === 'trk' && r.place != null && tk.has(r.place) && r.place !== old) { sinMsg(`Treno ${no}: ${F.dm.name(r.place)} è occupato, resta assegnato a ${was}.`); break; }
         if (q == null) { sinMsg(`Treno ${no}: nessun posto libero lungo l'itinerario ${sigName(r.n)} → ${r.toName}.`); break; }
         delete F.depot.target[k];
         const wq = r.kind === 'trk' ? (wayOf(q) || { main: true }) : wayOf(q);
-        if (F.dm.assign(k, q, wq && !wq.main ? wq : null)) sinMsg(`Treno ${no}: posto cambiato da ${F.dm.name(old)} a ${F.dm.name(q)}, per seguire l'itinerario.`);
-        else { F.depot.target[k] = old; sinMsg(`Treno ${no}: da lì non può andare in ${F.dm.name(q)}, resta assegnato a ${F.dm.name(old)}.`); }
+        if (F.dm.assign(k, q, wq && !wq.main ? wq : null)) sinMsg(old != null ? `Treno ${no}: posto cambiato da ${was} a ${F.dm.name(q)}, per seguire l'itinerario.` : `Treno ${no}: posto ${F.dm.name(q)}, per seguire l'itinerario.`);
+        else { if (old != null) F.depot.target[k] = old; sinMsg(`Treno ${no}: da lì non può andare in ${F.dm.name(q)}, resta assegnato a ${was}.`); }
         break; } }
   }
   // (for the tests: form an itinerary of the depot without the mouse; press a key)
   window.__mtlAcei = { form: (n, dest) => { const F = m3eng(); sinFormDep(F, { n, si: F.engine.net.signals.findIndex(x => x.n === n) }, dest); return SIN_LAST; },
-    press: n => { sinPress(m3eng(), '#A' + String(n).padStart(2, '0')); return SIN_LAST; }, draw: () => drawDepotPlan(), last: () => SIN_LAST };
+    press: n => { sinPress(m3eng(), '#A' + String(n).padStart(2, '0')); return SIN_LAST; }, draw: () => drawDepotPlan(), last: () => SIN_LAST,
+    lineForm: (n, to) => { const F = m3eng(), NS = F.engine.net.signals; sinRoute(F, { n, si: NS.findIndex(x => x.n === n) }, { n: to, si: NS.findIndex(x => x.n === to) }); return SIN_LAST; },
+    linePress: n => { const F = m3eng(); if (SIN_PREP[n]) sinPrepPress(F, n, SIN_PREP[n]); return SIN_LAST; },
+    p2: (k, i) => { const F = m3eng(), tr = F.trains[k]; const j = i != null ? i : (tr.arr2 || []).findIndex(x => altOpen(F, tr, x)); if (j < 0) return 'nessun ordine aperto'; orderP2(F, tr, j); return p2Msg; } };
   // a press on the start of a depot itinerary: the via libera, then (once more) the itinerary taken back
   function sinDepPress(F, r) {
     const a = sigName(r.n), il = F.ag.il();
@@ -5874,6 +5910,31 @@ window.MTL_CAPS = __CAPS__;
     sinMsg(`Itinerario ${it.id} preparato: ${a} → ${b}, gli scambi vanno in posizione. Premi ${a} per la via libera.`);
     sinRefresh();
   }
+  // an itinerary of the line formed on the board, the train waiting at its start planned another way (Giovanni 18 Nov
+  // 2026: train 20 held at A13, binario 1 taken, A13 → A44 to binario 2 "e nemmeno in manuale sono riuscito a fargli aprire
+  // il semaforo e farlo muovere"): the train is given the way of its plan's alternatives that goes along the itinerary (into
+  // binario 2 and reversing there, the departure platform, the tail at Comasina, binario 1 at Comasina). Until trains can
+  // follow any itinerary (runtime ways), only these
+  function sinLineFollow(F, n, it) {
+    if (!it || !F.ag) return null;
+    const PE = F.engine.pathEdges || [], SA = F.engine.net.sigall || {}, half = F.engine.half;
+    const ids = (pid, d0) => ((PE[pid] || {}).e || []).filter(x => x[3] > d0 + 1).map(x => x[0]);
+    const along = (pid, d0) => { const q = ids(pid, d0); return (it.ways || []).some(w => { const j = q.indexOf(w[0]); return j >= 0 && w.every((e, i) => q[j + i] === e); }); };
+    for (const a of F.ag.agents()) { if (!a || a.hidden || a.pid == null) continue;
+      const hit = (SA[a.pid] || []).find(x => x[1] === n && x[0] >= a.d + half - 5 && x[0] - (a.d + half) < 200); if (!hit) continue;
+      if (along(a.pid, a.d)) return null;
+      const tr = F.trains[a.k]; if (!tr) continue; const no = trainNo(F, tr), fits = segs => (segs || []).some(x => { if (!x || x[0] == null) return false; const d0 = F.ag.mapTo(a.pid, a.d, x[0]); return d0 != null && along(x[0], d0); });
+      const k2 = (tr.arr2 || []).findIndex(x => altOpen(F, tr, x) && fits(x.segs));
+      if (k2 >= 0) { p2Msg = ''; orderP2(F, tr, k2); return sinMsg(tr.p2 ? `Treno ${no}: entra al binario 2 e inverte lì, per seguire l'itinerario ${it.id}.` : `Treno ${no}: non può seguire l'itinerario ${it.id} (${p2Msg.replace(/^Order refused: /, '')}).`); }
+      const k1 = (tr.carr1 || []).findIndex(x => altOpen(F, tr, x) && fits(x.segs));
+      if (k1 >= 0) { const x = tr.carr1[k1]; (tr.calts || []).forEach(c => { if (c.i === x.i) c.done = true; }); applyAlt(tr, x.i, x.n, x.segs); x.done = true; tr.c1 = { arr: x.arr, dep: x.dep }; if (tr.env) tr.env.extra = {};
+        return sinMsg(`Treno ${no}: entra al binario 1 di ${cap(F.far)} e cambia banco lì, per seguire l'itinerario ${it.id}.`); }
+      for (const x of tr.alts || []) for (const [p, segs] of Object.entries(x.opts || {})) if (+p !== x.plat && altRun(F, tr, x) && fits(segs) && altReach(F, tr, segs)) { setPlat(tr, x, +p); return sinMsg(`Treno ${no}: parte dal binario ${(F.engine.net.sd_plat_names || {})[p] || p}, per seguire l'itinerario ${it.id}.`); }
+      for (const c of tr.calts || []) { if (c.done || !altRun(F, tr, c)) continue; for (const [t, segs] of Object.entries(c.opts || {})) if (+t !== c.tail && fits(segs) && altReach(F, tr, segs)) { applyAlt(tr, c.i, c.n, segs); c.tail = +t; return sinMsg(`Treno ${no}: va nel tronchetto ${(c.names || {})[t] || t}, per seguire l'itinerario ${it.id}.`); } }
+      return sinMsg(`Treno ${no}: la sua corsa non passa da ${it.id} e non ha un'alternativa che ci passi: resta fermo a ${sigName(n)}.`);
+    }
+    return null;
+  }
   // a press on the start of a prepared itinerary: the via libera, then (once more) the itinerary taken back
   function sinPrepPress(F, n, P) {
     const nm = sigName(n), tag = '#A' + String(n).padStart(2, '0'), il = F.ag.il(), st = F.ag.rt();
@@ -5884,6 +5945,7 @@ window.MTL_CAPS = __CAPS__;
       if (P.line) { F.ag.event({ kind: 'pccmd', what: 'red', n, on: false }); say('', tx('dct.segnale_via_libera', { segnale: tag }), 'pc'); }
       else { if (il.auto) { F.ag.event({ kind: 'il', what: 'auto', on: false }); syncDepotAuto(); } F.ag.event({ kind: 'il', what: 'clear', si: P.si, to: P.toSi }); }
       P.auth = true; sinMsg(`${nm}: via libera al prossimo treno per ${sigName(P.to)}${P.line ? '' : ' (deposito in manuale)'}. Premi di nuovo ${nm} per annullare l'itinerario.`);
+      if (P.line) sinLineFollow(F, n, (F.engine.net.itineraries || []).find(x => x.id === P.line));
     } else {
       if (P.line) { F.ag.event({ kind: 'pccmd', what: 'cancel', n }); F.ag.event({ kind: 'pccmd', what: 'red', n, on: false }); say('', tx('dct.itinerario_annullato', { segnale: tag }), 'pc'); }
       else F.ag.event({ kind: 'il', what: 'unclear', si: P.si });
@@ -5986,7 +6048,8 @@ window.MTL_CAPS = __CAPS__;
       if (x.sg.stype) m.setTooltipContent(m.getTooltip().getContent().replace(tag + ' · ', tag + ' · tipo ' + x.sg.stype + (ill ? ' · senso illegale' : '') + ' · '));
       out.push({ m, block: -1, ahead: ill ? null : x.parts, refs: ill ? [] : refs, shunt, a: null, sg: x.sg, tag, si, illegal: ill, look: lookIll, stype: x.sg.stype || (x.sg.manual ? 'm' : null), r, st });
     });
-    // wrong-way departure signals at the platform ends (the line is banalizzata): numbered in the build, always red
+    // wrong-way departure signals at the platform ends (the line is banalizzata): numbered in the build; red, via libera
+    // only for a train sent on the illegal (its route, Giovanni 18 Nov 2026: "non sono SEMPRE rossi")
     (F.engine.illegal || []).forEach(il => {
       const other = pidOf(il.dir === 'N' ? 'S' : 'N');
       place(il.pid, other, il.d, -1, il.kind === 'entry' ? `protezione di ${cap(il.to)} per chi arriva contromano da ${cap(il.from)}` : `partenza dal senso inverso: ${cap(il.from)} verso ${cap(il.to)}`, -1, il.n, il.stype, true);

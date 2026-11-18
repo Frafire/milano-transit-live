@@ -83,6 +83,9 @@
       Object.assign(r, { k, pid, secD, rel: 0, passed: false });
     }
     function addRoute(st, r) { st.routes = st.routes || {}; if (!r || r.id == null || st.routes[r.id]) return false;
+      // (a via libera given before, in automatic, to the train still standing at the signal for its own way: taken back,
+      // the player's itinerary takes its place; Giovanni 18 Nov 2026, S01A to #A99: "doppio tracciato" and the train still)
+      const g = st.grant[r.si]; if (g != null && !Object.values(st.routes).some(x => x.k === g && x.si === r.si)) delete st.grant[r.si];
       st.routes[r.id] = Object.assign({ auth: false, k: null, mid: [], edges: [] }, r); return true; }
     function authRoute(st, id) { const r = (st.routes || {})[id]; if (!r) return false; r.auth = true; return true; }
     // taken back by the player: only while no train has gone past its start
