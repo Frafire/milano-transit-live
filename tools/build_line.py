@@ -1456,6 +1456,9 @@ else:
 # departure platform p and on to the junction; positions: the stop on platform 1, the parked train, the platform stop
 DEPOT_PATHS = {}
 if LINE == 'M3':
+    _bx = CFG['depot_box']; _bx = (_bx[0] - 0.002, _bx[1] + 0.002, _bx[2] - 0.003, _bx[3] + 0.003);   # (the throat too: #A99 is east of the box)
+    _DEP_SW = sorted(n_ for n_ in node_edges if len(node_edges[n_]) >= 3 and _bx[0] <= ll(*node_pos[n_])[0] <= _bx[1] and _bx[2] <= ll(*node_pos[n_])[1] <= _bx[3])
+    print('depot switches for the other ways in:', len(_DEP_SW))
     for p_ in storage:
         try:
             pin = leg_path(CFG['IN_VIA'][1], CFG['IN_VIA'][2:], p_); cin = paths[pin][1]
@@ -1474,6 +1477,17 @@ if LINE == 'M3':
                     d_pl_, _ = project(paths[pout][0], cout, *SD_STOP, 0, None)
                     rec['outBack'][str(pl)] = {'pid': pout, 'start': round(start_off(bk), 1), 'plat': round(d_pl_, 1)}
             elif p_ in W_E: rec['pair'] = str(W_E[p_]); rec['half'] = 'E'
+            # the other ways in (bug B 28, Giovanni 18 Nov 2026: S01A to #A99 over the crossover, the train must follow the
+            # itinerary the player forms): at each switch of the way in, the other branch, then on to the place
+            # by each switch of the depot (the ways the router finds through it, no reversal, at most 800 m longer)
+            st0 = PATH_STATES[pin]; seen = {tuple(st0)}; rec['ins'] = []
+            for n_ in _DEP_SW:
+                if n_ in (CFG['IN_VIA'][1], CFG['IN_VIA'][2], p_): continue
+                try: pa = leg_path(CFG['IN_VIA'][1], CFG['IN_VIA'][2:] + [n_], p_)
+                except RuntimeError: continue
+                sa = tuple(PATH_STATES[pa])
+                if sa in seen or paths[pa][1][-1] > paths[pin][1][-1] + 800: continue
+                seen.add(sa); rec['ins'].append({'pid': pa, 'in_end': round(end_off(p_, paths[pa][1][-1]), 1)})
             DEPOT_PATHS[str(p_)] = rec
         except RuntimeError as e_: print('depot paths: no route for place', p_, e_)
     print('depot paths for the live depot manager:', len(DEPOT_PATHS), 'places')

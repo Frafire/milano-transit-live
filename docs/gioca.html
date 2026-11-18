@@ -4390,6 +4390,10 @@ body.player .console, body.pc-console-off .console { display: none !important; }
         if (S.lastDep[key] != null && S.t - S.lastDep[key] < (leg.status === 'service' ? HEADWAY : NON_SERVICE_HEADWAY)) { a.why = 'intervallo'; return; }
         const au = authority(a, leg);
         if (au.lim < a.d + 5) { a.why = 'segnale'; if (!a.red) a.red = { since: S.t, why: au.why }; a.red.now = au.why; return; }
+        // the doors closed, the driver presses the start 1 to 3 s later (Giovanni 18 Nov 2026, bug B-18: "nello stesso
+        // momento che un treno chiude le porte riparte immediatamente")
+        const dly = 1 + ((a.k * 2654435761 + st.st * 40503 + Math.floor(a.dwellUntil)) >>> 0) % 2000 / 1000;
+        if (S.t < a.dwellUntil + dly) { a.why = 'porte'; return; }
         S.lastDep[key] = S.t; if (leg.status === 'service') (S.lastSvc = S.lastSvc || {})[st.st] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift(); a.lastStop = { pid: a.pid, d: a.d };
         // a station closed to the public before its next stop: in M3 a train goes through a station without stopping only
         // by hand (the interlocking: Giovanni's colleague, Nov 2026): manual driving from here to the station after it
@@ -4841,8 +4845,10 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       for (let i = g + 1; i < tr.segs.length; i++) { const x = tr.segs[i]; if (x[3][0] >= RESERVE_T && placeOf(x) && placeOf(x) !== q) tr.segs[i] = [pid, 'to_depot', -1, [x[3][0], x[3][0] + 1], [d, d], +q]; }
     }
     // give train k place q for the run it is on now (it must already be on the way in, on San Donato platform 1)
-    function assign(k, q) {
-      const tr = F.trains[k], a = F.ag.agents()[k], si = a.si, s = tr.segs[si], P = F.depotPaths[q]; if (!P || !s) return false;
+    // (way: one of the place's other ways in, {pid, in_end}, bug B 28: the way the player's itinerary goes)
+    function assign(k, q, way) {
+      const tr = F.trains[k], a = F.ag.agents()[k], si = a.si, s = tr.segs[si], P0 = F.depotPaths[q]; if (!P0 || !s) return false;
+      const P = way ? { in: way.pid, in_end: way.in_end } : P0;
       const d = F.ag.mapTo(a.pid, a.d, P.in); if (d == null) return false;
       const t0 = s[3][0], d0 = Math.min(d, P.in_end), t1 = Math.round(t0 + Math.max(1, P.in_end - d0) / V_YARD);
       tr.segs[si] = [P.in, s[1], -1, [t0, Math.max(t0 + 1, t1)], [d0, P.in_end], +q];
@@ -7068,10 +7074,10 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (num) sign += ledText(num, L.nx, L.p, '#3dff6e');
     if (txt) sign += ledText(txt, L.tx, L.p, '#ff8a1a');
     // the two lamps of each unit are the same: white below when running, red above when standing
-    const red = lights === 'red', on = red ? '#ff3826' : '#fffaf0', glow = red ? '#ff2a14' : '#fff4c8';
+    const red = lights === 'red', off = lights === 'off', on = off ? '#cfd3d6' : red ? '#ff3826' : '#fffaf0', glow = red ? '#ff2a14' : '#fff4c8';
     const housing = (x, lx, sx) => `<rect x="${x}" y="139" width="47.5" height="40" rx="7" fill="url(#hsg)" stroke="#8e949a" stroke-width="1.3"/>
       <rect x="${x + 2.5}" y="141.5" width="42.5" height="35" rx="5" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9"/>
-      <circle cx="${lx}" cy="${red ? 152 : 166}" r="10" fill="url(#lmp)" filter="url(#bl)"/>
+      ${off ? '' : `<circle cx="${lx}" cy="${red ? 152 : 166}" r="10" fill="url(#lmp)" filter="url(#bl)"/>`}
       <circle cx="${lx}" cy="152" r="5" fill="${red ? on : '#cfd3d6'}" stroke="#6f757b" stroke-width=".9"/>
       <circle cx="${lx}" cy="166" r="5" fill="${red ? '#cfd3d6' : on}" stroke="#6f757b" stroke-width=".9"/>
       <rect x="${sx}" y="155.5" width="20" height="3.6" rx="1.8" fill="#5f656b"/>`;
@@ -7143,7 +7149,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     let sign = ''; const L = signLayout(V, num, txt, colsOf);
     if (num) sign += ledText(num, L.nx, L.p, '#4fb4ff');
     if (txt) sign += ledText(txt, L.tx, L.p, '#ff9a1f');
-    const red = lights === 'red', on = red ? '#ff3a26' : '#f4fbff', glow = red ? 'url(#glr)' : 'url(#glw)';
+    const red = lights === 'red', off = lights === 'off', on = off ? '#3c4248' : red ? '#ff3a26' : '#f4fbff', glow = off ? 'none' : red ? 'url(#glr)' : 'url(#glw)';
     // one light unit: the housing (a slanted box with cut corners) and the LED strip inside it, an L lying down
     const unit = m => { const X = x => m ? 261 - x : x;
       const box = [[34, 146], [80, 146], [76, 170], [46, 170]].map(([x, y]) => X(x) + ',' + y).join(' ');
@@ -7220,11 +7226,11 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     let sign = ''; const L = signLayout(V, num, txt, colsOf);
     if (num) sign += ledText(num, L.nx, L.p);
     if (txt) sign += ledText(txt, L.tx, L.p);
-    const red = lights === 'red', warm = '#fff6dc', rd = '#ff2f22', offW = '#55544f', offR = '#4a2622';
+    const red = lights === 'red', off = lights === 'off', warm = '#fff6dc', rd = '#ff2f22', offW = '#55544f', offR = '#4a2622';
     // a dark box with its two square lamps (white outside, red inside); side -1 left, 1 right
     const box = (x0, y0, w, h, side) => { const lw = (w - 12) / 2, lh = h - 8, xo = side < 0 ? x0 + 4 : x0 + w - 4 - lw, xi = side < 0 ? x0 + 8 + lw : x0 + 4;
       return `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="1.5" fill="#0d0e10" stroke="#3b3e42" stroke-width=".8"/>
-        <rect x="${xo}" y="${y0 + 4}" width="${lw}" height="${lh}" rx=".8" fill="${red ? offW : warm}" ${red ? '' : 'filter="url(#glw)"'}/>
+        <rect x="${xo}" y="${y0 + 4}" width="${lw}" height="${lh}" rx=".8" fill="${red || off ? offW : warm}" ${red || off ? '' : 'filter="url(#glw)"'}/>
         <rect x="${xi}" y="${y0 + 4}" width="${lw}" height="${lh}" rx=".8" fill="${red ? rd : offR}" ${red ? 'filter="url(#glr)"' : ''}/>
         <path d="M${xo + 1} ${y0 + 5.5} h${lw - 2} M${xi + 1} ${y0 + 5.5} h${lw - 2}" stroke="#fff" stroke-opacity=".25" stroke-width=".8"/>`; };
     const carNo = String(car || '').replace(/[^0-9]/g, '').slice(0, 4);
@@ -7242,7 +7248,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       <rect x="13" y="150" width="235" height="31" fill="url(#yl)"/>
       ${[[22, -1], [185, 1]].map(([x0, sd]) => { const cw = x0 + 13, cr = x0 + 41, co = sd < 0 ? cw : cr, ci = sd < 0 ? cr : cw;
         return `<rect x="${x0}" y="153" width="54" height="25" rx="2" fill="none" stroke="#8f8c84" stroke-width="1.1"/>
-        <circle cx="${co}" cy="165.5" r="6.5" fill="${red ? offW : '#fffaf0'}" stroke="#8f8c84" stroke-width="1" ${red ? '' : 'filter="url(#gls)"'}/>
+        <circle cx="${co}" cy="165.5" r="6.5" fill="${red || off ? offW : '#fffaf0'}" stroke="#8f8c84" stroke-width="1" ${red || off ? '' : 'filter="url(#gls)"'}/>
         <circle cx="${ci}" cy="165.5" r="6.5" fill="${red ? rd : '#bdb9ae'}" stroke="#8f8c84" stroke-width="1" ${red ? 'filter="url(#gls)"' : ''}/>`; }).join('')}
       <rect x="13" y="181" width="235" height="6" fill="url(#dk)"/>`;
     else band = `
@@ -7300,10 +7306,10 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     let sign = ''; const L = signLayout(V, num, txt, colsOf);
     if (num) sign += ledText(num, L.nx, L.p);
     if (txt) sign += ledText(txt, L.tx, L.p);
-    const red = lights === 'red', warm = '#fff6dc', rd = '#ff2f22';
+    const red = lights === 'red', off = lights === 'off', warm = '#fff6dc', rd = '#ff2f22';
     // the lamps of one side: outer white, inner red (lit or not)
     const lamps = (xo, xi, y, w, h, rx) => `
-      <rect x="${xo}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${red ? '#4b4a45' : warm}" ${red ? '' : 'filter="url(#glw)"'}/>
+      <rect x="${xo}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${red || off ? '#4b4a45' : warm}" ${red || off ? '' : 'filter="url(#glw)"'}/>
       <rect x="${xi}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${red ? rd : '#4a2622'}" ${red ? 'filter="url(#glr)"' : ''}/>`;
     const band = lot2
       ? `<rect x="14" y="134" width="233" height="15" fill="url(#yl)"/>
@@ -7374,11 +7380,17 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const oos = !dest;                                   // not in passenger service: FUORI SERVIZIO on the sign
     // red: in the depot or a tail, changing cab, standing out of service; white: running, or in service at a station
     const a = st.agent, still = Math.abs(st.v || 0) < 0.05;
-    const red = st.status === 'parked' || st.status === 'turnback' && still || (a && (a.hidden || a.mode === 'static' || a.waiting && still)) || (still && st.status !== 'service' && st.status !== 'stopped');
+    // (Giovanni 18 Nov 2026, bug B-25: a train standing at a red signal only waits to go on: white lights)
+    const atSignal = !!(a && a.red && !a.hidden && a.mode !== 'static');
+    const red = !atSignal && (st.status === 'parked' || st.status === 'turnback' && still || (a && (a.hidden || a.mode === 'static' || a.waiting && still)) || (still && st.status !== 'service' && st.status !== 'stopped'));
+    // (bug B23: the trains standing in the officina, B22 to B28, are switched off; they light up when they move or are
+    // called out)
+    const offPl = F.dm && F.depot && tr.agentK != null && F.depot.at[tr.agentK] != null && (F.dm.OFF || []).includes(F.dm.name(F.depot.at[tr.agentK]));
+    const lights = offPl && still && !atSignal ? 'off' : red ? 'red' : 'white';
     // the car at the front: the first number of the units (8103-8104 + ...: 8103)
     const car = rt && rt.units ? (String(rt.units).match(/\d{4}/) || [''])[0] : '';
-    if (rt && VELTEST[rt.units] && inMaintNow(F, tr, rt)) return { kind, dest: VELTEST[rt.units], lights: red ? 'red' : 'white', no: '', car };
-    return { kind, dest: oos ? 'FUORI SERVIZIO' : dest, lights: red ? 'red' : 'white', no: rt && rt.tab == null ? '' : rt && rt.n != null ? String(rt.n) : String(tr.n || ''), car };      // the tabella's number, also out of service (Giovanni)
+    if (rt && VELTEST[rt.units] && inMaintNow(F, tr, rt)) return { kind, dest: VELTEST[rt.units], lights, no: '', car };
+    return { kind, dest: oos ? 'FUORI SERVIZIO' : dest, lights, no: rt && rt.tab == null ? '' : rt && rt.n != null ? String(rt.n) : String(tr.n || ''), car };      // the tabella's number, also out of service (Giovanni)
   }
   const TACHO = { target: -135, cur: null, run: false, last: 0 };
   function tachoAnim(ts) {
@@ -7678,10 +7690,10 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (num) sign += ledText(num, V.x + 5, 2.3, '#3dff6e');
     if (txt) sign += ledDest(txt, numEnd, V.x + V.w - 4, V.y + V.h / 2, 2.45, 1.7, '#ff8a1a', 'led');     // ABBIATEGRASSO (photo of 930) and FUORI SERVIZIO fit (Giovanni)
     // the two lamps of each unit are the same: white below when running, red above when standing
-    const red = lights === 'red', on = red ? '#ff3826' : '#fffaf0', glow = red ? '#ff2a14' : '#fff4c8';
+    const red = lights === 'red', off = lights === 'off', on = off ? '#cfd3d6' : red ? '#ff3826' : '#fffaf0', glow = red ? '#ff2a14' : '#fff4c8';
     const housing = (x, lx, sx) => `<rect x="${x}" y="139" width="47.5" height="40" rx="7" fill="url(#hsg)" stroke="#8e949a" stroke-width="1.3"/>
       <rect x="${x + 2.5}" y="141.5" width="42.5" height="35" rx="5" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".9"/>
-      <circle cx="${lx}" cy="${red ? 152 : 166}" r="10" fill="url(#lmp)" filter="url(#bl)"/>
+      ${off ? '' : `<circle cx="${lx}" cy="${red ? 152 : 166}" r="10" fill="url(#lmp)" filter="url(#bl)"/>`}
       <circle cx="${lx}" cy="152" r="5" fill="${red ? on : '#cfd3d6'}" stroke="#6f757b" stroke-width=".9"/>
       <circle cx="${lx}" cy="166" r="5" fill="${red ? '#cfd3d6' : on}" stroke="#6f757b" stroke-width=".9"/>
       <rect x="${sx}" y="155.5" width="20" height="3.6" rx="1.8" fill="#5f656b"/>`;
@@ -9386,7 +9398,11 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       const [A, B] = e.a == n ? [P[0], P[1]] : [P[P.length - 1], P[P.length - 2]]; const dx = B[0] - A[0], dy = B[1] - A[1], l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
     Object.entries(ends).forEach(([n, l]) => { if (l.length === 2) { join(l[1], l[0]); return; } if (l.length < 3) return;
       const ds = l.map(id => dirAt(pieces[id][0], n));
-      for (let i = 0; i < l.length; i++) for (let j = i + 1; j < l.length; j++) if (ds[i] && ds[j] && ds[i][0] * ds[j][0] + ds[i][1] * ds[j][1] < -0.95) join(l[i], l[j]); });
+      // (only on the main tracks of the line: a tail or a siding behind a switch stays free when the switch is set the
+      // other way, Giovanni 18 Nov 2026: "rosso anche il mini tronchetto? se lo scambio è a sinistra quella parte è
+      // sicuramente non bloccata")
+      const main_ = id => (NE[pieces[id][0]] || {}).cat === 'main';
+      for (let i = 0; i < l.length; i++) for (let j = i + 1; j < l.length; j++) if (main_(l[i]) && main_(l[j]) && ds[i] && ds[j] && ds[i][0] * ds[j][0] + ds[i][1] * ds[j][1] < -0.95) join(l[i], l[j]); });
     pieces.forEach(pc => { pc[3] = find(pc[3]); });
     const entry = {};
     for (const [sg, f] of ent) { const l = byEdge[sg.e]; if (!l) continue;
@@ -9608,7 +9624,12 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         let dx = E_[0] - I_[0], dy = E_[1] - I_[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;          // (outwards, to the line)
         const f = atB ? 1 : 0, pc = (SEC.byEdge[ar.e] || []).find(p_ => f >= p_[1] - 1e-4 && f <= p_[2] + 1e-4), sid = pc && pc[3];
         const occ = sid != null && occS.has(sid), lit = sid != null && litS.has(sid);
-        const cIn = SIN_TEST ? ' lit' : occ ? ' occ' : lit && !exitGo ? ' lit' : '', cOut = SIN_TEST ? ' lit' : occ ? ' occ' : lit && exitGo ? ' lit' : '', cSh = SIN_TEST ? ' lit' : occ ? ' occ' : lit ? ' lit' : '';
+        // (red only the head the train goes to, Giovanni 18 Nov 2026, bug B'26: down to the line when it leaves the depot,
+        // up into it when it comes in)
+        let goesOut = null;
+        if (occ) for (const a of F.ag.agents()) { if (!a || a.hidden) continue; const pe = (F.engine.pathEdges[a.pid] || {}).e || [];
+          const h = pe.find(x => x[0] === ar.e && a.d - F.engine.half <= x[3] && a.d + F.engine.half >= x[2]); if (h) { goesOut = atB ? h[1] > 0 : h[1] < 0; break; } }
+        const cIn = SIN_TEST ? ' lit' : occ && goesOut !== true ? ' occ' : lit && !exitGo ? ' lit' : '', cOut = SIN_TEST ? ' lit' : occ && goesOut !== false ? ' occ' : lit && exitGo ? ' lit' : '', cSh = SIN_TEST ? ' lit' : occ ? ' occ' : lit ? ' lit' : '';
         const C = [E_[0] + dx * 22, E_[1] + dy * 22], P = (a, b) => `${(C[0] + dx * a - dy * b).toFixed(1)},${(C[1] + dy * a + dx * b).toFixed(1)}`;
         marks += DK('arr:' + i, `<g class="darr2" data-i="${i}"><title>blocco verso il deposito${occ ? ': occupato' : lit ? (exitGo ? ': itinerario in uscita' : ': itinerario formato in entrata') : ''}</title>` +
           `<polygon class="darr${cSh}" points="${P(-8, -1.6)} ${P(8, -1.6)} ${P(8, 1.6)} ${P(-8, 1.6)}"/>` +
@@ -10633,6 +10654,22 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       ps.forEach(p => out.push([p[0], p[1], p[2], p[3], occ ? 'occ' : 'lit'])); });
     return out;
   }
+  // what of an itinerary still holds the track for another one (Giovanni 18 Nov 2026, bug B27: "appena il treno ha liberato
+  // l'incrocio… allora può formare quel itinerario"): the parts the whole train has not yet left behind, the switches and
+  // crossings at their ends; before it is taken, all of it
+  function sinRouteHeld(F, r) {
+    const NE = F.engine.net.edges, a = r.k != null ? F.ag.agents().find(x => x.k === r.k) : null, half = F.engine.half;
+    let free = () => false;
+    if (a && a.pid === r.pid && r.secD) { const f = F.ag.IL.follows(r, r.pid, r.secD[0]), pe = (F.engine.pathEdges[r.pid] || {}).e || [];
+      if (f) { const tail = a.d - half; let c = -1;
+        const ends = r.edges.map((p, j) => { if (j === 0 || p[0] !== r.edges[j - 1][0] || p[1] !== r.edges[j - 1][1]) c++; const x = pe[f.i0 + c]; if (!x) return Infinity;
+          return x[1] > 0 ? x[2] + p[3] * (x[3] - x[2]) : x[2] + (1 - p[3]) * (x[3] - x[2]); });
+        free = j => tail > ends[j] + 1; } }
+    const parts = [], nodes = new Set(), sw = new Set(r.nodes || []);
+    r.edges.forEach((p, j) => { if (free(j)) return; parts.push(p);
+      const e = NE[p[0]], atEnd = p[1] > 0 ? p[3] > 0.999 : p[3] < 0.001, n = p[1] > 0 ? e.b : e.a; if (atEnd && sw.has(+n)) nodes.add(+n); });
+    return { parts, nodes };
+  }
   // a signal cleared by an itinerary: its start (via libera given, not passed yet) or a signal on its way (from when it is
   // formed, Giovanni 18 Nov 2026: "A98 che con la preparazione è passato al via libera", until its train is past it)
   function sinRouteGo(F, si) {
@@ -10666,7 +10703,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (!R || !R.parts.length) { sinMsg(`Nessun itinerario da ${a} a ${b}: da lì non si arriva (scambi, senso di marcia).`); return; }
     // taken: another itinerary on the same track or over the same switch
     const il = F.ag.il(), ov = (p, q) => p[0] === q[0] && Math.min(Math.max(p[2], p[3]), Math.max(q[2], q[3])) - Math.max(Math.min(p[2], p[3]), Math.min(q[2], q[3])) > 1e-3;
-    for (const r of Object.values(il.routes || {})) { const left = sinRouteLeft(F, r), nodesL = new Set(r.nodes || []);
+    for (const r of Object.values(il.routes || {})) { const H = sinRouteHeld(F, r), left = H.parts, nodesL = H.nodes;
       if (R.parts.some(p => left.some(q => ov(p, q))) || R.nodes.some(n => nodesL.has(n))) { sinMsg(`Itinerario ${a} → ${b} non formato: impegnato dall'itinerario ${sigName(r.n)} → ${r.toName || ''}.`); return; } }
     // taken: a train on it (the one waiting at the start, before the signal, does not count)
     const live = sinLive(F, new Set(SCH.edges));
@@ -10687,23 +10724,37 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   function sinDepFollow(F) {
     const il = F.ag && F.ag.il && F.ag.il(); if (!il || il.auto || !il.routes || !F.dm || !F.depot) return;
     for (const r of Object.values(il.routes)) {
-      if (!r.auth || r.k != null || r.kind !== 'trk' || r.place == null || SIN_TRIED.has(r.id)) continue;
+      if (!r.auth || r.k != null || SIN_TRIED.has(r.id)) continue;
       const half = F.engine.half;
       for (const a of F.ag.agents()) { if (!a || a.hidden) continue;
         const hit = (F.engine.net.sigpos[a.pid] || []).find(x => x[1] === r.si && x[0] >= a.d + half - 5 && x[0] - (a.d + half) < 80); if (!hit) continue;
         if (F.ag.IL.follows(r, a.pid, hit[0])) break;
-        const k = a.k, q = r.place, old = F.depot.target[k]; SIN_TRIED.add(r.id);
-        if (old == null || old === q) break;
-        const no = F.trains[k] ? trainNo(F, F.trains[k]) : k;
-        if (F.dm.taken().has(q)) { sinMsg(`Treno ${no}: ${F.dm.name(q)} è occupato, resta assegnato a ${F.dm.name(old)}.`); break; }
+        const k = a.k, old = F.depot.target[k]; SIN_TRIED.add(r.id);
+        if (old == null) break;
+        const no = F.trains[k] ? trainNo(F, F.trains[k]) : k, tk = F.dm.taken();
+        // (to a signal or the block: the free places whose way in goes along the itinerary, the nearest first; bug B 28:
+        // S01A to A99 over the crossover, the train given a place behind A98 stood still)
+        // (each place's ways in: the usual one, then the others over the other branches of its switches)
+        const ways = q => { const P = F.depotPaths[q]; return P ? [{ pid: P.in, in_end: P.in_end, main: true }, ...(P.ins || [])] : []; };
+        const fol = w => { if (w.pid == null) return false; const h = (F.engine.net.sigpos[w.pid] || []).find(x => x[1] === r.si); return !!(h && F.ag.IL.follows(r, w.pid, h[0])); };
+        const wayOf = q => ways(q).find(fol) || null;
+        const cand = r.kind === 'trk' && r.place != null ? [r.place] : Object.keys(F.depotPaths).filter(q => !tk.has(q) && wayOf(q)).sort((x, y) => wayOf(x).in_end - wayOf(y).in_end);
+        // (its own place by another way in: it keeps the place, only the way changes)
+        if (r.kind !== 'trk' && wayOf(old)) { const w = wayOf(old); delete F.depot.target[k];
+          if (F.dm.assign(k, old, w.main ? null : w)) { sinMsg(`Treno ${no}: segue l'itinerario ${sigName(r.n)} → ${r.toName}, posto ${F.dm.name(old)}.`); break; }
+          F.depot.target[k] = old; }
+        const q = cand.find(q_ => q_ !== old && !tk.has(q_));
+        if (r.kind === 'trk' && r.place != null && tk.has(r.place) && r.place !== old) { sinMsg(`Treno ${no}: ${F.dm.name(r.place)} è occupato, resta assegnato a ${F.dm.name(old)}.`); break; }
+        if (q == null) { sinMsg(`Treno ${no}: nessun posto libero lungo l'itinerario ${sigName(r.n)} → ${r.toName}.`); break; }
         delete F.depot.target[k];
-        if (F.dm.assign(k, q)) sinMsg(`Treno ${no}: posto cambiato da ${F.dm.name(old)} a ${F.dm.name(q)}, come l'itinerario.`);
+        const wq = r.kind === 'trk' ? (wayOf(q) || { main: true }) : wayOf(q);
+        if (F.dm.assign(k, q, wq && !wq.main ? wq : null)) sinMsg(`Treno ${no}: posto cambiato da ${F.dm.name(old)} a ${F.dm.name(q)}, per seguire l'itinerario.`);
         else { F.depot.target[k] = old; sinMsg(`Treno ${no}: da lì non può andare in ${F.dm.name(q)}, resta assegnato a ${F.dm.name(old)}.`); }
         break; } }
   }
   // (for the tests: form an itinerary of the depot without the mouse; press a key)
   window.__mtlAcei = { form: (n, dest) => { const F = m3eng(); sinFormDep(F, { n, si: F.engine.net.signals.findIndex(x => x.n === n) }, dest); return SIN_LAST; },
-    press: n => { sinPress(m3eng(), '#A' + String(n).padStart(2, '0')); return SIN_LAST; }, draw: () => drawDepotPlan() };
+    press: n => { sinPress(m3eng(), '#A' + String(n).padStart(2, '0')); return SIN_LAST; }, draw: () => drawDepotPlan(), last: () => SIN_LAST };
   // a press on the start of a depot itinerary: the via libera, then (once more) the itinerary taken back
   function sinDepPress(F, r) {
     const a = sigName(r.n), il = F.ag.il();

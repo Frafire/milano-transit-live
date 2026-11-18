@@ -2,15 +2,15 @@
  "tracks": [
   {
    "name": "Deposito interno non visibile da fuori ma continua",
-   "note": "",
+   "note": "Dritto in continuazione del Bin.28 (Giovanni 18/11/2026, bug B-22: \"il binario 28 è storto\")",
    "points": [
     [
      45.430347,
      9.255078
     ],
     [
-     45.4310031,
-     9.2563072
+     45.4310428,
+     9.2562665
     ]
    ]
   },

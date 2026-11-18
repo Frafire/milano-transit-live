@@ -748,7 +748,8 @@ def linea(m3='m3.json'):
         e = E[i]; pa, pb = pos.get(e['a']), pos.get(e['b'])
         if not pa or not pb: continue
         short = re.sub(r'^(San Donato|Comasina|Brenta|Centrale|Repubblica) ', '', nm_).replace(' di ricovero (A33)', '')
-        t = {'e': i, 'text': short, 'x': round((pa[0] + pb[0]) / 2, 1), 'y': min(pa[1], pb[1]) - 9, 'pos': []}
+        # (the name under the track, Giovanni 18 Nov 2026: "scritta tronchetto mettilo sotto": above are the signals)
+        t = {'e': i, 'text': short, 'x': round((pa[0] + pb[0]) / 2, 1), 'y': max(pa[1], pb[1]) + 30, 'pos': []}
         ends = sorted({sg_.get('n') for x in IT if x['edges'] and x['edges'][-1][0] == i and x.get('end_signal') for sg_ in [{'n': x['end_signal']}]})
         if ends:
             fs = sorted({sgx['f'] for sgx in sig if sgx['e'] == i and sgx['n'] in ends})

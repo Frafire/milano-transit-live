@@ -73,8 +73,10 @@
       for (let i = g + 1; i < tr.segs.length; i++) { const x = tr.segs[i]; if (x[3][0] >= RESERVE_T && placeOf(x) && placeOf(x) !== q) tr.segs[i] = [pid, 'to_depot', -1, [x[3][0], x[3][0] + 1], [d, d], +q]; }
     }
     // give train k place q for the run it is on now (it must already be on the way in, on San Donato platform 1)
-    function assign(k, q) {
-      const tr = F.trains[k], a = F.ag.agents()[k], si = a.si, s = tr.segs[si], P = F.depotPaths[q]; if (!P || !s) return false;
+    // (way: one of the place's other ways in, {pid, in_end}, bug B 28: the way the player's itinerary goes)
+    function assign(k, q, way) {
+      const tr = F.trains[k], a = F.ag.agents()[k], si = a.si, s = tr.segs[si], P0 = F.depotPaths[q]; if (!P0 || !s) return false;
+      const P = way ? { in: way.pid, in_end: way.in_end } : P0;
       const d = F.ag.mapTo(a.pid, a.d, P.in); if (d == null) return false;
       const t0 = s[3][0], d0 = Math.min(d, P.in_end), t1 = Math.round(t0 + Math.max(1, P.in_end - d0) / V_YARD);
       tr.segs[si] = [P.in, s[1], -1, [t0, Math.max(t0 + 1, t1)], [d0, P.in_end], +q];
