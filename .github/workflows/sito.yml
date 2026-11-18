@@ -1,8 +1,23 @@
-# Builds the game with ./build.sh (timetable, packs, all the checks in tests/) and publishes docs/ on GitHub Pages.
+# Builds the game with ./build.sh and publishes docs/ on GitHub Pages.
 # - push on main: build + checks + publish. If a check fails, the site stays on the last good version.
 # - pull request: build + checks only, nothing is published.
-# - "Run workflow" in the Actions tab: same as a push on main.
-# One-time setting: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# - "Run workflow" in the Actions tab: build + checks; it publishes only when run on main.
+#
+# Checks run by ./build.sh (the build stops at the first one that fails, except the soft ones):
+# - Node/Python checks of tests/: tails, depot, sinottico, depot names and signals, engine, day driven by the agents,
+#   interlocking, timetable, itineraries, routes, closures, C1, radio, schema, PC, instructions, illegal running at
+#   San Donato, sheds, faults; Saturday and Sunday: tails, depot, day driven by the agents, timetable; M2: signals,
+#   restore, depots, net, turni.
+# - In a headless Chromium (Playwright): tests/page_check.js (the game, about 40 scenarios), home_check.js (menu),
+#   caps_check.js (line panels), m2_editor_check.js, m2_fronts_check.js, velette_m3_check.js. Here Playwright is
+#   always installed, and the step "Browser checks ran" fails the run if build.sh skipped them.
+# - Soft, they only print a WARNING: the page_check scenario `lavaggio`; headway_check.js (trains closer than 2
+#   minutes, weekday, Saturday, Sunday); in sinottico_check.py, nodes and pieces closer than 10 px (only reported);
+#   the checks of the historical timetables (Expo 2015, Milano Cortina 2026: not playable yet).
+# Not run here: platform_speed_test.js (build.sh does not run it).
+#
+# One-time settings: Settings → Pages → Build and deployment → Source: "GitHub Actions";
+# Settings → Environments → github-pages: deployment branches, only main.
 name: Sito
 
 on:
@@ -11,28 +26,32 @@ on:
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+# nothing by default; each job asks for what it needs
+permissions: {}
 
 # one publish at a time; a newer push waits for the running one instead of cancelling it halfway
 concurrency:
   group: pages-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  # the Playwright the browser checks run with (package and Chromium); change it here to update both, and the cache
+  PLAYWRIGHT_VERSION: '1.65.1'
+
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
 
@@ -40,22 +59,77 @@ jobs:
       - name: Python packages
         run: pip install openpyxl
 
+      # Playwright (node_modules/playwright, found by build.sh and tests/*.js from the repo folder) and its Chromium
+      # (~/.cache/ms-playwright), kept between runs; the key changes only with PLAYWRIGHT_VERSION
+      - name: Playwright cache
+        id: pw-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-node22-${{ env.PLAYWRIGHT_VERSION }}
+
+      - name: Playwright and Chromium
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: |
+          npm install --no-save --no-package-lock "playwright@$PLAYWRIGHT_VERSION"
+          npx playwright install --with-deps --only-shell chromium
+
+      # the system libraries of Chromium are not in the cache: installed every time (apt)
+      - name: Chromium system libraries
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # stop here, not after the whole build, if the browser cannot start
+      - name: Playwright works
+        run: node -e "const { chromium } = require('playwright'); chromium.launch().then(b => b.close()).then(() => console.log('Chromium', '$PLAYWRIGHT_VERSION', 'ok'))"
+
       - name: Build and checks
-        run: ./build.sh
+        shell: bash
+        run: ./build.sh 2>&1 | tee build.log
+
+      # build.sh skips the browser checks when it cannot load Playwright: here that is an error. The results of the
+      # browser checks go to the run's summary page.
+      - name: Browser checks ran
+        if: success() || failure()
+        shell: bash
+        run: |
+          {
+            echo '### Checks in the browser'
+            echo '```'
+            grep -E '^page [a-z0-9]+: |^menu: |^panels: |^M2 editor: |^M2 fronts: |^M3 velette: |skipped: Playwright' build.log || echo '(none)'
+            echo '```'
+            echo '### Warnings (not blocking)'
+            echo '```'
+            grep -E 'WARNING' build.log || echo '(none)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if grep -q 'skipped: Playwright not installed' build.log; then
+            echo '::error::build.sh skipped the browser checks (Playwright not found)'; exit 1
+          fi
+          for s in 'menu: all ok' 'panels: all ok' 'M2 editor: all ok' 'M2 fronts: all ok' 'M3 velette: all ok'; do
+            grep -q "^$s" build.log || { echo "::error::missing in the log: $s"; exit 1; }
+          done
+          echo "page_check scenarios run: $(grep -cE '^page [a-z0-9]+: ' build.log)"
 
       - name: Pages files
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs
 
   deploy:
-    if: github.event_name != 'pull_request'
+    # only from main: a manual run on another branch builds and checks, but does not publish
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to prove the deployment comes from this workflow
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
