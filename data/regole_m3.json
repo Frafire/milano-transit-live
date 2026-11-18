@@ -287,15 +287,15 @@
    "legale": true,
    "aspetto": "rosso",
    "via_libera": "semi-automatico: dato dal PC (Anello di prova), percorso libero fino al semaforo successivo",
-   "comando": "automatico",
-   "note": null
+   "comando": "semi-automatico",
+   "note": "Col deposito in manuale lo apre il DCT dal sinottico del deposito (itinerari A94 → 47 e A96 → 94/95, Giovanni 18/11/2026)"
   },
   "47": {
    "legale": true,
    "aspetto": "rosso",
    "via_libera": "semi-automatico: dato dal PC (Anello di prova), percorso libero fino al semaforo successivo",
-   "comando": "automatico",
-   "note": null
+   "comando": "semi-automatico",
+   "note": "Col deposito in manuale lo apre il DCT dal sinottico del deposito (itinerari A94 → 47 e A96 → 94/95, Giovanni 18/11/2026)"
   },
   "48": {
    "legale": true,
@@ -637,15 +637,15 @@
    "legale": true,
    "aspetto": "rosso",
    "via_libera": "semi-automatico: dato dal PC (Anello di prova), percorso libero fino al semaforo successivo",
-   "comando": "automatico",
-   "note": null
+   "comando": "semi-automatico",
+   "note": "Col deposito in manuale lo apre il DCT dal sinottico del deposito (itinerari A94 → 47 e A96 → 94/95, Giovanni 18/11/2026)"
   },
   "97": {
    "legale": true,
    "aspetto": "rosso",
    "via_libera": "semi-automatico: dato dal PC (Anello di prova), percorso libero fino al semaforo successivo",
-   "comando": "automatico",
-   "note": null
+   "comando": "semi-automatico",
+   "note": "Col deposito in manuale lo apre il DCT dal sinottico del deposito (itinerari A94 → 47 e A96 → 94/95, Giovanni 18/11/2026)"
   },
   "98": {
    "legale": true,

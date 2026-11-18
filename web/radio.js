@@ -415,10 +415,10 @@
         const taken = depotTaken(F), opts = Object.keys(F.depotPaths).filter(q => q === tq || !taken.has(q)).sort((p, q) => depotName(F, p).localeCompare(depotName(F, q), undefined, { numeric: true }));
         h += radioSec('place', 'Posto in deposito', `<div class="lbl">Assegnato ${depotName(F, tq)}</div><div class="row"><select id="placeSel" aria-label="Posto">${opts.map(q => `<option value="${q}" ${q === tq ? 'selected' : ''}>${depotName(F, q)}</option>`).join('')}</select><button id="placeGo" class="send">▶ Cambia posto</button></div>`, depotName(F, tq), true);
       }
-      // depot on manual: open the signal the train is waiting for
+      // depot on manual: the signal the train is waiting for (the radio only answers; the signal is opened from the sinottico)
       const dq = tr.agentK != null ? depotAsk(F, tr.agentK) : null;
       if (dq) h += radioSec('dep', 'Segnale del deposito', dq.open ? `<div class="lbl">${sigNo(F, dq.si)} aperto: il treno può partire</div>`
-        : `<div class="lbl">${sigNo(F, dq.si)} rosso · ${dq.what}</div><div class="row"><button id="depOpen" class="send">▶ Apri ${sigNo(F, dq.si)}</button></div>`, dq.open ? 'aperto' : 'richiesta', !dq.open);
+        : `<div class="lbl">${sigNo(F, dq.si)} rosso · ${dq.what}</div><div class="lbl">Il segnale si apre dal sinottico del deposito</div><div class="row"><button id="depOpen" class="send">▶ Ok ti apro subito il segnale!</button></div>`, dq.open ? 'aperto' : 'richiesta', !dq.open);
       // longer stop at a station
       if (ns) {
         const had = tr.env && tr.env.extra && tr.env.extra[ns.key] || 0;
@@ -478,9 +478,8 @@
         radioCmdHtml = ''; drawRadioCmds(); };
       const dOpen = document.getElementById('depOpen');
       if (dOpen) dOpen.onclick = () => { const q = depotAsk(F, tr.agentK); if (!q) return;
-        say('DCT', tx('treno.segnale_deposito.ordine', { treno: radioTrain.no, segnale: sigNo(F, q.si), cosa: q.what }), 'pc');
-        F.ag.event({ kind: 'il', what: 'clear', si: q.si }); env.resetSigs();
-        driverSays(tx('treno.segnale_deposito.risposta')); radioCmdHtml = ''; drawRadioCmds(); };
+        say('DCT', tx('treno.segnale_deposito.ordine', { treno: radioTrain.no, segnale: sigNo(F, q.si), cosa: q.what }), 'pc');   // (only the answer: the DCT opens it from the sinottico, Giovanni 18 Nov 2026)
+        radioCmdHtml = ''; drawRadioCmds(); };
       const p2w = document.getElementById('p2Wait'), p2d = document.getElementById('p2Divert');
       if (p2w) p2w.onclick = () => { say('DCT', tx('treno.binario2_occupato.attendi', { treno: radioTrain.no }), 'pc');
         driverSays(tx('treno.binario2_occupato.attendi_risposta')); };

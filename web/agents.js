@@ -161,7 +161,7 @@
       const leg = a.legs && a.legs[0]; if (leg && leg.man) return true; return a.status !== 'service' && a.status !== 'turnback' && a.mode !== 'static'; };
 
     // depot and test-loop signals (web/interlocking.js); the line: route interlocking (web/routes.js)
-    const IL = o.interlocking && ILmod ? ILmod.create(Object.assign({}, o.interlocking, { sigpos: o.sigpos, half: o.half })) : null;
+    const IL = o.interlocking && ILmod ? ILmod.create(Object.assign({}, o.interlocking, { sigpos: o.sigpos, half: o.half, pathEdges: o.pathEdges })) : null;
     S.il = IL ? IL.fresh(null) : null;
     const RR = o.routeRules || {};
     const RT = RTmod.create({ sigall: o.sigall || {}, pathEdges, netEdges, itineraries: o.itineraries, times: RR.times, capacity: RR.capacity, pcSignals: RR.pcSignals, tailSlots: RR.tailSlots, exitZones: RR.exitZones, half });
@@ -1288,7 +1288,9 @@
         lastResult = true;
       }
       else if (e.kind === 'regola') lastResult = regola(e);                   // the regolatore: a train out of the service, a reserve out
-      else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si, e.to); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; if (S.il.passTo) delete S.il.passTo[e.si]; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
+      else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si, e.to); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; if (S.il.passTo) delete S.il.passTo[e.si]; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; }
+        // the itineraries of the depot's board (ACEI): formed, via libera, taken back
+        else if (e.what === 'route') lastResult = IL.addRoute(S.il, structuredClone(e.r)); else if (e.what === 'rauth') lastResult = IL.authRoute(S.il, e.id); else if (e.what === 'unroute') lastResult = IL.dropRoute(S.il, e.id); }
     }
     // the regolatore (fase E, the page decides): 'home' a train ends its run, lets the passengers off and goes in (turning at a
     // terminus: when it can, a.wdWant); 'keep' a train still in its place in the depot stays there; 'insert' a reserve train

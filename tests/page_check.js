@@ -886,6 +886,76 @@ const SCENARIOS = {
       && /via libera/.test(r.go[0]) && r.goSt[0] && !r.goSt[1] && /annullato/.test(r.cancel[0]) && !r.cancelSt[0] && !r.cancelSt[1];
     return r;
   },
+  async acei2(p) {   // the depot's ACEI v2 (Giovanni 18 Nov 2026): the whole itinerary from the start to a signal, a track or the
+    // block's arrows; lit all the way; refused when another itinerary has the track or a switch; the talpe red unless an
+    // itinerary goes over them; TEST LUCI; the bars at the dead ends. Then on manual a train going to the loop: at each call
+    // the DCT forms the itinerary to the next manual signal on its way and gives the via libera (from the west half to the
+    // loop, then #A94 to #A47 into the loop); it goes and stops before the end of the itinerary, no 7-minute call at those
+    // signals, no signal passed at red, the first itinerary freed behind it
+    const sleep = ms => new Promise(r => setTimeout(r, ms)), r = {};
+    await p.evaluate(async () => { const st = window.mtl.state; st.playing = false; st.t = 11 * 3600; await new Promise(r => setTimeout(r, 2500)); });
+    await p.evaluate(() => { document.querySelector('.drawer .tab[data-mode="schema"]').click(); document.getElementById('schEdit').click(); }); await sleep(800);
+    await p.evaluate(() => document.getElementById('schEdit').click()); await sleep(1200);
+    Object.assign(r, await p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms)), o = {}, F = window.mtl.fleets.find(f => f.line === 'M3' && f.ag), A = window.__mtlAcei, il = () => F.ag.il(), RS = () => Object.values(il().routes || {});
+      const SCH = F.engine.net.schema_depot, NS = F.engine.net.signals;
+      o.bars = document.querySelectorAll('#depotPlan path.tend').length;
+      const lamps = () => document.querySelectorAll('#depotPlan path.lamp').length; o.lamps0 = lamps();
+      document.getElementById('dpTest').click(); await sleep(300); o.lampsTest = lamps(); document.getElementById('dpTest').click(); await sleep(300);
+      o.talpeGo = document.querySelectorAll('#depotPlan g.sgi.go[data-tag^="#A6"]').length;
+      for (const i of [0, 1]) { o.exit = A.form(2, { kind: 'arr', i }); if (/preparato/.test(o.exit)) break; }
+      const R = RS()[0]; o.exitEdges = R ? R.edges.length : 0; o.exitKind = R && R.kind;
+      A.draw(); await sleep(300); o.litExit = document.querySelectorAll('#depotPlan path.lamp.lit').length;
+      o.go = A.press(2); o.auth = !!(RS()[0] && RS()[0].auth) && il().auto === false;
+      // another itinerary over the same track or switches: refused
+      o.conflict = null;
+      for (const sg of SCH.signals) { if (sg.n === 2 || !(sg.d === 1 || sg.d === -1) || sg.si == null || !F.ag.IL.isManual(sg.si)) continue;
+        for (const i of [0, 1]) { const m = A.form(sg.n, { kind: 'arr', i }); if (/impegnato dall'itinerario/.test(m)) { o.conflict = m; break; }
+          if (/preparato/.test(m)) { const r2 = RS().find(x => x.n === sg.n); if (r2) F.ag.event({ kind: 'il', what: 'unroute', id: r2.id }); } }
+        if (o.conflict) break; }
+      o.cancel = A.press(2); o.left = RS().length;
+      // a track: from the east head of Bin.N to the west half, over the talpa (it clears with the itinerary)
+      o.trk = null;
+      for (let N = 4; N <= 15 && !o.trk; N++) { const tw = SCH.signals.find(x => x.n >= 601 && x.n <= 624 && x.d === 1 && SCH.signals.some(y => y.n === x.n - 1 && y.e === x.e) && (SCH.signames || {})[x.n - 1] === String(78 + N));
+        if (!tw) continue; const ps = [...document.querySelectorAll(`#depotPlan path.tk[data-e="${tw.e}"]`)].map(e => [e, e.getBBox().width]).sort((u, v) => v[1] - u[1]); if (!ps.length) continue;
+        const m = A.form(98, { kind: 'trk', sid: +ps[0][0].dataset.s, name: 'B' + N + '.1' });
+        if (/preparato/.test(m)) { const r3 = RS().find(x => x.n === 98); o.trk = { m, N, talpa: !!r3 && r3.mid.includes(tw.si) };
+          A.draw(); await sleep(300);
+          o.trk.talpaGo = !!document.querySelector(`#depotPlan g.sgi.go[data-tag="#A${tw.n}"]`); A.press(98); A.press(98); } }
+      o.left2 = RS().length;
+      return o; }));
+    // a train to the loop on manual
+    Object.assign(r, await p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms)), o = {}, M = window.mtl, st = M.state, F = M.fleets.find(f => f.depotPaths), A = window.__mtlAcei, IL = F.ag.IL, NS = F.engine.net.signals;
+      st.playing = false; st.t = 13 * 3600; await sleep(2500); st.playing = true; st.speed = 2; await sleep(1500); st.playing = false; await sleep(300);
+      if (F.ag.il().auto) document.getElementById('depotAuto').click(); await sleep(200);
+      const at = Object.entries(F.depot.at).map(([k, q]) => [+k, q]), T = at.find(([, q]) => q.startsWith('3000') && F.test.trip[q]) || at[0];
+      st.sel = 'f' + M.fleets.indexOf(F) + ':' + T[0]; M.renderCard(); document.querySelector('[data-loop="1"]').click();
+      st.playing = true; st.speed = 30; const t0 = Date.now(); let seen = 0; o.formed = []; o.msgs = []; o.opened = [];
+      while (Date.now() - t0 < 100000) {
+        await sleep(250); const log = document.getElementById('radioLog').innerText, calls = log.match(/sono fermo da \d+ minut/g) || [];
+        if (calls.length > seen) { seen = calls.length; const a = F.ag.agents().find(x => x.k === T[0]), half = F.engine.half;
+          const c = a && IL.ahead(a.pid, a.d + half, 400).find(x => IL.isManual(x.si) && F.ag.il().grant[x.si] !== a.k), si = c ? c.si : -1, num = si >= 0 ? NS[si].n : null;
+          if (a && si >= 0 && !Object.values(F.ag.il().routes || {}).some(r => r.si === si)) {
+            const hit = (F.engine.net.sigpos[a.pid] || []).find(x => x[1] === si); let to = hit ? IL.nextAfter(a.pid, hit[0], si) : null, d = hit && hit[0];
+            for (let g = 0; g < 8 && to != null && !IL.isManual(to); g++) { const h2 = F.engine.net.sigpos[a.pid].find(x => x[1] === to && x[0] > d); d = h2 ? h2[0] : d + 1; to = IL.nextAfter(a.pid, d, to); }
+            if (to != null) { const m = A.form(num, { kind: 'sig', n: NS[to].n }); o.msgs.push(m); if (/preparato/.test(m)) { o.formed.push(num + '>' + NS[to].n); o.msgs.push(A.press(num)); const cs = [...log.matchAll(/fermo da \d+ minuti al segnale ([^,]+),/g)], nm = cs.length && cs[cs.length - 1][1]; if (nm) o.opened.push(nm); } } } }
+        // (done when the train stands before the end of the second itinerary; the first one freed behind it)
+        const a = F.ag.agents().find(x => x.k === T[0]), rs = Object.values(F.ag.il().routes || {});
+        if (o.formed.length >= 2 && rs.length === 1 && a && a.v === 0 && rs[0].secD && a.pid === rs[0].pid && a.d + F.engine.half > rs[0].secD[rs[0].secD.length - 1] - 40) { o.atEnd = true; break; }
+      }
+      st.playing = false;
+      const log = document.getElementById('radioLog').innerText;
+      // (no 7-minute call at a signal the DCT opened with an itinerary)
+      o.seven = [...log.matchAll(/fermo da 7 minuti al segnale ([^,]+),/g)].some(m => o.opened.includes(m[1]));
+      o.viol = F.ag.il().viol || 0; o.routesLeft = Object.keys(F.ag.il().routes || {}).length;
+      return o; }));
+    await p.evaluate(() => { const b = document.getElementById('dpClose'); if (b) b.click(); });
+    r.ok = r.bars >= 15 && r.lampsTest > r.lamps0 && r.talpeGo === 0 && /preparato/.test(r.exit) && r.exitKind === 'arr' && r.exitEdges >= 3 && r.litExit >= 3 && /via libera/.test(r.go) && r.auth
+      && !!r.conflict && /annullato/.test(r.cancel) && r.left === 0 && !!r.trk && r.trk.talpa && r.trk.talpaGo && r.left2 === 0
+      && r.formed.length >= 2 && r.opened.length >= 2 && r.atEnd && !r.seven && r.viol === 0 && r.routesLeft === 1;
+    return r;
+  },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again
     return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));

@@ -225,7 +225,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .ksw.mvw .kturn, .ksw.mvw .kturn img { pointer-events: auto; cursor: grab; }
 .ksw.cur .kturn img { outline: 1px dashed #ffcf3f; outline-offset: 1px; }
 .ksw.cur .kname { background: #ffcf3f; color: #000; }
-.sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%); filter: drop-shadow(0 0 1px #000); }
+.sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%) rotate(var(--r, 0deg)); filter: drop-shadow(0 0 1px #000); }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
@@ -365,6 +365,7 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan path.tk.test { stroke: #121212; stroke-width: 3.2; stroke-dasharray: 9 4; }
 #depotPlan .lamp { fill: none; stroke-width: 3.4; stroke-linecap: round; stroke-dasharray: 0 4.6 0 4.6 0 12; pointer-events: none; }   /* (three lights close together, then a black gap: as on the board, Giovanni 17 Nov 2026) */
 #depotPlan .lamp.occ { stroke: #ff2b22; } #depotPlan .lamp.lit { stroke: #ffffff; }
+#depotPlan .tend { fill: none; stroke: var(--sin-tk); stroke-width: 3; stroke-linecap: butt; }
 #depotPlan text, #depotPlan.line text { fill: #2b2a25; font-family: "DIN Condensed", "Arial Narrow", "Roboto Condensed", var(--display); }
 #depotPlan .lab, #depotPlan.line .lab { fill: #22211c; font: 700 15px "DIN Condensed", "Arial Narrow", "Roboto Condensed", var(--display); letter-spacing: .1em; text-transform: uppercase; }
 #depotPlan .pl { fill: #2b2a25; stroke: none; font-size: 9px; font-weight: 600; }
@@ -4468,6 +4469,7 @@ window.MTL_CAPS = __CAPS__;
   var SIN_GO = null;            // (the signals at via libera now, by number: the sections behind them are white)
   var SIN_ILL = false;          // (the illegal signals: hidden unless asked for; Giovanni 9 Nov 2026)
   var SIN_NAMES = false;        // (the names of the tracks and the numbers of the pieces, big: Giovanni 16 Nov 2026)
+  var SIN_TEST = false;         // (TEST LUCI: every lamp of the board lit, as the lamp test of the real one; Giovanni 18 Nov 2026)
   var SIN_NUM = false;          // (the signal numbers on the sinottico: off by default, they crowded it; Giovanni 3 Nov 2026)
   var SIN_Z = { dep: 1, line: 1 };   // the zoom of each sinottico (the − and + buttons)
   // the windows of the train numbers (one per section at least three tiles long), worked out once per drawing as it is
@@ -4509,13 +4511,14 @@ window.MTL_CAPS = __CAPS__;
     if (SCH_EDIT.drag) return;                                    // (not while a node or a bend is being moved)
     const SCH = sinSchema(F), title = SIN_WHICH === 'line' ? 'Linea M3 · sinottico' : 'Deposito Rogoredo (ROD) · sinottico';
     if (!planEl.querySelector('.dp-hd')) {
-      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · marmotte del deposito: due luci in basso via impedita, verticali via libera · spia accanto allo scambio accesa: deviato (nomi degli scambi e numeri delle sezioni inventati, tranne la porta del deposito) · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s) · tasti (ACEI): premi un segnale, poi quello di arrivo (itinerario preparato, tasto giallo), poi di nuovo la partenza per la via libera (tasto bianco) e ancora per annullarlo; tasto destro: la scheda del segnale</span><span class="dp-acei" id="dpAcei" aria-live="polite"></span>` +
+      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · marmotte del deposito: due luci in basso via impedita, verticali via libera · spia accanto allo scambio accesa: deviato (nomi degli scambi e numeri delle sezioni inventati, tranne la porta del deposito) · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s) · tasti (ACEI): premi un segnale, poi l'arrivo (un segnale; nel deposito anche un binario o la freccia del blocco): itinerario preparato tutto bianco fino all'arrivo, tasto giallo; di nuovo la partenza per la via libera (tasto bianco) e ancora per annullarlo; rossa la sezione dell'itinerario dove sta il treno, liberata dietro di lui; TEST LUCI accende tutto; tasto destro: la scheda del segnale</span><span class="dp-acei" id="dpAcei" aria-live="polite"></span>` +
         `<div class="dp-sw"><button data-w="dep" aria-pressed="${SIN_WHICH === 'dep'}">Deposito</button><button data-w="line" aria-pressed="${SIN_WHICH === 'line'}">Linea</button></div>` +
-        `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><label class="dp-opt"><input type="checkbox" id="dpIll" ${SIN_ILL ? 'checked' : ''}> segnali illegali</label><label class="dp-opt"><input type="checkbox" id="dpNames" ${SIN_NAMES ? 'checked' : ''}> nomi dei binari</label><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
+        `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><label class="dp-opt"><input type="checkbox" id="dpIll" ${SIN_ILL ? 'checked' : ''}> segnali illegali</label><label class="dp-opt"><input type="checkbox" id="dpNames" ${SIN_NAMES ? 'checked' : ''}> nomi dei binari</label><button id="dpTest" aria-pressed="${SIN_TEST}" title="Accende tutte le luci del sinottico">TEST LUCI</button><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
       document.getElementById('dpClose').onclick = () => setView('map');
       document.getElementById('dpNum').onchange = e => { SIN_NUM = e.target.checked; drawDepotPlan(); };
       document.getElementById('dpNames').onchange = e => { SIN_NAMES = e.target.checked; drawDepotPlan(); };
       document.getElementById('dpIll').onchange = e => { SIN_ILL = e.target.checked; drawDepotPlan(); };
+      document.getElementById('dpTest').onclick = e => { SIN_TEST = !SIN_TEST; e.currentTarget.setAttribute('aria-pressed', String(SIN_TEST)); drawDepotPlan(); };
       document.getElementById('dpIn').onclick = () => { SIN_Z[SIN_WHICH] = Math.min(4, SIN_Z[SIN_WHICH] * 1.25); drawDepotPlan(); };
       document.getElementById('dpOut').onclick = () => { SIN_Z[SIN_WHICH] = Math.max(0.4, SIN_Z[SIN_WHICH] / 1.25); drawDepotPlan(); };
       planEl.querySelectorAll('.dp-sw button').forEach(b => b.onclick = () => { SIN_WHICH = b.dataset.w; planEl.innerHTML = ''; drawDepotPlan(); });
@@ -4549,8 +4552,11 @@ window.MTL_CAPS = __CAPS__;
     // the whole section a train is on (signal to signal; a train passing a signal holds both), white a section free and
     // given to a train (its signal at via libera, or a route set over it), the line's colour otherwise
     const SEC = sinSections(SCH, NE, sigOf), occS = new Set(), litS = new Set();
+    const TALP = new Set((SCH.signals || []).filter(sg => (x => x && x.sg && x.sg.talpa)(sigOf(sg))).map(sg => sg.e));
     SEC.pieces.forEach(([ei, f0, f1, sid]) => {
-      if ((live.occ.get(ei) || []).some(([a, b]) => b > f0 + 1e-4 && a < f1 - 1e-4)) occS.add(sid);
+      // (the short piece between the two talpe of a rimessa track: a train standing at the end of its half only touches it)
+      const need = TALP.has(ei) && f1 - f0 < 0.08 ? 0.6 * (f1 - f0) : 1e-4;
+      if ((live.occ.get(ei) || []).some(([a, b]) => Math.min(b, f1) - Math.max(a, f0) > need)) occS.add(sid);
       if ((live.lit.get(ei) || []).some(([a, b]) => b > f0 + 1e-4 && a < f1 - 1e-4)) litS.add(sid); });
     // a signal at via libera: white all the way ahead of it to the next signal, over the switches the way they are set
     const litWalk = (ei, f, dir) => {
@@ -4564,7 +4570,12 @@ window.MTL_CAPS = __CAPS__;
         if (nx == null || !SE.has(nx)) return;
         const e2 = NE[nx]; dir = e2.a === n ? 1 : -1; f = dir > 0 ? 0 : 1; ei = nx;
       } };
-    for (const sg of SCH.signals || []) { if (!SE.has(sg.e) || (sg.d !== 1 && sg.d !== -1)) continue; const S_ = sigOf(sg); if (S_ && (S_.asp === 'go' || S_.asp === 'sgo') && !S_.illegal) litWalk(sg.e, sg.f, sg.d); }
+    // (the depot's itineraries colour their own pieces, below; a talpa never lights the way by itself)
+    const RTE = new Map(), RTO = new Set();
+    if (SIN_WHICH === 'dep') for (const r of Object.values((F.ag.il && F.ag.il() || {}).routes || {})) { RTO.add(r.si); (r.mid || []).forEach(x => RTO.add(x));
+      for (const [ei, , f0, f1, c] of sinRouteLeft(F, r)) { if (!RTE.has(ei)) RTE.set(ei, []); RTE.get(ei).push([Math.min(f0, f1), Math.max(f0, f1), c]); } }
+    const rtCls = (ei, f0, f1) => { const l = (RTE.get(ei) || []).filter(([a, b]) => Math.min(b, f1) - Math.max(a, f0) > 1e-3); return !l.length ? null : l.some(x => x[2] === 'occ') ? ' occ' : ' lit'; };
+    for (const sg of SCH.signals || []) { if (!SE.has(sg.e) || (sg.d !== 1 && sg.d !== -1)) continue; const S_ = sigOf(sg); if (S_ && (S_.asp === 'go' || S_.asp === 'sgo') && !S_.illegal && !(S_.sg && S_.sg.talpa) && !RTO.has(sg.si)) litWalk(sg.e, sg.f, sg.d); }
     let base = '', over = '', marks = '', X0 = Infinity, Y0 = Infinity, X1 = -Infinity, Y1 = -Infinity;
     const grow = ([x, y]) => { X0 = Math.min(X0, x); Y0 = Math.min(Y0, y); X1 = Math.max(X1, x); Y1 = Math.max(Y1, y); };
     // the line on three strips, one under the other (Giovanni 16 Nov 2026: all the line on one screen): cut at x where
@@ -4582,26 +4593,38 @@ window.MTL_CAPS = __CAPS__;
         cur.push(sinT(ST, B, s1)); }
       out.push(cur); return out.filter(q => q.length > 1); };
     const FULL = {}, GAP = SIN_WHICH === 'line' ? 2.6 : 1.8, TAILS = new Set((SCH.tails || []).map(t => t.e));
+    // the lamps on one rhythm all over the board (Giovanni 18 Nov 2026, "tanti bug luci"): each run of lamps drawn left to
+    // right (or top down), its dashes started where they fall on the line through it, so a section going on into the next
+    // piece over a node keeps its three lights and a gap without a jump
+    const LAMP_P = 21.2, lampPts = q => { let P = q; const dir = P => { const A = P[0], B = P[Math.min(1, P.length - 1)], l = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1; return [(B[0] - A[0]) / l, (B[1] - A[1]) / l]; };
+      let u = dir(P); if (u[0] < -0.01 || (Math.abs(u[0]) <= 0.01 && u[1] < 0)) { P = [...P].reverse(); u = dir(P); }
+      const o = ((P[0][0] * u[0] + P[0][1] * u[1]) % LAMP_P + LAMP_P) % LAMP_P; return [P, o.toFixed(2)]; };
     const plen = P => { let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); return L; };
     for (const ei of SCH.edges) { const e = NE[ei], full = sinFull(N, V, e, ei); if (!full) continue; FULL[ei] = full;
       const [p0, p1] = sinPart(SCH, ei), q0 = fd(ei, p0), q1 = fd(ei, p1); let pts = p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full;
-      // the leg not set at a switch: cut short by 7 px there (as on the panels)
-      const cut = end => { if (end ? p1 < 1 : p0 > 0) return false; const n = end ? e.b : e.a, ps = pos[n]; return ps && !ps.includes(ei); };
-      const shorten = (P, fromEnd) => { const A = fromEnd ? P[P.length - 1] : P[0], B = fromEnd ? P[P.length - 2] : P[1], d = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1, k = Math.min(7, d / 2) / d, C = [A[0] + (B[0] - A[0]) * k, A[1] + (B[1] - A[1]) * k];
-        return fromEnd ? [...P.slice(0, -1), C] : [C, ...P.slice(1)]; };
-      if (cut(false)) pts = shorten(pts, false); if (cut(true)) pts = shorten(pts, true);
+      // (no more the leg not set cut short at a switch, Giovanni 18 Nov 2026: "le sezioni spaccate ci sono solo dopo i
+      // semafori non a caso in mezzo al tracciato"; the lamp by the switch says how it is set)
       sSplit(pts).forEach(q => q.forEach(grow));
       const L = plen(pts) || 1, kind = TAILS.has(ei) ? ' tail' : NE[ei].cat === 'test' ? ' test' : NE[ei].cat === 'main' ? ' main' : '';
       for (const [, f0, f1, sid, s0, s1] of SEC.byEdge[ei] || []) {
         if (f1 <= p0 + 1e-4 || f0 >= p1 - 1e-4) continue;
         let a = (fd(ei, Math.max(f0, p0)) - q0) / ((q1 - q0) || 1), b = (fd(ei, Math.min(f1, p1)) - q0) / ((q1 - q0) || 1);
         if (s0) a += GAP / L; if (s1) b -= GAP / L; if (b - a < 0.5 / L) continue;
-        const c = occS.has(sid) ? ' occ' : litS.has(sid) ? ' lit' : '', d_ = sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))).map(q => roundPath(q, SIN_WHICH === 'dep' ? 0 : 1.5)).join('');
+        const c = SIN_TEST ? ' lit' : rtCls(ei, f0, f1) || (occS.has(sid) ? ' occ' : litS.has(sid) ? ' lit' : ''), qs = sSplit(subPts(pts, Math.max(0, a), Math.min(1, b))), d_ = qs.map(q => roundPath(q, SIN_WHICH === 'dep' ? 0 : 1.5)).join('');
         // (as on the ACEI panels, Giovanni 16 Nov 2026: the black bar of the section, and over it its lamps: red dots
         // occupied, yellow dots given to a train)
         base += `<path class="tk${kind}${c}" data-e="${ei}" data-s="${sid}" d="${d_}"/>`;
-        if (c) over += `<path class="lamp${c}" data-e="${ei}"${c === ' occ' ? ' data-occ="1"' : ''} d="${d_}"/>`; }
+        if (c) qs.forEach(q => { const [lq, off] = lampPts(q); over += `<path class="lamp${c}" data-e="${ei}"${c === ' occ' ? ' data-occ="1"' : ''} stroke-dashoffset="${off}" d="${roundPath(lq, SIN_WHICH === 'dep' ? 0 : 1.5)}"/>`; }); }
     }
+    // the end of a track that goes nowhere (Giovanni 18 Nov 2026: "sui binari tronchi la stanghetta verticale per indicare la
+    // fine del tracciato"): a bar across it; not where the drawing only stops (the ends towards the line, with the arrows)
+    { const ARR = new Set((SCH.arrows || []).map(ar => ar.e + ':' + (ar.end !== 'a' ? 'b' : 'a')));
+      for (const [n, list] of Object.entries(at)) { if (list.length !== 1 || !N[n]) continue; const ei = list[0], e = NE[ei], end = e.b == n ? 'b' : 'a';
+        if (ARR.has(ei + ':' + end) || (SIN_WHICH === 'line' && !TAILS.has(ei))) continue;
+        const [p0, p1] = sinPart(SCH, ei); if (end === 'b' ? p1 < 1 : p0 > 0) continue;
+        const P = FULL[ei]; if (!P || P.length < 2) continue; const A = end === 'b' ? P[P.length - 1] : P[0], B = end === 'b' ? P[P.length - 2] : P[1];
+        let dx = A[0] - B[0], dy = A[1] - B[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+        const p = T(A), h = 6; base += `<path class="tend" d="M${(p[0] - dy * h).toFixed(1)},${(p[1] + dx * h).toFixed(1)}L${(p[0] + dy * h).toFixed(1)},${(p[1] - dx * h).toFixed(1)}"/>`; } }
     // the sheds (Giovanni 17 Nov 2026: light blue where the trains are inside a shed, as a mosaic of whole tiles with the
     // grid's lines over them): track by track, the tiles along the part of it inside a shed (sheds: per shed, the parts
     // of each piece inside it), from the tile where the shed starts to the one where it ends (the washing track only
@@ -4654,9 +4677,9 @@ window.MTL_CAPS = __CAPS__;
         let dx = E_[0] - I_[0], dy = E_[1] - I_[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;          // (outwards, to the line)
         const f = atB ? 1 : 0, pc = (SEC.byEdge[ar.e] || []).find(p_ => f >= p_[1] - 1e-4 && f <= p_[2] + 1e-4), sid = pc && pc[3];
         const occ = sid != null && occS.has(sid), lit = sid != null && litS.has(sid);
-        const cIn = occ ? ' occ' : lit && !exitGo ? ' lit' : '', cOut = occ ? ' occ' : lit && exitGo ? ' lit' : '', cSh = occ ? ' occ' : lit ? ' lit' : '';
+        const cIn = SIN_TEST ? ' lit' : occ ? ' occ' : lit && !exitGo ? ' lit' : '', cOut = SIN_TEST ? ' lit' : occ ? ' occ' : lit && exitGo ? ' lit' : '', cSh = SIN_TEST ? ' lit' : occ ? ' occ' : lit ? ' lit' : '';
         const C = [E_[0] + dx * 22, E_[1] + dy * 22], P = (a, b) => `${(C[0] + dx * a - dy * b).toFixed(1)},${(C[1] + dy * a + dx * b).toFixed(1)}`;
-        marks += DK('arr:' + i, `<g class="darr2"><title>blocco verso il deposito${occ ? ': occupato' : lit ? (exitGo ? ': itinerario in uscita' : ': itinerario formato in entrata') : ''}</title>` +
+        marks += DK('arr:' + i, `<g class="darr2" data-i="${i}"><title>blocco verso il deposito${occ ? ': occupato' : lit ? (exitGo ? ': itinerario in uscita' : ': itinerario formato in entrata') : ''}</title>` +
           `<polygon class="darr${cSh}" points="${P(-8, -1.6)} ${P(8, -1.6)} ${P(8, 1.6)} ${P(-8, 1.6)}"/>` +
           `<polygon class="darr${cIn}" points="${P(-17, 0)} ${P(-8, -5)} ${P(-8, 5)}"/><polygon class="darr${cOut}" points="${P(17, 0)} ${P(8, -5)} ${P(8, 5)}"/></g>`);
         grow([C[0] - 20, C[1] - 20]); grow([C[0] + 20, C[1] + 20]); }); }
@@ -4686,7 +4709,9 @@ window.MTL_CAPS = __CAPS__;
       const [TS_, TX_] = SCH.tile || [28, 0, 0];
       const ext = xs.flatMap(n => (at[n] || []).flatMap(ei => (FULL[ei] || []).filter(q => Math.abs(q[1] - y) < 1).map(q => q[0])));
       const bx = SHED_BOX.find(b => y > b[1] && y < b[3]) || SHED_BOX.find(b => y > b[1] - 4 * TS_ && y < b[3] + 4 * TS_ && ext.length && Math.min(...ext) < (b[0] + b[2]) / 2 && Math.max(...ext) > (b[0] + b[2]) / 2);
-      if (bx) { const cx = TX_ + Math.round(((bx[0] + bx[2]) / 2 - TX_) / TS_) * TS_, c = T([cx, y - TS_ / 2]);
+      // (a rimessa track with its talpe in the middle, Giovanni 18 Nov 2026: the name three tiles west of the joint, clear of them)
+      const talpe = SIN_WHICH === 'dep' && xs.length === 2 && (SCH.signals || []).some(sg => xs.some(n => (at[n] || []).includes(sg.e)) && (x => x && x.sg && x.sg.talpa)(sigOf(sg)));
+      if (bx) { const cx = TX_ + Math.round(((talpe ? Math.max(...xs.map(n => N[n][0])) - 3 * TS_ : (bx[0] + bx[2]) / 2) - TX_) / TS_) * TS_, c = T([cx, y - TS_ / 2]);
         marks += DK('bin:' + bn.t, `<text class="binn" x="${c[0].toFixed(1)}" y="${(c[1] + 3.5).toFixed(1)}" text-anchor="middle"><title>${bn.places.join(' · ')}</title>${bn.t}</text>`); continue; }
       const c = T([N[n0][0] - 12, N[n0][1] - 6]);
       marks += DK('bin:' + bn.t, `<text class="binn" x="${c[0].toFixed(1)}" y="${c[1].toFixed(1)}" text-anchor="end"><title>${bn.places.join(' · ')}</title>${bn.t}</text>`); }
@@ -4707,6 +4732,8 @@ window.MTL_CAPS = __CAPS__;
     // trains it is for, its foot at the signal, the head turned to the trains coming; the M3 heads have two lamps only:
     // red, and white (via libera = red and white lit together); the illegal ones (square heads) only when asked for
     const ASP = { go: '#2ecc40', stop: '#e5383b', sgo: '#ffffff', sstop: '#e5383b' };
+    const keyCls = n => { if (SIN_ORIG && SIN_ORIG.n === n) return ' orig'; const R = SIN_WHICH === 'dep' ? sinDepRoute(F, n) : null; if (R) return R.auth ? ' auth' : ' prep';
+      return SIN_PREP[n] ? (SIN_PREP[n].auth ? ' auth' : ' prep') : ''; };
     // (as on the board of the depot, Giovanni 16 Nov 2026: the head on a mast beside the track, its foot towards the trains
     // coming, the red lamp at the far end; round head on the legal side (A), square on the wrong-way side (B), on the left
     // of the trains it is for)
@@ -4720,11 +4747,12 @@ window.MTL_CAPS = __CAPS__;
       // the marmotte of the depot (Giovanni 17 Nov 2026: "cambia i segnali che non sono rosso o rosso bianco con le
       // marmotte (guarda il deposito)… solo deposito"): the depot's shunting signals as on the map, a low black body with
       // three white lamps, upright beside the track: the two below lit = via impedita, the top and the bottom-left = via libera
+      // (mirrored by the way its trains go, Giovanni 18 Nov 2026, as on the M2 map: the high side towards where they go, like the red lamp of the heads)
       if (SIN_WHICH === 'dep' && S_ && S_.shunt) {
         let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
         const side = (sg.b || ill) ? -1 : 1, nx = -ty * side, ny = tx * side, K = 0.9, O = [m[0] + nx * 9 * K, m[1] + ny * 9 * K], lit = a === 'sgo';
-        const L3 = (x, y, on) => `<rect x="${x}" y="${y}" width="2.8" height="2.8" fill="${on ? '#ffffff' : '#3a3a3a'}"/>`;
-        marks += `<g class="sgi marm${lit ? ' go' : ''}${SIN_ORIG && SIN_ORIG.n === sg.n ? ' orig' : SIN_PREP[sg.n] ? (SIN_PREP[sg.n].auth ? ' auth' : ' prep') : ''}" data-tag="${tag}" transform="translate(${P1(O)}) scale(${K})"><title>${tagName(tag)} (marmotta) · ${lit ? 'via libera' : 'via impedita'}</title>` +
+        const L3 = (x, y, on) => `<rect x="${x}" y="${y}" width="2.8" height="2.8" fill="${on || SIN_TEST ? '#ffffff' : '#3a3a3a'}"/>`;
+        marks += `<g class="sgi marm${lit ? ' go' : ''}${keyCls(sg.n)}" data-tag="${tag}" transform="translate(${P1(O)}) scale(${(Math.abs(tx) > 0.3 ? tx > 0 : ty > 0) ? -K : K},${K})"><title>${tagName(tag)} (marmotta) · ${lit ? 'via libera' : 'via impedita'}</title>` +
           `<path d="M-4.5,-5H0.5V-3.5H4.5V4H-4.5Z" fill="#101010"/><rect x="-4.5" y="4" width="9" height="1" fill="#8a8a8a"/>` +
           L3(-3.6, -4, lit) + L3(-3.6, 0, true) + L3(0.6, 0, !lit) + `<circle class="sg" data-n="${sg.n}" cx="0" cy="0" r="0"/></g>` +
           ((SIN_NUM || SGNM(sg)) ? `<text class="sgn" x="${O[0] + nx * 9}" y="${O[1] + ny * 9 + 3}">${SGNM(sg) || sg.n}</text>` : '');
@@ -4733,10 +4761,10 @@ window.MTL_CAPS = __CAPS__;
       const sqr = !!sg.b || ill, side = sqr ? -1 : 1, K = SIN_WHICH === 'line' ? 1 : 0.9, nx = -ty * side, ny = tx * side;
       const O = [m[0] - tx * 7 * K + nx * 8 * K, m[1] - ty * 7 * K + ny * 8 * K], ang = Math.atan2(ty, tx) * 180 / Math.PI;
       const lit = a === 'go' || a === 'sgo';
-      marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}${SIN_ORIG && SIN_ORIG.n === sg.n ? ' orig' : SIN_PREP[sg.n] ? (SIN_PREP[sg.n].auth ? ' auth' : ' prep') : ''}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${SGNM(sg) ? SGNM(sg) + ' = ' : ''}${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
+      marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}${keyCls(sg.n)}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${SGNM(sg) ? SGNM(sg) + ' = ' : ''}${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
         `<path class="sgb" d="M-14,-3.2V3.2M-14,0H-7"/><rect class="sgc" x="-7" y="-3.7" width="14" height="7.4" rx="${sqr ? 0.8 : 3.7}"/>` +
-        (sqr ? `<rect x="-5.5" y="-2.2" width="4.4" height="4.4" fill="${lit ? '#ffffff' : '#4a4943'}"/><rect x="1.1" y="-2.2" width="4.4" height="4.4" fill="#ff2a2a"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="0"/></g>`
-          : `<circle class="sgw" cx="-3.3" cy="0" r="2.3" fill="${lit ? '#ffffff' : '#4a4943'}"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="2.3" fill="#ff2a2a"/></g>`) +
+        (sqr ? `<rect x="-5.5" y="-2.2" width="4.4" height="4.4" fill="${lit || SIN_TEST ? '#ffffff' : '#4a4943'}"/><rect x="1.1" y="-2.2" width="4.4" height="4.4" fill="#ff2a2a"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="0"/></g>`
+          : `<circle class="sgw" cx="-3.3" cy="0" r="2.3" fill="${lit || SIN_TEST ? '#ffffff' : '#4a4943'}"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="2.3" fill="#ff2a2a"/></g>`) +
         (SGNM(sg) && (grow([O[0] + nx * 13 * K + 42, O[1]]), grow([O[0] + nx * 13 * K - 42, O[1]]), true) ? `<text class="sgn sgname" x="${(O[0] + nx * 13 * K).toFixed(1)}" y="${(O[1] + ny * 13 * K + 3).toFixed(1)}" style="text-anchor:${Math.abs(nx) < 0.5 ? 'middle' : nx > 0 ? 'start' : 'end'}">${SGNM(sg)}</text>`   // (the door's names beside the head, outwards, as on the board)
           : SIN_NUM ? `<text class="sgn" x="${O[0] + nx * 9 * K}" y="${O[1] + ny * 9 * K + 3}">${sg.n}</text>` : ''); };
     for (const sg of SCH.signals || []) { const m0_ = marks.length; drawSig(sg); if (marks.length > m0_) marks = marks.slice(0, m0_) + DK('sig:' + sg.n, marks.slice(m0_)); }
@@ -4751,7 +4779,7 @@ window.MTL_CAPS = __CAPS__;
       let best = null; for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) { const dt = D[i][0] * D[j][0] + D[i][1] * D[j][1]; if (!best || dt < best[0]) best = [dt, i, j]; }
       const k = 3 - best[1] - best[2], dv = D[k], tr = (D[best[1]][0] * dv[0] + D[best[1]][1] * dv[1]) > 0 ? D[best[1]] : D[best[2]];
       let w = [-tr[1], tr[0]]; if (w[0] * dv[0] + w[1] * dv[1] > 0) w = [-w[0], -w[1]];
-      const c = T([N[n][0] + tr[0] * 9 + w[0] * 9, N[n][1] + tr[1] * 9 + w[1] * 9]), sp = pos[n], on = !!(sp && sp.includes(list[k]));
+      const c = T([N[n][0] + tr[0] * 9 + w[0] * 9, N[n][1] + tr[1] * 9 + w[1] * 9]), sp = pos[n], on = SIN_TEST || !!(sp && sp.includes(list[k]));
       const swn = (SCH.swn || {})[n], c2 = T([N[n][0] + tr[0] * 9 + w[0] * 19, N[n][1] + tr[1] * 9 + w[1] * 19 + 3]);
       marks += DK('sw:' + n, `<rect class="swl${on ? ' on' : ''}" x="${(c[0] - 2.4).toFixed(1)}" y="${(c[1] - 2.4).toFixed(1)}" width="4.8" height="4.8"><title>scambio ${swn || n}: ${sp ? (on ? 'deviato' : 'dritto') : 'posizione non nota'}</title></rect>` +
         (swn ? `<text class="swn" x="${c2[0].toFixed(1)}" y="${c2[1].toFixed(1)}">${swn}</text>` : '')); }
@@ -4767,7 +4795,9 @@ window.MTL_CAPS = __CAPS__;
     // the places by name (two places at the same point of the drawing, as the two of a rimessa track: one each side)
     const plG = []; for (const pl of SCH.places || []) { const p = N[pl.node] && T(N[pl.node]); if (!p || !at[pl.node]) continue;
       const g = plG.find(g => g.some(([, q]) => Math.abs(q[0] - p[0]) < 16 && Math.abs(q[1] - p[1]) < 3)); if (g) g.push([pl, p]); else plG.push([[pl, p]]); }
-    for (const g of plG) g.sort((u, v) => u[1][0] - v[1][0]).forEach(([pl, p], i) => { const dx = g.length > 1 ? (i - (g.length - 1) / 2) * 30 : 0;
+    // (the east half of a rimessa track: its name two tiles east of the joint, clear of the talpe; Giovanni 18 Nov 2026)
+    const TALE = new Set((SCH.signals || []).filter(sg => (x => x && x.sg && x.sg.talpa)(sigOf(sg))).map(sg => sg.e));
+    for (const g of plG) g.sort((u, v) => u[1][0] - v[1][0]).forEach(([pl, p], i) => { const dx = (g.length > 1 ? (i - (g.length - 1) / 2) * 30 : 0) + ((at[pl.node] || []).length === 2 && (at[pl.node] || []).some(e => TALE.has(e)) ? 56 : 0);
       marks += DK('pl:' + pl.name, `<text class="pl" x="${p[0] + dx}" y="${p[1] + 12}">${pl.name}</text>`); });
     // (names too close to the one before on the same strip go one line higher: Turati, Montenapoleone, Duomo; Corvetto…)
     const LBS = (SCH.labels || []).map(lb0 => { const [lx, ly] = T([lb0.x, lb0.y]); return { x: lx, y: ly, text: lb0.text, s: sinSi(ST, lb0.x) }; }).sort((u, v) => u.s - v.s || u.x - v.x);
@@ -4818,6 +4848,14 @@ window.MTL_CAPS = __CAPS__;
     if (!SCH_EDIT.on) body.querySelectorAll('g.sgi[data-tag], circle.sg[data-tag]').forEach(g => {
       g.onclick = ev => { ev.stopPropagation(); sinPress(F, g.dataset.tag); };
       g.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); SIN_ORIG = null; setView('map'); openSignal(g.dataset.tag); }; });
+    // (the destination of a depot itinerary: a track, pressed on its piece, or the arrows of the block; Giovanni 18 Nov 2026)
+    if (!SCH_EDIT.on && SIN_WHICH === 'dep') {
+      const pick = dest => ev => { if (!SIN_ORIG || !(F.ag.IL && SIN_ORIG.si >= 0 && F.ag.IL.isManual(SIN_ORIG.si))) return; ev.stopPropagation(); const o = SIN_ORIG; SIN_ORIG = null; sinFormDep(F, o, dest(ev)); drawDepotPlan(); };
+      // (the place whose node the section touches: the piece of each track at that node)
+      const trkName = (sid, ei) => { const pl = (SCH.places || []).find(p => (at[p.node] || []).some(e2 => { const l = SEC.byEdge[e2]; if (!l || !l.length) return false; const q = NE[e2].a == p.node ? l[0] : l[l.length - 1]; return q[3] === sid; }));
+        return pl ? pl.name : (SCH.names && SCH.names[ei]) || 'il binario scelto'; };
+      body.querySelectorAll('path.tk[data-s]').forEach(pth => { pth.onclick = pick(() => ({ kind: 'trk', sid: +pth.dataset.s, name: trkName(+pth.dataset.s, +pth.dataset.e) })); });
+      body.querySelectorAll('g.darr2[data-i]').forEach(g => { g.onclick = pick(() => ({ kind: 'arr', i: +g.dataset.i })); }); }
     if (!SCH_EDIT.on) { const sv = body.querySelector('svg'); if (sv) sv.onclick = () => { if (SIN_ORIG) { SIN_ORIG = null; sinMsg(''); drawDepotPlan(); } }; }
     if (SCH_EDIT.on) bindSchDrag(F, SCH);
   }
@@ -5550,15 +5588,19 @@ window.MTL_CAPS = __CAPS__;
   // Depot: the shunting signals (in manual: the via libera is for the next train that goes on to that signal). Line:
   // the itineraries of the table (the Excel's Itinerari), held at red until the via libera.
   var SIN_ORIG = null, SIN_PREP = {};           // SIN_PREP[n] = { line: id | null, to: n, si, auth }
-  function sinMsg(t) { const e = document.getElementById('dpAcei'); if (e) e.textContent = t; }
+  var SIN_LAST = '';
+  function sinMsg(t) { SIN_LAST = t; const e = document.getElementById('dpAcei'); if (e) e.textContent = t; }
   function sinPress(F, tag) {
     if (!F.ag) return;
-    const n = parseInt(String(tag).slice(2), 10), si = (F.engine.net.signals || []).findIndex(x => x.n === n), P = SIN_PREP[n];
+    const n = parseInt(String(tag).slice(2), 10), si = (F.engine.net.signals || []).findIndex(x => x.n === n), P = SIN_PREP[n], R = sinDepRoute(F, n);
+    if (R && !SIN_ORIG) { sinDepPress(F, R); drawDepotPlan(); return; }
     if (P && !SIN_ORIG) { sinPrepPress(F, n, P); drawDepotPlan(); return; }
     if (SIN_ORIG && SIN_ORIG.n === n) { SIN_ORIG = null; sinMsg(`${sigName(n)}: tasto rilasciato.`); drawDepotPlan(); return; }
     if (SIN_ORIG) { const o = SIN_ORIG; SIN_ORIG = null; sinRoute(F, o, { n, si }); drawDepotPlan(); return; }
-    SIN_ORIG = { n, si }; const d = sinDests(F, n, si);
-    sinMsg(`${sigName(n)}: tasto premuto. Premi il segnale di arrivo${d.length ? ' (' + d.map(x => sigName(x)).join(', ') + ')' : ''} per l'itinerario, o di nuovo ${sigName(n)} per rilasciarlo.`);
+    SIN_ORIG = { n, si }; const dep = F.ag.IL && si >= 0 && F.ag.IL.isManual(si), d = dep ? [] : sinDests(F, n, si);
+    if (dep && SIN_WHICH !== 'dep') { SIN_ORIG = null; sinMsg(`${sigName(n)}: gli itinerari del deposito si formano sul sinottico del deposito.`); drawDepotPlan(); return; }
+    sinMsg(dep ? `${sigName(n)}: tasto premuto. Premi il segnale, il binario o la freccia del blocco di arrivo, o di nuovo ${sigName(n)} per rilasciarlo.`
+      : `${sigName(n)}: tasto premuto. Premi il segnale di arrivo${d.length ? ' (' + d.map(x => sigName(x)).join(', ') + ')' : ''} per l'itinerario, o di nuovo ${sigName(n)} per rilasciarlo.`);
     drawDepotPlan();
   }
   // the signals an itinerary from n can end at: depot, the next signal on each way out of it; line, the table
@@ -5569,14 +5611,144 @@ window.MTL_CAPS = __CAPS__;
     return [...out].filter(x => x != null).sort((a, b) => a - b);
   }
   const sinRefresh = () => { if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals(); };
+  // ---- ACEI v2 of the depot (Giovanni 18 Nov 2026): the itinerary is the whole way from the start signal to where it
+  // goes (a signal, a track: "la destinazione la dai premendo il binario", the block towards the line: "S02A S02B fino
+  // alla freccia del blocco"), over the switches; it is formed only if nothing on it is taken (a train, another
+  // itinerary, a switch of another itinerary); the signals on its way clear with it; it frees itself section by section
+  // behind the train (web/interlocking.js). The graph of the board: the pieces, their nodes, the ways a train may turn
+  var SIN_NETC = null, SIN_RID = 0;
+  function sinNet(F, SCH) {
+    const key = SCH.edges.length + '|' + schSnap(); if (SIN_NETC && SIN_NETC.key === key) return SIN_NETC;
+    const NE = F.engine.net.edges, N = schNodes(SCH), V = schVia(SCH), FULL = {}, at = {};
+    for (const ei of SCH.edges) { const e = NE[ei]; [e.a, e.b].forEach(n => { (at[n] = at[n] || []).push(ei); }); }
+    const deg0 = SIN_DEG; SIN_DEG = {}; for (const [n, l] of Object.entries(at)) SIN_DEG[n] = l.length;
+    for (const ei of SCH.edges) { const f = sinFull(N, V, NE[ei], ei); if (f) FULL[ei] = f; }
+    SIN_DEG = Object.keys(deg0).length ? deg0 : SIN_DEG;
+    const plen = P => { let L = 0; for (let i = 1; i < P.length; i++) L += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); return L; };
+    const LEN = {}; for (const ei of Object.keys(FULL)) LEN[ei] = plen(FULL[ei]) || 1;
+    // the way a piece leaves node n, 12 px out
+    const tan = (ei, n) => { let P = FULL[ei]; if (!P) return [0, 0]; if (NE[ei].a != n) P = [...P].reverse(); let B = P[1], acc = 0;
+      for (let i = 1; i < P.length; i++) { acc += Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]); B = P[i]; if (acc >= 12) break; }
+      const l = Math.hypot(B[0] - P[0][0], B[1] - P[0][1]) || 1; return [(B[0] - P[0][0]) / l, (B[1] - P[0][1]) / l]; };
+    // the turns the trains of the day make (every way of the build), and at a plain switch the two legs on the other side
+    const seen = new Set(); for (const pe of F.engine.pathEdges || []) { const x = (pe && pe.e) || []; for (let i = 1; i < x.length; i++) { seen.add(x[i - 1][0] + '>' + x[i][0]); seen.add(x[i][0] + '>' + x[i - 1][0]); } }
+    const turn = (n, ei, e2) => { const l = at[n] || []; if (l.length === 2 || seen.has(ei + '>' + e2)) return true;
+      const a = tan(ei, n), b = tan(e2, n), c = -(a[0] * b[0] + a[1] * b[1]); return l.length === 3 ? c > 0.5 : c > 0.95; };
+    return (SIN_NETC = { key, at, FULL, LEN, turn });
+  }
+  // the way from signal sg (its piece, where on it, the way it looks) to dest: { kind: 'sig', sg } | { kind: 'trk', sid }
+  // | { kind: 'arr', ar }; the shortest on the board. parts: [ei, dir, f0, f1] in order (cut at the signals on the way),
+  // mid: those signals, midAt: the part each one starts, nodes: the switches it goes over
+  function sinFind(F, SCH, SEC, sg, dest, sigOf) {
+    const G = sinNet(F, SCH), NE = F.engine.net.edges, SIGL = (SCH.signals || []).filter(x => x.d === 1 || x.d === -1);
+    const pieceAt = (ei, f, dir) => (SEC.byEdge[ei] || []).find(p => dir > 0 ? p[1] <= f + 1e-4 && p[2] > f + 1e-4 : p[2] >= f - 1e-4 && p[1] < f - 1e-4);
+    // where the itinerary ends on piece ei entered at f going dir, or null
+    const endOn = (ei, dir, f, first) => {
+      if (dest.kind === 'sig') { const T = dest.sg; if (T.e === ei && T.d === dir && (dir > 0 ? T.f > f + (first ? 1e-4 : -1e-4) : T.f < f - (first ? 1e-4 : -1e-4))) return T.f; return null; }
+      if (dest.kind === 'arr') { const ar = dest.ar; return ar.e === ei && dir === (ar.end === 'a' ? -1 : 1) ? (dir > 0 ? 1 : 0) : null; }
+      const ps = (SEC.byEdge[ei] || []).filter(p => p[3] === dest.sid && (dir > 0 ? p[2] > f + 1e-4 : p[1] < f - 1e-4)); if (!ps.length) return null;
+      return dir > 0 ? Math.max(...ps.map(p => p[2])) : Math.min(...ps.map(p => p[1])); };
+    const st0 = { ei: sg.e, dir: sg.d, f: sg.f, cost: 0, prev: null, end: null };
+    const open = [st0], best = {}; let hit = null;
+    for (let guard = 0; open.length && guard < 4000; guard++) {
+      open.sort((a, b) => a.cost - b.cost); const s = open.shift();
+      const e = endOn(s.ei, s.dir, s.f, s === st0); if (e != null) { hit = Object.assign({}, s, { end: e }); break; }
+      const key = s.ei + ':' + s.dir; if (best[key] != null && best[key] <= s.cost && s !== st0) continue; best[key] = s.cost;
+      const L = G.LEN[s.ei] || 1, rest = (s.dir > 0 ? 1 - s.f : s.f) * L, n = s.dir > 0 ? NE[s.ei].b : NE[s.ei].a;
+      for (const e2 of G.at[n] || []) { if (e2 === s.ei || !G.turn(n, s.ei, e2)) continue; const d2 = NE[e2].a == n ? 1 : -1;
+        open.push({ ei: e2, dir: d2, f: d2 > 0 ? 0 : 1, cost: s.cost + rest, prev: s }); } }
+    if (!hit) return null;
+    const chain = []; for (let s = hit; s; s = s.prev) chain.unshift(s);
+    let parts = chain.map((s, i) => [s.ei, s.dir, s.f, i === chain.length - 1 ? hit.end : (s.dir > 0 ? 1 : 0)]);
+    // a track: on into the next piece over a plain node while it is the same section and no signal stands at the node
+    if (dest.kind === 'trk') for (let g = 0; g < 20; g++) { const [ei, dir, , f1] = parts[parts.length - 1]; if (dir > 0 ? f1 < 0.999 : f1 > 0.001) break;
+      const n = dir > 0 ? NE[ei].b : NE[ei].a, l = G.at[n] || []; if (l.length !== 2) break; const e2 = l.find(x => x !== ei), d2 = NE[e2].a == n ? 1 : -1;
+      if ((SCH.signals || []).some(x => (x.e === ei && (dir > 0 ? x.f >= 0.998 : x.f <= 0.002)) || (x.e === e2 && (d2 > 0 ? x.f <= 0.002 : x.f >= 0.998)))) break;
+      const ps = (SEC.byEdge[e2] || []).filter(p => p[3] === dest.sid); if (!ps.length) break;
+      const p0 = d2 > 0 ? ps.find(p => p[1] < 1e-4) : ps.find(p => p[2] > 1 - 1e-4); if (!p0) break;
+      parts.push([e2, d2, d2 > 0 ? 0 : 1, d2 > 0 ? Math.max(...ps.map(p => p[2])) : Math.min(...ps.map(p => p[1]))]); }
+    parts = parts.map(p => [p[0], p[1], Math.round(p[2] * 1e4) / 1e4, Math.round(p[3] * 1e4) / 1e4]).filter(p => Math.abs(p[3] - p[2]) > 1e-3);
+    // the signals on the way, looking the way it goes (not the start, not where it ends; not the illegal ones): each one
+    // cuts the itinerary into its sections
+    const out = [], mid = [], midAt = [], nodes = [];
+    parts.forEach(([ei, dir, f0, f1], j) => {
+      const lo = Math.min(f0, f1), hi = Math.max(f0, f1), here = SIGL.filter(x => x.e === ei && x.d === dir && x !== sg && x.f > lo + 1e-3 && x.f < hi - 1e-3 && !(dest.kind === 'sig' && x === dest.sg))
+        .filter(x => { const S_ = sigOf(x); return !(S_ && S_.illegal); }).sort((a, b) => dir > 0 ? a.f - b.f : b.f - a.f);
+      // (one at a node, at the start of this piece)
+      const atNode = j > 0 ? SIGL.filter(x => x.e === ei && x.d === dir && x !== sg && (dir > 0 ? x.f <= 0.002 : x.f >= 0.998) && !(dest.kind === 'sig' && x === dest.sg)) : [];
+      atNode.forEach(x => { mid.push(x); midAt.push(out.length); });
+      let a = f0; for (const x of here) { out.push([ei, dir, a, x.f]); mid.push(x); midAt.push(out.length); a = x.f; } out.push([ei, dir, a, f1]);
+      if (j < parts.length - 1) { const n = dir > 0 ? NE[ei].b : NE[ei].a; if ((G.at[n] || []).length >= 3) nodes.push(+n); } });
+    return { parts: out, mid, midAt, nodes };
+  }
+  // the parts of an itinerary not yet freed behind its train (all of them before it is taken); with the class of each
+  // section: 'occ' where its train is (the whole section, as on the board), 'lit' the others
+  function sinRouteLeft(F, r) {
+    const secs = [], at = [0, ...(r.midAt || []), r.edges.length];
+    for (let s = 0; s < at.length - 1; s++) secs.push(r.edges.slice(at[s], at[s + 1]));
+    const a = r.k != null ? F.ag.agents().find(x => x.k === r.k) : null, half = F.engine.half, out = [];
+    secs.forEach((ps, s) => { if (r.k != null && s < (r.rel || 0)) return;
+      const occ = !!(a && r.secD && a.pid === r.pid && a.d + half > r.secD[s] && a.d - half < r.secD[s + 1]);
+      ps.forEach(p => out.push([p[0], p[1], p[2], p[3], occ ? 'occ' : 'lit'])); });
+    return out;
+  }
+  // a signal cleared by an itinerary: its start (via libera given, not passed yet) or a signal on its way (from when it is
+  // formed, Giovanni 18 Nov 2026: "A98 che con la preparazione è passato al via libera", until its train is past it)
+  function sinRouteGo(F, si) {
+    const il = F.ag && F.ag.il && F.ag.il(); if (!il || !il.routes) return false; const half = F.engine.half;
+    for (const r of Object.values(il.routes)) {
+      if (r.si === si && r.auth && !r.passed) return true;
+      const i = (r.mid || []).indexOf(si); if (i < 0) continue; if (r.k == null) return true;
+      const a = F.ag.agents().find(x => x.k === r.k); if (!a || !r.secD || a.pid !== r.pid || a.d + half <= r.secD[i + 1] + 15) return true; }
+    return false;
+  }
+  // the itinerary from the key n on the depot board (one at a time from a signal: the one not yet passed by its train)
+  const sinDepRoute = (F, n) => { const il = F.ag && F.ag.il && F.ag.il(); return il && il.routes ? Object.values(il.routes).find(r => r.n === n && !r.passed) || null : null; };
+  const sinSigOf = SCH => sg => SIGS && (SIGS.find(x => x.si != null && x.si === sg.si) || SIGS.find(x => x.tag === '#A' + String(sg.n).padStart(2, '0')));
+  // form the itinerary from the key o to dest on the depot board
+  function sinFormDep(F, o, dest) {
+    const SCH = F.engine.net.schema_depot, NE = F.engine.net.edges, sigOf = sinSigOf(SCH), SEC = sinSections(SCH, NE, sigOf), a = sigName(o.n);
+    const og = (SCH.signals || []).find(x => x.n === o.n && (x.d === 1 || x.d === -1)); if (!og) { sinMsg(`${a}: non è sul sinottico del deposito.`); return; }
+    let D = null, b = '';
+    if (dest.kind === 'sig') { const T = (SCH.signals || []).find(x => x.n === dest.n && (x.d === 1 || x.d === -1)); if (!T) { sinMsg(`${sigName(dest.n)}: non è sul sinottico del deposito.`); return; } D = { kind: 'sig', sg: T }; b = sigName(dest.n); }
+    else if (dest.kind === 'arr') { const ar = (SCH.arrows || [])[dest.i]; if (!ar) return; D = { kind: 'arr', ar }; b = 'blocco verso la linea'; }
+    else { D = { kind: 'trk', sid: dest.sid }; b = dest.name || 'il binario scelto'; }
+    const R = sinFind(F, SCH, SEC, og, D, sigOf);
+    if (!R || !R.parts.length) { sinMsg(`Nessun itinerario da ${a} a ${b}: da lì non si arriva (scambi, senso di marcia).`); return; }
+    // taken: another itinerary on the same track or over the same switch
+    const il = F.ag.il(), ov = (p, q) => p[0] === q[0] && Math.min(Math.max(p[2], p[3]), Math.max(q[2], q[3])) - Math.max(Math.min(p[2], p[3]), Math.min(q[2], q[3])) > 1e-3;
+    for (const r of Object.values(il.routes || {})) { const left = sinRouteLeft(F, r), nodesL = new Set(r.nodes || []);
+      if (R.parts.some(p => left.some(q => ov(p, q))) || R.nodes.some(n => nodesL.has(n))) { sinMsg(`Itinerario ${a} → ${b} non formato: impegnato dall'itinerario ${sigName(r.n)} → ${r.toName || ''}.`); return; } }
+    // taken: a train on it (the one waiting at the start, before the signal, does not count)
+    const live = sinLive(F, new Set(SCH.edges));
+    const busy = R.parts.some(([ei, dir, f0, f1], j) => { const L = NE[ei].len || 1, tol = j === 0 ? 6 / L : 0, lo = Math.min(f0, f1) + (dir > 0 ? tol : 0), hi = Math.max(f0, f1) - (dir < 0 ? tol : 0);
+      return (live.occ.get(ei) || []).some(([u, v]) => v > lo + 1e-3 && u < hi - 1e-3); });
+    if (busy) { sinMsg(`Itinerario ${a} → ${b} non formato: c'è un treno sul percorso.`); return; }
+    const id = 'I' + o.n + '-' + Math.round(state.t) + '-' + (++SIN_RID);
+    const r = { id, si: o.si, n: o.n, to: D.kind === 'sig' ? D.sg.si : null, toN: D.kind === 'sig' ? D.sg.n : null, toName: b, kind: D.kind,
+      edges: R.parts.map(p => [p[0], p[1], +p[2].toFixed(4), +p[3].toFixed(4)]), mid: R.mid.map(x => x.si), midAt: R.midAt, nodes: R.nodes };
+    if (!F.ag.event({ kind: 'il', what: 'route', r })) { sinMsg(`Itinerario ${a} → ${b} non formato.`); return; }
+    sinMsg(`Itinerario ${a} → ${b} preparato${R.mid.length ? ' (con ' + R.mid.map(x => sigName(x.n)).join(', ') + ')' : ''}: premi ${a} per la via libera.`);
+    sinRefresh();
+  }
+  // (for the tests: form an itinerary of the depot without the mouse; press a key)
+  window.__mtlAcei = { form: (n, dest) => { const F = m3eng(); sinFormDep(F, { n, si: F.engine.net.signals.findIndex(x => x.n === n) }, dest); return SIN_LAST; },
+    press: n => { sinPress(m3eng(), '#A' + String(n).padStart(2, '0')); return SIN_LAST; }, draw: () => drawDepotPlan() };
+  // a press on the start of a depot itinerary: the via libera, then (once more) the itinerary taken back
+  function sinDepPress(F, r) {
+    const a = sigName(r.n), il = F.ag.il();
+    if (!r.auth) { if (il.auto) { F.ag.event({ kind: 'il', what: 'auto', on: false }); syncDepotAuto(); }
+      F.ag.event({ kind: 'il', what: 'rauth', id: r.id });
+      sinMsg(`${a}: via libera al prossimo treno per ${r.toName} (deposito in manuale). Premi di nuovo ${a} per annullare l'itinerario.`); }
+    else if (F.ag.event({ kind: 'il', what: 'unroute', id: r.id })) sinMsg(`${a}: itinerario annullato.`);
+    else sinMsg(`${a}: il treno è già partito, l'itinerario si libera da solo dietro di lui.`);
+    sinRefresh();
+  }
+
   function sinRoute(F, o, d) {
-    const IL = F.ag.IL, a = sigName(o.n), b = sigName(d.n), dests = sinDests(F, o.n, o.si);
+    const IL = F.ag.IL, a = sigName(o.n), b = sigName(d.n), dests = IL && o.si >= 0 && IL.isManual(o.si) ? [] : sinDests(F, o.n, o.si);
     const none = () => sinMsg(`Nessun itinerario da ${a} a ${b}${dests.length ? ': da ' + a + ' si va a ' + dests.map(x => sigName(x)).join(', ') : ''}.`);
-    if (IL && o.si >= 0 && IL.isManual(o.si)) {
-      if (!dests.includes(d.n)) { none(); return; }
-      SIN_PREP[o.n] = { line: null, to: d.n, toSi: d.si, si: o.si, auth: false };
-      sinMsg(`Itinerario ${a} → ${b} preparato: premi ${a} per dare la via libera al prossimo treno.`); return;
-    }
+    if (IL && o.si >= 0 && IL.isManual(o.si)) { sinFormDep(F, o, { kind: 'sig', n: d.n, si: d.si }); return; }
     const it = (F.engine.net.itineraries || []).find(x => x.start === o.n && x.end === d.n);
     if (!it) { none(); return; }
     const r = F.ag.event({ kind: 'pccmd', what: 'form', id: it.id });
@@ -5646,15 +5818,20 @@ window.MTL_CAPS = __CAPS__;
     // block signals computed along the line (not placed on the map) have fixed numbers from #A201 (rules block_numbers): they do not move when
     // a signal is placed or taken away
     const NPL = 200, tagOf = n => '#A' + String(n).padStart(2, '0');
+    // turned the way its trains go, as on the M2 map (Giovanni 18 Nov 2026: "specchiare i semafori a seconda della direzione
+    // che puntano come abbiamo fatto sulla verde"): the top of the drawing towards where the trains go
+    const headingAt = (pid, d, sgn) => { const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5); if (!a || !b) return 0;
+      const kx = Math.cos(a[0] * Math.PI / 180); return Math.round(Math.atan2((b[1] - a[1]) * kx, b[0] - a[0]) * 180 / Math.PI); };
     const place = (pid, other, d, sgn, tip, blockIdx, fixedN, stype, illegal, at, si) => {
       const tag = tagOf(fixedN || NPL + blockIdx + 1); tip = tag + (stype ? ' · tipo ' + stype : '') + (illegal ? ' · senso illegale' : '') + ' · ' + tip;
       const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);
       const kx = Math.cos(a[0] * Math.PI / 180), ux = (b[1] - a[1]) * kx, uy = b[0] - a[0], n = Math.hypot(ux, uy) || 1;
       const side = other != null ? outward(other, a, ux / n, uy / n) : 1;
       const off = 7 / 111000 * side, pos = at || [a[0] - ux / n * off, a[1] + uy / n * off / kx];
-      const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" alt="" src="${SIGURL[illegal ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
+      const r = headingAt(pid, d, sgn);
+      const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" style="--r:${r}deg" alt="" src="${SIGURL[illegal ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
         .bindTooltip(tip, { className: 'st', direction: 'top' }).on('click', () => openSignal(tag));
-      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si, stype, pid, d });
+      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si, stype, pid, d, r });
     };
     // block signals, usual direction: one at the start of every block section (stations and in between)
     (F.engine.blocks || []).forEach((bl, bi) => {
@@ -5670,15 +5847,16 @@ window.MTL_CAPS = __CAPS__;
     sectionAhead(F).forEach(x => {
       if (x.sg.n != null && ofBlock.has(x.sg.n)) return;
       const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt', tag = tagOf(x.sg.n || (F.engine.net.signals || []).indexOf(x.sg) + 1);
-      const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${shunt ? ' sh' : ''}" alt="" src="${SIGURL[shunt ? 'sstop' : x.sg.legal === false ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
+      const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
+      for (const [pid, list] of Object.entries(F.engine.net.sigpos || {})) for (const [d, i] of list) if (i === si) refs.push([pid, d]);
+      const r = refs.length ? headingAt(refs[0][0], refs[0][1], 1) : 0;
+      const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${shunt ? ' sh' : ''}" style="--r:${r}deg" alt="" src="${SIGURL[shunt ? 'sstop' : x.sg.legal === false ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
         .bindTooltip(tag + ' · ' + (x.sg.name || ilBrief(F, (F.engine.net.signals || []).indexOf(x.sg)) || (shunt ? 'Manovra' : 'Blocco')), { className: 'st', direction: 'top' });   // (two or three words, Giovanni 9 Nov 2026: the rules are on the card)
       // where it is on the paths that go over it: it shows the section right behind it (junction, tail, block)
-      const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
       if (F.ag && F.ag.IL && F.ag.IL.isManual(si)) m.on('click', () => clearManual(F, si, tag)); else m.on('click', () => openSignal(tag));
-      for (const [pid, list] of Object.entries(F.engine.net.sigpos || {})) for (const [d, i] of list) if (i === si) refs.push([pid, d]);
       const ill = x.sg.legal === false;
       if (x.sg.stype) m.setTooltipContent(m.getTooltip().getContent().replace(tag + ' · ', tag + ' · tipo ' + x.sg.stype + (ill ? ' · senso illegale' : '') + ' · '));
-      out.push({ m, block: -1, ahead: ill ? null : x.parts, refs: ill ? [] : refs, shunt, a: null, sg: x.sg, tag, si, illegal: ill, stype: x.sg.stype || (x.sg.manual ? 'm' : null) });
+      out.push({ m, block: -1, ahead: ill ? null : x.parts, refs: ill ? [] : refs, shunt, a: null, sg: x.sg, tag, si, illegal: ill, stype: x.sg.stype || (x.sg.manual ? 'm' : null), r });
     });
     // wrong-way departure signals at the platform ends (the line is banalizzata): numbered in the build, always red
     (F.engine.illegal || []).forEach(il => {
@@ -5758,7 +5936,10 @@ window.MTL_CAPS = __CAPS__;
           busy = at ? !F.ag.RT.clearAhead(F.ag.rt(), at[0], at[1], F.ag.occ) : busy; } }
       // interlocking signals: via libera only when cleared for a train
       if (sg.si != null && F.ag && F.ag.IL && F.ag.IL.controlled(sg.si)) { const il = F.ag.il();
-        busy = il.grant[sg.si] == null && !(F.ag.IL.isManual(sg.si) && !il.auto && il.pass[sg.si] > 0); }   // cleared by the player: red + white
+        busy = il.grant[sg.si] == null && !(F.ag.IL.isManual(sg.si) && !il.auto && il.pass[sg.si] > 0) && !(!il.auto && sinRouteGo(F, sg.si)); }   // cleared by the player: red + white
+      // the talpe (the pair in the middle of a rimessa track): via impedita, via libera only for an itinerary over them
+      // (Giovanni 18 Nov 2026: they were lighting the west halves white by themselves)
+      if (sg.sg && sg.sg.talpa) busy = !(sg.si != null && F.ag && sinRouteGo(F, sg.si));
       sg.asp = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
     });
   }
@@ -5777,7 +5958,7 @@ window.MTL_CAPS = __CAPS__;
     if (showIll && !map.hasLayer(illLayer)) illLayer.addTo(map); else if (!showIll && map.hasLayer(illLayer)) map.removeLayer(illLayer);
     sigAspects(F);
     SIGS.forEach(sg => { const a = sg.asp;
-      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${sg.shunt ? ' sh' : ''}" alt="" src="${SIGURL[(sg.illegal && !sg.shunt ? 'i' : '') + a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
+      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${sg.shunt ? ' sh' : ''}" style="--r:${sg.r || 0}deg" alt="" src="${SIGURL[(sg.illegal && !sg.shunt ? 'i' : '') + a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
     });
   }
   // tool: take signals away (they go into the MTL-EDIT export as "removed"; the build then drops them)

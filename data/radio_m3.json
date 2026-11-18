@@ -1987,14 +1987,14 @@
   },
   "treno.segnale_deposito.ordine": {
    "chi": "DCT",
-   "quando": "Il DCT apre a mano un segnale del deposito per un treno",
+   "quando": "Deposito in manuale: il macchinista chiede il segnale, il DCT risponde e poi lo apre lui dal sinottico (Giovanni 18/11/2026)",
    "testi": [
-    "Treno {treno}, apro il segnale {segnale}, via libera per {cosa}. Passo."
+    "Ok ti apro subito il segnale!"
    ]
   },
   "treno.segnale_deposito.risposta": {
    "chi": "macchinista",
-   "quando": "Il DCT ha aperto il segnale del deposito",
+   "quando": "Non più usata: col deposito in manuale il segnale si apre solo dal sinottico",
    "testi": [
     "Ricevuto DCT, segnale aperto, procedo. Passo.",
     "Copiato, vedo il bianco. Mi muovo. Passo."
