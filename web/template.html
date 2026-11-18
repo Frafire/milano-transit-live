@@ -4852,9 +4852,9 @@ window.MTL_CAPS = __CAPS__;
     if (!SCH_EDIT.on && SIN_WHICH === 'dep') {
       const pick = dest => ev => { if (!SIN_ORIG || !(F.ag.IL && SIN_ORIG.si >= 0 && F.ag.IL.isManual(SIN_ORIG.si))) return; ev.stopPropagation(); const o = SIN_ORIG; SIN_ORIG = null; sinFormDep(F, o, dest(ev)); drawDepotPlan(); };
       // (the place whose node the section touches: the piece of each track at that node)
-      const trkName = (sid, ei) => { const pl = (SCH.places || []).find(p => (at[p.node] || []).some(e2 => { const l = SEC.byEdge[e2]; if (!l || !l.length) return false; const q = NE[e2].a == p.node ? l[0] : l[l.length - 1]; return q[3] === sid; }));
-        return pl ? pl.name : (SCH.names && SCH.names[ei]) || 'il binario scelto'; };
-      body.querySelectorAll('path.tk[data-s]').forEach(pth => { pth.onclick = pick(() => ({ kind: 'trk', sid: +pth.dataset.s, name: trkName(+pth.dataset.s, +pth.dataset.e) })); });
+      const plOf = sid => (SCH.places || []).find(p => (at[p.node] || []).some(e2 => { const l = SEC.byEdge[e2]; if (!l || !l.length) return false; const q = NE[e2].a == p.node ? l[0] : l[l.length - 1]; return q[3] === sid; }));
+      const trkName = (sid, ei) => { const pl = plOf(sid); return pl ? pl.name : (SCH.names && SCH.names[ei]) || 'il binario scelto'; }, trkPlace = sid => { const pl = plOf(sid); return pl ? String(pl.node) : null; };
+      body.querySelectorAll('path.tk[data-s]').forEach(pth => { pth.onclick = pick(() => ({ kind: 'trk', sid: +pth.dataset.s, name: trkName(+pth.dataset.s, +pth.dataset.e), place: trkPlace(+pth.dataset.s) })); });
       body.querySelectorAll('g.darr2[data-i]').forEach(g => { g.onclick = pick(() => ({ kind: 'arr', i: +g.dataset.i })); }); }
     if (!SCH_EDIT.on) { const sv = body.querySelector('svg'); if (sv) sv.onclick = () => { if (SIN_ORIG) { SIN_ORIG = null; sinMsg(''); drawDepotPlan(); } }; }
     if (SCH_EDIT.on) bindSchDrag(F, SCH);
@@ -5639,7 +5639,7 @@ window.MTL_CAPS = __CAPS__;
   // the way from signal sg (its piece, where on it, the way it looks) to dest: { kind: 'sig', sg } | { kind: 'trk', sid }
   // | { kind: 'arr', ar }; the shortest on the board. parts: [ei, dir, f0, f1] in order (cut at the signals on the way),
   // mid: those signals, midAt: the part each one starts, nodes: the switches it goes over
-  function sinFind(F, SCH, SEC, sg, dest, sigOf) {
+  function sinFind(F, SCH, SEC, sg, dest, sigOf, pids) {
     const G = sinNet(F, SCH), NE = F.engine.net.edges, SIGL = (SCH.signals || []).filter(x => x.d === 1 || x.d === -1);
     const pieceAt = (ei, f, dir) => (SEC.byEdge[ei] || []).find(p => dir > 0 ? p[1] <= f + 1e-4 && p[2] > f + 1e-4 : p[2] >= f - 1e-4 && p[1] < f - 1e-4);
     // where the itinerary ends on piece ei entered at f going dir, or null
@@ -5650,7 +5650,17 @@ window.MTL_CAPS = __CAPS__;
       return dir > 0 ? Math.max(...ps.map(p => p[2])) : Math.min(...ps.map(p => p[1])); };
     const st0 = { ei: sg.e, dir: sg.d, f: sg.f, cost: 0, prev: null, end: null };
     const open = [st0], best = {}; let hit = null;
-    for (let guard = 0; open.length && guard < 4000; guard++) {
+    // first the ways the trains really take (the one of the train waiting there, the way into the place asked, then any
+    // other of the day), so that the itinerary is one a train can follow; else the shortest on the board
+    // (pids: [the preferred ways, every way]: the first preferred one that gets there, else the shortest of the others)
+    const along = pid => { const pe = (F.engine.pathEdges[pid] || {}).e; if (!pe) return null;
+      const i0 = pe.findIndex(x => x[0] === sg.e && x[1] === sg.d); if (i0 < 0) return null;
+      let s = st0, e = endOn(s.ei, s.dir, s.f, true), L = 0;
+      for (let j = i0 + 1; e == null && j < pe.length; j++) { const [ei, dir] = pe[j]; if (!SCH.edges.includes(ei)) break; L += pe[j - 1][3] - pe[j - 1][2]; s = { ei, dir, f: dir > 0 ? 0 : 1, prev: s }; e = endOn(ei, dir, s.f, false); }
+      return e != null ? { st: Object.assign({}, s, { end: e }), L } : null; };
+    if (pids) { for (const pid of pids[0]) { const h = along(pid); if (h) { hit = h.st; break; } }
+      if (!hit) { let bestL = Infinity; for (const pid of pids[1]) { const h = along(pid); if (h && h.L < bestL) { bestL = h.L; hit = h.st; } } } }
+    for (let guard = 0; !hit && open.length && guard < 4000; guard++) {
       open.sort((a, b) => a.cost - b.cost); const s = open.shift();
       const e = endOn(s.ei, s.dir, s.f, s === st0); if (e != null) { hit = Object.assign({}, s, { end: e }); break; }
       const key = s.ei + ':' + s.dir; if (best[key] != null && best[key] <= s.cost && s !== st0) continue; best[key] = s.cost;
@@ -5712,8 +5722,16 @@ window.MTL_CAPS = __CAPS__;
     let D = null, b = '';
     if (dest.kind === 'sig') { const T = (SCH.signals || []).find(x => x.n === dest.n && (x.d === 1 || x.d === -1)); if (!T) { sinMsg(`${sigName(dest.n)}: non è sul sinottico del deposito.`); return; } D = { kind: 'sig', sg: T }; b = sigName(dest.n); }
     else if (dest.kind === 'arr') { const ar = (SCH.arrows || [])[dest.i]; if (!ar) return; D = { kind: 'arr', ar }; b = 'blocco verso la linea'; }
-    else { D = { kind: 'trk', sid: dest.sid }; b = dest.name || 'il binario scelto'; }
-    const R = sinFind(F, SCH, SEC, og, D, sigOf);
+    else { let sid = dest.sid;
+      // (a place given by its node: the section at that node)
+      if (sid == null && dest.place != null) { const pl = (SCH.places || []).find(p => String(p.node) === String(dest.place)); if (pl) { dest.name = dest.name || pl.name;
+        for (const e2 of SCH.edges) { const e = NE[e2]; if (e.a != pl.node && e.b != pl.node) continue; const l = SEC.byEdge[e2]; if (l && l.length) { sid = (e.a == pl.node ? l[0] : l[l.length - 1])[3]; break; } } } }
+      if (sid == null) { sinMsg(`${a}: binario di arrivo non trovato.`); return; }
+      D = { kind: 'trk', sid }; b = dest.name || 'il binario scelto'; }
+    // (the ways to try first: the train waiting at the start, the way into the place asked, every way of the day)
+    const half = F.engine.half, wait = F.ag.agents().find(a2 => a2 && !a2.hidden && (F.engine.net.sigpos[a2.pid] || []).some(x => x[1] === o.si && x[0] >= a2.d + half - 5 && x[0] - (a2.d + half) < 80));
+    const PE = F.engine.pathEdges || [], pids = [[wait && wait.pid, dest.place != null && F.depotPaths && F.depotPaths[dest.place] && F.depotPaths[dest.place].in].filter(x => x != null && x !== false), PE.map((x, i) => i)];
+    const R = sinFind(F, SCH, SEC, og, D, sigOf, pids);
     if (!R || !R.parts.length) { sinMsg(`Nessun itinerario da ${a} a ${b}: da lì non si arriva (scambi, senso di marcia).`); return; }
     // taken: another itinerary on the same track or over the same switch
     const il = F.ag.il(), ov = (p, q) => p[0] === q[0] && Math.min(Math.max(p[2], p[3]), Math.max(q[2], q[3])) - Math.max(Math.min(p[2], p[3]), Math.min(q[2], q[3])) > 1e-3;
@@ -5726,10 +5744,31 @@ window.MTL_CAPS = __CAPS__;
     if (busy) { sinMsg(`Itinerario ${a} → ${b} non formato: c'è un treno sul percorso.`); return; }
     const id = 'I' + o.n + '-' + Math.round(state.t) + '-' + (++SIN_RID);
     const r = { id, si: o.si, n: o.n, to: D.kind === 'sig' ? D.sg.si : null, toN: D.kind === 'sig' ? D.sg.n : null, toName: b, kind: D.kind,
-      edges: R.parts.map(p => [p[0], p[1], +p[2].toFixed(4), +p[3].toFixed(4)]), mid: R.mid.map(x => x.si), midAt: R.midAt, nodes: R.nodes };
+      edges: R.parts.map(p => [p[0], p[1], +p[2].toFixed(4), +p[3].toFixed(4)]), mid: R.mid.map(x => x.si), midAt: R.midAt, nodes: R.nodes, place: D.kind === 'trk' && dest.place != null ? String(dest.place) : null };
     if (!F.ag.event({ kind: 'il', what: 'route', r })) { sinMsg(`Itinerario ${a} → ${b} non formato.`); return; }
     sinMsg(`Itinerario ${a} → ${b} preparato${R.mid.length ? ' (con ' + R.mid.map(x => sigName(x.n)).join(', ') + ')' : ''}: premi ${a} per la via libera.`);
     sinRefresh();
+  }
+  // an itinerary with the via libera to a place other than the one the depot gave the train waiting at its start
+  // (Giovanni 18 Nov 2026: "se il B4.1 ma lo autorizzo al B5.1 (che è libero) allora me lo cambia in automatico"):
+  // the train is given that place, if free, and its way follows the itinerary; once per itinerary
+  const SIN_TRIED = new Set();
+  function sinDepFollow(F) {
+    const il = F.ag && F.ag.il && F.ag.il(); if (!il || il.auto || !il.routes || !F.dm || !F.depot) return;
+    for (const r of Object.values(il.routes)) {
+      if (!r.auth || r.k != null || r.kind !== 'trk' || r.place == null || SIN_TRIED.has(r.id)) continue;
+      const half = F.engine.half;
+      for (const a of F.ag.agents()) { if (!a || a.hidden) continue;
+        const hit = (F.engine.net.sigpos[a.pid] || []).find(x => x[1] === r.si && x[0] >= a.d + half - 5 && x[0] - (a.d + half) < 80); if (!hit) continue;
+        if (F.ag.IL.follows(r, a.pid, hit[0])) break;
+        const k = a.k, q = r.place, old = F.depot.target[k]; SIN_TRIED.add(r.id);
+        if (old == null || old === q) break;
+        const no = F.trains[k] ? trainNo(F, F.trains[k]) : k;
+        if (F.dm.taken().has(q)) { sinMsg(`Treno ${no}: ${F.dm.name(q)} è occupato, resta assegnato a ${F.dm.name(old)}.`); break; }
+        delete F.depot.target[k];
+        if (F.dm.assign(k, q)) sinMsg(`Treno ${no}: posto cambiato da ${F.dm.name(old)} a ${F.dm.name(q)}, come l'itinerario.`);
+        else { F.depot.target[k] = old; sinMsg(`Treno ${no}: da lì non può andare in ${F.dm.name(q)}, resta assegnato a ${F.dm.name(old)}.`); }
+        break; } }
   }
   // (for the tests: form an itinerary of the depot without the mouse; press a key)
   window.__mtlAcei = { form: (n, dest) => { const F = m3eng(); sinFormDep(F, { n, si: F.engine.net.signals.findIndex(x => x.n === n) }, dest); return SIN_LAST; },
@@ -6160,6 +6199,7 @@ window.MTL_CAPS = __CAPS__;
         FE.ag.seek(state.t, 600);                                   // back: from the last saved state; forward: drive
         if (Math.abs(state.t - FE.ag.S.t) > 1) state.t = FE.ag.S.t;  // a big jump takes a few frames: the clock follows
         depotTick(FE);                                              // the depot gives places as trains come in (every frame)
+        sinDepFollow(FE);                                           // (and takes the one of an itinerary given by the player)
         slider.value = state.t; } }
     const [hm, ss] = fmt(state.t, true);
     document.getElementById('clock').innerHTML = hm + '<span class="s">' + ss + (state.t >= 86400 ? ' +1' : '') + '</span>';

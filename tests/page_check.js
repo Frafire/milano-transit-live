@@ -956,6 +956,30 @@ const SCENARIOS = {
       && r.formed.length >= 2 && r.opened.length >= 2 && r.atEnd && !r.seven && r.viol === 0 && r.routesLeft === 1;
     return r;
   },
+  async acei3(p) {   // the depot on manual, a train on its way in waiting at a manual signal: the DCT gives it an itinerary
+    // with the via libera to another free place (Giovanni 18 Nov 2026: "se il B4.1 ma lo autorizzo al B5.1 che è libero
+    // me lo cambia in automatico"): its place becomes that one and it goes there
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms)), o = {}, M = window.mtl, st = M.state, F = M.fleets.find(f => f.depotPaths), A = window.__mtlAcei, IL = F.ag.IL, NS = F.engine.net.signals;
+      st.playing = false; st.t = 9.3 * 3600; await sleep(3000); if (F.ag.il().auto) document.getElementById('depotAuto').click(); await sleep(200);
+      st.playing = true; st.speed = 10; let k = null, c = null; const t0 = Date.now();
+      while (Date.now() - t0 < 120000) { await sleep(250); const half = F.engine.half;
+        for (const [k2] of Object.entries(F.depot.target)) { const a = F.ag.agents()[+k2]; if (!a || a.v > 0.05) continue;
+          const x = IL.ahead(a.pid, a.d + half, 60).find(y => IL.isManual(y.si) && F.ag.il().grant[y.si] !== +k2); if (x) { k = +k2; c = x; break; } }
+        if (k != null) break; }
+      st.playing = false; if (k == null) return { ok: false, why: 'no train waiting at a manual signal on its way in' };
+      o.train = k; o.at = NS[c.si].n; o.before = F.depot.target[k];
+      const tk = F.dm.taken(), cand = Object.keys(F.depotPaths).filter(q => !tk.has(q) && q !== o.before && (F.engine.net.schema_depot.places || []).some(pl => String(pl.node) === q));
+      for (const q of cand) { const m = A.form(o.at, { kind: 'trk', place: q }); if (/preparato/.test(m)) { o.want = q; o.formed = m; break; } }
+      if (!o.want) return Object.assign(o, { ok: false, why: 'no itinerary to a free place' });
+      o.go = A.press(o.at); st.playing = true; st.speed = 10; const t1 = Date.now();
+      while (Date.now() - t1 < 60000) { await sleep(250); const r = Object.values(F.ag.il().routes || {}).find(x => x.n === o.at); if (!r || r.k === k) { o.taken = !!r || F.depot.target[k] === o.want; break; } }
+      st.playing = false; o.after = F.depot.target[k];
+      { const a = F.ag.agents()[k], r = Object.values(F.ag.il().routes || {}).find(x => x.n === o.at), hit = r && (F.engine.net.sigpos[a.pid] || []).find(x => x[1] === r.si);
+        o.dbg = r ? { pid: a.pid, d: Math.round(a.d), v: a.v, hit, fol: hit && IL.follows(r, a.pid, hit[0]), redges: r.edges.map(x => x[0] + ':' + x[1]).join(' '), path: (F.engine.pathEdges[a.pid].e || []).map(x => x[0] + ':' + x[1] + '@' + Math.round(x[2])).join(' ') } : null; }
+      o.ok = o.after === o.want && !!o.taken && (F.ag.il().viol || 0) === 0;
+      return o; });
+  },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again
     return p.evaluate(async () => {
       const sleep = ms => new Promise(r => setTimeout(r, ms));

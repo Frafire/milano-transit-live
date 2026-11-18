@@ -56,11 +56,13 @@
     // inside the itinerary is fine; one that goes on past an itinerary to a track is not (it would run off its end)
     function follows(r, pid, d) {
       const pe = o.pathEdges && o.pathEdges[pid] && o.pathEdges[pid].e; if (!pe || !r.edges.length) return null;
-      let i0 = pe.findIndex(x => x[0] === r.edges[0][0] && x[1] === r.edges[0][1] && x[2] <= d + 3 && x[3] >= d - 3);
+      // (a track cut by a signal on the way is two parts of the itinerary: one edge of the way)
+      const E = r.edges.filter((x, i) => i === 0 || x[0] !== r.edges[i - 1][0] || x[1] !== r.edges[i - 1][1]);
+      let i0 = pe.findIndex(x => x[0] === E[0][0] && x[1] === E[0][1] && x[2] <= d + 3 && x[3] >= d - 3);
       if (i0 < 0) return null;
-      let j = 0; for (; j < r.edges.length && i0 + j < pe.length; j++) if (pe[i0 + j][0] !== r.edges[j][0] || pe[i0 + j][1] !== r.edges[j][1]) return null;
-      if (r.kind === 'trk' && j === r.edges.length && i0 + j < pe.length) return null;
-      return { i0, last: pe[Math.min(pe.length, i0 + r.edges.length) - 1] };
+      let j = 0; for (; j < E.length && i0 + j < pe.length; j++) if (pe[i0 + j][0] !== E[j][0] || pe[i0 + j][1] !== E[j][1]) return null;
+      if (r.kind === 'trk' && j === E.length && i0 + j < pe.length) return null;
+      return { i0, last: pe[Math.min(pe.length, i0 + E.length) - 1] };
     }
     // the itinerary that lets train k pass signal si (at d on path pid), if any: its start (formed, via libera, free or
     // already the train's) or a signal on its way (the train's itinerary)
