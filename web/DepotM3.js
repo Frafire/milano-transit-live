@@ -3,9 +3,12 @@
 //
 // Places: trains have no fixed place. When a train leaves San Donato platform 1 for the depot (#A40 towards #A04) the
 // depot gives it a free place; until it passes #A04/#A05 the player can change it by radio. Its next run out of the
-// depot starts from that place. At the end of the service day the trains keep their places for the next day. A place
-// is called by the signal in front of it (A48, A78...). The places after #A76, #A77, #A78 are given only when nothing
-// else is free (#A76 is train 28's own place, the 8105-8106 unit).
+// depot starts from that place. At the end of the service day the trains keep their places for the next day. The places
+// are called by their track (Giovanni 17 Nov 2026): B1 ... B28, and on the rimessa tracks B<n>.1 (west half) and B<n>.2
+// (east half). B1, B2, B3 are given only when nothing else is free (B1 is train 28's own place, the 8105-8106 unit).
+// Rimessa (Giovanni 17 Nov 2026): in from the front (east, the door's side); the first train on an empty track goes to
+// the far end (B<n>.1), the second stops in the east half (B<n>.2). Out: from the front when the east half is free, else
+// from the back onto the side tracks (the "giro"), and 4% of the times anyway.
 //
 // Test loop: a train standing in its place goes to #A94 and asks to go in (west side: after a change of cab beyond
 // #A94; east side: after a change of cab at the turning point on w71). One train at a time: while one has asked for the
@@ -17,7 +20,7 @@
 // (agents.js), and talks on the radio through env. No map, no page.
 (function (root) {
   const V_YARD = 15 / 3.6, RESERVE_T = 29 * 3600;
-  const LOW = ['A76', 'A77', 'A78'];          // places given only when nothing else is free
+  const LOW = ['B1', 'B2', 'B3'];             // places given only when nothing else is free
 
   function create(F, env) {
     // env: { say(who, text, cls), call(tr, text), tx(code, values) (the radio phrases, web/frasi.js), trainNo(tr), fmt(t), dayStart }
@@ -47,14 +50,14 @@
     const nextOut = (tr, i) => { for (let j = i + 1; j < tr.segs.length; j++) { const s = tr.segs[j]; if ((s[1] === 'from_depot' || s[1] === 'empty') && placeOf(s)) return j; if (s[1] === 'service') return -1; } return -1; };
     function shiftRefs(tr, j, by) { ['alts', 'arr2', 'calts'].forEach(key => (tr[key] || []).forEach(x => { if (x.i != null && x.i > j) x.i += by; })); }
     // the run out of place q replacing seg s (same time at the platform)
-    function outChoice(s, q) {
+    function outChoice(s, q, back) {
       const P = F.depotPaths[q]; if (!P) return null;
       let best = null;
-      for (const [pl, o] of Object.entries(P.out)) { const m = F.ag.mapTo(o.pid, o.plat, s[0]); if (m != null && (s[1] !== 'from_depot' || Math.abs(m - s[4][s[4].length - 1]) < 40)) { best = { pl, o, m }; if (s[1] !== 'from_depot' || pl === '1') break; } }
+      for (const [pl, o] of Object.entries(back && P.outBack ? P.outBack : P.out)) { const m = F.ag.mapTo(o.pid, o.plat, s[0]); if (m != null && (s[1] !== 'from_depot' || Math.abs(m - s[4][s[4].length - 1]) < 40)) { best = { pl, o, m }; if (s[1] !== 'from_depot' || pl === '1') break; } }
       return best;
     }
-    function rewriteOut(tr, j, q) {
-      const s = tr.segs[j], oldPid = s[0], best = outChoice(s, q);
+    function rewriteOut(tr, j, q, back) {
+      const s = tr.segs[j], oldPid = s[0], best = outChoice(s, q, back);
       if (!best) return false;
       const o = best.o, run = Math.max(0, o.plat - o.start) / V_YARD;
       if (s[1] === 'from_depot') { const tP = s[3][s[3].length - 1]; tr.segs[j] = [o.pid, 'from_depot', -1, [Math.round(tP - run), tP], [o.start, o.plat], +q]; }
@@ -80,9 +83,24 @@
       F.depot.target[k] = q; F.ag.replan(k); return true;
     }
     // the free place the depot gives: the quickest way in and out again (the places after #A76-#A78 last)
+    // a rimessa track: its west place only with the east half free (the way in goes through it); its east place only
+    // when the west one is taken (the first train goes to the far end) and its train is not about to leave from the front
+    const pairOf = q => (F.depotPaths[q] || {}).pair, halfOf = q => (F.depotPaths[q] || {}).half;
+    function leavingSoon(q, t) {
+      for (const [k2, at] of Object.entries(F.depot.at)) { if (String(at) !== String(q)) continue;
+        const tr = F.trains[k2], a = F.ag.agents()[k2], j = a ? nextOut(tr, Math.min(a.si, tr.segs.length - 1)) : -1;
+        if (j >= 0 && tr.segs[j][3][0] - t < 900 && !isBack(tr.segs[j], q)) return true; }
+      return false;
+    }
+    const isBack = (s, q) => { const B = (F.depotPaths[q] || {}).outBack; return !!B && Object.values(B).some(o => o.pid === s[0]); };
+    function rimessaOk(q, tk) {
+      const h = halfOf(q), p = pairOf(q); if (!h) return true;
+      if (h === 'W') return !tk.has(p);
+      return tk.has(p) && !leavingSoon(p, F.ag.S.t);
+    }
     function pick(k) {
       const tk = taken(), a = F.ag.agents()[k];
-      const cand = Object.keys(F.depotPaths).filter(q => !tk.has(q) && F.ag.mapTo(a.pid, a.d, F.depotPaths[q].in) != null);
+      const cand = Object.keys(F.depotPaths).filter(q => !tk.has(q) && rimessaOk(q, tk) && F.ag.mapTo(a.pid, a.d, F.depotPaths[q].in) != null);
       const cost = q => { const P = F.depotPaths[q]; return P.in_end + Math.min(...Object.values(P.out).map(v => v.plat - v.start)) + (low(q) ? 1e5 : 0); };
       cand.sort((p, q) => cost(p) - cost(q));
       return cand[0] || null;
@@ -118,7 +136,22 @@
         if (F.depot.target[k] != null && (a.si > g || a.si === g && a.v === 0 && Math.abs(a.d - s[4][s[4].length - 1]) < 3)) {
           F.depot.at[k] = F.depot.target[k]; delete F.depot.target[k]; F.depot.done[k] = g; }
       });
+      outSide();
       loopTick(); autoLoop(); washTick();
+    }
+    // out of a west place: from the back when the east half is taken (a train there or coming), from the front when it is
+    // free, and from the back 4% of the times anyway; decided again until the run starts (Giovanni 17 Nov 2026)
+    const giro = (k, j) => { let h = 2166136261; for (const c of k + '|' + j + '|' + (env.dayStart || 0)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return ((h >>> 0) % 1000) < 40; };
+    function outSide() {
+      const t = F.ag.S.t, tk = taken();
+      for (const [k, q] of Object.entries(F.depot.at)) {
+        if (halfOf(q) !== 'W') continue;
+        const tr = F.trains[k], a = F.ag.agents()[k]; if (!a || a.hidden) continue;
+        const j = nextOut(tr, Math.min(a.si, tr.segs.length - 1)); if (j < 0) continue;
+        const s = tr.segs[j]; if (s[3][0] - t > 1800 || (j === a.si && moved(a, s))) continue;
+        const want = tk.has(pairOf(q)) || giro(k, j);
+        if (want !== isBack(s, q) && rewriteOut(tr, j, q, want)) { restamp(tr); if (j <= a.si + 1) F.ag.replan(+k); }
+      }
     }
     // the new trains in test (Giovanni, 2 Nov 2026): out of the peaks they go round the test loop by themselves, a few laps
     // at a time, and never take a passenger run until they are admitted to service (env.trial)
@@ -177,7 +210,8 @@
       return Math.max(2, (v / a + v / b + (len - xa - xb) / v) * 1.1);
     }
     function loopSegs(p, t0, laps) {
-      const T = F.test, R = T.trip[p], V = T.v_yard, segs = []; let t = t0;
+      // (a west place of the rimessa with its east half taken: out from the back)
+      const T = F.test, R = (halfOf(p) === 'W' && taken().has(pairOf(p)) && T.tripBack && T.tripBack[p]) || T.trip[p], V = T.v_yard, segs = []; let t = t0;
       const add = (pid, d0, d1, kind, role, v, place) => { const dur = Math.max(2, Math.abs(d1 - d0) / v);
         segs.push([pid, kind, -1, [Math.round(t), Math.round(t + dur)], [Math.round(d0 * 10) / 10, Math.round(d1 * 10) / 10], place, 'loop:' + role]); t += dur; };
       const addT = (pid, d0, d1, role, dur) => { segs.push([pid, 'training', -1, [Math.round(t), Math.round(t + dur)], [Math.round(d0 * 10) / 10, Math.round(d1 * 10) / 10], null, 'loop:' + role]); t += dur; };
@@ -211,7 +245,8 @@
       if (!a || p == null || !T.trip[p] || loopAhead(k)) return false;
       const S = L();
       if (S.a94 != null && S.a94 !== k) { D.loopMsg = `Attendi: il treno ${no(S.a94)} sta uscendo dall'anello passando dal #A94 verso ${F.depot.target[S.a94] != null ? name(F.depot.target[S.a94]) : 'il deposito'}.`; return false; }
-      const inWay = ((T.trip_blocks || {})[p] || []).filter(x => taken().has(x));
+      const back = halfOf(p) === 'W' && taken().has(pairOf(p)) && T.tripBack && T.tripBack[p];      // (out from the back: see loopSegs)
+      const inWay = (((back ? T.trip_blocks_back : T.trip_blocks) || {})[p] || []).filter(x => taken().has(x));
       if (inWay.length) { D.loopMsg = 'La via per l\'anello passa da ' + inWay.map(name).join(', ') + ', occupato.'; return false; }
       const idx = a.mode === 'static' ? tr.segs.length : a.si, next = tr.segs[idx], t0 = Math.round(F.ag.S.t) + 20;
       const deadline = next ? next[3][0] - 600 : 27 * 3600, lapT = loopSegs(p, t0, 1).end - loopSegs(p, t0, 0).end;
@@ -356,7 +391,7 @@
     // ---------- the officina (Giovanni 9 Nov 2026) ----------
     // a train taken out of the service for a fault always goes to the officina, on one of its stub tracks (#A69-#A75; the
     // officina tracks with #A63-#A65 are ordinary places). None free: a free place in the rimessa, waiting there (confirmed by Giovanni, 9 Nov 2026 evening)
-    const OFF = ['A69', 'A70', 'A71', 'A72', 'A73', 'A74', 'A75'];
+    const OFF = ['B22', 'B23', 'B24', 'B25', 'B26', 'B27', 'B28'];
     function officinaPark(k) {
       if (!F.depotPaths) return null; if (!F.depot) init();
       const tk = taken(), free = Object.keys(F.depotPaths).filter(q => !tk.has(q));
@@ -419,7 +454,7 @@
       }
     }
 
-    Object.assign(D, { officinaPark, OFF, washInfo, sendToWash, washRole, nextAuto, init, tick, newDay, assign, pick, pastEntrance, rewriteOut, taken, name, placeOf, loopRole, loopInfo, sendToLoop, holdAt, standsAt, isOut });
+    Object.assign(D, { outSide, pairOf, halfOf, officinaPark, OFF, washInfo, sendToWash, washRole, nextAuto, init, tick, newDay, assign, pick, pastEntrance, rewriteOut, taken, name, placeOf, loopRole, loopInfo, sendToLoop, holdAt, standsAt, isOut });
     return D;
   }
 

@@ -376,7 +376,7 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan svg.edit g.dk, #depotPlan svg.edit g.dk * { pointer-events: auto; cursor: move; } #depotPlan svg.edit g.dk:hover { outline: 1px dashed #b3121a; }
 #depotPlan .swn { font: 600 8px var(--display); fill: #3a382f; } #depotPlan .secn { font: 600 7.5px var(--display); fill: #4a483f; pointer-events: none; } #depotPlan .binn { font: 700 9.5px var(--display); fill: #22211c; }
 #depotPlan .swl { fill: #3d3c35; stroke: #121212; stroke-width: .8; } #depotPlan .swl.on { fill: #fff6d0; } #depotPlan .swb { stroke: #121212; stroke-width: 1.4; }
-#depotPlan .binf rect { fill: #d9d6c8; stroke: #3a382f; stroke-width: 1; } #depotPlan text.labs { font: 700 9.5px var(--display); fill: #22211c; letter-spacing: .05em; } #depotPlan text.sgname { font-size: 10px; font-weight: 600; fill: #2b2a25; } #depotPlan .darr { fill: #1b1b1b; stroke: var(--sin-bg); stroke-width: 1.2; } #depotPlan .darr.lit { fill: #f4f4ee; } #depotPlan .darr.occ { fill: #e5383b; } #depotPlan rect.shed { fill: #a6c7e0; stroke: none; } #depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
+#depotPlan .binf rect { fill: #d9d6c8; stroke: #3a382f; stroke-width: 1; } #depotPlan text.labs { font: 700 9.5px var(--display); fill: #22211c; letter-spacing: .05em; } #depotPlan text.sgname { font-size: 10px; font-weight: 600; fill: #2b2a25; } #depotPlan .darr { fill: #1b1b1b; stroke: var(--sin-bg); stroke-width: 1.2; } #depotPlan .darr.lit { fill: #f4f4ee; } #depotPlan .darr.occ { fill: #e5383b; } #depotPlan rect.shed { fill: #a6c7e0; stroke: none; } #depotPlan g.sgi.orig { animation: dpKey .8s steps(2, start) infinite; } #depotPlan g.sgi.orig path, #depotPlan g.sgi.orig rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.prep path, #depotPlan g.sgi.prep rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.auth path, #depotPlan g.sgi.auth rect.sgc { stroke: #ffffff; stroke-width: 1.6; } @keyframes dpKey { 50% { opacity: .3; } } #depotPlan .dp-acei { display: block; flex-basis: 100%; color: #ffd166; font-weight: 600; min-height: 1.2em; } #depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
 #depotPlan .trn rect, #depotPlan .trn.late rect, #depotPlan .trn.early rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; }
 #depotPlan .trn text, #depotPlan .disp .trn text { fill: #ffffff; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
 #depotPlan .cont text { fill: #2b2a25; }
@@ -4348,7 +4348,20 @@ window.MTL_CAPS = __CAPS__;
   // the train numbers, the switches' lamps and names, the numbers of the sections, Bin.N, places, stations, platforms, tails,
   // the words: by its key, [dx, dy] moved or 'x' taken away (the file's deco, then this browser's)
   const schDeco = SCH => Object.assign({}, SCH.deco || {}, (SCH_EDIT.ed[SIN_WHICH] || {}).deco || {});
-  const sinSave = () => { try { localStorage.setItem(SIN_KEY[SIN_WHICH], JSON.stringify(SCH_EDIT.ed[SIN_WHICH])); } catch (e) {} };
+  // the changes kept in the browser are made on one version of the file: when the file changes (a new version of the
+  // game) they would move its new nodes to the old places, so they are dropped, with a note (Giovanni 17 Nov 2026: "è
+  // tornato un casino"). base = a fingerprint of the file they were made on
+  const SIN_FP = { dep: null, line: null };
+  const sinFp = SCH => { const s = JSON.stringify([SCH.nodes, SCH.via || {}, SCH.deco || {}, SCH.edges]); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
+  window.__mtlSinFp = sinFp;           // (the page tests)
+  function sinStale(SCH) {
+    const fp = SIN_FP[SIN_WHICH] = sinFp(SCH), ed = SCH_EDIT.ed[SIN_WHICH];
+    if (!ed || ed.base === fp || !(Object.keys(ed.nodes || {}).length || Object.keys(ed.via || {}).length || Object.keys(ed.deco || {}).length)) return;
+    SCH_EDIT.ed[SIN_WHICH] = null; try { localStorage.removeItem(SIN_KEY[SIN_WHICH]); } catch (e) {}
+    const t = 'Sinottico ' + (SIN_WHICH === 'line' ? 'della linea' : 'del deposito') + ' aggiornato: le modifiche salvate nel browser erano sulla versione vecchia e sono state tolte.';
+    try { schNote(t); } catch (e) {} try { flashNote(t); } catch (e) {}
+  }
+  const sinSave = () => { try { const ed = SCH_EDIT.ed[SIN_WHICH]; if (ed && SIN_FP[SIN_WHICH]) ed.base = SIN_FP[SIN_WHICH]; localStorage.setItem(SIN_KEY[SIN_WHICH], JSON.stringify(ed)); } catch (e) {} };
   function schEditOff() { if (SCH_EDIT && SCH_EDIT.on) setSchEdit(false); }
   function setSchEdit(on) { SCH_EDIT.on = on; document.body.classList.toggle('schedit', on); const b = document.getElementById('schEdit'); if (b) b.setAttribute('aria-pressed', String(on)); if (on) setView('sin'); else drawDepotPlan(); }
   const SWMEM = {};                       // the last position seen of each depot switch: the pair of track pieces a train went over
@@ -4492,7 +4505,7 @@ window.MTL_CAPS = __CAPS__;
     if (SCH_EDIT.drag) return;                                    // (not while a node or a bend is being moved)
     const SCH = sinSchema(F), title = SIN_WHICH === 'line' ? 'Linea M3 · sinottico' : 'Deposito Rogoredo (ROD) · sinottico';
     if (!planEl.querySelector('.dp-hd')) {
-      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · marmotte del deposito: due luci in basso via impedita, verticali via libera · spia accanto allo scambio accesa: deviato (nomi degli scambi e numeri delle sezioni inventati, tranne la porta del deposito) · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s)</span>` +
+      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · marmotte del deposito: due luci in basso via impedita, verticali via libera · spia accanto allo scambio accesa: deviato (nomi degli scambi e numeri delle sezioni inventati, tranne la porta del deposito) · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s) · tasti (ACEI): premi un segnale, poi quello di arrivo (itinerario preparato, tasto giallo), poi di nuovo la partenza per la via libera (tasto bianco) e ancora per annullarlo; tasto destro: la scheda del segnale</span><span class="dp-acei" id="dpAcei" aria-live="polite"></span>` +
         `<div class="dp-sw"><button data-w="dep" aria-pressed="${SIN_WHICH === 'dep'}">Deposito</button><button data-w="line" aria-pressed="${SIN_WHICH === 'line'}">Linea</button></div>` +
         `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><label class="dp-opt"><input type="checkbox" id="dpIll" ${SIN_ILL ? 'checked' : ''}> segnali illegali</label><label class="dp-opt"><input type="checkbox" id="dpNames" ${SIN_NAMES ? 'checked' : ''}> nomi dei binari</label><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
       document.getElementById('dpClose').onclick = () => setView('map');
@@ -4507,6 +4520,7 @@ window.MTL_CAPS = __CAPS__;
     // (Piano linea, Deposito: Giovanni draws it; until then a placeholder for the player. The admin keeps today's drawing)
     if (SIN_WHICH === 'dep' && PIANO_PH && isPlayer) { body.innerHTML = '<div class="dp-ph"><b>Deposito Rogoredo</b>Segnaposto: aspetta i miei disegni.</div>'; return; }
     if (!SCH) { body.innerHTML = `<p class="dp-none">${SIN_WHICH === 'line' ? 'Sinottico della linea mancante: fallo con tools/sinottico.py linea (data/sinottico_linea_m3.json).' : 'Schema del deposito mancante.'}</p>`; return; }
+    sinStale(SCH);
     if (!SIGS) SIGS = buildSignals(F); sigAspects(F);
     // (a signal of the drawing is the map's one with its index in the net: the block signals carry the block's number on
     // the map, not the one of the placed signal; Giovanni 10 Nov 2026: "i segnali non cambiano colore")
@@ -4706,7 +4720,7 @@ window.MTL_CAPS = __CAPS__;
         let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
         const side = (sg.b || ill) ? -1 : 1, nx = -ty * side, ny = tx * side, K = 0.9, O = [m[0] + nx * 9 * K, m[1] + ny * 9 * K], lit = a === 'sgo';
         const L3 = (x, y, on) => `<rect x="${x}" y="${y}" width="2.8" height="2.8" fill="${on ? '#ffffff' : '#3a3a3a'}"/>`;
-        marks += `<g class="sgi marm${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(O)}) scale(${K})"><title>${tagName(tag)} (marmotta) · ${lit ? 'via libera' : 'via impedita'}</title>` +
+        marks += `<g class="sgi marm${lit ? ' go' : ''}${SIN_ORIG && SIN_ORIG.n === sg.n ? ' orig' : SIN_PREP[sg.n] ? (SIN_PREP[sg.n].auth ? ' auth' : ' prep') : ''}" data-tag="${tag}" transform="translate(${P1(O)}) scale(${K})"><title>${tagName(tag)} (marmotta) · ${lit ? 'via libera' : 'via impedita'}</title>` +
           `<path d="M-4.5,-5H0.5V-3.5H4.5V4H-4.5Z" fill="#101010"/><rect x="-4.5" y="4" width="9" height="1" fill="#8a8a8a"/>` +
           L3(-3.6, -4, lit) + L3(-3.6, 0, true) + L3(0.6, 0, !lit) + `<circle class="sg" data-n="${sg.n}" cx="0" cy="0" r="0"/></g>` +
           ((SIN_NUM || SGNM(sg)) ? `<text class="sgn" x="${O[0] + nx * 9}" y="${O[1] + ny * 9 + 3}">${SGNM(sg) || sg.n}</text>` : '');
@@ -4715,7 +4729,7 @@ window.MTL_CAPS = __CAPS__;
       const sqr = !!sg.b || ill, side = sqr ? -1 : 1, K = SIN_WHICH === 'line' ? 1 : 0.9, nx = -ty * side, ny = tx * side;
       const O = [m[0] - tx * 7 * K + nx * 8 * K, m[1] - ty * 7 * K + ny * 8 * K], ang = Math.atan2(ty, tx) * 180 / Math.PI;
       const lit = a === 'go' || a === 'sgo';
-      marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${SGNM(sg) ? SGNM(sg) + ' = ' : ''}${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
+      marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}${SIN_ORIG && SIN_ORIG.n === sg.n ? ' orig' : SIN_PREP[sg.n] ? (SIN_PREP[sg.n].auth ? ' auth' : ' prep') : ''}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${SGNM(sg) ? SGNM(sg) + ' = ' : ''}${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
         `<path class="sgb" d="M-14,-3.2V3.2M-14,0H-7"/><rect class="sgc" x="-7" y="-3.7" width="14" height="7.4" rx="${sqr ? 0.8 : 3.7}"/>` +
         (sqr ? `<rect x="-5.5" y="-2.2" width="4.4" height="4.4" fill="${lit ? '#ffffff' : '#4a4943'}"/><rect x="1.1" y="-2.2" width="4.4" height="4.4" fill="#ff2a2a"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="0"/></g>`
           : `<circle class="sgw" cx="-3.3" cy="0" r="2.3" fill="${lit ? '#ffffff' : '#4a4943'}"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="2.3" fill="#ff2a2a"/></g>`) +
@@ -4795,7 +4809,12 @@ window.MTL_CAPS = __CAPS__;
     body.scrollLeft = sx; body.scrollTop = sy;
     body.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
     // a signal: its card, on the map (Giovanni 16 Nov 2026: "i semafori devono essere cliccabili")
-    if (!SCH_EDIT.on) body.querySelectorAll('g.sgi[data-tag], circle.sg[data-tag]').forEach(g => g.onclick = ev => { ev.stopPropagation(); setView('map'); openSignal(g.dataset.tag); });
+    // the keys of the board (ACEI): a press lights the key, the next one forms the itinerary (or lets the key go);
+    // the right button opens the signal's card on the map, as the click did before
+    if (!SCH_EDIT.on) body.querySelectorAll('g.sgi[data-tag], circle.sg[data-tag]').forEach(g => {
+      g.onclick = ev => { ev.stopPropagation(); sinPress(F, g.dataset.tag); };
+      g.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); SIN_ORIG = null; setView('map'); openSignal(g.dataset.tag); }; });
+    if (!SCH_EDIT.on) { const sv = body.querySelector('svg'); if (sv) sv.onclick = () => { if (SIN_ORIG) { SIN_ORIG = null; sinMsg(''); drawDepotPlan(); } }; }
     if (SCH_EDIT.on) bindSchDrag(F, SCH);
   }
   // ---- the sinottico editor (Giovanni 16 Nov 2026: nodes almost on top of each other, pieces too short to drag, nodes off
@@ -5517,6 +5536,69 @@ window.MTL_CAPS = __CAPS__;
   function ilNote(F, si) {
     const IL = F.ag && F.ag.IL, net = F.engine.net; if (!IL || si < 0) return '';
     return IL.describe(si);
+  }
+  // ---- the board's keys, ACEI style (Giovanni 17 Nov 2026: "stile ACEI direi proprio"; "anche solo creare itinerari
+  // senza toccare gli scambi a me va bene"; then "secondo click per autorizzare il via libera al treno tramite il
+  // semaforo al itinerario scelto e per cancellarlo"): the first press on a signal lights its key (the start); a press on
+  // another signal prepares the itinerary from the first to it (the switches go by themselves: Excel, Tempi), the signal
+  // still red; a press on the start of a prepared itinerary gives it via libera; one more takes the itinerary back. A
+  // second press on a lit key with nothing prepared lets it go. Red, rosso fisso, via libera by hand: the signal's card.
+  // Depot: the shunting signals (in manual: the via libera is for the next train that goes on to that signal). Line:
+  // the itineraries of the table (the Excel's Itinerari), held at red until the via libera.
+  var SIN_ORIG = null, SIN_PREP = {};           // SIN_PREP[n] = { line: id | null, to: n, si, auth }
+  function sinMsg(t) { const e = document.getElementById('dpAcei'); if (e) e.textContent = t; }
+  function sinPress(F, tag) {
+    if (!F.ag) return;
+    const n = parseInt(String(tag).slice(2), 10), si = (F.engine.net.signals || []).findIndex(x => x.n === n), P = SIN_PREP[n];
+    if (P && !SIN_ORIG) { sinPrepPress(F, n, P); drawDepotPlan(); return; }
+    if (SIN_ORIG && SIN_ORIG.n === n) { SIN_ORIG = null; sinMsg(`${sigName(n)}: tasto rilasciato.`); drawDepotPlan(); return; }
+    if (SIN_ORIG) { const o = SIN_ORIG; SIN_ORIG = null; sinRoute(F, o, { n, si }); drawDepotPlan(); return; }
+    SIN_ORIG = { n, si }; const d = sinDests(F, n, si);
+    sinMsg(`${sigName(n)}: tasto premuto. Premi il segnale di arrivo${d.length ? ' (' + d.map(x => sigName(x)).join(', ') + ')' : ''} per l'itinerario, o di nuovo ${sigName(n)} per rilasciarlo.`);
+    drawDepotPlan();
+  }
+  // the signals an itinerary from n can end at: depot, the next signal on each way out of it; line, the table
+  function sinDests(F, n, si) {
+    const IL = F.ag.IL, out = new Set();
+    if (IL && si >= 0 && IL.isManual(si)) { for (const [pid, sp] of Object.entries(F.engine.net.sigpos || {})) for (const [d, s2] of sp) if (s2 === si) { const x = IL.nextAfter(+pid, d, si); if (x != null) out.add((F.engine.net.signals[x] || {}).n); } }
+    else for (const it of F.engine.net.itineraries || []) if (it.start === n && it.end != null) out.add(it.end);
+    return [...out].filter(x => x != null).sort((a, b) => a - b);
+  }
+  const sinRefresh = () => { if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals(); };
+  function sinRoute(F, o, d) {
+    const IL = F.ag.IL, a = sigName(o.n), b = sigName(d.n), dests = sinDests(F, o.n, o.si);
+    const none = () => sinMsg(`Nessun itinerario da ${a} a ${b}${dests.length ? ': da ' + a + ' si va a ' + dests.map(x => sigName(x)).join(', ') : ''}.`);
+    if (IL && o.si >= 0 && IL.isManual(o.si)) {
+      if (!dests.includes(d.n)) { none(); return; }
+      SIN_PREP[o.n] = { line: null, to: d.n, toSi: d.si, si: o.si, auth: false };
+      sinMsg(`Itinerario ${a} → ${b} preparato: premi ${a} per dare la via libera al prossimo treno.`); return;
+    }
+    const it = (F.engine.net.itineraries || []).find(x => x.start === o.n && x.end === d.n);
+    if (!it) { none(); return; }
+    const r = F.ag.event({ kind: 'pccmd', what: 'form', id: it.id });
+    if (r) { sinMsg(`Itinerario ${it.id} (${a} → ${b}) non formato: ${r.train != null ? 'c\'è un treno sopra' : r.swFail != null ? 'scambio ' + r.swFail + ' guasto o escluso' : r.swLock != null ? 'scambio ' + r.swLock + ' bloccato nell\'altra posizione' : r.route != null || r.pcRoute != null ? 'impegnato da un altro itinerario' : 'impegnato'}.`); return; }
+    F.ag.event({ kind: 'pccmd', what: 'red', n: o.n, on: true });          // (held at red until the via libera)
+    SIN_PREP[o.n] = { line: it.id, to: d.n, si: o.si, auth: false };
+    say('', tx('dct.itinerario_preparato', { itinerario: it.id, segnale: '#A' + String(o.n).padStart(2, '0') }), 'pc');
+    sinMsg(`Itinerario ${it.id} preparato: ${a} → ${b}, gli scambi vanno in posizione. Premi ${a} per la via libera.`);
+    sinRefresh();
+  }
+  // a press on the start of a prepared itinerary: the via libera, then (once more) the itinerary taken back
+  function sinPrepPress(F, n, P) {
+    const nm = sigName(n), tag = '#A' + String(n).padStart(2, '0'), il = F.ag.il(), st = F.ag.rt();
+    // (gone: the train has taken it)
+    const used = P.line ? P.auth && !(st.pcRoutes && st.pcRoutes[n]) : P.auth && !(il.pass[P.si] > 0);
+    if (used) { delete SIN_PREP[n]; SIN_ORIG = { n, si: P.si }; sinMsg(`${nm}: l'itinerario di prima è stato usato. Tasto premuto: premi il segnale di arrivo.`); return; }
+    if (!P.auth) {
+      if (P.line) { F.ag.event({ kind: 'pccmd', what: 'red', n, on: false }); say('', tx('dct.segnale_via_libera', { segnale: tag }), 'pc'); }
+      else { if (il.auto) { F.ag.event({ kind: 'il', what: 'auto', on: false }); syncDepotAuto(); } F.ag.event({ kind: 'il', what: 'clear', si: P.si, to: P.toSi }); }
+      P.auth = true; sinMsg(`${nm}: via libera al prossimo treno per ${sigName(P.to)}${P.line ? '' : ' (deposito in manuale)'}. Premi di nuovo ${nm} per annullare l'itinerario.`);
+    } else {
+      if (P.line) { F.ag.event({ kind: 'pccmd', what: 'cancel', n }); F.ag.event({ kind: 'pccmd', what: 'red', n, on: false }); say('', tx('dct.itinerario_annullato', { segnale: tag }), 'pc'); }
+      else F.ag.event({ kind: 'il', what: 'unclear', si: P.si });
+      delete SIN_PREP[n]; sinMsg(`${nm}: itinerario annullato.`);
+    }
+    sinRefresh();
   }
   function clearManual(F, si, tag) {
     if (sigDel) return;

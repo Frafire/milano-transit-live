@@ -795,7 +795,7 @@ const SCENARIOS = {
     r.windows = keys.length;
     // (Giovanni 17 Nov 2026: in the depot black windows only at the door, and square)
     r.square = await p.evaluate(() => [...document.querySelectorAll('#depotPlan g.disp rect')].every(e => e.getAttribute('width') === e.getAttribute('height')));
-    r.sheds = await p.evaluate(() => new Set([...document.querySelectorAll('#depotPlan rect.shed title')].map(t => t.textContent)).size);   // (the three sheds, tile by tile)
+    r.sheds = await p.evaluate(() => new Set([...document.querySelectorAll('#depotPlan rect.shed title')].map(t => t.textContent)).size);   // (the sheds and the wash, tile by tile)
     let c = await box(`#depotPlan g.dk[data-dk="${keys[0]}"] rect`); await sleep(300); c = await box(`#depotPlan g.dk[data-dk="${keys[0]}"] rect`);
     await p.mouse.move(c[0], c[1]); await p.mouse.down(); await p.mouse.move(c[0] + 40, c[1] + 30, { steps: 6 }); await p.mouse.up(); await sleep(600);
     const e1 = await ed(); r.moved = !!(e1 && e1.deco && Array.isArray(e1.deco[keys[0]]));
@@ -808,7 +808,7 @@ const SCENARIOS = {
     r.sigBack = await p.evaluate(() => !!document.querySelector('#depotPlan g.dk[data-dk="sig:4"]'));
     const e2 = await ed(); r.store = e2 && e2.deco;
     await p.evaluate(() => { document.getElementById('schEdit').click(); localStorage.removeItem('mtl-schema-edit-3'); });
-    r.ok = r.windows >= 2 && r.windows <= 4 && r.square && r.sheds === 3 && r.moved && /translate/.test(r.moveOnPage || '') && r.gone && r.sigGone && r.sigBack && r.store && r.store[keys[1]] === 'x' && !('sig:4' in r.store);
+    r.ok = r.windows >= 2 && r.windows <= 4 && r.square && r.sheds === 4 && r.moved && /translate/.test(r.moveOnPage || '') && r.gone && r.sigGone && r.sigBack && r.store && r.store[keys[1]] === 'x' && !('sig:4' in r.store);
     return r;
   },
   async sineditor(p) {   // the sinottico editor (Giovanni 16 Nov 2026): numbers, a repeated click between two nodes on top of each
@@ -816,8 +816,14 @@ const SCENARIOS = {
     // Two nodes on top of each other: the first pair in the list (the depot has some), then the line for the rows
     const sleep = ms => new Promise(r => setTimeout(r, ms)), r = {};
     // (the drawings made again from zero have no nodes on top of each other: the joint of a place, 300000 put on 100000)
-    await p.evaluate(() => { const F = window.mtl.fleets.find(f => f.line === 'M3' && f.ag), q = F.engine.net.schema_depot.nodes['100000'];
-      localStorage.setItem('mtl-schema-edit-3', JSON.stringify({ nodes: { 300000: [q[0] + 0.5, q[1]] }, via: {} })); });
+    // (changes kept from an older version of the file are dropped when the drawing is opened: Giovanni 17 Nov 2026)
+    await p.evaluate(() => { localStorage.setItem('mtl-schema-edit-3', JSON.stringify({ nodes: { 300000: [0, 0] }, via: {}, base: 'vecchio' })); });
+    await p.reload(); await p.waitForTimeout(6000);
+    await p.evaluate(() => { document.querySelector('.drawer .tab[data-mode="schema"]').click(); document.getElementById('schEdit').click(); }); await sleep(1500);
+    r.stale = await p.evaluate(() => localStorage.getItem('mtl-schema-edit-3'));
+    await p.evaluate(() => { document.getElementById('schEdit').click(); });
+    await p.evaluate(() => { const F = window.mtl.fleets.find(f => f.line === 'M3' && f.ag), S = F.engine.net.schema_depot, q = S.nodes['100000'];
+      localStorage.setItem('mtl-schema-edit-3', JSON.stringify({ nodes: { 300000: [q[0] + 0.5, q[1]] }, via: {}, base: window.__mtlSinFp(S) })); });
     await p.reload(); await p.waitForTimeout(6000);
     const which = async w => { await p.evaluate(w => { const s = document.getElementById('schWhich'); s.value = w; s.dispatchEvent(new Event('change')); }, w); await sleep(1500); };
     await p.evaluate(() => { document.querySelector('.drawer .tab[data-mode="schema"]').click(); document.getElementById('schEdit').click(); });
@@ -854,7 +860,30 @@ const SCENARIOS = {
       r.alignOk = !!a0 && Math.abs(r.align[1][1] - a0[1] - 28) < 0.05; }                  // (172 -> 200)
     await p.evaluate(() => { document.getElementById('schUndo').click(); try { localStorage.removeItem('mtl-sinlinea-edit-3'); localStorage.removeItem('mtl-schema-edit-3'); } catch (e) {}
       document.getElementById('schEdit').click(); document.getElementById('dpClose').click(); });
-    r.ok = r.labels[0] > 50 && r.labels[0] === r.labels[1] && r.labels[2] && r.near >= 2 && !!r.pair && r.cycleOk && r.keysOk && r.sepOk && r.listOk && r.alignOk;
+    r.ok = r.stale === null && r.labels[0] > 50 && r.labels[0] === r.labels[1] && r.labels[2] && r.near >= 2 && !!r.pair && r.cycleOk && r.keysOk && r.sepOk && r.listOk && r.alignOk;
+    return r;
+  },
+  async acei(p) {   // the keys of the sinottico, ACEI style (Giovanni 17 Nov 2026): a press lights the key; the same again lets it
+    // go; a press on another signal prepares the itinerary (held at red), the start again gives the via libera, once
+    // more takes it back (line:
+    // SD-4 from #A45 to #A290); a destination it cannot reach is refused with the list of those it can
+    const sleep = ms => new Promise(r => setTimeout(r, ms)), r = {};
+    await p.evaluate(() => { document.querySelector('.drawer .tab[data-mode="schema"]').click(); document.getElementById('schEdit').click(); }); await sleep(800);
+    await p.evaluate(() => document.getElementById('schEdit').click()); await sleep(1200);
+    const press = async n => { await p.evaluate(n => { const g = document.querySelector(`#depotPlan g.sgi[data-tag="#A${String(n).padStart(2, '0')}"]`); if (g) g.dispatchEvent(new MouseEvent('click', { bubbles: true })); }, n); await sleep(400);
+      return p.evaluate(() => [document.getElementById('dpAcei').textContent, document.querySelectorAll('#depotPlan g.sgi.orig').length]); };
+    const si79 = await p.evaluate(() => window.mtl.fleets.find(f => f.line === 'M3' && f.ag).engine.net.signals.findIndex(x => x.n === 79));
+    r.one = await press(79); r.two = await press(79);
+    r.pass = await p.evaluate(si => { const il = window.mtl.fleets.find(f => f.line === 'M3' && f.ag).ag.il(); return [il.auto, il.pass[si] || 0]; }, si79);
+    r.no = (await press(48), await press(79));
+    await p.evaluate(() => document.querySelector('#depotPlan .dp-sw button[data-w="line"]').click()); await sleep(1500);
+    const rt = () => p.evaluate(() => { const st = window.mtl.fleets.find(f => f.line === 'M3' && f.ag).ag.rt(); return [!!(st.pcRoutes || {})[45], !!(st.redFix || {})[45]]; });
+    r.line = (await press(45), await press(290)); r.formed = await rt();          // prepared, held at red
+    r.go = await press(45); r.goSt = await rt();                                   // via libera
+    r.cancel = await press(45); r.cancelSt = await rt();                           // taken back
+    await p.evaluate(() => { document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); document.getElementById('dpClose').click(); });
+    r.ok = r.one[1] === 1 && /tasto premuto/.test(r.one[0]) && r.two[1] === 0 && /rilasciato/.test(r.two[0]) && r.pass[1] === 0 && /^Nessun itinerario/.test(r.no[0]) && /SD-4 preparato/.test(r.line[0]) && r.formed[0] && r.formed[1]
+      && /via libera/.test(r.go[0]) && r.goSt[0] && !r.goSt[1] && /annullato/.test(r.cancel[0]) && !r.cancelSt[0] && !r.cancelSt[1];
     return r;
   },
   async rossototale(p) {  // Rosso totale (Emergenze): every train on the line stops, at the stations too; Togli: they go again

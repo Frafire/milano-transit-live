@@ -42,7 +42,7 @@
     const isManual = si => !!(sig.get(si) || {}).manual;
     const groupOf = si => { const x = sig.get(si); return x && x.groups.length ? x.groups[0] : null; };
 
-    function fresh(prev) { return { grant: {}, pass: prev ? prev.pass : {}, auto: prev ? prev.auto : true, zones: prev && prev.zones ? prev.zones : {} }; }
+    function fresh(prev) { return { grant: {}, pass: prev ? prev.pass : {}, passTo: prev && prev.passTo ? prev.passTo : {}, auto: prev ? prev.auto : true, zones: prev && prev.zones ? prev.zones : {} }; }
 
     // controlled signals ahead of a train on its path: [{ d, si }], nearest first
     function ahead(pid, nose, look) {
@@ -67,7 +67,11 @@
       if (x.section && pid != null && (freeTrains != null ? freeTrains : freeTo) < sectionEnd(pid, si, d) - 5) return false;
       for (const gi of x.groups) { for (const [s2, k2] of Object.entries(st.grant)) if (k2 !== k && (sig.get(+s2) || { groups: [] }).groups.includes(gi)) return false; }
       if (x.zone != null && intoZone(x.zone, pid) && zoneHolder(st, x.zone) !== k) return false;
-      if (x.manual && !st.auto) { if (!(st.pass[si] > 0)) return false; st.pass[si]--; }
+      if (x.manual && !st.auto) { if (!(st.pass[si] > 0)) return false;
+        // an itinerary formed by the player (ACEI: the key of the signal, then the key of the signal it goes to): only for
+        // a train whose next signal after this one is that one
+        const to = st.passTo && st.passTo[si]; if (to != null && pid != null && nextAfter(pid, d, si) !== to) return false;
+        st.pass[si]--; if (!st.pass[si] && st.passTo) delete st.passTo[si]; }
       st.grant[si] = k; return true;
     }
     // back to red behind the train (or when it went another way / left the line)
@@ -83,8 +87,11 @@
         if (gone || !hit || over) delete st.grant[si];
       }
     }
-    // the player clears a manual signal for the next train
-    function clear(st, si) { if (!isManual(si)) return false; st.pass[si] = (st.pass[si] || 0) + 1; return true; }
+    // the next signal facing the train after signal si (at d) on path pid, any signal (controlled or not), or null
+    function nextAfter(pid, d, si) { const sp = o.sigpos && o.sigpos[pid]; if (sp) for (const [d2, s2] of sp) if (d2 > d + 5 && s2 !== si) return s2; return null; }
+    // the player clears a manual signal for the next train (to: only for a train going on to that signal; ACEI itinerary)
+    function clear(st, si, to) { if (!isManual(si)) return false; st.pass[si] = (st.pass[si] || 0) + 1;
+      st.passTo = st.passTo || {}; if (to != null) st.passTo[si] = to; else delete st.passTo[si]; return true; }
     function aspect(st, si) { return st.grant[si] != null ? 'go' : 'stop'; }
 
     // ---- zones: one train at a time (the test loop) ----
@@ -111,7 +118,7 @@
       const g = x.groups.map(gi => groups[gi] && groups[gi].name).find(Boolean) || (x.zone != null && zones[x.zone] ? zones[x.zone].name : '');
       return String(g || '').split(':')[0].trim();
     }
-    return { fresh, ahead, request, release, clear, aspect, controlled, isManual, groupOf, sectionEnd, describe, brief, zoneOf, zoneHolder, zoneAsk, zoneFree };
+    return { fresh, ahead, request, release, clear, nextAfter, aspect, controlled, isManual, groupOf, sectionEnd, describe, brief, zoneOf, zoneHolder, zoneAsk, zoneFree };
   }
 
   const api = { create, NEAR, PASS, SECTION_MAX };

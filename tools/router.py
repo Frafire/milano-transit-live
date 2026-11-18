@@ -298,8 +298,9 @@ def extend_dead_ends(nodes, length):
         e['pts'] = pts if at_end else pts[::-1]; e['len'] = plen(e['pts']); node_pos[nd] = pts[-1]; done += 1
     return done
 THROUGH_ALLOWED = None      # set of through-track middles a route may use (None = all)
+OPEN_WITH = {}              # the east half of a rimessa track opens with its west place (the way in from the front goes through it)
 def allowed(ei, d):
-    if THROUGH_ALLOWED is not None and 'mid' in edges[ei] and edges[ei]['mid'] not in THROUGH_ALLOWED: return False
+    if THROUGH_ALLOWED is not None and 'mid' in edges[ei] and edges[ei]['mid'] not in THROUGH_ALLOWED and OPEN_WITH.get(edges[ei]['mid']) not in THROUGH_ALLOWED: return False
     w = edges[ei]['way']
     if w in BANNED or ei in BANNED_EDGES: return False
     return ONEWAY.get(w, d) == d

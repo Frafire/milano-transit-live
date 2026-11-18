@@ -24,7 +24,7 @@
   "Ago dello scambio: tempo per cambiare posizione": [
    3,
    4,
-   "Giovanni, 30/10/2026"
+   "Giovanni, 30/10/2026; 17/11/2026: 3-4 s, più realistico"
   ],
   "Via libera della partenza prima dell'orario (semafori tipo e)": [
    30,
@@ -4127,12 +4127,12 @@
    "Guasto": "Scambio guasto (non va in posizione)",
    "Come si presenta (cosa vedono macchinista e PC)": "Gli itinerari su quello scambio non si formano",
    "Cosa fa il macchinista (e quanto ci mette)": "-",
-   "Cosa fa il PC": "Manda la squadra a manovrare lo scambio a mano; lo blocca",
+   "Cosa fa il PC": "Lo esclude (fuori servizio, nessun itinerario lo usa) o manda la squadra a manovrarlo a mano; lo blocca",
    "Quando diventa soccorso": "-",
    "Come si risolve / soccorso": "Manovra a mano dello scambio, poi itinerari con autorizzazione",
    "Tempi (min - max)": "10 - 30 min",
-   "Quanto spesso / come si attiva": "dal menu admin",
-   "Volte al giorno (stima)": 0.1,
+   "Quanto spesso / come si attiva": "remotissimo (Giovanni 17/11/2026); si può dare anche dal menu admin",
+   "Volte al giorno (stima)": 0.005,
    "Nel programma oggi": "sì (fase D2)",
    "Note": null
   },

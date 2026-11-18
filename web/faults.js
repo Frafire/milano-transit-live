@@ -17,7 +17,7 @@
 // D2: the failures of the line (no train: a signal, a switch, a stretch). segnale (8: it stays red), sezione (9: the
 // section after a signal shows occupied with no train on it), scambio (7: it does not go into position; the DCT sends
 // the team, who work it by hand and clamp it in the position the DCT says; then every train over it needs the DCT's
-// authorisation), tensione (10: no power between two stations; the trains there stand; when it is repaired the DCT
+// authorisation), or the DCT excludes it (escl: out of service, nothing goes over it, the team can be sent later); tensione (10: no power between two stations; the trains there stand; when it is repaired the DCT
 // gives the power back). A train stopped by one of them calls the DCT, who lets it by in marcia a vista (vista: 15 km/h
 // up to the next signal; web/routes.js). The DCT can also let a train standing at a signal by from its card.
 //
@@ -72,7 +72,7 @@
   const G1 = 8.75 * 3600, G2a = 15 * 3600, G2b = 18 * 3600;             // the guaranteed service of a strike day
   const AUTO = 180, DAYS = 19 * 3600;                 // the DCT answers by itself after 3 minutes; ~19 hours of service a day
   const ANSWERS = { rearm: 'Riarma', agent: "Manda l'agente", tech: 'Tecnico a bordo', rescue: 'Manda il soccorso', ack: 'Ricevuto', vista: 'Marcia a vista',
-                    team: 'Manda la squadra', power: 'Ridai tensione', red: 'Pulsante rosso e togli tensione', clear: 'Ridai tensione e via libera',
+                    team: 'Manda la squadra', escl: 'Escludi lo scambio', power: 'Ridai tensione', red: 'Pulsante rosso e togli tensione', clear: 'Ridai tensione e via libera',
                     cut: 'Togli tensione', rback: 'Soccorso con il treno dietro (spinta 15 km/h)', rfront: 'Soccorso con il treno davanti (traino 30 km/h)',
                     badoni: 'Badoni da ROD (serve l\'interruzione)', evac: 'Evacuazione dei passeggeri', reopen: 'Riapri la tratta',
                     reopenSt: 'Riapri la stazione', gaps: 'Lascia l\'orario (corse scoperte)', freq: 'Frequenza più bassa (orario ibrido)', limit: 'Servizio limitato (chiudi tu una tratta)', home: 'Scarica e rientra a ROD', homeEnd: 'A fine corsa rientra a ROD', hold: 'Ferma i treni', fire: 'Chiudi la stazione, chiama i vigili del fuoco', police: 'Chiama polizia e soccorsi' };
@@ -180,7 +180,7 @@
       else if (kind === 'sezione') { st.ghost = st.ghost || {}; f.edges = L.sigEdges(target); f.edges.forEach(ei => { st.ghost[ei] = f.id; }); f.what = 'Sezione dopo il ' + tag(target); f.until = S.t + between(1200, 3600);
         say(f, 'sys', tx('guasto.sezione.occupata', { segnale: tag(target) })); }
       else if (kind === 'scambio') { st.swFail = st.swFail || {}; st.swFail[target] = true; f.what = 'Scambio ' + target; f.ph = 'failed';
-        f.callWho = 'sys'; call(f, tx('guasto.scambio.non_va', { scambio: target }), ['team']); }
+        f.callWho = 'sys'; call(f, tx('guasto.scambio.non_va', { scambio: target }), ['team', 'escl']); }
       else if (kind === 'tensione') { f.zones = [L.zone('power', target, target + 1)]; f.what = name(target) + ' – ' + name(target + 1); f.until = S.t + between(300, 3600); f.ph = 'off';
         f.callWho = 'en'; call(f, tx('energia.mancanza', { tratta: f.what }), ['ack']); }
       // public order (Giovanni): the Prefettura orders a station closed, nearly always Duomo or Centrale, so that the people
@@ -338,6 +338,9 @@
       f.call = null;
       if (what === 'vista') { giveVista(f.k, f.n); say(f, 'pc', tx('guasto.vista.autorizzato', { segnale: tag(f.n) })); say(f, 'dr', tx('guasto.vista.ricevuto', { segnale: tag(f.n) })); f.ph = 'go'; return null; }
       if (what === 'team') { say(f, 'pc', tx('guasto.scambio.manda_squadra', { scambio: f.target })); say(f, 'man', tx('guasto.scambio.squadra_arriva')); f.ph = 'team'; f.until = S.t + between(600, 1800); return null; }
+      // (Giovanni 17 Nov 2026: a failed switch "o lo escludi o mandi qualcuno ad azionartelo": excluded, it stays out of
+      // service, the itineraries over it are not set; the team can still be sent later)
+      if (what === 'escl' && f.kind === 'scambio') { say(f, 'pc', tx('guasto.scambio.escluso', { scambio: f.target })); f.ph = 'excl'; f.call = { t: S.t, text: '', opts: ['team'], auto: Infinity }; return null; }
       if (/^p\d$/.test(what) && f.kind === 'scambio') {
         const pos = f.pos[+what.slice(1)], st = RT(); st.swFail[f.target] = pos; st.sw[f.target] = pos;
         say(f, 'pc', tx('guasto.scambio.metti_in', { posizione: f.labels[what].toLowerCase() })); say(f, 'man', tx('guasto.scambio.manovrato_a_mano', { scambio: f.target }));

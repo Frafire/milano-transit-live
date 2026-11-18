@@ -897,6 +897,13 @@
     "Squadra di manutenzione, andate allo scambio {scambio}: non va in posizione."
    ]
   },
+  "guasto.scambio.escluso": {
+   "chi": "DCT",
+   "quando": "Il DCT esclude lo scambio guasto invece di mandare subito la squadra",
+   "testi": [
+    "Escludo lo scambio {scambio}: resta fuori servizio, gli itinerari che lo usano non si formano finché non mando la squadra."
+   ]
+  },
   "guasto.scambio.manovrato_a_mano": {
    "chi": "manutenzione",
    "quando": "La squadra ha manovrato a mano e bloccato lo scambio",

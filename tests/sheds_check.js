@@ -43,7 +43,7 @@ off.forEach(([x, u]) => { const k = M.duties.findIndex(ds => ds.some(d => d[2] =
   console.log(`note ${x.units} in the officina: ${f == null ? '?' : Math.round(f * 100) + '%'} of the train under the roof`); });
 // the parking places of the officina (#A63-#A65, through tracks under its roof): the whole train inside (Giovanni 9 Nov)
 { const nm = Object.fromEntries(M.net.depot.map(p => [String(p.node), p.name]));
-  const pk = Object.keys(M.depot_paths).filter(q => /A6[3-5]$/.test(nm[q] || '')).map(q => [nm[q], inside(q, OP)]);
+  const pk = Object.keys(M.depot_paths).filter(q => /^B(19|20|21)$/.test(nm[q] || '')).map(q => [nm[q], inside(q, OP)]);
   check(pk.length === 3 && pk.every(([, f]) => f != null && f >= 0.999), `officina parking places entirely under its roof: ${pk.map(([n, f]) => n + ' ' + (f == null ? '?' : Math.round(f * 100) + '%')).join(', ')}`); }
 // the agents in the morning
 const day = L.runDay(M, D), ag = L.agents(M, D, t => L.posAt(day, t)), T0 = 4.5 * 3600, T1 = 7.5 * 3600;
@@ -66,7 +66,7 @@ check(outFast > 0, 'faster again once the whole train is out');
 // a train taken out of the service for a fault always goes to the officina (Giovanni 9 Nov): the UdT excluded (it goes
 // home by itself) and the rescue (towed): the broken train stands on a free stub track of the officina (#A69-#A75),
 // in sight; the one that pushed or pulled it goes into the depot
-const names = Object.fromEntries(M.net.depot.map(p => [String(p.node), p.name])), OFFN = ['A69', 'A70', 'A71', 'A72', 'A73', 'A74', 'A75'];
+const names = Object.fromEntries(M.net.depot.map(p => [String(p.node), p.name])), OFFN = ['B22', 'B23', 'B24', 'B25', 'B26', 'B27', 'B28'];
 const offTaken = new Set(off.map(([x, u]) => String((M.trains[M.duties.findIndex(ds => ds.some(d => d[2] === u))].segs || M.trains[M.duties.findIndex(ds => ds.some(d => d[2] === u))])[0][5])));
 for (const [kind, T1] of [['udt', 10.5 * 3600], ['soccorso', 11 * 3600]]) {
   const used = new Set(offTaken), hook = k => { const q = Object.keys(M.depot_paths).find(q => OFFN.includes(names[q]) && !used.has(q)); if (!q) return null; used.add(q);

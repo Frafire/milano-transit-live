@@ -1037,7 +1037,7 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan svg.edit g.dk, #depotPlan svg.edit g.dk * { pointer-events: auto; cursor: move; } #depotPlan svg.edit g.dk:hover { outline: 1px dashed #b3121a; }
 #depotPlan .swn { font: 600 8px var(--display); fill: #3a382f; } #depotPlan .secn { font: 600 7.5px var(--display); fill: #4a483f; pointer-events: none; } #depotPlan .binn { font: 700 9.5px var(--display); fill: #22211c; }
 #depotPlan .swl { fill: #3d3c35; stroke: #121212; stroke-width: .8; } #depotPlan .swl.on { fill: #fff6d0; } #depotPlan .swb { stroke: #121212; stroke-width: 1.4; }
-#depotPlan .binf rect { fill: #d9d6c8; stroke: #3a382f; stroke-width: 1; } #depotPlan text.labs { font: 700 9.5px var(--display); fill: #22211c; letter-spacing: .05em; } #depotPlan text.sgname { font-size: 10px; font-weight: 600; fill: #2b2a25; } #depotPlan .darr { fill: #1b1b1b; stroke: var(--sin-bg); stroke-width: 1.2; } #depotPlan .darr.lit { fill: #f4f4ee; } #depotPlan .darr.occ { fill: #e5383b; } #depotPlan rect.shed { fill: #a6c7e0; stroke: none; } #depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
+#depotPlan .binf rect { fill: #d9d6c8; stroke: #3a382f; stroke-width: 1; } #depotPlan text.labs { font: 700 9.5px var(--display); fill: #22211c; letter-spacing: .05em; } #depotPlan text.sgname { font-size: 10px; font-weight: 600; fill: #2b2a25; } #depotPlan .darr { fill: #1b1b1b; stroke: var(--sin-bg); stroke-width: 1.2; } #depotPlan .darr.lit { fill: #f4f4ee; } #depotPlan .darr.occ { fill: #e5383b; } #depotPlan rect.shed { fill: #a6c7e0; stroke: none; } #depotPlan g.sgi.orig { animation: dpKey .8s steps(2, start) infinite; } #depotPlan g.sgi.orig path, #depotPlan g.sgi.orig rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.prep path, #depotPlan g.sgi.prep rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.auth path, #depotPlan g.sgi.auth rect.sgc { stroke: #ffffff; stroke-width: 1.6; } @keyframes dpKey { 50% { opacity: .3; } } #depotPlan .dp-acei { display: block; flex-basis: 100%; color: #ffd166; font-weight: 600; min-height: 1.2em; } #depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
 #depotPlan .trn rect, #depotPlan .trn.late rect, #depotPlan .trn.early rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; }
 #depotPlan .trn text, #depotPlan .disp .trn text { fill: #ffffff; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
 #depotPlan .cont text { fill: #2b2a25; }
@@ -2079,7 +2079,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
     const isManual = si => !!(sig.get(si) || {}).manual;
     const groupOf = si => { const x = sig.get(si); return x && x.groups.length ? x.groups[0] : null; };
 
-    function fresh(prev) { return { grant: {}, pass: prev ? prev.pass : {}, auto: prev ? prev.auto : true, zones: prev && prev.zones ? prev.zones : {} }; }
+    function fresh(prev) { return { grant: {}, pass: prev ? prev.pass : {}, passTo: prev && prev.passTo ? prev.passTo : {}, auto: prev ? prev.auto : true, zones: prev && prev.zones ? prev.zones : {} }; }
 
     // controlled signals ahead of a train on its path: [{ d, si }], nearest first
     function ahead(pid, nose, look) {
@@ -2104,7 +2104,11 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       if (x.section && pid != null && (freeTrains != null ? freeTrains : freeTo) < sectionEnd(pid, si, d) - 5) return false;
       for (const gi of x.groups) { for (const [s2, k2] of Object.entries(st.grant)) if (k2 !== k && (sig.get(+s2) || { groups: [] }).groups.includes(gi)) return false; }
       if (x.zone != null && intoZone(x.zone, pid) && zoneHolder(st, x.zone) !== k) return false;
-      if (x.manual && !st.auto) { if (!(st.pass[si] > 0)) return false; st.pass[si]--; }
+      if (x.manual && !st.auto) { if (!(st.pass[si] > 0)) return false;
+        // an itinerary formed by the player (ACEI: the key of the signal, then the key of the signal it goes to): only for
+        // a train whose next signal after this one is that one
+        const to = st.passTo && st.passTo[si]; if (to != null && pid != null && nextAfter(pid, d, si) !== to) return false;
+        st.pass[si]--; if (!st.pass[si] && st.passTo) delete st.passTo[si]; }
       st.grant[si] = k; return true;
     }
     // back to red behind the train (or when it went another way / left the line)
@@ -2120,8 +2124,11 @@ body.player .console, body.pc-console-off .console { display: none !important; }
         if (gone || !hit || over) delete st.grant[si];
       }
     }
-    // the player clears a manual signal for the next train
-    function clear(st, si) { if (!isManual(si)) return false; st.pass[si] = (st.pass[si] || 0) + 1; return true; }
+    // the next signal facing the train after signal si (at d) on path pid, any signal (controlled or not), or null
+    function nextAfter(pid, d, si) { const sp = o.sigpos && o.sigpos[pid]; if (sp) for (const [d2, s2] of sp) if (d2 > d + 5 && s2 !== si) return s2; return null; }
+    // the player clears a manual signal for the next train (to: only for a train going on to that signal; ACEI itinerary)
+    function clear(st, si, to) { if (!isManual(si)) return false; st.pass[si] = (st.pass[si] || 0) + 1;
+      st.passTo = st.passTo || {}; if (to != null) st.passTo[si] = to; else delete st.passTo[si]; return true; }
     function aspect(st, si) { return st.grant[si] != null ? 'go' : 'stop'; }
 
     // ---- zones: one train at a time (the test loop) ----
@@ -2148,7 +2155,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       const g = x.groups.map(gi => groups[gi] && groups[gi].name).find(Boolean) || (x.zone != null && zones[x.zone] ? zones[x.zone].name : '');
       return String(g || '').split(':')[0].trim();
     }
-    return { fresh, ahead, request, release, clear, aspect, controlled, isManual, groupOf, sectionEnd, describe, brief, zoneOf, zoneHolder, zoneAsk, zoneFree };
+    return { fresh, ahead, request, release, clear, nextAfter, aspect, controlled, isManual, groupOf, sectionEnd, describe, brief, zoneOf, zoneHolder, zoneAsk, zoneFree };
   }
 
   const api = { create, NEAR, PASS, SECTION_MAX };
@@ -2548,7 +2555,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
 // D2: the failures of the line (no train: a signal, a switch, a stretch). segnale (8: it stays red), sezione (9: the
 // section after a signal shows occupied with no train on it), scambio (7: it does not go into position; the DCT sends
 // the team, who work it by hand and clamp it in the position the DCT says; then every train over it needs the DCT's
-// authorisation), tensione (10: no power between two stations; the trains there stand; when it is repaired the DCT
+// authorisation), or the DCT excludes it (escl: out of service, nothing goes over it, the team can be sent later); tensione (10: no power between two stations; the trains there stand; when it is repaired the DCT
 // gives the power back). A train stopped by one of them calls the DCT, who lets it by in marcia a vista (vista: 15 km/h
 // up to the next signal; web/routes.js). The DCT can also let a train standing at a signal by from its card.
 //
@@ -2603,7 +2610,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
   const G1 = 8.75 * 3600, G2a = 15 * 3600, G2b = 18 * 3600;             // the guaranteed service of a strike day
   const AUTO = 180, DAYS = 19 * 3600;                 // the DCT answers by itself after 3 minutes; ~19 hours of service a day
   const ANSWERS = { rearm: 'Riarma', agent: "Manda l'agente", tech: 'Tecnico a bordo', rescue: 'Manda il soccorso', ack: 'Ricevuto', vista: 'Marcia a vista',
-                    team: 'Manda la squadra', power: 'Ridai tensione', red: 'Pulsante rosso e togli tensione', clear: 'Ridai tensione e via libera',
+                    team: 'Manda la squadra', escl: 'Escludi lo scambio', power: 'Ridai tensione', red: 'Pulsante rosso e togli tensione', clear: 'Ridai tensione e via libera',
                     cut: 'Togli tensione', rback: 'Soccorso con il treno dietro (spinta 15 km/h)', rfront: 'Soccorso con il treno davanti (traino 30 km/h)',
                     badoni: 'Badoni da ROD (serve l\'interruzione)', evac: 'Evacuazione dei passeggeri', reopen: 'Riapri la tratta',
                     reopenSt: 'Riapri la stazione', gaps: 'Lascia l\'orario (corse scoperte)', freq: 'Frequenza più bassa (orario ibrido)', limit: 'Servizio limitato (chiudi tu una tratta)', home: 'Scarica e rientra a ROD', homeEnd: 'A fine corsa rientra a ROD', hold: 'Ferma i treni', fire: 'Chiudi la stazione, chiama i vigili del fuoco', police: 'Chiama polizia e soccorsi' };
@@ -2711,7 +2718,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       else if (kind === 'sezione') { st.ghost = st.ghost || {}; f.edges = L.sigEdges(target); f.edges.forEach(ei => { st.ghost[ei] = f.id; }); f.what = 'Sezione dopo il ' + tag(target); f.until = S.t + between(1200, 3600);
         say(f, 'sys', tx('guasto.sezione.occupata', { segnale: tag(target) })); }
       else if (kind === 'scambio') { st.swFail = st.swFail || {}; st.swFail[target] = true; f.what = 'Scambio ' + target; f.ph = 'failed';
-        f.callWho = 'sys'; call(f, tx('guasto.scambio.non_va', { scambio: target }), ['team']); }
+        f.callWho = 'sys'; call(f, tx('guasto.scambio.non_va', { scambio: target }), ['team', 'escl']); }
       else if (kind === 'tensione') { f.zones = [L.zone('power', target, target + 1)]; f.what = name(target) + ' – ' + name(target + 1); f.until = S.t + between(300, 3600); f.ph = 'off';
         f.callWho = 'en'; call(f, tx('energia.mancanza', { tratta: f.what }), ['ack']); }
       // public order (Giovanni): the Prefettura orders a station closed, nearly always Duomo or Centrale, so that the people
@@ -2869,6 +2876,9 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       f.call = null;
       if (what === 'vista') { giveVista(f.k, f.n); say(f, 'pc', tx('guasto.vista.autorizzato', { segnale: tag(f.n) })); say(f, 'dr', tx('guasto.vista.ricevuto', { segnale: tag(f.n) })); f.ph = 'go'; return null; }
       if (what === 'team') { say(f, 'pc', tx('guasto.scambio.manda_squadra', { scambio: f.target })); say(f, 'man', tx('guasto.scambio.squadra_arriva')); f.ph = 'team'; f.until = S.t + between(600, 1800); return null; }
+      // (Giovanni 17 Nov 2026: a failed switch "o lo escludi o mandi qualcuno ad azionartelo": excluded, it stays out of
+      // service, the itineraries over it are not set; the team can still be sent later)
+      if (what === 'escl' && f.kind === 'scambio') { say(f, 'pc', tx('guasto.scambio.escluso', { scambio: f.target })); f.ph = 'excl'; f.call = { t: S.t, text: '', opts: ['team'], auto: Infinity }; return null; }
       if (/^p\d$/.test(what) && f.kind === 'scambio') {
         const pos = f.pos[+what.slice(1)], st = RT(); st.swFail[f.target] = pos; st.sw[f.target] = pos;
         say(f, 'pc', tx('guasto.scambio.metti_in', { posizione: f.labels[what].toLowerCase() })); say(f, 'man', tx('guasto.scambio.manovrato_a_mano', { scambio: f.target }));
@@ -4417,7 +4427,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
         lastResult = true;
       }
       else if (e.kind === 'regola') lastResult = regola(e);                   // the regolatore: a train out of the service, a reserve out
-      else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
+      else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si, e.to); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; if (S.il.passTo) delete S.il.passTo[e.si]; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
     }
     // the regolatore (fase E, the page decides): 'home' a train ends its run, lets the passengers off and goes in (turning at a
     // terminus: when it can, a.wdWant); 'keep' a train still in its place in the depot stays there; 'insert' a reserve train
@@ -4700,9 +4710,12 @@ body.player .console, body.pc-console-off .console { display: none !important; }
 //
 // Places: trains have no fixed place. When a train leaves San Donato platform 1 for the depot (#A40 towards #A04) the
 // depot gives it a free place; until it passes #A04/#A05 the player can change it by radio. Its next run out of the
-// depot starts from that place. At the end of the service day the trains keep their places for the next day. A place
-// is called by the signal in front of it (A48, A78...). The places after #A76, #A77, #A78 are given only when nothing
-// else is free (#A76 is train 28's own place, the 8105-8106 unit).
+// depot starts from that place. At the end of the service day the trains keep their places for the next day. The places
+// are called by their track (Giovanni 17 Nov 2026): B1 ... B28, and on the rimessa tracks B<n>.1 (west half) and B<n>.2
+// (east half). B1, B2, B3 are given only when nothing else is free (B1 is train 28's own place, the 8105-8106 unit).
+// Rimessa (Giovanni 17 Nov 2026): in from the front (east, the door's side); the first train on an empty track goes to
+// the far end (B<n>.1), the second stops in the east half (B<n>.2). Out: from the front when the east half is free, else
+// from the back onto the side tracks (the "giro"), and 4% of the times anyway.
 //
 // Test loop: a train standing in its place goes to #A94 and asks to go in (west side: after a change of cab beyond
 // #A94; east side: after a change of cab at the turning point on w71). One train at a time: while one has asked for the
@@ -4714,7 +4727,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
 // (agents.js), and talks on the radio through env. No map, no page.
 (function (root) {
   const V_YARD = 15 / 3.6, RESERVE_T = 29 * 3600;
-  const LOW = ['A76', 'A77', 'A78'];          // places given only when nothing else is free
+  const LOW = ['B1', 'B2', 'B3'];             // places given only when nothing else is free
 
   function create(F, env) {
     // env: { say(who, text, cls), call(tr, text), tx(code, values) (the radio phrases, web/frasi.js), trainNo(tr), fmt(t), dayStart }
@@ -4744,14 +4757,14 @@ body.player .console, body.pc-console-off .console { display: none !important; }
     const nextOut = (tr, i) => { for (let j = i + 1; j < tr.segs.length; j++) { const s = tr.segs[j]; if ((s[1] === 'from_depot' || s[1] === 'empty') && placeOf(s)) return j; if (s[1] === 'service') return -1; } return -1; };
     function shiftRefs(tr, j, by) { ['alts', 'arr2', 'calts'].forEach(key => (tr[key] || []).forEach(x => { if (x.i != null && x.i > j) x.i += by; })); }
     // the run out of place q replacing seg s (same time at the platform)
-    function outChoice(s, q) {
+    function outChoice(s, q, back) {
       const P = F.depotPaths[q]; if (!P) return null;
       let best = null;
-      for (const [pl, o] of Object.entries(P.out)) { const m = F.ag.mapTo(o.pid, o.plat, s[0]); if (m != null && (s[1] !== 'from_depot' || Math.abs(m - s[4][s[4].length - 1]) < 40)) { best = { pl, o, m }; if (s[1] !== 'from_depot' || pl === '1') break; } }
+      for (const [pl, o] of Object.entries(back && P.outBack ? P.outBack : P.out)) { const m = F.ag.mapTo(o.pid, o.plat, s[0]); if (m != null && (s[1] !== 'from_depot' || Math.abs(m - s[4][s[4].length - 1]) < 40)) { best = { pl, o, m }; if (s[1] !== 'from_depot' || pl === '1') break; } }
       return best;
     }
-    function rewriteOut(tr, j, q) {
-      const s = tr.segs[j], oldPid = s[0], best = outChoice(s, q);
+    function rewriteOut(tr, j, q, back) {
+      const s = tr.segs[j], oldPid = s[0], best = outChoice(s, q, back);
       if (!best) return false;
       const o = best.o, run = Math.max(0, o.plat - o.start) / V_YARD;
       if (s[1] === 'from_depot') { const tP = s[3][s[3].length - 1]; tr.segs[j] = [o.pid, 'from_depot', -1, [Math.round(tP - run), tP], [o.start, o.plat], +q]; }
@@ -4777,9 +4790,24 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       F.depot.target[k] = q; F.ag.replan(k); return true;
     }
     // the free place the depot gives: the quickest way in and out again (the places after #A76-#A78 last)
+    // a rimessa track: its west place only with the east half free (the way in goes through it); its east place only
+    // when the west one is taken (the first train goes to the far end) and its train is not about to leave from the front
+    const pairOf = q => (F.depotPaths[q] || {}).pair, halfOf = q => (F.depotPaths[q] || {}).half;
+    function leavingSoon(q, t) {
+      for (const [k2, at] of Object.entries(F.depot.at)) { if (String(at) !== String(q)) continue;
+        const tr = F.trains[k2], a = F.ag.agents()[k2], j = a ? nextOut(tr, Math.min(a.si, tr.segs.length - 1)) : -1;
+        if (j >= 0 && tr.segs[j][3][0] - t < 900 && !isBack(tr.segs[j], q)) return true; }
+      return false;
+    }
+    const isBack = (s, q) => { const B = (F.depotPaths[q] || {}).outBack; return !!B && Object.values(B).some(o => o.pid === s[0]); };
+    function rimessaOk(q, tk) {
+      const h = halfOf(q), p = pairOf(q); if (!h) return true;
+      if (h === 'W') return !tk.has(p);
+      return tk.has(p) && !leavingSoon(p, F.ag.S.t);
+    }
     function pick(k) {
       const tk = taken(), a = F.ag.agents()[k];
-      const cand = Object.keys(F.depotPaths).filter(q => !tk.has(q) && F.ag.mapTo(a.pid, a.d, F.depotPaths[q].in) != null);
+      const cand = Object.keys(F.depotPaths).filter(q => !tk.has(q) && rimessaOk(q, tk) && F.ag.mapTo(a.pid, a.d, F.depotPaths[q].in) != null);
       const cost = q => { const P = F.depotPaths[q]; return P.in_end + Math.min(...Object.values(P.out).map(v => v.plat - v.start)) + (low(q) ? 1e5 : 0); };
       cand.sort((p, q) => cost(p) - cost(q));
       return cand[0] || null;
@@ -4815,7 +4843,22 @@ body.player .console, body.pc-console-off .console { display: none !important; }
         if (F.depot.target[k] != null && (a.si > g || a.si === g && a.v === 0 && Math.abs(a.d - s[4][s[4].length - 1]) < 3)) {
           F.depot.at[k] = F.depot.target[k]; delete F.depot.target[k]; F.depot.done[k] = g; }
       });
+      outSide();
       loopTick(); autoLoop(); washTick();
+    }
+    // out of a west place: from the back when the east half is taken (a train there or coming), from the front when it is
+    // free, and from the back 4% of the times anyway; decided again until the run starts (Giovanni 17 Nov 2026)
+    const giro = (k, j) => { let h = 2166136261; for (const c of k + '|' + j + '|' + (env.dayStart || 0)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return ((h >>> 0) % 1000) < 40; };
+    function outSide() {
+      const t = F.ag.S.t, tk = taken();
+      for (const [k, q] of Object.entries(F.depot.at)) {
+        if (halfOf(q) !== 'W') continue;
+        const tr = F.trains[k], a = F.ag.agents()[k]; if (!a || a.hidden) continue;
+        const j = nextOut(tr, Math.min(a.si, tr.segs.length - 1)); if (j < 0) continue;
+        const s = tr.segs[j]; if (s[3][0] - t > 1800 || (j === a.si && moved(a, s))) continue;
+        const want = tk.has(pairOf(q)) || giro(k, j);
+        if (want !== isBack(s, q) && rewriteOut(tr, j, q, want)) { restamp(tr); if (j <= a.si + 1) F.ag.replan(+k); }
+      }
     }
     // the new trains in test (Giovanni, 2 Nov 2026): out of the peaks they go round the test loop by themselves, a few laps
     // at a time, and never take a passenger run until they are admitted to service (env.trial)
@@ -4874,7 +4917,8 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       return Math.max(2, (v / a + v / b + (len - xa - xb) / v) * 1.1);
     }
     function loopSegs(p, t0, laps) {
-      const T = F.test, R = T.trip[p], V = T.v_yard, segs = []; let t = t0;
+      // (a west place of the rimessa with its east half taken: out from the back)
+      const T = F.test, R = (halfOf(p) === 'W' && taken().has(pairOf(p)) && T.tripBack && T.tripBack[p]) || T.trip[p], V = T.v_yard, segs = []; let t = t0;
       const add = (pid, d0, d1, kind, role, v, place) => { const dur = Math.max(2, Math.abs(d1 - d0) / v);
         segs.push([pid, kind, -1, [Math.round(t), Math.round(t + dur)], [Math.round(d0 * 10) / 10, Math.round(d1 * 10) / 10], place, 'loop:' + role]); t += dur; };
       const addT = (pid, d0, d1, role, dur) => { segs.push([pid, 'training', -1, [Math.round(t), Math.round(t + dur)], [Math.round(d0 * 10) / 10, Math.round(d1 * 10) / 10], null, 'loop:' + role]); t += dur; };
@@ -4908,7 +4952,8 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       if (!a || p == null || !T.trip[p] || loopAhead(k)) return false;
       const S = L();
       if (S.a94 != null && S.a94 !== k) { D.loopMsg = `Attendi: il treno ${no(S.a94)} sta uscendo dall'anello passando dal #A94 verso ${F.depot.target[S.a94] != null ? name(F.depot.target[S.a94]) : 'il deposito'}.`; return false; }
-      const inWay = ((T.trip_blocks || {})[p] || []).filter(x => taken().has(x));
+      const back = halfOf(p) === 'W' && taken().has(pairOf(p)) && T.tripBack && T.tripBack[p];      // (out from the back: see loopSegs)
+      const inWay = (((back ? T.trip_blocks_back : T.trip_blocks) || {})[p] || []).filter(x => taken().has(x));
       if (inWay.length) { D.loopMsg = 'La via per l\'anello passa da ' + inWay.map(name).join(', ') + ', occupato.'; return false; }
       const idx = a.mode === 'static' ? tr.segs.length : a.si, next = tr.segs[idx], t0 = Math.round(F.ag.S.t) + 20;
       const deadline = next ? next[3][0] - 600 : 27 * 3600, lapT = loopSegs(p, t0, 1).end - loopSegs(p, t0, 0).end;
@@ -5053,7 +5098,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
     // ---------- the officina (Giovanni 9 Nov 2026) ----------
     // a train taken out of the service for a fault always goes to the officina, on one of its stub tracks (#A69-#A75; the
     // officina tracks with #A63-#A65 are ordinary places). None free: a free place in the rimessa, waiting there (confirmed by Giovanni, 9 Nov 2026 evening)
-    const OFF = ['A69', 'A70', 'A71', 'A72', 'A73', 'A74', 'A75'];
+    const OFF = ['B22', 'B23', 'B24', 'B25', 'B26', 'B27', 'B28'];
     function officinaPark(k) {
       if (!F.depotPaths) return null; if (!F.depot) init();
       const tk = taken(), free = Object.keys(F.depotPaths).filter(q => !tk.has(q));
@@ -5116,7 +5161,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       }
     }
 
-    Object.assign(D, { officinaPark, OFF, washInfo, sendToWash, washRole, nextAuto, init, tick, newDay, assign, pick, pastEntrance, rewriteOut, taken, name, placeOf, loopRole, loopInfo, sendToLoop, holdAt, standsAt, isOut });
+    Object.assign(D, { outSide, pairOf, halfOf, officinaPark, OFF, washInfo, sendToWash, washRole, nextAuto, init, tick, newDay, assign, pick, pastEntrance, rewriteOut, taken, name, placeOf, loopRole, loopInfo, sendToLoop, holdAt, standsAt, isOut });
     return D;
   }
 
@@ -9163,7 +9208,20 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // the train numbers, the switches' lamps and names, the numbers of the sections, Bin.N, places, stations, platforms, tails,
   // the words: by its key, [dx, dy] moved or 'x' taken away (the file's deco, then this browser's)
   const schDeco = SCH => Object.assign({}, SCH.deco || {}, (SCH_EDIT.ed[SIN_WHICH] || {}).deco || {});
-  const sinSave = () => { try { localStorage.setItem(SIN_KEY[SIN_WHICH], JSON.stringify(SCH_EDIT.ed[SIN_WHICH])); } catch (e) {} };
+  // the changes kept in the browser are made on one version of the file: when the file changes (a new version of the
+  // game) they would move its new nodes to the old places, so they are dropped, with a note (Giovanni 17 Nov 2026: "è
+  // tornato un casino"). base = a fingerprint of the file they were made on
+  const SIN_FP = { dep: null, line: null };
+  const sinFp = SCH => { const s = JSON.stringify([SCH.nodes, SCH.via || {}, SCH.deco || {}, SCH.edges]); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
+  window.__mtlSinFp = sinFp;           // (the page tests)
+  function sinStale(SCH) {
+    const fp = SIN_FP[SIN_WHICH] = sinFp(SCH), ed = SCH_EDIT.ed[SIN_WHICH];
+    if (!ed || ed.base === fp || !(Object.keys(ed.nodes || {}).length || Object.keys(ed.via || {}).length || Object.keys(ed.deco || {}).length)) return;
+    SCH_EDIT.ed[SIN_WHICH] = null; try { localStorage.removeItem(SIN_KEY[SIN_WHICH]); } catch (e) {}
+    const t = 'Sinottico ' + (SIN_WHICH === 'line' ? 'della linea' : 'del deposito') + ' aggiornato: le modifiche salvate nel browser erano sulla versione vecchia e sono state tolte.';
+    try { schNote(t); } catch (e) {} try { flashNote(t); } catch (e) {}
+  }
+  const sinSave = () => { try { const ed = SCH_EDIT.ed[SIN_WHICH]; if (ed && SIN_FP[SIN_WHICH]) ed.base = SIN_FP[SIN_WHICH]; localStorage.setItem(SIN_KEY[SIN_WHICH], JSON.stringify(ed)); } catch (e) {} };
   function schEditOff() { if (SCH_EDIT && SCH_EDIT.on) setSchEdit(false); }
   function setSchEdit(on) { SCH_EDIT.on = on; document.body.classList.toggle('schedit', on); const b = document.getElementById('schEdit'); if (b) b.setAttribute('aria-pressed', String(on)); if (on) setView('sin'); else drawDepotPlan(); }
   const SWMEM = {};                       // the last position seen of each depot switch: the pair of track pieces a train went over
@@ -9307,7 +9365,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     if (SCH_EDIT.drag) return;                                    // (not while a node or a bend is being moved)
     const SCH = sinSchema(F), title = SIN_WHICH === 'line' ? 'Linea M3 · sinottico' : 'Deposito Rogoredo (ROD) · sinottico';
     if (!planEl.querySelector('.dp-hd')) {
-      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · marmotte del deposito: due luci in basso via impedita, verticali via libera · spia accanto allo scambio accesa: deviato (nomi degli scambi e numeri delle sezioni inventati, tranne la porta del deposito) · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s)</span>` +
+      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · marmotte del deposito: due luci in basso via impedita, verticali via libera · spia accanto allo scambio accesa: deviato (nomi degli scambi e numeri delle sezioni inventati, tranne la porta del deposito) · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s) · tasti (ACEI): premi un segnale, poi quello di arrivo (itinerario preparato, tasto giallo), poi di nuovo la partenza per la via libera (tasto bianco) e ancora per annullarlo; tasto destro: la scheda del segnale</span><span class="dp-acei" id="dpAcei" aria-live="polite"></span>` +
         `<div class="dp-sw"><button data-w="dep" aria-pressed="${SIN_WHICH === 'dep'}">Deposito</button><button data-w="line" aria-pressed="${SIN_WHICH === 'line'}">Linea</button></div>` +
         `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><label class="dp-opt"><input type="checkbox" id="dpIll" ${SIN_ILL ? 'checked' : ''}> segnali illegali</label><label class="dp-opt"><input type="checkbox" id="dpNames" ${SIN_NAMES ? 'checked' : ''}> nomi dei binari</label><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
       document.getElementById('dpClose').onclick = () => setView('map');
@@ -9322,6 +9380,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     // (Piano linea, Deposito: Giovanni draws it; until then a placeholder for the player. The admin keeps today's drawing)
     if (SIN_WHICH === 'dep' && PIANO_PH && isPlayer) { body.innerHTML = '<div class="dp-ph"><b>Deposito Rogoredo</b>Segnaposto: aspetta i miei disegni.</div>'; return; }
     if (!SCH) { body.innerHTML = `<p class="dp-none">${SIN_WHICH === 'line' ? 'Sinottico della linea mancante: fallo con tools/sinottico.py linea (data/sinottico_linea_m3.json).' : 'Schema del deposito mancante.'}</p>`; return; }
+    sinStale(SCH);
     if (!SIGS) SIGS = buildSignals(F); sigAspects(F);
     // (a signal of the drawing is the map's one with its index in the net: the block signals carry the block's number on
     // the map, not the one of the placed signal; Giovanni 10 Nov 2026: "i segnali non cambiano colore")
@@ -9521,7 +9580,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
         let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
         const side = (sg.b || ill) ? -1 : 1, nx = -ty * side, ny = tx * side, K = 0.9, O = [m[0] + nx * 9 * K, m[1] + ny * 9 * K], lit = a === 'sgo';
         const L3 = (x, y, on) => `<rect x="${x}" y="${y}" width="2.8" height="2.8" fill="${on ? '#ffffff' : '#3a3a3a'}"/>`;
-        marks += `<g class="sgi marm${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(O)}) scale(${K})"><title>${tagName(tag)} (marmotta) · ${lit ? 'via libera' : 'via impedita'}</title>` +
+        marks += `<g class="sgi marm${lit ? ' go' : ''}${SIN_ORIG && SIN_ORIG.n === sg.n ? ' orig' : SIN_PREP[sg.n] ? (SIN_PREP[sg.n].auth ? ' auth' : ' prep') : ''}" data-tag="${tag}" transform="translate(${P1(O)}) scale(${K})"><title>${tagName(tag)} (marmotta) · ${lit ? 'via libera' : 'via impedita'}</title>` +
           `<path d="M-4.5,-5H0.5V-3.5H4.5V4H-4.5Z" fill="#101010"/><rect x="-4.5" y="4" width="9" height="1" fill="#8a8a8a"/>` +
           L3(-3.6, -4, lit) + L3(-3.6, 0, true) + L3(0.6, 0, !lit) + `<circle class="sg" data-n="${sg.n}" cx="0" cy="0" r="0"/></g>` +
           ((SIN_NUM || SGNM(sg)) ? `<text class="sgn" x="${O[0] + nx * 9}" y="${O[1] + ny * 9 + 3}">${SGNM(sg) || sg.n}</text>` : '');
@@ -9530,7 +9589,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       const sqr = !!sg.b || ill, side = sqr ? -1 : 1, K = SIN_WHICH === 'line' ? 1 : 0.9, nx = -ty * side, ny = tx * side;
       const O = [m[0] - tx * 7 * K + nx * 8 * K, m[1] - ty * 7 * K + ny * 8 * K], ang = Math.atan2(ty, tx) * 180 / Math.PI;
       const lit = a === 'go' || a === 'sgo';
-      marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${SGNM(sg) ? SGNM(sg) + ' = ' : ''}${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
+      marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}${SIN_ORIG && SIN_ORIG.n === sg.n ? ' orig' : SIN_PREP[sg.n] ? (SIN_PREP[sg.n].auth ? ' auth' : ' prep') : ''}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${SGNM(sg) ? SGNM(sg) + ' = ' : ''}${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
         `<path class="sgb" d="M-14,-3.2V3.2M-14,0H-7"/><rect class="sgc" x="-7" y="-3.7" width="14" height="7.4" rx="${sqr ? 0.8 : 3.7}"/>` +
         (sqr ? `<rect x="-5.5" y="-2.2" width="4.4" height="4.4" fill="${lit ? '#ffffff' : '#4a4943'}"/><rect x="1.1" y="-2.2" width="4.4" height="4.4" fill="#ff2a2a"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="0"/></g>`
           : `<circle class="sgw" cx="-3.3" cy="0" r="2.3" fill="${lit ? '#ffffff' : '#4a4943'}"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="2.3" fill="#ff2a2a"/></g>`) +
@@ -9610,7 +9669,12 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     body.scrollLeft = sx; body.scrollTop = sy;
     body.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
     // a signal: its card, on the map (Giovanni 16 Nov 2026: "i semafori devono essere cliccabili")
-    if (!SCH_EDIT.on) body.querySelectorAll('g.sgi[data-tag], circle.sg[data-tag]').forEach(g => g.onclick = ev => { ev.stopPropagation(); setView('map'); openSignal(g.dataset.tag); });
+    // the keys of the board (ACEI): a press lights the key, the next one forms the itinerary (or lets the key go);
+    // the right button opens the signal's card on the map, as the click did before
+    if (!SCH_EDIT.on) body.querySelectorAll('g.sgi[data-tag], circle.sg[data-tag]').forEach(g => {
+      g.onclick = ev => { ev.stopPropagation(); sinPress(F, g.dataset.tag); };
+      g.oncontextmenu = ev => { ev.preventDefault(); ev.stopPropagation(); SIN_ORIG = null; setView('map'); openSignal(g.dataset.tag); }; });
+    if (!SCH_EDIT.on) { const sv = body.querySelector('svg'); if (sv) sv.onclick = () => { if (SIN_ORIG) { SIN_ORIG = null; sinMsg(''); drawDepotPlan(); } }; }
     if (SCH_EDIT.on) bindSchDrag(F, SCH);
   }
   // ---- the sinottico editor (Giovanni 16 Nov 2026: nodes almost on top of each other, pieces too short to drag, nodes off
@@ -10332,6 +10396,69 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   function ilNote(F, si) {
     const IL = F.ag && F.ag.IL, net = F.engine.net; if (!IL || si < 0) return '';
     return IL.describe(si);
+  }
+  // ---- the board's keys, ACEI style (Giovanni 17 Nov 2026: "stile ACEI direi proprio"; "anche solo creare itinerari
+  // senza toccare gli scambi a me va bene"; then "secondo click per autorizzare il via libera al treno tramite il
+  // semaforo al itinerario scelto e per cancellarlo"): the first press on a signal lights its key (the start); a press on
+  // another signal prepares the itinerary from the first to it (the switches go by themselves: Excel, Tempi), the signal
+  // still red; a press on the start of a prepared itinerary gives it via libera; one more takes the itinerary back. A
+  // second press on a lit key with nothing prepared lets it go. Red, rosso fisso, via libera by hand: the signal's card.
+  // Depot: the shunting signals (in manual: the via libera is for the next train that goes on to that signal). Line:
+  // the itineraries of the table (the Excel's Itinerari), held at red until the via libera.
+  var SIN_ORIG = null, SIN_PREP = {};           // SIN_PREP[n] = { line: id | null, to: n, si, auth }
+  function sinMsg(t) { const e = document.getElementById('dpAcei'); if (e) e.textContent = t; }
+  function sinPress(F, tag) {
+    if (!F.ag) return;
+    const n = parseInt(String(tag).slice(2), 10), si = (F.engine.net.signals || []).findIndex(x => x.n === n), P = SIN_PREP[n];
+    if (P && !SIN_ORIG) { sinPrepPress(F, n, P); drawDepotPlan(); return; }
+    if (SIN_ORIG && SIN_ORIG.n === n) { SIN_ORIG = null; sinMsg(`${sigName(n)}: tasto rilasciato.`); drawDepotPlan(); return; }
+    if (SIN_ORIG) { const o = SIN_ORIG; SIN_ORIG = null; sinRoute(F, o, { n, si }); drawDepotPlan(); return; }
+    SIN_ORIG = { n, si }; const d = sinDests(F, n, si);
+    sinMsg(`${sigName(n)}: tasto premuto. Premi il segnale di arrivo${d.length ? ' (' + d.map(x => sigName(x)).join(', ') + ')' : ''} per l'itinerario, o di nuovo ${sigName(n)} per rilasciarlo.`);
+    drawDepotPlan();
+  }
+  // the signals an itinerary from n can end at: depot, the next signal on each way out of it; line, the table
+  function sinDests(F, n, si) {
+    const IL = F.ag.IL, out = new Set();
+    if (IL && si >= 0 && IL.isManual(si)) { for (const [pid, sp] of Object.entries(F.engine.net.sigpos || {})) for (const [d, s2] of sp) if (s2 === si) { const x = IL.nextAfter(+pid, d, si); if (x != null) out.add((F.engine.net.signals[x] || {}).n); } }
+    else for (const it of F.engine.net.itineraries || []) if (it.start === n && it.end != null) out.add(it.end);
+    return [...out].filter(x => x != null).sort((a, b) => a - b);
+  }
+  const sinRefresh = () => { if (SIGS) SIGS.forEach(x => { x.a = null; }); updateSignals(); };
+  function sinRoute(F, o, d) {
+    const IL = F.ag.IL, a = sigName(o.n), b = sigName(d.n), dests = sinDests(F, o.n, o.si);
+    const none = () => sinMsg(`Nessun itinerario da ${a} a ${b}${dests.length ? ': da ' + a + ' si va a ' + dests.map(x => sigName(x)).join(', ') : ''}.`);
+    if (IL && o.si >= 0 && IL.isManual(o.si)) {
+      if (!dests.includes(d.n)) { none(); return; }
+      SIN_PREP[o.n] = { line: null, to: d.n, toSi: d.si, si: o.si, auth: false };
+      sinMsg(`Itinerario ${a} → ${b} preparato: premi ${a} per dare la via libera al prossimo treno.`); return;
+    }
+    const it = (F.engine.net.itineraries || []).find(x => x.start === o.n && x.end === d.n);
+    if (!it) { none(); return; }
+    const r = F.ag.event({ kind: 'pccmd', what: 'form', id: it.id });
+    if (r) { sinMsg(`Itinerario ${it.id} (${a} → ${b}) non formato: ${r.train != null ? 'c\'è un treno sopra' : r.swFail != null ? 'scambio ' + r.swFail + ' guasto o escluso' : r.swLock != null ? 'scambio ' + r.swLock + ' bloccato nell\'altra posizione' : r.route != null || r.pcRoute != null ? 'impegnato da un altro itinerario' : 'impegnato'}.`); return; }
+    F.ag.event({ kind: 'pccmd', what: 'red', n: o.n, on: true });          // (held at red until the via libera)
+    SIN_PREP[o.n] = { line: it.id, to: d.n, si: o.si, auth: false };
+    say('', tx('dct.itinerario_preparato', { itinerario: it.id, segnale: '#A' + String(o.n).padStart(2, '0') }), 'pc');
+    sinMsg(`Itinerario ${it.id} preparato: ${a} → ${b}, gli scambi vanno in posizione. Premi ${a} per la via libera.`);
+    sinRefresh();
+  }
+  // a press on the start of a prepared itinerary: the via libera, then (once more) the itinerary taken back
+  function sinPrepPress(F, n, P) {
+    const nm = sigName(n), tag = '#A' + String(n).padStart(2, '0'), il = F.ag.il(), st = F.ag.rt();
+    // (gone: the train has taken it)
+    const used = P.line ? P.auth && !(st.pcRoutes && st.pcRoutes[n]) : P.auth && !(il.pass[P.si] > 0);
+    if (used) { delete SIN_PREP[n]; SIN_ORIG = { n, si: P.si }; sinMsg(`${nm}: l'itinerario di prima è stato usato. Tasto premuto: premi il segnale di arrivo.`); return; }
+    if (!P.auth) {
+      if (P.line) { F.ag.event({ kind: 'pccmd', what: 'red', n, on: false }); say('', tx('dct.segnale_via_libera', { segnale: tag }), 'pc'); }
+      else { if (il.auto) { F.ag.event({ kind: 'il', what: 'auto', on: false }); syncDepotAuto(); } F.ag.event({ kind: 'il', what: 'clear', si: P.si, to: P.toSi }); }
+      P.auth = true; sinMsg(`${nm}: via libera al prossimo treno per ${sigName(P.to)}${P.line ? '' : ' (deposito in manuale)'}. Premi di nuovo ${nm} per annullare l'itinerario.`);
+    } else {
+      if (P.line) { F.ag.event({ kind: 'pccmd', what: 'cancel', n }); F.ag.event({ kind: 'pccmd', what: 'red', n, on: false }); say('', tx('dct.itinerario_annullato', { segnale: tag }), 'pc'); }
+      else F.ag.event({ kind: 'il', what: 'unclear', si: P.si });
+      delete SIN_PREP[n]; sinMsg(`${nm}: itinerario annullato.`);
+    }
+    sinRefresh();
   }
   function clearManual(F, si, tag) {
     if (sigDel) return;

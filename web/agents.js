@@ -1288,7 +1288,7 @@
         lastResult = true;
       }
       else if (e.kind === 'regola') lastResult = regola(e);                   // the regolatore: a train out of the service, a reserve out
-      else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
+      else if (e.kind === 'il' && IL) { if (e.what === 'clear') lastResult = IL.clear(S.il, e.si, e.to); else if (e.what === 'unclear') { S.il.pass[e.si] = 0; if (S.il.passTo) delete S.il.passTo[e.si]; lastResult = true; } else if (e.what === 'auto') { S.il.auto = !!e.on; lastResult = true; } }
     }
     // the regolatore (fase E, the page decides): 'home' a train ends its run, lets the passengers off and goes in (turning at a
     // terminus: when it can, a.wdWant); 'keep' a train still in its place in the depot stays there; 'insert' a reserve train

@@ -4111,6 +4111,486 @@
    "type": "shunt",
    "name": "",
    "n": 383
+  },
+  {
+   "line": "M3",
+   "w": 21,
+   "lat": 45.43145,
+   "lon": 9.254424,
+   "on_track": [
+    45.431458,
+    9.254414
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 50,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 601,
+   "_talpa": "talpa 82 del Bin.4, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 21,
+   "lat": 45.431466,
+   "lon": 9.254404,
+   "on_track": [
+    45.431458,
+    9.254414
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 602,
+   "_talpa": "talpa 16 del Bin.4, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 20,
+   "lat": 45.431428,
+   "lon": 9.25445,
+   "on_track": [
+    45.431436,
+    9.25444
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 51,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 603,
+   "_talpa": "talpa 83 del Bin.5, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 20,
+   "lat": 45.431444,
+   "lon": 9.25443,
+   "on_track": [
+    45.431436,
+    9.25444
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 231,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 604,
+   "_talpa": "talpa 15 del Bin.5, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 22,
+   "lat": 45.431393,
+   "lon": 9.254492,
+   "on_track": [
+    45.431401,
+    9.254482
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 51,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 605,
+   "_talpa": "talpa 84 del Bin.6, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 22,
+   "lat": 45.431409,
+   "lon": 9.254472,
+   "on_track": [
+    45.431401,
+    9.254482
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 231,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 606,
+   "_talpa": "talpa 14 del Bin.6, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 23,
+   "lat": 45.431367,
+   "lon": 9.254523,
+   "on_track": [
+    45.431375,
+    9.254513
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 50,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 607,
+   "_talpa": "talpa 85 del Bin.7, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 23,
+   "lat": 45.431383,
+   "lon": 9.254503,
+   "on_track": [
+    45.431375,
+    9.254513
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 608,
+   "_talpa": "talpa 13 del Bin.7, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 1,
+   "lat": 45.431334,
+   "lon": 9.254565,
+   "on_track": [
+    45.431342,
+    9.254555
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 51,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 609,
+   "_talpa": "talpa 86 del Bin.8, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 1,
+   "lat": 45.43135,
+   "lon": 9.254545,
+   "on_track": [
+    45.431342,
+    9.254555
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 231,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 610,
+   "_talpa": "talpa 12 del Bin.8, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 71,
+   "lat": 45.431311,
+   "lon": 9.254592,
+   "on_track": [
+    45.431319,
+    9.254582
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 50,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 611,
+   "_talpa": "talpa 87 del Bin.9, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 71,
+   "lat": 45.431327,
+   "lon": 9.254572,
+   "on_track": [
+    45.431319,
+    9.254582
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 612,
+   "_talpa": "talpa 11 del Bin.9, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 14,
+   "lat": 45.431275,
+   "lon": 9.254634,
+   "on_track": [
+    45.431283,
+    9.254624
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 50,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 613,
+   "_talpa": "talpa 88 del Bin.10, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 14,
+   "lat": 45.431291,
+   "lon": 9.254614,
+   "on_track": [
+    45.431283,
+    9.254624
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 614,
+   "_talpa": "talpa 10 del Bin.10, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 15,
+   "lat": 45.431251,
+   "lon": 9.254663,
+   "on_track": [
+    45.431259,
+    9.254653
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 49,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 615,
+   "_talpa": "talpa 89 del Bin.11, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 15,
+   "lat": 45.431267,
+   "lon": 9.254643,
+   "on_track": [
+    45.431259,
+    9.254653
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 229,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 616,
+   "_talpa": "talpa 9 del Bin.11, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 26,
+   "lat": 45.431216,
+   "lon": 9.254707,
+   "on_track": [
+    45.431224,
+    9.254697
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 50,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 617,
+   "_talpa": "talpa 90 del Bin.12, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 26,
+   "lat": 45.431232,
+   "lon": 9.254687,
+   "on_track": [
+    45.431224,
+    9.254697
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 618,
+   "_talpa": "talpa 8 del Bin.12, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 27,
+   "lat": 45.431193,
+   "lon": 9.254737,
+   "on_track": [
+    45.431201,
+    9.254727
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 51,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 619,
+   "_talpa": "talpa 91 del Bin.13, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 27,
+   "lat": 45.431209,
+   "lon": 9.254717,
+   "on_track": [
+    45.431201,
+    9.254727
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 231,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 620,
+   "_talpa": "talpa 7 del Bin.13, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 29,
+   "lat": 45.431158,
+   "lon": 9.254779,
+   "on_track": [
+    45.431166,
+    9.254769
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 50,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 621,
+   "_talpa": "talpa 92 del Bin.14, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 29,
+   "lat": 45.431174,
+   "lon": 9.254759,
+   "on_track": [
+    45.431166,
+    9.254769
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 622,
+   "_talpa": "talpa 6 del Bin.14, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 28,
+   "lat": 45.431134,
+   "lon": 9.254807,
+   "on_track": [
+    45.431142,
+    9.254797
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 50,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 623,
+   "_talpa": "talpa 93 del Bin.15, sul giunto a metà binario, guarda verso est (Giovanni 17/11/2026, quadro ACEI)"
+  },
+  {
+   "line": "M3",
+   "w": 28,
+   "lat": 45.43115,
+   "lon": 9.254787,
+   "on_track": [
+    45.431142,
+    9.254797
+   ],
+   "offset_m": 1.2,
+   "side": "right",
+   "heading": 230,
+   "dir": 1,
+   "type": "shunt",
+   "name": "",
+   "kind": "shunt",
+   "talpa": true,
+   "n": 624,
+   "_talpa": "talpa 5 del Bin.15, sul giunto a metà binario, guarda verso ovest (Giovanni 17/11/2026, quadro ACEI)"
   }
  ],
  "speeds": {
@@ -4652,18 +5132,15 @@
   ]
  },
  "loop_exit_a94": {
-  "_about": "Giovanni 28 Oct: from beyond #A95 these places cannot be reached; a train given one of them leaves the test loop back through #A94 (only if no train waits at #A94).",
+  "_about": "Giovanni 28 Oct: from beyond #A95 these places cannot be reached; a train given one of them leaves the test loop back through #A94 (only if no train waits at #A94). (17/11/2026: the places by their track names, B22-B28 = the old A69-A75; A66-A68 no longer exist)",
   "places": [
-   "A66",
-   "A67",
-   "A68",
-   "A69",
-   "A70",
-   "A71",
-   "A72",
-   "A73",
-   "A74",
-   "A75"
+   "B22",
+   "B23",
+   "B24",
+   "B25",
+   "B26",
+   "B27",
+   "B28"
   ]
  },
  "tail_slots": {

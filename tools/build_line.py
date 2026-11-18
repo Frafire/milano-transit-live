@@ -1,5 +1,5 @@
 """Build a metro line's fleet simulation on its real OSM tracks. LINE=M3 or LINE=M4."""
-import sys, os, json, math, collections
+import sys, os, json, math, collections, hashlib
 sys.path.insert(0, '.')
 LINE = os.environ.get('LINE', 'M3')
 CFG = {
@@ -59,6 +59,12 @@ def in_depot(n):
 STORE_EXIT = {}       # through-track middle node -> node to leave by (the far end, or the same end: cambio banco)
 STORE_ARR_FROM = {}   # through-track place -> the end trains come in by
 STORE_SAME = set()    # through tracks left by the end the train came in
+# the two places of a rimessa track (Giovanni 17 Nov 2026): the trains come in from the front (the door's side, east);
+# the first on an empty track goes to the far end (the west half, B<n>.1), the second stops in the east half (B<n>.2).
+# Out: from the front when the way is free, else from the back onto the side tracks (the "giro"; and 4% of the times
+# anyway). W_E[w] = e and W_E[e] = w; BACK[alias] = w: the west place left from the back (an id of its own, 400000 + li)
+W_E, BACK = {}, {}
+def REAL(n): return BACK.get(n, n)
 STORE_WAY = {}        # depot place -> OSM way of its track (for numbering and names)
 LINKS_BY_MID = {}
 if CFG.get('through'):
@@ -201,7 +207,10 @@ for li_ in list(SECOND):
     print('second place on through track', li_, ': room between the two trains', round(gap), 'm')
     if gap < -1: print('   skipped: they would touch'); del SECOND[li_]; continue
     t2 = min(t2, L_ - 1)
-    m2 = 300000 + li_; node_pos[m2] = (sx + ux * t2, sy + uy * t2)
+    # in from the front through the east half: the nose at the flag (the far end), the train towards m (where the train
+    # coming in from the back had its nose); the same stretch of track as before
+    tW = max(1.0, t2 - 2 * TRAIN_HALF)
+    m2 = 300000 + li_; node_pos[m2] = (sx + ux * tW, sy + uy * tW)
     e = next(e for e in node_edges[m_] if sw_ in (edges[e]['a'], edges[e]['b']))
     node_edges[sw_].remove(e)
     for x_, y_, mid_, reuse in ((m_, m2, m_, e), (m2, sw_, m2, None)):     # the old piece becomes the first half
@@ -210,10 +219,13 @@ for li_ in list(SECOND):
         ne_e = dict(a=x_, b=y_, pts=pts, len=plen(pts), way=-1, svc='yard', name='through track', mid=mid_)
         if reuse is not None: edges[reuse] = ne_e; node_edges[m2].append(reuse); continue
         ei = len(edges); edges.append(ne_e); node_edges[x_].append(ei); node_edges[y_].append(ei)
-    _router.THROUGH_ALLOWED = {m2}
-    if route_nodes(CFG['AFTER_ARR'], m2, via=[sw_]) and route_nodes(m2, SD_OUT_NODE, via=[SD_DEP[1]], first=sw_):
-        storage.append((0, m2)); STORE_EXIT[m2] = sw_; STORE_SAME.add(m2); STORE_ARR_FROM[m2] = sw_; STORE_WAY[m2] = STORE_WAY.get(m_, -1); SECOND[li_] = m2
-        print('second place on through track', li_, '(D place with two trains): node', m2)
+    _router.THROUGH_ALLOWED = {m2, m_}
+    if (route_nodes(CFG['AFTER_ARR'], m2, via=[ne_, m_]) and route_nodes(m2, SD_OUT_NODE, via=[SD_DEP[1]], first=m_)
+            and route_nodes(m_, SD_OUT_NODE, via=[m2, SD_DEP[1]], first=m2)):
+        storage.append((0, m2)); STORE_EXIT[m2] = m_; STORE_SAME.add(m2); STORE_ARR_FROM[m2] = m_; STORE_WAY[m2] = STORE_WAY.get(m_, -1); SECOND[li_] = m2
+        W_E[m2] = m_; W_E[m_] = m2; BACK[400000 + li_] = m2
+        _router.OPEN_WITH[m_] = m2
+        print('second place on through track', li_, '(D place with two trains): node', m2, '(in from the front, out from the front or the back)')
     else: print('second place on through track', li_, 'skipped: no route to it from its own end')
     _router.THROUGH_ALLOWED = set()
 storage = [n for _, n in sorted(storage, key=lambda x: x[0])]
@@ -232,6 +244,9 @@ def make_path(key, states):
 def fwd_place(n): return n in STORE_EXIT and n not in STORE_SAME          # through track left straight on (forward)
 def start_off(n):
     """where the train's centre is at the start of a path from n"""
+    if n in BACK:                                                             # the west place left from the back: from m, straight on
+        w = BACK[n]; e = next(e for e in node_edges[w] if W_E[w] in (edges[e]['a'], edges[e]['b']))
+        return edges[e]['len'] - TRAIN_HALF
     if len(node_edges[n]) == 1: return tail_off(n)
     if n in STORE_SAME: return TRAIN_HALF                                     # parked behind the node, leaves backwards
     if fwd_place(n):                                                          # parked behind the node, leaves forwards
@@ -246,8 +261,12 @@ def end_off(n, L):
 def leg_path(start, via, end):
     key = ('leg', start, tuple(via), end)
     if key in path_key: return path_key[key]
-    _router.THROUGH_ALLOWED = {x for x in (start, end) if x in STORE_EXIT}   # ...except its own parking track
-    if fwd_place(start):            # parked behind the node: the path starts at the end it came in by, straight through
+    _router.THROUGH_ALLOWED = {x for x in (REAL(start), end) if x in STORE_EXIT}   # ...except its own parking track
+    if REAL(start) in W_E: _router.THROUGH_ALLOWED.add(W_E[REAL(start)])           # (the west place: through the east half)
+    if end in W_E and end in SECOND.values(): _router.THROUGH_ALLOWED.add(W_E[end]); via = list(via) + [W_E[end]]   # in from the front
+    if start in BACK:               # the west place left from the back: from m, through the place, on to the west end
+        st = route_nodes(W_E[BACK[start]], end, via=[BACK[start]] + list(via), first=BACK[start])
+    elif fwd_place(start):          # parked behind the node: the path starts at the end it came in by, straight through
         st = route_nodes(STORE_ARR_FROM[start], end, via=[start] + list(via), first=start)
     else: st = route_nodes(start, end, via=via, first=STORE_EXIT.get(start))
     _router.THROUGH_ALLOWED = set()
@@ -432,7 +451,9 @@ def _sig_index(n):     # #A number (as shown on the map) -> index in the list of
     return next((i for i, x in enumerate(_rules_['signals']) if x.get('_n') == n), None)
 _IL = _rules_.get('interlocking', {})
 _side_lon = _IL.get('depot_sides', {}).get('lon')
-_sides = [[i for i, sg in enumerate(_rules_['signals']) if sg.get('type') == 'shunt' and (sg['lon'] > _side_lon) == east] for east in (True, False)] if _side_lon else []
+# (the talpe, the pairs on the joint in the middle of the rimessa tracks, are not a side's movements: a train coming in
+# from the front to the west place passes them with the itinerary it was given at the head of the track)
+_sides = [[i for i, sg in enumerate(_rules_['signals']) if sg.get('type') == 'shunt' and not sg.get('talpa') and (sg['lon'] > _side_lon) == east] for east in (True, False)] if _side_lon else []
 # ---- interlocking: one model (web/interlocking.js). Groups, depot sides, manual signals, block sections, zones ----
 _ix = lambda ns: [i for i in (_sig_index(n) for n in ns) if i is not None]
 _G = [{'name': g.get('name', ''), 'signals': _ix(g['signals']), 'hold': bool(g.get('hold')), 'section': bool(g.get('section'))} for g in _IL.get('groups', [])]
@@ -840,15 +861,32 @@ for k, c in enumerate(trains):
             stays.append((arrive, leave_at(nxt) if nxt else INF, tr['ti'], nxt['ti'] if nxt else None))
 place_free = {p: -1 for p in storage}
 pref = sorted(storage, key=lambda p: (p not in STORE_EXIT, storage.index(p)))
-shared = 0
+# a rimessa track: its west place right before its east place (the first train on an empty track goes to the far end)
+_W = {w for w in W_E if w in SECOND.values()}
+pref = [q for p in pref if p not in _W for q in ([W_E[p], p] if p in W_E and W_E[p] in _W else [p])]
+shared = 0; _HELD = collections.defaultdict(list)      # place -> [(from, to, before)]
 for s0, s1, after, before in sorted(stays, key=lambda x: x[0]):
-    free = [p for p in pref if place_free[p] <= s0]
+    # the west place only with the east half free (the way in from the front goes through it), the east place only when
+    # the west one's train has been in for a while (it came in through it); with room for the times of the moves
+    # (a stay's times are those of the timetable: the moves in and out are some minutes off them)
+    free = [p for p in pref if place_free[p] <= s0 and not (p in _W and place_free[W_E[p]] > s0 - 1800)
+            and not (p in W_E and p not in _W and any(w0 > s0 - 1800 and w0 <= s0 + 1800 for w0, w1, _b in _HELD[W_E[p]]))]
     if free: p = free[0]
     else: p = min(pref, key=lambda q: place_free[q]); shared += 1
-    place_free[p] = s1
+    place_free[p] = s1; _HELD[p].append((s0, s1, before))
     if after is not None: STORE_AFTER[after] = p
     if before is not None: STORE_BEFORE[before] = p
-print('depot stays', len(stays), '| a track shared at the same time:', shared)
+# out of the west place: from the back when a train stands in the east half then (or comes in just then), and 4% of the
+# times anyway (Giovanni 17 Nov 2026: "un 4% di treni che fanno comunque il giro e usano i laterali")
+_back = 0
+for w in _W:
+    for s0, s1, before in _HELD[w]:
+        if before is None: continue
+        busy = any(e0 < s1 + 1800 and e1 > s1 - 1800 for e0, e1, _b in _HELD[W_E[w]])
+        rnd_ = int(hashlib.md5(('giro|%s|%s' % (before, w)).encode()).hexdigest()[:8], 16) / 0xffffffff
+        if busy or rnd_ < 0.04:
+            STORE_BEFORE[before] = next(a for a, x in BACK.items() if x == w); _back += 1
+print('depot stays', len(stays), '| a track shared at the same time:', shared, '| out of a west place from the back:', _back)
 def platform_alternatives(tl, seg0, start, ctail, tr, t_leave, t_plat, chosen):
     """Store the same departure via every San Donato platform so the page can switch it."""
     if len(CFG['PLATS']) < 2: return
@@ -984,8 +1022,8 @@ for k, chain in enumerate(trains):
                 t_leave = depot_leave(t_plat - run, a06_clear(pid0, d0), _late); t_plat = t_leave + run
                 com_seg0 = len(tl.segs)
                 pid, d_arr, d_end, t_arr = service_leg(tl, start, via, ctail, tr, t_leave, SD_STOP, COM_STOP, 'from_depot', t_plat)
-                tl.segs[-2].append(start)
-                com_leg = dict(seg0=com_seg0, start=start, via=via, tr=tr, t_leave=t_leave, t_plat=t_plat, status='from_depot', store=start)
+                tl.segs[-2].append(REAL(start))
+                com_leg = dict(seg0=com_seg0, start=start, via=via, tr=tr, t_leave=t_leave, t_plat=t_plat, status='from_depot', store=REAL(start))
             else:
                 start = loc[1]; p_no = PLAT_OF.get(tr['ti'], 1)
                 via = [SD_DEP[p_no], SD_OUT_NODE]
@@ -1030,7 +1068,7 @@ for k, chain in enumerate(trains):
                 LE = cE[-1]; d0, d1 = start_off(STORE_BEFORE.get(tr['ti'], loc[1])), LE - tail_off(ctail)
                 _t0 = t_ready - (d1 - d0) / V_EMPTY - 90 - EMPTY_MARGIN                # leave early: on the way it may wait behind passenger trains
                 t0 = depot_leave(_t0, a06_clear(pidE, d0, [[_t0, _t0 + 90, t_ready], [d0, d0 + 200, d1]]), EMPTY_MARGIN / 2)
-                tl.add(pidE, 'empty', [t0, t0 + 90, t_ready], [d0, d0 + 200, d1]); tl.segs[-1].append(STORE_BEFORE.get(tr['ti'], loc[1]))
+                tl.add(pidE, 'empty', [t0, t0 + 90, t_ready], [d0, d0 + 200, d1]); tl.segs[-1].append(REAL(STORE_BEFORE.get(tr['ti'], loc[1])))
                 loc = ('com', ctail, t_ready)
             if loc[0] == 'comP':
                 # the night on the arrival platform: into the tail first (its position 1), to change cab there
@@ -1119,10 +1157,11 @@ if CFG['training']:
         return ends[1][1]
     _mk = lambda key, st: make_path(key, st)
     def _start(p_):        # the path out of place p_ and the train's centre on it
+        if p_ in BACK: return W_E[BACK[p_]], [BACK[p_]], BACK[p_]       # (the west place, out from the back)
         if fwd_place(p_): return STORE_ARR_FROM[p_], [p_], p_
         return p_, [], STORE_EXIT.get(p_)
     def loop_trip(p_):
-        _router.THROUGH_ALLOWED = {p_} if p_ in STORE_EXIT else set()
+        _router.THROUGH_ALLOWED = {REAL(p_)} if REAL(p_) in STORE_EXIT else set()
         a_, v_, f_ = _start(p_); legs = None
         r = route_nodes(a_, 157, via=v_, first=f_)
         if r:
@@ -1158,8 +1197,8 @@ if CFG['training']:
                 legs = [[p1, start_off(p_), d1, 1], [p2, d2, paths[p2][1][-1], 0]]; break
         _router.THROUGH_ALLOWED = set()
         return legs
-    TEST['trip'] = {}; _no = []
-    for p_ in storage + _solo:
+    TEST['trip'] = {}; TEST['tripBack'] = {}; _no = []
+    for p_ in storage + _solo + sorted(BACK):          # (the west places also out from the back: tripBack)
         L_ = loop_trip(p_)
         if not L_: _no.append(p_); continue
         # the stop in front of #A94 on the last leg, where the train asks to go in (its centre; None: it asks where it
@@ -1169,7 +1208,7 @@ if CFG['training']:
         if _bw and _bw[0] < 3: gate = _bw[1] - TRAIN_HALF                      # its nose at Giovanni's flag in front of #A94
         else: gate = b_[1] - TRAIN_HALF - 8 if b_ else None
         if gate is not None and gate <= s_ + 2: gate = None
-        TEST['trip'][str(p_)] = {'legs': [[a, round(b, 1), round(c, 1), d] for a, b, c, d in L_], 'gate': round(gate, 1) if gate else None}
+        TEST['tripBack' if p_ in BACK else 'trip'][str(REAL(p_))] = {'legs': [[a, round(b, 1), round(c, 1), d] for a, b, c, d in L_], 'gate': round(gate, 1) if gate else None}
     # back: from the loop out by #A96, the train stops beyond #A94 (its rear past node 8's switch), there it gets a place
     # and goes on to it: straight on, after a change of cab, or (east side) after a change of cab and a second one at
     # the w71 turning point
@@ -1283,7 +1322,7 @@ if CFG['training']:
     # build, by the tracks and places they depend on, and anything going wrong only leaves the wash out, with a warning)
     import hashlib as _hl
     _wkey = _hl.sha1(json.dumps([sorted((k, [round(v[0], 1), round(v[1], 1)]) for k, v in node_pos.items()), [(e['a'], e['b'], round(e['len'], 1)) for e in edges],
-                                 sorted(RIMESSA_TRACKS.items()), sorted(SECOND.items(), key=str), [sh.get('pts') for sh in SHEDS], sorted(STORE_EXIT.items()), sorted(STORE_ARR_FROM.items()), WASH_APPROACH, V_WASH], default=str).encode()).hexdigest()
+                                 sorted(RIMESSA_TRACKS.items()), sorted(SECOND.items(), key=str), [sh.get('pts') for sh in SHEDS], sorted(STORE_EXIT.items()), sorted(STORE_ARR_FROM.items()), WASH_APPROACH, V_WASH, sorted(_router.OPEN_WITH.items())], default=str).encode()).hexdigest()
     _wcache = os.path.join(os.environ.get('WASH_CACHE_DIR', os.path.dirname(os.path.abspath(os.getcwd())) + '/build'), 'wash_cache_%s.json' % LINE.lower())
     def _wash_ways():
         _lavP = next((P for sh, P in zip(SHEDS, SHED_XY) if sh.get('uso') == 'lavaggio'), None)
@@ -1426,6 +1465,15 @@ if LINE == 'M3':
                 pout = leg_path(p_, [SD_DEP[pl]], SD_OUT_NODE); cout = paths[pout][1]
                 d_pl_, _ = project(paths[pout][0], cout, *SD_STOP, 0, None)
                 rec['out'][str(pl)] = {'pid': pout, 'start': round(start_off(p_), 1), 'plat': round(d_pl_, 1)}
+            # the west place of a rimessa track: also out from the back (when the east half is taken), and its pair
+            bk = next((a for a, x in BACK.items() if x == p_), None)
+            if bk is not None:
+                rec['outBack'] = {}; rec['pair'] = str(W_E[p_]); rec['half'] = 'W'
+                for pl in CFG['PLATS']:
+                    pout = leg_path(bk, [SD_DEP[pl]], SD_OUT_NODE); cout = paths[pout][1]
+                    d_pl_, _ = project(paths[pout][0], cout, *SD_STOP, 0, None)
+                    rec['outBack'][str(pl)] = {'pid': pout, 'start': round(start_off(bk), 1), 'plat': round(d_pl_, 1)}
+            elif p_ in W_E: rec['pair'] = str(W_E[p_]); rec['half'] = 'E'
             DEPOT_PATHS[str(p_)] = rec
         except RuntimeError as e_: print('depot paths: no route for place', p_, e_)
     print('depot paths for the live depot manager:', len(DEPOT_PATHS), 'places')
@@ -1648,7 +1696,7 @@ if CFG.get('THROATS'):
             keep.add(ei)
         return sorted(keep)
     TH = CFG['THROATS']
-    home_ex = [STORE_BEFORE.get(chain[0]['ti'], storage[0]) for chain in trains][:3] if storage else []
+    home_ex = [REAL(STORE_BEFORE.get(chain[0]['ti'], storage[0])) for chain in trains][:3] if storage else []
     _dep = [ei for ei in range(len(edges)) if any({edges[ei]['a'], edges[ei]['b']} == set(pr) for pr in TH['home'].get('depot', []))]
     THROATS.append({'name': CFG['home'], 'edges': sorted(set(_throat(TH['home']['ends'], SD_TAILS, home_ex)) | set(_dep)), 'p1': [ei for ei in range(len(edges)) if {edges[ei]['a'], edges[ei]['b']} == set(TH['home']['p1'])]})
     THROATS.append({'name': CFG['far'], 'edges': _throat(TH['far']['ends'], COM_TAILS), 'p1': []})
@@ -1985,7 +2033,7 @@ for pid in range(len(paths)):
     PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves, **({'sheds': _sh} if _sh else {}), **({'wash': _wsh} if _wsh else {})})
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
-    NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name', 'stype', 'legal', 'manual')}, 'n': sg.get('_n')}
+    NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name', 'stype', 'legal', 'manual', 'talpa')}, 'n': sg.get('_n')}
                       for sg in _rules_.get('signals', []) if sg.get('line') == LINE]
     NET['removed'] = _rules_.get('removed_signals', [])
     NET['interlocking'] = INTERLOCKING
@@ -2022,7 +2070,10 @@ for si_, sg in enumerate(NET['signals']):
             if min(ax, bx) - 3 > x or max(ax, bx) + 3 < x or min(ay, by) - 3 > y or max(ay, by) + 3 < y: continue
             dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
             if not L2: continue
-            u = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); e = math.hypot(x - ax - u * dx, y - ay - u * dy)
+            u0 = ((x - ax) * dx + (y - ay) * dy) / L2; u = max(0, min(1, u0)); e = math.hypot(x - ax - u * dx, y - ay - u * dy)
+            # a talpa (one of the pair on the joint in the middle of a rimessa track) is on a path only where the path goes
+            # past it: the trains parked on the two halves stop 1-1.5 m short of it, it is not in front of them
+            if sg.get('talpa') and ((i == 0 and u0 < 0) or (i == len(p_) - 2 and u0 > 1)): continue
             if e < 1.8 and (best is None or e < best[0]): best = (e, c_[i] + u * (c_[i + 1] - c_[i]), math.degrees(math.atan2(dx, dy)) % 360)
         if best and abs((best[2] - sg.get('heading', best[2]) + 180) % 360 - 180) < 60:
             SIGPOS.setdefault(str(pid), []).append([round(best[1], 1), si_])
@@ -2034,7 +2085,7 @@ for _z in INTERLOCKING['zones']:
     _z['paths'] = sorted(int(pid) for pid, lst in SIGPOS.items() for d, si in lst if si in _z['entry']
                          and any(NET['edges'][ei]['cat'] == 'test' and d1 > d for ei, dr, d0, d1 in PATH_EDGES[int(pid)]['e']))
     print('zone', _z['name'], ': entry', _z['entry'], 'holds the trains on', len(_z['paths']), 'paths (into the zone)')
-# a depot place is called by the signal in front of it (Giovanni: easier for maintenance), e.g. "A78"
+# a depot place: first the signal in front of it (kept as "sig", e.g. "A78"), then its name from the board's track (B3, B4.1...)
 if LINE == 'M3' and NET.get('depot'):
     _used = set()
     for dp in NET['depot']:
@@ -2046,8 +2097,19 @@ if LINE == 'M3' and NET.get('depot'):
         if not ahead: continue
         nm = 'A%02d' % NET['signals'][ahead[0][1]]['n']
         if nm in _used: nm += '-2'
-        _used.add(nm); dp['name'] = nm
-    print('depot places named after the signal in front:', [dp['name'] for dp in NET['depot']])
+        _used.add(nm); dp['name'] = dp['sig'] = nm
+    # the names Giovanni gives (17 Nov 2026): B<n> on a track with one place, B<n>.1 (west half) and B<n>.2 (east half)
+    # on a rimessa track; Bin.<n> and its places from the sinottico (data/schema_deposito_m3.json, bins)
+    _bn = {}
+    _sch = json.load(open('schema_deposito_%s.json' % LINE.lower())) if os.path.exists('schema_deposito_%s.json' % LINE.lower()) else {}
+    for _b in _sch.get('bins', []):
+        _N = _b['t'].split('.')[-1]; _ns = _b.get('places') and _b['nodes'] or []
+        for _x in _ns:
+            _bn[_x] = 'B%s' % _N if len(_ns) == 1 else 'B%s.%d' % (_N, 1 if _x in SECOND.values() else 2)
+    for dp in NET['depot']:
+        if dp['node'] in _bn and str(dp['node']) not in _rules_.get('names', {}).get('depot', {}): dp['name'] = _bn[dp['node']]
+    print('depot places named after the signal in front:', [dp.get('sig') for dp in NET['depot']])
+    print('depot places, names (Bin.n of the board):', [dp['name'] for dp in NET['depot']])
 print('network for the live engine:', len(NET['nodes']), 'nodes,', len(NET['edges']), 'track pieces,', len(NET['signals']), 'signals')
 # ---------------- block sections along the line (fixed block, one train per section) ----------------
 # A section runs from a station's departure signal (end of the platform, direction of travel) to the next station's.
@@ -2225,6 +2287,7 @@ if TEST and TEST.get('trip'):
         cov = [c for i_, (pid, d0, d1, _r) in enumerate(legs) for c in _cover(pid, min(d0, d1) + (TRAIN_HALF if i_ == 0 else 0), max(d0, d1) - (TRAIN_HALF if i_ == len(legs) - 1 else 0))]
         return [q_ for q_, pk in _park.items() if q_ != own and any(e1 == e2 and a1 < b2 - 0.5 and a2 < b1 - 0.5 for (e1, a1, b1) in pk for (e2, a2, b2) in cov)]
     TEST['trip_blocks'] = {p_: _over(v['legs'], p_) for p_, v in TEST['trip'].items()}
+    TEST['trip_blocks_back'] = {p_: _over(v['legs'], p_) for p_, v in TEST.get('tripBack', {}).items()}
     TEST['home_blocks'] = {q_: _over(v['legs'], q_) for q_, v in TEST['home'].items()}
     # the wash: the places a train going through the wash and back would run over (they must be free)
     TEST['wash_blocks'] = {p_: _over([l[:4] for l in v['go'] + [v['back'][p_]]], p_) for p_, v in TEST.get('wash', {}).items() if p_ in v['back']}
