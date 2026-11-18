@@ -14,6 +14,7 @@ Milano Transit Live is an **unofficial fan project**. It is not affiliated with,
 | Map library | Leaflet 1.9.4 (`web/vendor/leaflet`) | BSD-2-Clause | Keep `web/vendor/leaflet/LICENSE` |
 | Fonts | Google Fonts (Barlow, Barlow Condensed, Doto, VT323) | SIL Open Font License | Nothing extra |
 | Metro line marks (`web/img/lines/`, `web/img/m3_logo.png`, `web/img/home/metro.png`) | Images chosen by Giovanni | Checked by Giovanni: no copyright | Used only to name the lines |
+| M3 audio files (announcements and sounds of the Milan M3 line) | **2427junction** (site owner), [2427junction.com](https://2427junction.com/itamilanometro03.html), used with his written permission | Permission granted by email on 2026-11-18 for use in this game, for publication on GitHub and for this credit | Keep this credit. The owner asked to be told when the game is finished. The audio files are not in the repository yet |
 | Network diagram behind the metro menu (`web/img/home/rete.png`, from a schematic map of the Milan metro, text removed) | **Source to be confirmed** (likely Wikimedia Commons) | **To be confirmed** (likely CC BY-SA) | Credit the author and keep the same license for the derived image |
 
 Fleet lists (M3 and M4 train numbers) were typed in by Giovanni from public sources.
