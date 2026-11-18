@@ -1399,10 +1399,14 @@ window.MTL_CAPS = __CAPS__;
     };
     if (draw) F.tracks.forEach(t => ALLTRACKS.push({ line: F.line, w: t.w, c: t.c, d: t.d, g: t.g, pts: decodeFlat(t.p) }));
     const drawn_ = F.net ? F.net.edges.map(e => ({ c: e.cat, p: e.p })) : F.tracks;   // M3: drawn from the engine's network
-    if (draw) ['yard', 'test', 'link', 'siding', 'crossover', 'main'].forEach(cat => drawn_.filter(t => t.c === cat).forEach(t => {
-      const pts = decodeFlat(t.p);
-      (TS[cat] || TS.siding).forEach(st => { const pl = L.polyline(pts, { ...st, interactive: false }).addTo(g); if (st.color === look.color) (LINEPL[F.line] = LINEPL[F.line] || []).push([pl, st.color]); });
-    }));
+    // (Giovanni 18 Nov 2026: from afar the two tracks of the line looked like several lines glued together: each track
+    // drew its dark edge over the colour of the one next to it. Now first the dark edges of all the tracks of a kind,
+    // then their colour on top: the two tracks of the line make one band, as thick as before, and split apart only
+    // zoomed in, where they really are apart)
+    if (draw) ['yard', 'test', 'link', 'siding', 'crossover', 'main'].forEach(cat => {
+      const tr_ = drawn_.filter(t => t.c === cat).map(t => decodeFlat(t.p));
+      (TS[cat] || TS.siding).forEach(st => tr_.forEach(pts => { const pl = L.polyline(pts, { ...st, interactive: false }).addTo(g); if (st.color === look.color) (LINEPL[F.line] = LINEPL[F.line] || []).push([pl, st.color]); }));
+    });
     // station boards (M3, M4): click a station to see the next trains
     const boards = (F.boards || []).map(b => {
       const dirs = {};

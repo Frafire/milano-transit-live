@@ -50,6 +50,40 @@ for _tl in (json.load(open(_RF)).get('track_lengths', []) if os.path.exists(_RF)
     node_pos[_n] = _p[-1]
     print('track length:', _tl.get('name'), round(_e['len'], 1), 'm')
 
+# (Giovanni 18 Nov 2026: the tracks on the map "tremolanti", corners between the OSM points that the trains follow)
+# the corners inside a track piece are rounded with an arc, at most SMOOTH_MAX metres off the OSM line (at the old
+# point; less everywhere else) and never in the first and last SMOOTH_KEEP metres of a piece (the switches: the
+# direction at its ends, router.tangent, stays the OSM one). The ends of the pieces do not move. No new track: the arc
+# lies between the two OSM segments it joins. 0 turns it off.
+SMOOTH_MAX = float(os.environ.get('SMOOTH_MAX', '0.5')); SMOOTH_KEEP = 12.0
+def _fillet(P):
+    if len(P) < 3 or SMOOTH_MAX <= 0: return P
+    L = [math.hypot(P[k + 1][0] - P[k][0], P[k + 1][1] - P[k][1]) for k in range(len(P) - 1)]; cum = [0.0]
+    for l in L: cum.append(cum[-1] + l)
+    out = [P[0]]
+    for k in range(1, len(P) - 1):
+        A, B, C = P[k - 1], P[k], P[k + 1]
+        if L[k - 1] < 1e-6 or L[k] < 1e-6: out.append(B); continue
+        u = ((B[0] - A[0]) / L[k - 1], (B[1] - A[1]) / L[k - 1]); v = ((C[0] - B[0]) / L[k], (C[1] - B[1]) / L[k])
+        th = math.acos(max(-1.0, min(1.0, u[0] * v[0] + u[1] * v[1])))
+        if th < 1e-4 or th > math.radians(60): out.append(B); continue      # (straight on, or not a curve of the track)
+        R = SMOOTH_MAX / (1 / math.cos(th / 2) - 1)
+        c = min(R * math.tan(th / 2), L[k - 1] / 2, L[k] / 2, cum[k] - SMOOTH_KEEP, cum[-1] - cum[k] - SMOOTH_KEEP)
+        if c <= 0.05: out.append(B); continue
+        R = c / math.tan(th / 2); sg_ = 1 if u[0] * v[1] - u[1] * v[0] > 0 else -1
+        S = (B[0] - u[0] * c, B[1] - u[1] * c); cx, cy = S[0] - u[1] * R * sg_, S[1] + u[0] * R * sg_
+        a0 = math.atan2(S[1] - cy, S[0] - cx); n = max(2, int(math.degrees(th)) + 1)     # (a point every degree)
+        for j in range(n + 1): a = a0 + sg_ * th * j / n; out.append((cx + R * math.cos(a), cy + R * math.sin(a)))
+    out.append(P[-1]); o2 = [out[0]]
+    for q in out[1:-1]:
+        if math.hypot(q[0] - o2[-1][0], q[1] - o2[-1][1]) > 0.05: o2.append(q)
+    o2.append(out[-1]); return o2
+if SMOOTH_MAX > 0:
+    _n0 = sum(len(e['pts']) for e in edges)
+    for e in edges:
+        e['pts'] = _fillet(e['pts']); e['len'] = sum(math.hypot(e['pts'][i][0] - e['pts'][i - 1][0], e['pts'][i][1] - e['pts'][i - 1][1]) for i in range(1, len(e['pts'])))
+    print('tracks: corners rounded, at most %.1f m off the OSM line (points %d -> %d)' % (SMOOTH_MAX, _n0, sum(len(e['pts']) for e in edges)))
+
 def poly(ei, d):
     p = edges[ei]['pts']
     return p if d > 0 else p[::-1]

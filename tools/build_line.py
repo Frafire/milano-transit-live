@@ -1322,7 +1322,7 @@ if CFG['training']:
     # build, by the tracks and places they depend on, and anything going wrong only leaves the wash out, with a warning)
     import hashlib as _hl
     _wkey = _hl.sha1(json.dumps([sorted((k, [round(v[0], 1), round(v[1], 1)]) for k, v in node_pos.items()), [(e['a'], e['b'], round(e['len'], 1)) for e in edges],
-                                 sorted(RIMESSA_TRACKS.items()), sorted(SECOND.items(), key=str), [sh.get('pts') for sh in SHEDS], sorted(STORE_EXIT.items()), sorted(STORE_ARR_FROM.items()), WASH_APPROACH, V_WASH, sorted(_router.OPEN_WITH.items())], default=str).encode()).hexdigest()
+                                 sorted(RIMESSA_TRACKS.items()), sorted(SECOND.items(), key=str), [sh.get('pts') for sh in SHEDS], sorted(STORE_EXIT.items()), sorted(STORE_ARR_FROM.items()), WASH_APPROACH, V_WASH, sorted(_router.OPEN_WITH.items()), _router.SMOOTH_MAX], default=str).encode()).hexdigest()
     _wcache = os.path.join(os.environ.get('WASH_CACHE_DIR', os.path.dirname(os.path.abspath(os.getcwd())) + '/build'), 'wash_cache_%s.json' % LINE.lower())
     def _wash_ways():
         _lavP = next((P for sh, P in zip(SHEDS, SHED_XY) if sh.get('uso') == 'lavaggio'), None)
