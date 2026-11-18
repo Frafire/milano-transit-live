@@ -373,6 +373,10 @@ SD_ROWS = {116: -2, 117: -2, 118: -2, 119: -2, 201: -2, 155: -1, 142: -4, 143: -
 # binario 1 (proposal)
 ROW_FIX = {**SD_ROWS, 179: 4, 180: 4, 182: 0, 183: 0, 122: 1, 123: 1, 139: 3, 138: 3, 140: 3, 202: 3}
 X_NODES = {155, 191}
+# San Donato: the departure signals of binario 3 (#A14) and binario 2 (#A45) at the same height; the crossover between
+# binari 1 and 2 two tiles towards Comasina (Giovanni 18 Nov 2026: "così da dare più respiro a tutto")
+SAME_X = [(14, 45)]
+CROSS_SHIFT = {236: -2}
 # the first bit of the tracks to and from the depot (they belong to the depot's drawing): 166 from the end of binario 1,
 # 132 from binario 3
 DEP_STUBS = (166, 132)
@@ -620,6 +624,9 @@ def linea(m3='m3.json'):
                 sx = 1 if X(SN[n]) >= px else -1
                 pos[n] = [round(px + sx * TILE * max(2, round(min(240.0, e['len'] * PXM) / TILE)), 1), py + out * 2 * ROW if py in (YN, YS) or py < YN or py > YS else py + 2 * ROW]
                 far.append(n); break
+    for i, k_ in CROSS_SHIFT.items():
+        for n_ in (E[i]['a'], E[i]['b']):
+            if n_ in pos: pos[n_][0] += k_ * TILE
     # a short piece from a main track to another row (the legs of a tail, of a siding): at 45 degrees, its far node moved
     # along to where that falls, on the side of the rest of its track (Giovanni 18 Nov 2026: "fai fittare il tronchetto di
     # brenta meglio")
@@ -667,9 +674,20 @@ def linea(m3='m3.json'):
             x_ -= l
     # fmap: the pieces drawn level, metres -> drawing
     fmap = {}
+    # (and the pieces that go from one row to another and then on level, when along them the drawing goes one way only:
+    # a point falls where its place along the line is, so the signals on them stand by those of the other tracks)
+    def drawn_u(pts_, xx):
+        L_ = [math.dist(pts_[k_ - 1], pts_[k_]) for k_ in range(1, len(pts_))]; T_ = sum(L_) or 1; acc = 0.0
+        for k_ in range(1, len(pts_)):
+            (ax, _), (bx, _) = pts_[k_ - 1], pts_[k_]
+            if (ax - xx) * (bx - xx) <= 0 and abs(bx - ax) > 1e-6: return (acc + L_[k_ - 1] * (xx - ax) / (bx - ax)) / T_
+            acc += L_[k_ - 1]
+        return 0.0 if abs(xx - pts_[0][0]) < abs(xx - pts_[-1][0]) else 1.0
     for i in edges:
         e = E[i]; pa, pb = pos.get(e['a']), pos.get(e['b'])
-        if not pa or not pb or abs(pa[1] - pb[1]) > 0.5 or abs(pb[0] - pa[0]) < 8 or e['a'] not in nearn or e['b'] not in nearn: continue
+        if not pa or not pb or abs(pb[0] - pa[0]) < 8 or e['a'] not in nearn or e['b'] not in nearn: continue
+        dpts = [pa] + via.get(str(i), []) + [pb]; level = abs(pa[1] - pb[1]) <= 0.5
+        if not level and not all((dpts[k_][0] - dpts[k_ - 1][0]) * (pb[0] - pa[0]) >= 0 for k_ in range(1, len(dpts))): continue
         P = polys[i]; C = [0.0]
         for j in range(1, len(P)): C.append(C[-1] + math.dist(P[j - 1], P[j]))
         k = max(2, int(C[-1] / 10)); pts = []
@@ -677,8 +695,22 @@ def linea(m3='m3.json'):
             u = t / k * C[-1]; j = next((jj for jj in range(1, len(P)) if C[jj] >= u), len(P) - 1); q = (u - C[j - 1]) / ((C[j] - C[j - 1]) or 1)
             s__ = where_xy(P[j - 1][0] + (P[j][0] - P[j - 1][0]) * q, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * q)[1]
             xx = X(TS(s__) if (e['a'] in nS or e['b'] in nS) and onS(i) else s__)
-            pts.append([round(t / k, 3), round(min(1, max(0, (xx - pa[0]) / (pb[0] - pa[0]))), 3)])
+            pts.append([round(t / k, 3), round(min(1, max(0, (xx - pa[0]) / (pb[0] - pa[0]) if level else drawn_u(dpts, xx))), 3)])
         if any(abs(a_ - b_) > 0.02 for a_, b_ in pts): fmap[str(i)] = pts
+    # San Donato (Giovanni 18 Nov 2026): the departure signals of binario 3 and binario 2 at the same height
+    for a_n, b_n in SAME_X:
+        A_ = next((x_ for x_ in sig if x_['n'] == a_n), None); B_ = next((x_ for x_ in sig if x_['n'] == b_n), None)
+        if not A_ or not B_: continue
+        eb = E[B_['e']]; pb_ = [pos[eb['a']]] + via.get(str(B_['e']), []) + [pos[eb['b']]]
+        mb = fmap.get(str(B_['e'])); fb = B_['f']
+        if mb:
+            k_ = next((k_ for k_ in range(1, len(mb)) if B_['f'] <= mb[k_][0]), len(mb) - 1); (t0_, u0_), (t1_, u1_) = mb[k_ - 1], mb[k_]
+            fb = u0_ + (u1_ - u0_) * max(0, min(1, (B_['f'] - t0_) / ((t1_ - t0_) or 1)))
+        xb = drawn_x(B_['e'], fb)[0]
+        ea = E[A_['e']]; pa_ = [pos[ea['a']]] + via.get(str(A_['e']), []) + [pos[ea['b']]]; ua = drawn_u(pa_, xb)
+        ma = [m1 for m1 in fmap.get(str(A_['e']), [[0, 0], [1, 1]]) if abs(m1[0] - A_['f']) > 0.01]
+        ma = sorted(ma + [[A_['f'], round(ua, 3)]]); ma = [m1 for k_, m1 in enumerate(ma) if all(m1[1] >= m0[1] for m0 in ma[:k_]) and all(m1[1] <= m2[1] for m2 in ma[k_ + 1:])]
+        fmap[str(A_['e'])] = ma
     badges = []
     ldeg = collections.Counter(n for i in edges for n in (E[i]['a'], E[i]['b']))
     for i in edges:

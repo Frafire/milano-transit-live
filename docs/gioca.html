@@ -9367,7 +9367,8 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   function sinSections(SCH, NE, sigOf) {
     if (SCH.__sec && SCH.__sec.n === SCH.edges.length) return SCH.__sec;
     const cuts = {}, ent = [];
-    for (const sg of SCH.signals || []) { const S_ = sigOf(sg); if (S_ && S_.illegal) continue; if (!(sg.f > 0.002 && sg.f < 0.998)) { ent.push([sg, sg.f <= 0.002 ? 0 : 1]); continue; }
+    // (the illegal signals cut the track too, Giovanni 18 Nov 2026: "il taglio fallo anche per gli illegali")
+    for (const sg of SCH.signals || []) { if (!(sg.f > 0.002 && sg.f < 0.998)) { ent.push([sg, sg.f <= 0.002 ? 0 : 1]); continue; }
       (cuts[sg.e] = cuts[sg.e] || []).push(sg.f); ent.push([sg, sg.f]); }
     const pieces = [], byEdge = {}, par = [], find = i => par[i] === i ? i : (par[i] = find(par[i])), join = (i, j) => { par[find(i)] = find(j); };
     const ends = {};
@@ -9377,7 +9378,15 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       const e = NE[ei]; (ends[e.a] = ends[e.a] || []).push(byEdge[ei][0][3]); (ends[e.b] = ends[e.b] || []).push(byEdge[ei][byEdge[ei].length - 1][3]); }
     // (joined only where a piece just goes on into the next: at a switch each leg is a section of its own, as the switch
     // track circuits; else one train in a crossover would turn both tracks red)
-    Object.values(ends).forEach(l => { if (l.length === 2) join(l[1], l[0]); });
+    // at a switch the track that goes straight on is one section with it (Giovanni 18 Nov 2026: the section of a signal
+    // protecting a station and a switch "si ferma allo scambio ma non fino all'inizio della stazione"); the leg that turns
+    // off is a section of its own (a train on a crossover does not turn both tracks red)
+    const N_ = schNodes(SCH), V_ = schVia(SCH);
+    const dirAt = (ei, n) => { const e = NE[ei], P = [N_[e.a], ...(V_[ei] || V_[String(ei)] || []), N_[e.b]]; if (!P[0] || !P[P.length - 1]) return null;
+      const [A, B] = e.a == n ? [P[0], P[1]] : [P[P.length - 1], P[P.length - 2]]; const dx = B[0] - A[0], dy = B[1] - A[1], l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
+    Object.entries(ends).forEach(([n, l]) => { if (l.length === 2) { join(l[1], l[0]); return; } if (l.length < 3) return;
+      const ds = l.map(id => dirAt(pieces[id][0], n));
+      for (let i = 0; i < l.length; i++) for (let j = i + 1; j < l.length; j++) if (ds[i] && ds[j] && ds[i][0] * ds[j][0] + ds[i][1] * ds[j][1] < -0.95) join(l[i], l[j]); });
     pieces.forEach(pc => { pc[3] = find(pc[3]); });
     const entry = {};
     for (const [sg, f] of ent) { const l = byEdge[sg.e]; if (!l) continue;
@@ -10901,7 +10910,16 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       // the talpe (the pair in the middle of a rimessa track): via impedita, via libera only for an itinerary over them
       // (Giovanni 18 Nov 2026: they were lighting the west halves white by themselves)
       if (sg.sg && sg.sg.talpa) busy = !(sg.si != null && F.ag && sinRouteGo(F, sg.si));
-      sg.asp = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
+      let asp = sg.shunt ? (busy ? 'sstop' : 'sgo') : (busy ? 'stop' : 'go');
+      // (Giovanni 18 Nov 2026: "il semaforo non diventa subito rosso aspetta 3-6 secondi che la faccia del treno passi il
+      // semaforo prima di farlo tornare rosso"): at via libera when a train's head goes past it, red 3 to 6 s later
+      const was = sg.asp, open = x => x === 'go' || x === 'sgo';
+      if (sg.hold && (state.t < sg.hold.t0 || state.t >= sg.hold.until)) sg.hold = null;
+      if (!busy) sg.hold = null;
+      else if (open(was) && !sg.hold && F.ag) { const at = sg.pid != null ? [sg.pid, sg.d] : (sg.refs && sg.refs[0]);
+        if (at && F.ag.agents().some(a => a && !a.hidden && String(a.pid) === String(at[0]) && a.d + half >= at[1] - 1 && a.d + half - at[1] < 60)) sg.hold = { t0: state.t, until: state.t + 3 + Math.random() * 3 }; }
+      if (sg.hold) asp = sg.shunt ? 'sgo' : 'go';
+      sg.asp = asp;
     });
   }
   function updateSignals() {
