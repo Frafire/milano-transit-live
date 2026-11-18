@@ -5733,5 +5733,6 @@
    "name": "Comasina binario 2 (arrivi): comunicazione dei tronchetti"
   }
  },
- "_tracks_note": "Binari tronchi dell'officina (A69-A75): finiscono tutti sulla linea che passa per la fine di A71, parallela al muro nord-est dell'officina (Giovanni 9/11/2026, sera)."
+ "_tracks_note": "Binari tronchi dell'officina (A69-A75): finiscono tutti sulla linea che passa per la fine di A71, parallela al muro nord-est dell'officina (Giovanni 9/11/2026, sera).",
+ "signals_confirmed_about": "Giovanni 18 Nov 2026: tutti i semafori oggi nel gioco sono CONFERMATI: quelli posati da lui, quelli di blocco calcolati dalla build (protezione e partenza di ogni stazione, blocchi in linea, #A201-#A289 e #A401-#A410), quelli illegali calcolati (#A310-#A349). Tra Porta Romana e Turati la galleria è singola e dal cab ride si vede un lato solo: le posizioni calcolate vanno bene così. Sul sinottico della linea ci sono tutti."
 }

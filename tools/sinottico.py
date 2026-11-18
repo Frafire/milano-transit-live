@@ -366,6 +366,18 @@ def find_signals(net, ids, polys, maxd=3.0):
     return out
 
 
+# San Donato: the rows of the nodes beyond the station (row 0 = binario 2, -2 tronchetto 2 and the half tail, -4 binario 3)
+SD_ROWS = {116: -2, 117: -2, 118: -2, 119: -2, 201: -2, 155: -1, 142: -4, 143: -4}
+# Comasina: the two tails in line with binari 2 and 1 (Giovanni 18 Nov 2026: "tronchetti comasina stanno sulla stessa
+# altezza"), the X between them; Centrale: the M2 link one row below binario 2, the binario di rimessa one row above
+# binario 1 (proposal)
+ROW_FIX = {**SD_ROWS, 179: 4, 180: 4, 182: 0, 183: 0, 122: 1, 123: 1, 139: 3, 138: 3, 140: 3, 202: 3}
+X_NODES = {155, 191}
+# the first bit of the tracks to and from the depot (they belong to the depot's drawing): 166 from the end of binario 1,
+# 132 from binario 3
+DEP_STUBS = (166, 132)
+
+
 def linea(m3='m3.json'):
     """the line from zero (Giovanni 16 Nov 2026: "facciamolo ripartire da 0… metti tutti i binari giù… fai una riga che
     poi dividiamo… fai il piano più grande alcune stazioni sono così piccole che non si vedono i semafori"): one row from
@@ -419,21 +431,90 @@ def linea(m3='m3.json'):
     def s_of(P, dd): q = at_d(P, dd); return where_xy(q[1], q[2])[1]
     ZS = {}
     for a_, b_, i in DG['platforms'][str(pS)]: ZS.setdefault(i, tuple(sorted((s_of(SS, a_), s_of(SS, b_)))))
+    # (Giovanni 18 Nov 2026: "stazioni e banchine devono essere allineate"): binario 1 moved along so that at every station its
+    # platform is where binario 2's is (the two are side by side in the real station; the stops of the two directions are
+    # a few metres apart): TS(s) shifts a place of binario 1, by the shift of the stations each side of it
+    KN = sorted(((ZS[i][0] + ZS[i][1]) / 2, (ZN[i][0] + ZN[i][1]) / 2 - (ZS[i][0] + ZS[i][1]) / 2) for i in ZS if i in ZN)
+    def TS(s_):
+        if not KN: return s_
+        if s_ <= KN[0][0]: return s_ + KN[0][1]
+        if s_ >= KN[-1][0]: return s_ + KN[-1][1]
+        j = next(k for k in range(1, len(KN)) if KN[k][0] >= s_); (a0, h0), (a1, h1) = KN[j - 1], KN[j]
+        return s_ + h0 + (h1 - h0) * (s_ - a0) / ((a1 - a0) or 1)
+    ZS = {i: ((ZN[i] if i in ZN else (TS(z[0]), TS(z[1])))) for i, z in ZS.items()}
     plats = [(nm, ZN[i]) for i, nm in enumerate(names) if i in ZN] + [(nm, ZS[i]) for i, nm in enumerate(names) if i in ZS]
     sw_s = sorted(W[n][1] for n in nearn if deg[n] >= 3)
-    sig = heads(d, net, add_dirs(net, find_signals(net, edges, polys)))
+    # every signal of the line as the game has it (Giovanni 18 Nov 2026: "fai un controllo gigantesco sui semafori che siano
+    # presenti tutti"; all of them confirmed by him the same day): the ones of the route interlocking (net.sigall: the block
+    # signals of every station, entry and departure, the blocks between, the wrong-way ones, the placed ones), by the
+    # number the map shows; then the other signals placed on these pieces (tails, shunting). A placed signal that is the
+    # place of a block signal is drawn once, as the block (as on the map)
+    ES = set(edges) | set(DEP_STUBS); SIGN = {sg.get('n'): i for i, sg in enumerate(net['signals']) if sg.get('n') is not None}
+    bpl = {b_.get('placed') for b_ in d.get('blocks') or [] if b_.get('placed') is not None and not b_.get('hidden')}
+    def edge_at(pid, dd):
+        # (at the joint of two pieces: the one of this drawing)
+        hits = [(ei, dr, x0, x1) for ei, dr, x0, x1 in pe_(pid) if x0 - 0.5 <= dd <= x1 + 0.5]
+        hits.sort(key=lambda h: h[0] not in ES)
+        for ei, dr, x0, x1 in hits[:1]:
+            k = E[ei]['len'] / ((x1 - x0) or 1); return ei, ((dd - x0) * k if dr > 0 else (x1 - dd) * k), dr
+        return None
+    SG = {}
+    for pid, lst in sorted((net.get('sigall') or {}).items(), key=lambda kv: int(kv[0])):
+        for dd, n_, fl in lst:
+            if n_ in SG: continue
+            r_ = edge_at(int(pid), dd)
+            if not r_ or r_[0] not in ES: continue
+            x_ = {'n': n_, 'e': r_[0], 'f': round(min(1.0, max(0.0, r_[1] / (E[r_[0]]['len'] or 1))), 4), 'd': r_[2]}
+            if n_ in SIGN: x_['si'] = SIGN[n_]
+            if 'i' in fl: x_['b'] = 1
+            SG[n_] = x_
+    for x_ in heads(d, net, add_dirs(net, find_signals(net, edges, polys))):
+        if x_['n'] not in SG and x_['n'] not in bpl: SG[x_['n']] = x_
+    sig = sorted(SG.values(), key=lambda x_: x_['n'])
+    onS = lambda ei: ei in south_e and ei not in north_e
     def sig_s(sg):
         P = polys[sg['e']]; C = [0.0]
         for j in range(1, len(P)): C.append(C[-1] + math.dist(P[j - 1], P[j]))
         u = sg['f'] * C[-1]; j = next((i for i in range(1, len(P)) if C[i] >= u), len(P) - 1); q = (u - C[j - 1]) / ((C[j] - C[j - 1]) or 1)
         x, y = P[j - 1][0] + (P[j][0] - P[j - 1][0]) * q, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * q
-        return where_xy(x, y)
+        w_ = where_xy(x, y); return (w_[0], TS(w_[1]) if onS(sg['e']) else w_[1])
+    def side_to(P, x, y):
+        best = None
+        for i in range(0, len(P) - 1, 2):
+            _, ax, ay = P[i]; _, bx, by = P[min(i + 2, len(P) - 1)]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy or 1
+            u = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); dd = math.hypot(x - ax - u * dx, y - ay - u * dy)
+            if best is None or dd < best[0]: best = (dd, (dx * (y - ay) - dy * (x - ax)) / math.sqrt(L2))
+        return best[1]
+    # where a node is along the line: binario 1 and the tracks on its side moved with it (TS)
+    nS = {n for n in used if on(n, south_e) and not on(n, north_e)}
+    sideS = lambda n: n in nS or (not on(n, north_e) and W[n][0] < 400 and abs(side_to(SS, NODES[str(n)][1] * KX, NODES[str(n)][0] * KY)) < abs(side_to(S2, NODES[str(n)][1] * KX, NODES[str(n)][0] * KY)))
+    SN = {n: (TS(W[n][1]) if sideS(n) else W[n][1]) for n in used}
     # the things to see along the line (only those near it: a signal on the track to the depot is placed with it)
-    ev = [0.0, TOT] + [W[n][1] for n in nearn] + [x for p in plats for x in p[1]]
-    ev += [w[1] for w in (sig_s(sg) for sg in sig) if w[0] <= NEAR]
+    ev = [0.0, TOT] + [SN[n] for n in nearn] + [x for p in plats for x in p[1]]
+    SGS = [w[1] for w in (sig_s(sg) for sg in sig) if w[0] <= NEAR]
+    ev += SGS
     ev = sorted(ev); K = [ev[0]]
     for x in ev[1:]:
         if x - K[-1] > 0.5: K.append(x)
+    # the signals of a station just outside it (Giovanni 18 Nov 2026: "i semafori sono subito fuori la stazione"; the block
+    # sections cut "all'inizio e fine di ogni stazione, fuori non dentro"): a signal up to 90 m beyond the end of a
+    # platform, with no switch between, one tile out from it; the ones beyond it on the same tile
+    nodes_s = sorted(SN[n] for n in nearn)
+    # (a signal up to 8 m inside the end of a platform zone of the game: the drawn platform ends 1 m before it)
+    for k_, (nm_, (p0, p1)) in enumerate(plats):
+        ins0 = [x for x in SGS if p0 - 0.1 <= x <= p0 + 8]; ins1 = [x for x in SGS if p1 - 8 <= x <= p1 + 0.1]
+        plats[k_] = (nm_, (max(ins0) + 1.0 if ins0 else p0, min(ins1) - 1.0 if ins1 else p1))
+    ev = sorted(set(round(x, 1) for x in ([0.0, TOT] + [SN[n] for n in nearn] + [x for p in plats for x in p[1]] + SGS))); K = [ev[0]]
+    for x in ev[1:]:
+        if x - K[-1] > 0.5: K.append(x)
+    SPANS = []
+    for _, (p0, p1) in plats:
+        for e_, sd in ((p0, -1), (p1, 1)):
+            far_ = None
+            for x in SGS:
+                dd = (x - e_) * sd
+                if -3 <= dd <= 90 and not any(0.5 < (y - e_) * sd < dd - 0.5 for y in nodes_s): far_ = max(far_ or 0, dd)
+            if far_ is not None: SPANS.append((min(e_, e_ + sd * far_), max(e_, e_ + sd * far_), e_))
     MIN, PLAT, PXM, CAP, ZONE = 34.0, 105.0, 0.3, 300.0, 70.0      # (a platform: 1 px a metre)
     def width(a, b):
         L = b - a; m = (a + b) / 2
@@ -443,38 +524,67 @@ def linea(m3='m3.json'):
         return max(MIN, min(CAP, L * PXM))
     # (on the tiles of the panel, Giovanni 16 Nov 2026: each width a whole number of tiles of 28 px, at least one; two
     # things closer than 9 px of the old drawing on the same tile)
+    def width_(a, b):
+        for lo, hi, e_ in SPANS:
+            if lo - 0.6 <= a and b <= hi + 0.6: return TILE if (abs(a - e_) < 0.6 or abs(b - e_) < 0.6) else 0.0
+        w_ = width(a, b); return TILE * max(1, round(w_ / TILE)) if w_ >= 9 else 0.0
     XK = [0.0]
-    for i in range(1, len(K)): w_ = width(K[i - 1], K[i]); XK.append(XK[-1] + (TILE * max(1, round(w_ / TILE)) if w_ >= 9 else 0.0))
+    for i in range(1, len(K)): XK.append(XK[-1] + width_(K[i - 1], K[i]))
     X0 = XK[-1] + 3 * TILE                                # (Comasina on the left)
     def X(s_):
         s_ = max(K[0], min(K[-1], s_)); i = max(1, next((j for j in range(1, len(K)) if K[j] >= s_), len(K) - 1))
         u = (s_ - K[i - 1]) / ((K[i] - K[i - 1]) or 1); return round(X0 - (XK[i - 1] + (XK[i] - XK[i - 1]) * u), 1)
-    ROW = 28.0; YN = 200.0; YS = YN + 3 * ROW
-    def side_to(P, x, y):
-        best = None
-        for i in range(0, len(P) - 1, 2):
-            _, ax, ay = P[i]; _, bx, by = P[min(i + 2, len(P) - 1)]; dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy or 1
-            u = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); dd = math.hypot(x - ax - u * dx, y - ay - u * dy)
-            if best is None or dd < best[0]: best = (dd, (dx * (y - ay) - dy * (x - ax)) / math.sqrt(L2))
-        return best[1]
+    ROW = 28.0; YN = 200.0; YS = YN + 4 * ROW         # (four rows between: an X crossover on the tiles, a track in the middle)
     mid_ = SS[len(SS) // 2]; refN = 1 if side_to(S2, mid_[1], mid_[2]) > 0 else -1
     midn = S2[len(S2) // 2]; refS = 1 if side_to(SS, midn[1], midn[2]) > 0 else -1
+    # (Giovanni 18 Nov 2026: "riportare fedelmente i binari"): a track between the two main ones in the middle rows, by
+    # how far it is from each; one outside them a row further out every 4 m (one in line with a main track, as the tails
+    # going on from it, on its row)
     pos = {}
     for n in nearn:
-        x = round(X(W[n][1]) / TILE) * TILE
+        x = round(X(SN[n]) / TILE) * TILE
         if on(n, north_e): y = YN
         elif on(n, south_e): y = YS
         else:
             nx_, ny_ = NODES[str(n)][1] * KX, NODES[str(n)][0] * KY; a_ = side_to(S2, nx_, ny_) * refN; b_ = side_to(SS, nx_, ny_) * refS
-            y = YN + ROW if a_ > 0.5 and b_ > 0.5 else YS + ROW if a_ > 0 else YN - ROW
+            if a_ > 0.8 and b_ > 0.8: y = YN + ROW * max(1, min(3, round(4 * a_ / (a_ + b_))))
+            elif a_ <= 0.8: y = YN if -a_ < 1.5 else YN - ROW * max(1, min(2, round(-a_ / 4.0)))
+            else: y = YS if -b_ < 1.5 else YS + ROW * max(1, min(2, round(-b_ / 4.0)))
         pos[n] = [x, y]
+    # San Donato as it is (Giovanni 18 Nov 2026: "i binari a san donato sono 4… il tronchetto è a metà tra i binari 2 e 3 e
+    # ha quel mezzo tronchetto che poi porta sul 2"): binario 2 and tronchetto 1 on the row of binario 2, binario 1 below,
+    # tronchetto 2 and the half tail two rows above, binario 3 four rows above; the two tails side by side with their X
+    for n_, r_ in ROW_FIX.items():
+        if n_ in pos: pos[n_][1] = YN + r_ * ROW
+    # the X crossovers (two crossovers through one node: Giovanni 18 Nov 2026, "rifai tutti gli incroci a X"): the node in the
+    # middle of the four rows, the four legs at 45 degrees to the two main tracks, on the tiles
+    # (a crossover never over a platform: moved off it, with a tile to spare, on the side where its middle is)
+    PLX = sorted(tuple(sorted((X(p0), X(p1)))) for _, (p0, p1) in plats)
+    def clear_of_platforms(cx, h_):
+        for xa, xb in PLX:
+            if cx + h_ > xa - TILE and cx - h_ < xb + TILE:
+                cx = xa - TILE - h_ if cx < (xa + xb) / 2 else xb + TILE + h_
+        return round(cx / TILE) * TILE
+    XD = set()
+    for c_ in [n for n in pos if deg[n] == 4]:
+        inc = [i for i in edges if c_ in (E[i]['a'], E[i]['b'])]
+        oth = [(i, E[i]['b'] if E[i]['a'] == c_ else E[i]['a']) for i in inc]
+        if not all(m in pos for _, m in oth): continue
+        if not (all(E[i].get('cat') == 'crossover' for i in inc) or c_ in X_NODES): continue
+        ys_ = sorted({pos[m][1] for _, m in oth})
+        if len(ys_) != 2: continue
+        yU, yD = ys_; up = sorted([m for _, m in oth if pos[m][1] == yU], key=lambda m: pos[m][0]); dn = sorted([m for _, m in oth if pos[m][1] == yD], key=lambda m: pos[m][0])
+        if len(up) != 2 or len(dn) != 2: continue
+        h_ = (yD - yU) / 2; cx = clear_of_platforms(round(sum(pos[m][0] for _, m in oth) / 4 / TILE) * TILE, h_)
+        pos[c_] = [cx, yU + h_]; pos[up[0]] = [cx - h_, yU]; pos[up[1]] = [cx + h_, yU]; pos[dn[0]] = [cx - h_, yD]; pos[dn[1]] = [cx + h_, yD]
+        XD.update(inc)
     # the crossovers at 45 degrees about their middle
     for i in edges:
         e = E[i]
-        if e.get('cat') != 'crossover': continue
+        if i in XD or not (e.get('cat') == 'crossover' or ({round(pos.get(e['a'], [0, -1])[1]), round(pos.get(e['b'], [0, -1])[1])} == {round(YN), round(YS)})): continue
         pa, pb = pos.get(e['a']), pos.get(e['b'])
         if not pa or not pb or abs(pa[1] - pb[1]) < 1: continue
-        dy = abs(pa[1] - pb[1]); sg = 1 if pb[0] >= pa[0] else -1; mid = (pa[0] + pb[0]) / 2
+        dy = abs(pa[1] - pb[1]); sg = 1 if pb[0] >= pa[0] else -1; mid = clear_of_platforms((pa[0] + pb[0]) / 2, dy / 2)
         pa[0] = round(round((mid - sg * dy / 2) / TILE) * TILE, 1); pb[0] = round(pa[0] + sg * dy, 1)
     # two tracks side by side on the same row: one of them a row further out
     nbr = collections.defaultdict(set)
@@ -507,9 +617,33 @@ def linea(m3='m3.json'):
                 m = e['b'] if e['a'] == n else e['a']
                 if m not in pos: continue
                 px, py = pos[m]; out = -1 if py <= YN + 0.5 else 1
-                sx = 1 if X(W[n][1]) >= px else -1
+                sx = 1 if X(SN[n]) >= px else -1
                 pos[n] = [round(px + sx * TILE * max(2, round(min(240.0, e['len'] * PXM) / TILE)), 1), py + out * 2 * ROW if py in (YN, YS) or py < YN or py > YS else py + 2 * ROW]
                 far.append(n); break
+    # a short piece from a main track to another row (the legs of a tail, of a siding): at 45 degrees, its far node moved
+    # along to where that falls, on the side of the rest of its track (Giovanni 18 Nov 2026: "fai fittare il tronchetto di
+    # brenta meglio")
+    main_ = lambda q: abs(q[1] - YN) < 0.5 or abs(q[1] - YS) < 0.5
+    for i in edges:
+        e = E[i]
+        if e.get('cat') == 'crossover' or i in XD: continue
+        pa, pb = pos.get(e['a']), pos.get(e['b'])
+        if not pa or not pb: continue
+        dy = abs(pa[1] - pb[1]); dx = abs(pa[0] - pb[0])
+        if dy < 1 or dx >= dy - 0.5 or (main_(pa) and main_(pb)): continue
+        A_, Bn = (e['a'], e['b']) if main_(pa) or not main_(pb) else (e['b'], e['a'])
+        rest = [pos[m][0] for m in nbr[Bn] if m != A_ and m in pos]
+        sg_ = (1 if sum(rest) / len(rest) >= pos[A_][0] else -1) if rest else (1 if pos[Bn][0] >= pos[A_][0] else -1)
+        pos[Bn][0] = pos[A_][0] + sg_ * dy
+    # the tracks to and from the depot at San Donato (Giovanni 18 Nov 2026: "manca il binario di rientro in deposito e di
+    # entrata dal deposito"): the first bit of each, on from where it leaves the line, to the sign of the depot (ROD)
+    depot_stub = {}
+    for i in DEP_STUBS:
+        e = E[i]; n_in = e['a'] if e['a'] in pos else e['b'] if e['b'] in pos else None
+        if n_in is None: continue
+        n_out = e['b'] if n_in == e['a'] else e['a']; px, py = pos[n_in]
+        ns_ = [pos[m][0] for m in nbr[n_in] if m in pos]; sgx = 1 if not ns_ or px >= sum(ns_) / len(ns_) else -1
+        pos[n_out] = [px + sgx * 3 * TILE, py]; depot_stub[i] = (n_out, sgx)
     # a piece going from one row to another (a station's third track, a tail, a siding): at 45 degrees where it leaves the
     # track it comes from (the end on binario 1 or 2, or its node a), then level (Giovanni 16 Nov 2026: binario 3 of San
     # Donato runs beside binario 2 along the platform)
@@ -541,7 +675,8 @@ def linea(m3='m3.json'):
         k = max(2, int(C[-1] / 10)); pts = []
         for t in range(k + 1):
             u = t / k * C[-1]; j = next((jj for jj in range(1, len(P)) if C[jj] >= u), len(P) - 1); q = (u - C[j - 1]) / ((C[j] - C[j - 1]) or 1)
-            xx = X(where_xy(P[j - 1][0] + (P[j][0] - P[j - 1][0]) * q, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * q)[1])
+            s__ = where_xy(P[j - 1][0] + (P[j][0] - P[j - 1][0]) * q, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * q)[1]
+            xx = X(TS(s__) if (e['a'] in nS or e['b'] in nS) and onS(i) else s__)
             pts.append([round(t / k, 3), round(min(1, max(0, (xx - pa[0]) / (pb[0] - pa[0]))), 3)])
         if any(abs(a_ - b_) > 0.02 for a_, b_ in pts): fmap[str(i)] = pts
     badges = []
@@ -551,6 +686,8 @@ def linea(m3='m3.json'):
         for n in (E[i]['a'], E[i]['b']):
             if ldeg[n] == 1 and not any(abs(b_['x'] - pos[n][0]) < 4 and abs(b_['y'] - pos[n][1]) < 4 for b_ in badges):
                 badges.append({'text': 'M2', 'x': pos[n][0], 'y': pos[n][1], 'kind': 'm2'})
+    for i, (n_out, sgx) in depot_stub.items():
+        badges.append({'text': 'ROD', 'x': pos[n_out][0] + sgx * 20, 'y': pos[n_out][1], 'kind': 'rod'})
     nice = lambda nm: {'DUOMO M3': 'Duomo'}.get(nm, ' '.join(w if w in ('FS', 'FN', 'T.I.B.B.') else w.capitalize() for w in nm.split()))
     labels, platforms = [], []
     top = min(v[1] for v in pos.values())
@@ -568,6 +705,7 @@ def linea(m3='m3.json'):
         e = E[i]; nm_ = NM.get(i)
         if not nm_: nm_ = 'binario 2' if i in north_e else 'binario 1' if i in south_e else {'crossover': 'comunicazione', 'link': 'raccordo M2', 'siding': 'binario di servizio'}.get(e.get('cat'), e.get('cat'))
         names_e[str(i)] = nm_
+    for i in depot_stub: names_e[str(i)] = 'binario del deposito (ROD)'
     # the tails (Giovanni: "segna i tronchetti sempre di grigio… con la scritta sopra in piccolo tronchetto 1 o tronchetto 2
     # (comasina pos 1 - pos 2..)"): the pieces that end a train's run, their name, at Comasina their positions (where the
     # itineraries to "posizione 1, 2" end: the signals; the third up to the end)
@@ -602,8 +740,8 @@ def linea(m3='m3.json'):
     for nm_, ei in ((v, k) for k, v in NM.items()):
         m_ = re.match(r'San Donato binario (\d)', nm_)
         if m_: SDE[m_.group(1)] = ei
-    sd_done = False
-    for nm, pn in plats:
+    sd_done = False; nZN = len([i for i in ZN])
+    for kp, (nm, pn) in enumerate(plats):
         xa, xb = sorted((X(pn[0]), X(pn[1])))
         if nm == names[0] and SDE and d.get('labels'):
             if sd_done: continue
@@ -613,19 +751,23 @@ def linea(m3='m3.json'):
                 if not e or e['a'] not in pos or e['b'] not in pos: continue
                 f0, f1 = on_edge(ei, lb['la'], lb['lo'], TRAIN / 2 + 5); q0, q1 = drawn_x(ei, f0), drawn_x(ei, f1)
                 # (the three side by side, as they are: where the game's platform is on binario 2)
-                platforms.append({'st': nice(nm), 'x0': xa, 'x1': xb, 'y': q1[1], 'bin': lb['t']})
+                # (on the row of its track where it runs level: binario 3 four rows up)
+                yb = e['b'] in pos and pos[e['b']][1]; ya_ = pos[e['a']][1]
+                platforms.append({'st': nice(nm), 'x0': xa, 'x1': xb, 'y': ya_ if abs(ya_ - YN) > 0.5 and abs(ya_ - YS) > 0.5 else yb if abs(yb - YN) > 0.5 and abs(yb - YS) > 0.5 else q1[1], 'bin': lb['t']})
             labels.append({'text': nice(nm), 'x': round((xa + xb) / 2, 1), 'y': min(YN - 2 * ROW, top - ROW) - 6})
             continue
-        north = (nm, pn) in [(n_, z_) for n_, z_ in plats[:len(ZN)]]
+        north = kp < nZN
         platforms.append({'st': nice(nm), 'x0': xa, 'x1': xb, 'y': YN if north else YS, 'bin': '2' if north else '1'})
         if north: labels.append({'text': nice(nm), 'x': round((xa + xb) / 2, 1), 'y': min(YN - 2 * ROW, top - ROW) - 6})
     out = {'_about': 'Sinottico della linea M3, rifatto da zero (tools/sinottico.py linea; Giovanni 16/11/2026): una riga sola da San '
                      'Donato a Comasina (Comasina a sinistra), tutte le tratte che non sono del deposito e tutti i loro segnali; non in '
                      'scala: tra due cose da vedere (nodo, segnale, fine banchina) almeno 34 px, scambi più grandi, banchina 150 px, '
                      'binario in piano 0,3 px al metro (al massimo 300 px). Binario 2 (verso Comasina) sopra, binario 1 (verso San '
-                     'Donato) sotto, tre righe di 28 px in mezzo. nodes = dove sta ogni nodo (px), via = curve (si aggiungono '
+                     'Donato) sotto, quattro righe di 28 px in mezzo (Giovanni 18/11/2026: tutti i semafori del gioco, quelli di ogni stazione '
+                     'subito fuori dalla banchina, banchine dei due binari allineate, incroci a X sui tasselli, San Donato con i 4 binari, '
+                     'tronchetti di Comasina sulle righe dei binari, i binari del deposito fino al cartello ROD). nodes = dove sta ogni nodo (px), via = curve (si aggiungono '
                      'nell\'editor), fmap = dove cade ogni punto di una tratta in piano, platforms = le banchine, badges = il logo M2.',
-           'tile': [TILE, 0, YN], 'edges': edges, 'nodes': {str(n): pos[n] for n in sorted(pos)}, 'via': via, 'part': {}, 'fmap': fmap,
+           'tile': [TILE, 0, YN], 'edges': edges + [i for i in depot_stub], 'nodes': {str(n): pos[n] for n in sorted(pos)}, 'via': via, 'part': {str(i): [0, 1] for i in depot_stub}, 'fmap': fmap,
            'signals': sig, 'places': [], 'labels': labels, 'platforms': platforms, 'badges': badges, 'strips': None,
            'tails': tails, 'names': names_e}
     OUT = os.path.join(ROOT, 'data', 'sinottico_linea_m3.json')

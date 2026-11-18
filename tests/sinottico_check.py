@@ -47,7 +47,13 @@ if not args:
         for sg in S['signals']:
             pr = P.get(str(sg['e'])) or [0, 1]
             if sg['e'] in se and pr[0] - 0.001 <= sg['f'] <= pr[1] + 0.001: shown_sig.add(sg['n'])
-    want = sorted(sg['n'] for sg in net['signals'] if sg.get('n') is not None and sg.get('kind') != 'stop')
+    # (every signal of the game, as the map shows them, Giovanni 18 Nov 2026: the placed ones, each block signal, each
+    # wrong-way one; a placed signal that is the place of a block signal by the block's number)
+    m3 = json.load(open('m3.json'))
+    bpl = {b.get('placed') for b in m3.get('blocks') or [] if b.get('placed') is not None and not b.get('hidden')}
+    want = sorted({sg['n'] for sg in net['signals'] if sg.get('n') is not None and sg.get('kind') != 'stop' and sg['n'] not in bpl}
+                  | {b['n'] for b in m3.get('blocks') or [] if not b.get('hidden') and b.get('pid') is not None}
+                  | {x['n'] for x in m3.get('illegal') or [] if x.get('pid') is not None})
     miss_s = [n for n in want if n not in shown_sig]
     print('%s sinottico, all of it: %d pieces of %d drawn%s%s, %d signals of %d drawn%s'
           % ('FAIL' if miss_e or miss_s or twice else 'ok  ', len(drawn), len(E), (', missing: %s' % miss_e) if miss_e else '',
