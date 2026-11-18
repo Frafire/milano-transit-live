@@ -1041,6 +1041,8 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan .binf rect { fill: #d9d6c8; stroke: #3a382f; stroke-width: 1; } #depotPlan text.labs { font: 700 9.5px var(--display); fill: #22211c; letter-spacing: .05em; } #depotPlan text.sgname { font-size: 10px; font-weight: 600; fill: #2b2a25; } #depotPlan .darr { fill: #1b1b1b; stroke: var(--sin-bg); stroke-width: 1.2; } #depotPlan .darr.lit { fill: #f4f4ee; } #depotPlan .darr.occ { fill: #e5383b; } #depotPlan rect.shed { fill: #a6c7e0; stroke: none; } #depotPlan g.sgi.orig { animation: dpKey .8s steps(2, start) infinite; } #depotPlan g.sgi.orig path, #depotPlan g.sgi.orig rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.prep path, #depotPlan g.sgi.prep rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.auth path, #depotPlan g.sgi.auth rect.sgc { stroke: #ffffff; stroke-width: 1.6; } @keyframes dpKey { 50% { opacity: .3; } } #depotPlan .dp-acei { display: block; flex-basis: 100%; color: #ffd166; font-weight: 600; min-height: 1.2em; } #depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
 #depotPlan .trn rect, #depotPlan .trn.late rect, #depotPlan .trn.early rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; }
 #depotPlan .trn text, #depotPlan .disp .trn text { fill: #ffffff; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
+#depotPlan .trn.bare text { fill: #111; font-size: 10px; } #depotPlan .trn.bare.early text { fill: #137a2e; } #depotPlan .trn.bare.late text { fill: #c41d1d; }
+#depotPlan .badge.rod rect { fill: #3a3a3a; } #depotPlan .badge.rod text { font-size: 8.5px; }
 #depotPlan .cont text { fill: #2b2a25; }
 #depotPlan .vp { stroke: #26292c; }
 #depotPlan path.tk.tail, #depotPlan.line path.tk.tail { stroke: #5d5b52; }
@@ -9572,7 +9574,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const SGNM = sg => (SCH.signames || {})[sg.n] || null;
     const DECO = schDeco(SCH), DK = (key, html) => { const D = DECO[key]; if (D === 'x' || !html) return '';
       return `<g class="dk" data-dk="${key}"${Array.isArray(D) ? ` transform="translate(${D[0]},${D[1]})"` : ''}>${html}</g>`; };
-    const DISP = sinDisplays(SCH, SEC, FULL, fd).filter(dp => DECO['disp:' + dp.sid] !== 'x');
+    // (the line: no black windows, Giovanni 18 Nov 2026 "togli tutti rettangoli neri": a train's number written small over
+    // the train)
+    const DISP = SIN_WHICH === 'line' ? [] : sinDisplays(SCH, SEC, FULL, fd).filter(dp => DECO['disp:' + dp.sid] !== 'x');
     const dispOf = {}; DISP.forEach(dp => { dispOf[dp.sid] = dp; });
     const AGK = {}; F.ag.agents().forEach(a => { AGK[a.k] = a; });
     const used = new Set(), trnHtml = [];
@@ -9581,8 +9585,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       const a = AGK[k], late = a && a.status === 'service' && a.late != null ? a.late : 0, tc = late >= 30 ? 'late' : late <= -30 ? 'early' : 'ok';
       const pc = (SEC.byEdge[ei] || []).find(q => f >= q[1] - 1e-4 && f <= q[2] + 1e-4), dp = pc && dispOf[pc[3]];
       let c, dkey = null; if (dp && !used.has(dp.sid)) { used.add(dp.sid); c = T([dp.x, dp.y]); dkey = 'disp:' + dp.sid; }
-      else { const q0 = fd(ei, p0), q1 = fd(ei, p1), m = T(alongPts(p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, (fd(ei, f) - q0) / ((q1 - q0) || 1))); c = [m[0], m[1] - 13]; }
-      const th = `<g class="trn ${tc}" data-k="${k}"><rect x="${(c[0] - 27).toFixed(1)}" y="${(c[1] - 7).toFixed(1)}" width="54" height="14" rx="1"/><text x="${c[0].toFixed(1)}" y="${(c[1] + 3.4).toFixed(1)}">${lab}</text></g>`;
+      else { const q0 = fd(ei, p0), q1 = fd(ei, p1), m = T(alongPts(p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, (fd(ei, f) - q0) / ((q1 - q0) || 1))); c = [m[0], m[1] - (SIN_WHICH === 'line' ? 24 : 13)]; }
+      const th = SIN_WHICH === 'line' ? `<g class="trn bare ${tc}" data-k="${k}"><text x="${c[0].toFixed(1)}" y="${(c[1] + 3.4).toFixed(1)}">${lab}</text></g>`
+        : `<g class="trn ${tc}" data-k="${k}"><rect x="${(c[0] - 27).toFixed(1)}" y="${(c[1] - 7).toFixed(1)}" width="54" height="14" rx="1"/><text x="${c[0].toFixed(1)}" y="${(c[1] + 3.4).toFixed(1)}">${lab}</text></g>`;
       trnHtml.push(dkey ? DK(dkey, th) : th); }
     for (const dp of DISP) { if (used.has(dp.sid)) continue; const c = T([dp.x, dp.y]); marks += DK('disp:' + dp.sid, SIN_WHICH === 'dep' ? `<g class="disp"><rect x="${(c[0] - 8).toFixed(1)}" y="${(c[1] - 8).toFixed(1)}" width="16" height="16"/></g>` : `<g class="disp"><rect x="${(c[0] - 27).toFixed(1)}" y="${(c[1] - 7).toFixed(1)}" width="54" height="14" rx="1"/></g>`); grow([c[0] - 26, c[1] - 8]); grow([c[0] + 26, c[1] + 8]); }
     // the double arrows at the very end of the tracks from the line (Giovanni 17 Nov 2026, as on the board): they show
