@@ -906,7 +906,9 @@
    "type": "block",
    "name": "",
    "kind": "atp",
-   "n": 41
+   "n": 41,
+   "look": "illegale",
+   "look_about": "illegale (Giovanni 18/11/2026): disegnato come illegale, sulla mappa e sul sinottico; funziona come prima"
   },
   {
    "line": "M3",
@@ -960,7 +962,9 @@
    "type": "block",
    "name": "",
    "kind": "atp",
-   "n": 44
+   "n": 44,
+   "look": "illegale",
+   "look_about": "illegale (Giovanni 18/11/2026): disegnato come illegale, sulla mappa e sul sinottico; funziona come prima"
   },
   {
    "line": "M3",

@@ -2047,7 +2047,7 @@ for pid in range(len(paths)):
     PATH_EDGES.append({'e': spans, 'div': div, 'curves': curves, **({'sheds': _sh} if _sh else {}), **({'wash': _wsh} if _wsh else {})})
 _rules = 'rules_%s.json' % LINE.lower()
 if os.path.exists(_rules):
-    NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name', 'stype', 'legal', 'manual', 'talpa')}, 'n': sg.get('_n')}
+    NET['signals'] = [{**{k: v for k, v in sg.items() if k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir', 'type', 'kind', 'name', 'stype', 'legal', 'manual', 'talpa', 'look')}, 'n': sg.get('_n')}
                       for sg in _rules_.get('signals', []) if sg.get('line') == LINE]
     NET['removed'] = _rules_.get('removed_signals', [])
     NET['interlocking'] = INTERLOCKING

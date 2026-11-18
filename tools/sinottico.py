@@ -380,6 +380,8 @@ CROSS_SHIFT = {236: -2}
 # the first bit of the tracks to and from the depot (they belong to the depot's drawing): 166 from the end of binario 1,
 # 132 from binario 3
 DEP_STUBS = (166, 132)
+# moved by hand by Giovanni in the editor (18 Nov 2026, Centrale: the M2 link): the nodes where he put them, the bends he took away
+LINE_MANUAL = {'nodes': {139: [4670, 284], 172: [4670, 228]}, 'via': {183: []}}
 
 
 def linea(m3='m3.json'):
@@ -654,6 +656,8 @@ def linea(m3='m3.json'):
     # a piece going from one row to another (a station's third track, a tail, a siding): at 45 degrees where it leaves the
     # track it comes from (the end on binario 1 or 2, or its node a), then level (Giovanni 16 Nov 2026: binario 3 of San
     # Donato runs beside binario 2 along the platform)
+    for n_, p_ in LINE_MANUAL['nodes'].items():
+        if n_ in pos: pos[n_] = list(p_)
     via = {}
     for i in edges:
         e = E[i]
@@ -666,6 +670,9 @@ def linea(m3='m3.json'):
         A_, B_ = (pb, pa) if main_(pb) and not main_(pa) else (pa, pb)          # (A_: where it leaves the track)
         sx = 1 if B_[0] > A_[0] else -1; turn = [round(A_[0] + sx * dy, 1), B_[1]]
         via[str(i)] = [turn] if A_ is pa else [turn]
+    for i, v_ in LINE_MANUAL['via'].items():
+        if v_: via[str(i)] = v_
+        else: via.pop(str(i), None)
     def drawn_x(ei, f):
         e = E[ei]; pa, pb = pos[e['a']], pos[e['b']]; pts = [pa] + via.get(str(ei), []) + [pb]
         L = [math.dist(pts[k - 1], pts[k]) for k in range(1, len(pts))]; x_ = f * sum(L)
@@ -748,8 +755,14 @@ def linea(m3='m3.json'):
         e = E[i]; pa, pb = pos.get(e['a']), pos.get(e['b'])
         if not pa or not pb: continue
         short = re.sub(r'^(San Donato|Comasina|Brenta|Centrale|Repubblica) ', '', nm_).replace(' di ricovero (A33)', '')
-        # (the name under the track, Giovanni 18 Nov 2026: "scritta tronchetto mettilo sotto": above are the signals)
-        t = {'e': i, 'text': short, 'x': round((pa[0] + pb[0]) / 2, 1), 'y': max(pa[1], pb[1]) + 30, 'pos': []}
+        # (the name small above the track, Giovanni 18 Nov 2026: "tronchino centrale deve esserci scritto sopra"; the two
+        # San Donato tails, side by side between the tracks, their name beyond the end of the track: "san donato
+        # tronchetto 1 e 2 bisogna trovare il modo di fittarlo senza che sia in mezzo")
+        t = {'e': i, 'text': short, 'x': round((pa[0] + pb[0]) / 2, 1), 'y': min(pa[1], pb[1]) - 8, 'pos': []}
+        dead = [q for q in (e['a'], e['b']) if len(nbr[q]) == 1]
+        if nm_.startswith('San Donato') and dead:
+            q_ = pos[dead[0]]; o_ = pos[e['b'] if dead[0] == e['a'] else e['a']]; sx_ = 1 if q_[0] >= o_[0] else -1
+            t.update({'text': short.capitalize(), 'x': round(q_[0] + sx_ * 10, 1), 'y': q_[1] + 3, 'anchor': 'start' if sx_ > 0 else 'end'})
         ends = sorted({sg_.get('n') for x in IT if x['edges'] and x['edges'][-1][0] == i and x.get('end_signal') for sg_ in [{'n': x['end_signal']}]})
         if ends:
             fs = sorted({sgx['f'] for sgx in sig if sgx['e'] == i and sgx['n'] in ends})

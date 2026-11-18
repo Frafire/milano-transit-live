@@ -182,7 +182,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .radiobtn { font-family: 'VT323', ui-monospace, monospace !important; font-size: 19px !important; background: #071109 !important; color: #8dff9e !important; border: 2px solid #3b5e45 !important; border-radius: 0 !important; }
 .trkname { position: absolute; transform: translate(-50%, -50%); font: 600 10px/1.1 system-ui, sans-serif; color: #ffd23f; background: rgba(0,0,0,.7); padding: 1px 4px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
 .trkname.dep { color: #cfd6dc; font-size: 9px; }
-.sigtag { position: absolute; left: 7px; top: -16px; font: 600 10px/1 system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.72); padding: 1px 3px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
+.sigtag { position: absolute; left: calc(7px + var(--ox, 0px)); top: calc(-16px + var(--oy, 0px)); font: 600 10px/1 system-ui, sans-serif; color: #fff; background: rgba(0,0,0,.72); padding: 1px 3px; border-radius: 3px; white-space: nowrap; pointer-events: none; }
 .sigpx.sh { width: 9px; height: 10px; }
 .nocap { display: none !important; }
 .m2sign { margin: -2px 0 8px; padding: 6px 8px; background: linear-gradient(#3fae3b, #2f9a2d); border-top: 3px solid #e9efe6; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.4); text-align: center; }
@@ -225,7 +225,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .ksw.mvw .kturn, .ksw.mvw .kturn img { pointer-events: auto; cursor: grab; }
 .ksw.cur .kturn img { outline: 1px dashed #ffcf3f; outline-offset: 1px; }
 .ksw.cur .kname { background: #ffcf3f; color: #000; }
-.sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(-50%, -50%) rotate(var(--r, 0deg)); filter: drop-shadow(0 0 1px #000); }
+.sigpx { image-rendering: pixelated; width: 11px; height: 18px; display: block; transform: translate(calc(-50% + var(--ox, 0px)), calc(-50% + var(--oy, 0px))) rotate(var(--r, 0deg)); filter: drop-shadow(0 0 1px #000); }
 .jmark { transform: translate(-50%, -50%); font: 700 9px/1 var(--body); color: #111; background: var(--c); border: 2px solid #000; padding: 2px 3px; min-width: 14px; text-align: center; }
 .cutmark { width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 50%; background: #fff; border: 2px solid #000; }
 .spdlab { transform: translate(-50%, -50%); font: 700 10px/1 var(--body); color: #111; background: var(--c); border: 1px solid #000; border-radius: 3px; padding: 1px 3px; white-space: nowrap; }
@@ -646,7 +646,13 @@ body.player .console, body.pc-console-off .console { display: none !important; }
 .pctools .oldbox { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; max-width: 520px; display: flex; flex-direction: column; gap: 8px; }
 #turniBtn, #regoBtn { display: none !important; } body.schedit .pcstage { display: none; } body.pc-tools-on .card { display: none !important; }
 /* Piano linea: the sinottico in the stage */
-#depotPlan { inset: var(--pc-top) 0 var(--pc-bot) var(--pc-left); border-radius: 0; z-index: 1450; }
+/* (in place of the map, under everything else: the radio, the cards of the signals and trains, the windows, the admin
+   panel open over it; Giovanni 18 Nov 2026: "il piano sinottico quando aperto prende il posto della mappa quindi è elemento
+   più basso". The map is its own layer, so its markers stay under the plan too) */
+#map { z-index: 0; }
+#depotPlan { inset: var(--pc-top) 0 var(--pc-bot) var(--pc-left); border-radius: 0; z-index: 10; }
+/* (the admin panel in the stage like a window: the windows opened after it go over it, Info and Radio were opening under it) */
+.pcstage .console { z-index: 25; }
 #depotPlan .dp-ph { padding: 40px; color: #cfd6dc; font: 600 16px var(--body); } #depotPlan .dp-ph b { display: block; font: 800 20px var(--display); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
 @media (max-width: 900px) {
   :root { --pc-left: 0px; }
@@ -1449,9 +1455,7 @@ window.MTL_CAPS = __CAPS__;
     if (draw && F.platforms) F.platforms.forEach(pl => {
       L.polygon(decodeFlat(pl.p), { color: look.color, weight: 1, fillColor: '#d9d4c7', fillOpacity: .75, interactive: false }).addTo(platLayer);
     });
-    if (draw) (F.labels || []).forEach(lb => L.marker([lb.la, lb.lo], { keyboard: false,
-      icon: L.divIcon({ className: '', html: '<div class="plat-label ' + (lb.s || '') + '">' + lb.t + '</div>', iconSize: [0, 0] }) })
-      .bindTooltip('Binario ' + lb.t + (lb.t === '1' ? ' · arrivi' : lb.t === '2' ? ' · arrivi e partenze' : ' · partenze'), { className: 'st', direction: 'top', offset: [0, -8] }).addTo(platLayer));
+    // (the big platform numbers of San Donato on the map taken away, Giovanni 18 Nov 2026: they are on the station's card)
     const fleet = { li, boards, line: F.line, look, trips: F.mode === 'trips', bus: F.mode === 'bus', name: F.mode === 'bus' ? routes[li].n : F.line, pulls: F.pulls || [], home: F.home, far: F.far, carLen: 2 * F.half / look.cars,
       paths: F.paths.map(p => { const pts = decodeFlat(p.p); return { lat: pts.map(x => x[0]), lon: pts.map(x => x[1]), d: p.d }; }) };
     fleet.stops = busStops; fleet.display = !!F.display; fleet.heads = F.heads || [];
@@ -4455,10 +4459,12 @@ window.MTL_CAPS = __CAPS__;
   // byEdge[ei]: [ei, f0, f1, section, a signal at f0, a signal at f1]; entry[section]: the signals that let a train in
   function sinSections(SCH, NE, sigOf) {
     if (SCH.__sec && SCH.__sec.n === SCH.edges.length) return SCH.__sec;
-    const cuts = {}, ent = [];
+    const cuts = {}, ent = [], stopD = {};
     // (the illegal signals cut the track too, Giovanni 18 Nov 2026: "il taglio fallo anche per gli illegali")
     for (const sg of SCH.signals || []) { if (!(sg.f > 0.002 && sg.f < 0.998)) { ent.push([sg, sg.f <= 0.002 ? 0 : 1]); continue; }
-      (cuts[sg.e] = cuts[sg.e] || []).push(sg.f); ent.push([sg, sg.f]); }
+      (cuts[sg.e] = cuts[sg.e] || []).push(sg.f); ent.push([sg, sg.f]);
+      // (which way the signals at a cut face, the illegal ones left out: a via libera lights on through the other cuts)
+      const S_ = sigOf && sigOf(sg), k = sg.e + ':' + Math.round(sg.f * 1000) / 1000; if (!(S_ && S_.illegal) && (sg.d === 1 || sg.d === -1)) (stopD[k] = stopD[k] || new Set()).add(sg.d); }
     const pieces = [], byEdge = {}, par = [], find = i => par[i] === i ? i : (par[i] = find(par[i])), join = (i, j) => { par[find(i)] = find(j); };
     const ends = {};
     for (const ei of SCH.edges) { const c = [...new Set((cuts[ei] || []).map(f => Math.round(f * 1000) / 1000))].sort((x, y) => x - y), fs = [0, ...c, 1];
@@ -4484,7 +4490,8 @@ window.MTL_CAPS = __CAPS__;
     const entry = {};
     for (const [sg, f] of ent) { const l = byEdge[sg.e]; if (!l) continue;
       const pc = sg.d === -1 ? l.find(p => Math.abs(p[2] - f) < 0.0015) : l.find(p => Math.abs(p[1] - f) < 0.0015); if (pc) (entry[pc[3]] = entry[pc[3]] || []).push(sg); }
-    return (SCH.__sec = { n: SCH.edges.length, pieces, byEdge, entry });
+    const stops = (ei, f, dir) => !!(stopD[ei + ':' + Math.round(f * 1000) / 1000] || new Set()).has(dir);
+    return (SCH.__sec = { n: SCH.edges.length, pieces, byEdge, entry, stops });
   }
   var PIANO_PH = false;          // (opened as Piano linea: the Deposito tab shows the placeholder)
   var SIN_GO = null;            // (the signals at via libera now, by number: the sections behind them are white)
@@ -4584,7 +4591,9 @@ window.MTL_CAPS = __CAPS__;
       for (let guard = 0; guard < 40; guard++) {
         const l = SEC.byEdge[ei]; if (!l) return;
         const ps = dir > 0 ? l.filter(p => p[2] > f + 1e-4) : l.filter(p => p[1] < f - 1e-4).reverse();
-        for (const p of ps) { litS.add(p[3]); if (dir > 0 ? p[5] : p[4]) return; }
+        // (to the next signal for the same way: not at an illegal one or one facing the other way, Giovanni 18 Nov 2026:
+        // "perchè A262 ha solo un piccolo trattino e non tutto?")
+        for (const p of ps) { litS.add(p[3]); if (dir > 0 ? p[5] && SEC.stops(ei, p[2], 1) : p[4] && SEC.stops(ei, p[1], -1)) return; }
         const e = NE[ei], n = dir > 0 ? e.b : e.a, list = at[n] || []; let nx = null;
         if (list.length === 2) nx = list.find(x => x !== ei);
         else if (list.length >= 3) { const sp = pos[n]; if (!sp || !sp.includes(ei)) return; nx = sp.find(x => x !== ei); }
@@ -4751,7 +4760,7 @@ window.MTL_CAPS = __CAPS__;
       `<text class="binno" x="${(pf.x0 + pf.x1) / 2}" y="${pf.y - 7.5}">${({ 1: 'I', 2: 'II' })[pf0.bin] || pf0.bin}</text>`); grow([pf.x0, pf.y - 12]); grow([pf.x1, pf.y + 6]); }
     // where the track leaves the line for another (the M2 link): that line's logo
     // the tails (Giovanni 16 Nov 2026): grey, their name small above, at Comasina their positions
-    for (const tl of SCH.tails || []) { const [x, y] = T([tl.x, tl.y]); marks += DK('tail:' + tl.text, `<text class="tailn" x="${x}" y="${y}">${tl.text}</text>`);
+    for (const tl of SCH.tails || []) { const [x, y] = T([tl.x, tl.y]); marks += DK('tail:' + tl.text + ':' + Math.round(tl.x), `<text class="tailn" x="${x}" y="${y}"${tl.anchor ? ` style="text-anchor:${tl.anchor}"` : ''}>${tl.text}</text>`); grow([x + (tl.anchor === 'start' ? 80 : tl.anchor === 'end' ? -80 : 0), y]);
       for (const ps of tl.pos || []) { const [px, py] = T([ps.x, ps.y + 21]); marks += DK('pos:' + tl.text + ':' + ps.text, `<text class="posn" x="${px}" y="${py}">${ps.text}</text>`); } }
     // the names of the tracks, big, with the number of the piece (to talk about them: "nomi dei binari")
     if (SIN_NAMES && SCH.names) for (const ei of SCH.edges) { const full = FULL[ei], nm = SCH.names[ei]; if (!full || !nm) continue;
@@ -4787,14 +4796,22 @@ window.MTL_CAPS = __CAPS__;
           ((SIN_NUM || SGNM(sg)) ? `<text class="sgn" x="${O[0] + nx * 9}" y="${O[1] + ny * 9 + 3}">${SGNM(sg) || sg.n}</text>` : '');
         return; }
       let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
-      const sqr = !!sg.b || ill, side = sqr ? -1 : 1, K = SIN_WHICH === 'line' ? 1 : 0.9, nx = -ty * side, ny = tx * side;
-      const O = [m[0] - tx * 7 * K + nx * 8 * K, m[1] - ty * 7 * K + ny * 8 * K], ang = Math.atan2(ty, tx) * 180 / Math.PI;
+      // (on the line every head on the right of the trains it is for, so the illegal ones stand on the other side of the
+      // track from the legal ones: Giovanni 18 Nov 2026, "metti gli illegali sul lato opposto dei legali così aumentiamo la
+      // leggibilità"; on the depot's board as on the real one, B on the left)
+      const sqr = !!sg.b || ill || !!(S_ && S_.look), side = SIN_WHICH === 'line' ? 1 : sqr ? -1 : 1, K = SIN_WHICH === 'line' ? 1 : 0.9, nx = -ty * side, ny = tx * side;
+      let O = [m[0] - tx * 7 * K + nx * 8 * K, m[1] - ty * 7 * K + ny * 8 * K], ang = Math.atan2(ty, tx) * 180 / Math.PI;
+      // (the door's S01A and S01B upright on the board, beside their vertical track: the head level, its foot towards the
+      // track, Giovanni 18 Nov 2026: "mi riesci a raddrizzare S01B S01A")
+      const level = /^S01[AB]$/.test(SGNM(sg) || '') && Math.abs(tx) < 0.5;
+      if (level) { const sx = nx >= 0 ? 1 : -1; O = [m[0] + sx * 17 * K, m[1] - ty * 7 * K]; ang = sx > 0 ? 0 : 180; }
       const lit = a === 'go' || a === 'sgo';
       marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}${keyCls(sg.n)}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${SGNM(sg) ? SGNM(sg) + ' = ' : ''}${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
         `<path class="sgb" d="M-14,-3.2V3.2M-14,0H-7"/><rect class="sgc" x="-7" y="-3.7" width="14" height="7.4" rx="${sqr ? 0.8 : 3.7}"/>` +
         (sqr ? `<rect x="-5.5" y="-2.2" width="4.4" height="4.4" fill="${lit || SIN_TEST ? '#ffffff' : '#4a4943'}"/><rect x="1.1" y="-2.2" width="4.4" height="4.4" fill="#ff2a2a"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="0"/></g>`
           : `<circle class="sgw" cx="-3.3" cy="0" r="2.3" fill="${lit || SIN_TEST ? '#ffffff' : '#4a4943'}"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="2.3" fill="#ff2a2a"/></g>`) +
-        (SGNM(sg) && (grow([O[0] + nx * 13 * K + 42, O[1]]), grow([O[0] + nx * 13 * K - 42, O[1]]), true) ? `<text class="sgn sgname" x="${(O[0] + nx * 13 * K).toFixed(1)}" y="${(O[1] + ny * 13 * K + 3).toFixed(1)}" style="text-anchor:${Math.abs(nx) < 0.5 ? 'middle' : nx > 0 ? 'start' : 'end'}">${SGNM(sg)}</text>`   // (the door's names beside the head, outwards, as on the board)
+        (SGNM(sg) && level ? `<text class="sgn sgname" x="${(O[0] + (nx >= 0 ? 10 : -10) * K).toFixed(1)}" y="${(O[1] + 3).toFixed(1)}" style="text-anchor:${nx >= 0 ? 'start' : 'end'}">${SGNM(sg)}</text>`
+          : SGNM(sg) && (grow([O[0] + nx * 13 * K + 42, O[1]]), grow([O[0] + nx * 13 * K - 42, O[1]]), true) ? `<text class="sgn sgname" x="${(O[0] + nx * 13 * K).toFixed(1)}" y="${(O[1] + ny * 13 * K + 3).toFixed(1)}" style="text-anchor:${Math.abs(nx) < 0.5 ? 'middle' : nx > 0 ? 'start' : 'end'}">${SGNM(sg)}</text>`   // (the door's names beside the head, outwards, as on the board)
           : SIN_NUM ? `<text class="sgn" x="${O[0] + nx * 9 * K}" y="${O[1] + ny * 9 * K + 3}">${sg.n}</text>` : ''); };
     for (const sg of SCH.signals || []) { const m0_ = marks.length; drawSig(sg); if (marks.length > m0_) marks = marks.slice(0, m0_) + DK('sig:' + sg.n, marks.slice(m0_)); }
     // the switches: a lamp beside each, on the straight side, lit when it is set for the turnout (Giovanni 16 Nov 2026: "si
@@ -5888,7 +5905,9 @@ window.MTL_CAPS = __CAPS__;
   const trkNameLayer = L.layerGroup(); let NAMES = false;
   function buildNames(F) {
     const net = F.engine.net, byWay = {};
-    net.edges.forEach(e => { if (net.names && net.names[e.way]) (byWay[e.way] = byWay[e.way] || []).push(e); });
+    // (not the platforms' tracks: their numbers are on the station's card, Giovanni 18 Nov 2026: "distruggere i tag san donato
+    // binario 1 e 2 sia i numeri grandi")
+    net.edges.forEach(e => { if (net.names && net.names[e.way] && !/ binario \d/.test(net.names[e.way])) (byWay[e.way] = byWay[e.way] || []).push(e); });
     for (const [w, es] of Object.entries(byWay)) {
       const e = es.reduce((p, q) => q.len > p.len ? q : p), p = e.p; let la = p[0] / 1e6, lo = p[1] / 1e6; const pts = [[la, lo]];
       for (let j = 2; j < p.length; j += 2) { la += p[j] / 1e6; lo += p[j + 1] / 1e6; pts.push([la, lo]); }
@@ -5916,6 +5935,17 @@ window.MTL_CAPS = __CAPS__;
     // block signals computed along the line (not placed on the map) have fixed numbers from #A201 (rules block_numbers): they do not move when
     // a signal is placed or taken away
     const NPL = 200, tagOf = n => '#A' + String(n).padStart(2, '0');
+    // (every signal a little outside its track, never on the line or between two tracks when there is an outside: Giovanni
+    // 18 Nov 2026, "mettere tutti i segnali leggermente esterni… A14 e A45 che sono in mezzo ai binari"): the marker on the
+    // track, the drawing moved off it by SIG_OFF px, at right angles, on the side away from the nearest other track
+    const SIG_OFF = 10, offCss = (r, side) => { const b = r * Math.PI / 180; return `--ox:${(Math.cos(b) * side * SIG_OFF).toFixed(1)}px;--oy:${(Math.sin(b) * side * SIG_OFF).toFixed(1)}px`; };
+    const NP = netPts(F), KXm = 111320 * KXs, KYm = 110540;
+    const awayFrom = (ll, ownEi, r, dflt) => { const b = r * Math.PI / 180, rx = Math.cos(b), ry = -Math.sin(b); let best = null;
+      NP.forEach((pts, ei) => { if (ei === ownEi) return;
+        for (let i = 0; i < pts.length - 1; i++) { const ax = (pts[i][1] - ll[1]) * KXm, ay = (pts[i][0] - ll[0]) * KYm, bx = (pts[i + 1][1] - ll[1]) * KXm, by = (pts[i + 1][0] - ll[0]) * KYm;
+          const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, u = L2 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / L2)) : 0, qx = ax + u * dx, qy = ay + u * dy, dd = Math.hypot(qx, qy);
+          if (dd > 1 && dd < 25 && (!best || dd < best.dd)) best = { dd, qx, qy }; } });
+      return best ? (best.qx * rx + best.qy * ry > 0 ? -1 : 1) : dflt; };
     // turned the way its trains go, as on the M2 map (Giovanni 18 Nov 2026: "specchiare i semafori a seconda della direzione
     // che puntano come abbiamo fatto sulla verde"): the top of the drawing towards where the trains go
     const headingAt = (pid, d, sgn) => { const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5); if (!a || !b) return 0;
@@ -5925,11 +5955,10 @@ window.MTL_CAPS = __CAPS__;
       const a = trackAt(F, pid, d), b = trackAt(F, pid, d + sgn * 5);
       const kx = Math.cos(a[0] * Math.PI / 180), ux = (b[1] - a[1]) * kx, uy = b[0] - a[0], n = Math.hypot(ux, uy) || 1;
       const side = other != null ? outward(other, a, ux / n, uy / n) : 1;
-      const off = 7 / 111000 * side, pos = at || [a[0] - ux / n * off, a[1] + uy / n * off / kx];
-      const r = headingAt(pid, d, sgn);
-      const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx" style="--r:${r}deg" alt="" src="${SIGURL[illegal ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
+      const pos = at || a, r = headingAt(pid, d, sgn), st = offCss(r, side);
+      const m = L.marker(pos, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span style="${st}"><img class="sigpx" style="--r:${r}deg" alt="" src="${SIGURL[illegal ? 'istop' : 'stop']}">${tagHtml(tag)}</span>` }) })
         .bindTooltip(tip, { className: 'st', direction: 'top' }).on('click', () => openSignal(tag));
-      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si, stype, pid, d, r });
+      out.push({ m, block: blockIdx, a: null, tag, illegal: !!illegal, si, stype, pid, d, r, st });
     };
     // block signals, usual direction: one at the start of every block section (stations and in between)
     (F.engine.blocks || []).forEach((bl, bi) => {
@@ -5937,7 +5966,7 @@ window.MTL_CAPS = __CAPS__;
       const other = pidOf(bl.dir === 'N' ? 'S' : 'N');
       const what = bl.kind === 'entry' ? 'Protezione' : bl.kind === 'departure' ? 'Partenza' : 'Blocco';
       const psi = bl.placed != null ? (F.engine.net.signals || []).findIndex(x => x.n === bl.placed) : -1, psg = psi >= 0 ? F.engine.net.signals[psi] : null;
-      place(bl.pid, other, bl.signal_d, +1, what + ' · ' + cap(bl.name.slice(2)) + (bl.real ? '' : ' (posizione stimata)'), bi, bl.n, bl.stype, false, psg ? [psg.lat, psg.lon] : null, psi >= 0 ? psi : undefined);
+      place(bl.pid, other, bl.signal_d, +1, what + ' · ' + cap(bl.name.slice(2)) + (bl.real ? '' : ' (posizione stimata)'), bi, bl.n, bl.stype, false, psg ? (psg.on_track || [psg.lat, psg.lon]) : null, psi >= 0 ? psi : undefined);
     });
     // the other signals placed on the map (terminal junctions, tails, depot): state from the track just ahead of them
     // a placed signal that is the position of a block signal is drawn once, by the block (with the block's fixed number)
@@ -5947,14 +5976,15 @@ window.MTL_CAPS = __CAPS__;
       const shunt = x.sg.kind === 'shunt' || x.sg.type === 'shunt', tag = tagOf(x.sg.n || (F.engine.net.signals || []).indexOf(x.sg) + 1);
       const si = (F.engine.net.signals || []).indexOf(x.sg), refs = [];
       for (const [pid, list] of Object.entries(F.engine.net.sigpos || {})) for (const [d, i] of list) if (i === si) refs.push([pid, d]);
-      const r = refs.length ? headingAt(refs[0][0], refs[0][1], 1) : 0;
-      const m = L.marker([x.sg.lat, x.sg.lon], { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${shunt ? ' sh' : ''}" style="--r:${r}deg" alt="" src="${SIGURL[shunt ? 'sstop' : x.sg.legal === false ? 'istop' : 'stop']}">${tagHtml(tag)}` }) })
+      const r = refs.length ? headingAt(refs[0][0], refs[0][1], 1) : (x.sg.heading || 0), llT = x.sg.on_track || [x.sg.lat, x.sg.lon];
+      const lookIll = x.sg.legal === false || x.sg.look === 'illegale', st = offCss(r, awayFrom(llT, x.at && x.at.ei, r, x.sg.side === 'left' ? -1 : 1));
+      const m = L.marker(llT, { interactive: true, keyboard: false, icon: L.divIcon({ className: '', iconSize: [0, 0], html: `<span style="${st}"><img class="sigpx${shunt ? ' sh' : ''}" style="--r:${r}deg" alt="" src="${SIGURL[shunt ? 'sstop' : lookIll ? 'istop' : 'stop']}">${tagHtml(tag)}</span>` }) })
         .bindTooltip(tag + ' · ' + (x.sg.name || ilBrief(F, (F.engine.net.signals || []).indexOf(x.sg)) || (shunt ? 'Manovra' : 'Blocco')), { className: 'st', direction: 'top' });   // (two or three words, Giovanni 9 Nov 2026: the rules are on the card)
       // where it is on the paths that go over it: it shows the section right behind it (junction, tail, block)
       if (F.ag && F.ag.IL && F.ag.IL.isManual(si)) m.on('click', () => clearManual(F, si, tag)); else m.on('click', () => openSignal(tag));
       const ill = x.sg.legal === false;
       if (x.sg.stype) m.setTooltipContent(m.getTooltip().getContent().replace(tag + ' · ', tag + ' · tipo ' + x.sg.stype + (ill ? ' · senso illegale' : '') + ' · '));
-      out.push({ m, block: -1, ahead: ill ? null : x.parts, refs: ill ? [] : refs, shunt, a: null, sg: x.sg, tag, si, illegal: ill, stype: x.sg.stype || (x.sg.manual ? 'm' : null), r });
+      out.push({ m, block: -1, ahead: ill ? null : x.parts, refs: ill ? [] : refs, shunt, a: null, sg: x.sg, tag, si, illegal: ill, look: lookIll, stype: x.sg.stype || (x.sg.manual ? 'm' : null), r, st });
     });
     // wrong-way departure signals at the platform ends (the line is banalizzata): numbered in the build, always red
     (F.engine.illegal || []).forEach(il => {
@@ -6000,7 +6030,7 @@ window.MTL_CAPS = __CAPS__;
         (atNode[node] || []).forEach(n => { if (n === ei) return; const f = E_[n]; walk(n, f.a === node ? 0 : f.len, f.a === node ? 1 : -1, used + Math.abs(to - l), depth + 1); });
       };
       walk(x.at.ei, x.at.l, x.at.dir, 0, 0);
-      return { sg: x.sg, parts, len: total };
+      return { sg: x.sg, at: x.at, parts, len: total };
     });
   }
   // is any part of the train on these track pieces?
@@ -6065,7 +6095,7 @@ window.MTL_CAPS = __CAPS__;
     if (showIll && !map.hasLayer(illLayer)) illLayer.addTo(map); else if (!showIll && map.hasLayer(illLayer)) map.removeLayer(illLayer);
     sigAspects(F);
     SIGS.forEach(sg => { const a = sg.asp;
-      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<img class="sigpx${sg.shunt ? ' sh' : ''}" style="--r:${sg.r || 0}deg" alt="" src="${SIGURL[(sg.illegal && !sg.shunt ? 'i' : '') + a]}">${sg.tag ? tagHtml(sg.tag) : ''}` })); }
+      if (sg.a !== a) { sg.a = a; sg.m.setIcon(L.divIcon({ className: '', iconSize: [0, 0], html: `<span style="${sg.st || ''}"><img class="sigpx${sg.shunt ? ' sh' : ''}" style="--r:${sg.r || 0}deg" alt="" src="${SIGURL[((sg.illegal || sg.look) && !sg.shunt ? 'i' : '') + a]}">${sg.tag ? tagHtml(sg.tag) : ''}</span>` })); }
     });
   }
   // tool: take signals away (they go into the MTL-EDIT export as "removed"; the build then drops them)
