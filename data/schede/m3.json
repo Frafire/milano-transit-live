@@ -13,8 +13,13 @@
     "testo": "prima tratta aperta, Centrale FS – Duomo"
    },
    "depositi": 1,
-   "testo": "La linea gialla collega Comasina, a nord, con San Donato, appena fuori città a sud-est, passando per Centrale FS, Duomo e Rogoredo FS.",
+   "paragrafi": [
+    "La M3 è la linea gialla: si chiama così per il colore con cui è disegnata sulle mappe, lo stesso che si ritrova negli arredi delle stazioni e nella livrea dei treni.",
+    "Collega Comasina, quartiere a nord nel Municipio 9, con San Donato, a sud-est, vicino alle sedi di ENI e BMW Italia e alle due autostazioni: quella degli autobus locali e quella delle linee nazionali e internazionali. Nonostante il nome, la stazione di San Donato è nel comune di Milano, nel quartiere Rogoredo: il confine con San Donato Milanese corre a un centinaio di metri, oltre via Marignano. La linea quindi è tutta dentro Milano. San Donato è anche l'unica stazione della M3 con tre binari.",
+    "Passa per piazza del Duomo e tocca cinque stazioni ferroviarie: Rogoredo, Scalo di Porta Romana, Repubblica, Centrale e Affori. Incrocia la M1 a Duomo, la M2 a Centrale FS e la M5 a Zara. Con la M4 non ha una stazione in comune, ma da Missori e da Crocetta si arriva a Sforza-Policlinico con un breve tratto a piedi in superficie."
+   ],
    "fonti": [
+    "Testo: Giovanni, con informazioni da Wikipedia (voci Linea M3 e San Donato della metropolitana di Milano).",
     "Stazioni e km: dal tracciato dell'orario; treni: dalla flotta del gioco (calcolati nella build)"
    ]
   },

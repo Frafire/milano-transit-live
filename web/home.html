@@ -400,7 +400,8 @@ function cardHtml(k) {
     `<div class="act"><button class="play2" id="lsPlay">Gioca la ${k}</button><button class="close2" id="lsClose">Chiudi ✕</button></div></div><nav class="ls-nav" id="lsnav" aria-label="Sezioni">${nav}</nav>`;
   for (const s of S.sezioni) {
     h += `<section id="s-${s.id}"><h2${s.presto ? ' style="opacity:.5"' : ''}>${esc(s.titolo)}</h2>`;
-    if (s.id === 'breve') h += `<div class="stats">${(s.numeri || []).map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div><p style="margin-top:14px">${s.testo}</p>` + src(s);
+    // the text of the line first (Giovanni 18/11), then the numbers; s.testo kept for the cards that still have one line
+    if (s.id === 'breve') h += (s.paragrafi || []).map(p => `<p>${p}</p>`).join('') + `<div class="stats">${(s.numeri || []).map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div>${s.testo ? `<p style="margin-top:14px">${s.testo}</p>` : ''}` + src(s);
     else if (s.id === 'storia') { h += `${s.avviso ? `<div class="warn">${s.avviso}</div>` : ''}${s.paragrafi.map(p => p.startsWith('## ') ? `<h3>${esc(p.slice(3))}</h3>` : `<p>${p}</p>`).join('')}${tappe(s.tappe)}`;
       if (s.crescita) h += `<h3>Come è cresciuta</h3><div class="lmap"><svg id="lmap" height="170" role="img" aria-label="Le stazioni per anno di apertura"></svg></div><div class="leg" id="leg"></div>`;
       h += src(s); }
