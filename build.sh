@@ -13,7 +13,7 @@ export PYTHONPATH="$ROOT/tools" GTFS
 cd "$B"
 echo "== timetable for service day $DAY"
 STOP_FIX="$ROOT/data/fermate_m3.json" python3 "$ROOT/tools/build_data.py" "$GTFS" "$DAY" data.json
-gzip -9 -kf data.json
+gzip -9 -n -kf data.json
 echo "== M3";  LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log
 if [ -n "${ALL_LINES:-}" ]; then
   echo "== M4";  LINE=M4 python3 "$ROOT/tools/build_line.py" > m4.log
@@ -56,7 +56,7 @@ for pair in "sat:$SAT_DAY" "sun:$SUN_DAY"; do
   n="${pair%%:*}"; d="${pair##*:}"; BD="$ROOT/build_$n"; mkdir -p "$BD"
   find "$ROOT/data" -maxdepth 1 -type f -exec cp {} "$BD"/ \;
   echo "== $n: timetable for service day $d"
-  (cd "$BD" && STOP_FIX="$ROOT/data/fermate_m3.json" python3 "$ROOT/tools/build_data.py" "$GTFS" "$d" data.json > bd.log && gzip -9 -kf data.json && LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log && \
+  (cd "$BD" && STOP_FIX="$ROOT/data/fermate_m3.json" python3 "$ROOT/tools/build_data.py" "$GTFS" "$d" data.json > bd.log && gzip -9 -n -kf data.json && LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log && \
     grep -h "tail clashes\|not covered" m3.log && node "$ROOT/tools/precompute_live.js" > pre.log && python3 "$ROOT/tests/check_tails.py" && python3 "$ROOT/tests/check_depot.py" && \
     node "$ROOT/tests/day_agents_check.js" 5 24 && node "$ROOT/tests/timetable_check.js" && (node "$ROOT/tests/headway_check.js" || echo "WARNING ($n): trains closer than 2 minutes"))
 done
@@ -73,7 +73,7 @@ for nome in expo2015 milanocortina2026; do
     BD="$ROOT/build_storico/${nome}_$n"; mkdir -p "$BD"
     find "$ROOT/data" -maxdepth 1 -type f -exec cp {} "$BD"/ \;
     echo "== M3 $nome ($n): service day $d"
-    (cd "$BD" && STOP_FIX="$ROOT/data/fermate_m3.json" python3 "$ROOT/tools/build_data.py" "$G" "$d" data.json > bd.log && gzip -9 -kf data.json && FLOTTA="${nome//[!0-9]/}" WASH_CACHE_DIR="$B" LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log && \
+    (cd "$BD" && STOP_FIX="$ROOT/data/fermate_m3.json" python3 "$ROOT/tools/build_data.py" "$G" "$d" data.json > bd.log && gzip -9 -n -kf data.json && FLOTTA="${nome//[!0-9]/}" WASH_CACHE_DIR="$B" LINE=M3 python3 "$ROOT/tools/build_line.py" > m3.log && \
       grep -h "real fleet\|tail clashes" m3.log && timeout 1800 node "$ROOT/tools/precompute_live.js" > pre.log && \
       { python3 "$ROOT/tests/check_tails.py" && python3 "$ROOT/tests/check_depot.py" && MAX_LATE=$([ "$nome" = milanocortina2026 ] && echo 150 || echo 120) node "$ROOT/tests/day_agents_check.js" 5 24 && node "$ROOT/tests/timetable_check.js"; } > checks.log 2>&1 && echo "   checks ok") \
       || echo "WARNING (M3 $nome $n, a check failed, the day is still packed and playable): see build_storico/${nome}_$n/checks.log"
@@ -91,7 +91,7 @@ for pair in "1:$DAY" "6:$SAT_DAY" "7:$SUN_DAY"; do
   cp "$ROOT/data/operations_m2.json" "$ROOT/data/osm_m2.txt" "$ROOT/data/osm_m2_platforms.json" "$ROOT/data/banchine_m2.json" "$BD"/
   echo "== M2 ($n): timetable for service day $d, turni, runs on the real tracks"
   # the runs on the tracks: the M1's builder (tools/build_trips.py); PICK_DOT 0.3: see the note there (Garibaldi)
-  (cd "$BD" && python3 "$ROOT/tools/build_data.py" "$GTFS_M2" "$d" data.json 2> bd.log && gzip -9 -kf data.json && \
+  (cd "$BD" && python3 "$ROOT/tools/build_data.py" "$GTFS_M2" "$d" data.json 2> bd.log && gzip -9 -n -kf data.json && \
     python3 "$ROOT/tools/turni_m2.py" && LINE=M2 TRACKS=osm_m2.txt PICK_DOT=0.3 PLATFORMS=osm_m2_platforms.json PLATFORM_EDITS=banchine_m2.json TRACK_DIRS=1 python3 "$ROOT/tools/build_trips.py" > trips.log && \
     python3 "$ROOT/tools/depositi_m2.py" "$ROOT/data/depositi_m2.json" && python3 "$ROOT/tests/m2_depositi_check.py" "$ROOT/data/depositi_m2.json" && \
     python3 "$ROOT/tools/lisci_m2.py" && python3 "$ROOT/tests/m2_lisci_check.py" && \

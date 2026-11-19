@@ -15,7 +15,7 @@ def write(dati):
         bd = os.path.join(BUILD, folder)
         if not all(os.path.exists(os.path.join(bd, f)) for f in ('data.json.gz', 'm2_turni.json')): continue
         data = base64.b64encode(open(os.path.join(bd, 'data.json.gz'), 'rb').read()).decode()
-        turni = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm2_turni.json'), 'rb').read(), 9)).decode()
+        turni = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm2_turni.json'), 'rb').read(), 9, mtime=0)).decode()
         # the runs on the real tracks and the tracks for the editor (tools/build_trips.py), when built
         fp = os.path.join(bd, 'm2.json'); fleet = ''
         if os.path.exists(fp):
@@ -38,7 +38,7 @@ def write(dati):
                     pos.setdefault(r['stop_name'], []).append((float(r['stop_lat']), float(r['stop_lon'])))
                 F['stcards'] = [dict(st, la=round(sum(p[0] for p in pos[st['gtfs']]) / len(pos[st['gtfs']]), 6), lo=round(sum(p[1] for p in pos[st['gtfs']]) / len(pos[st['gtfs']]), 6))
                                 for st in json.load(open(sp))['stazioni'] if st['gtfs'] in pos]
-            fleet = base64.b64encode(gzip.compress(json.dumps({'fleets': [F]}, separators=(',', ':')).encode(), 9)).decode()
+            fleet = base64.b64encode(gzip.compress(json.dumps({'fleets': [F]}, separators=(',', ':')).encode(), 9, mtime=0)).decode()
         name = 'm2_%s.js' % folder
         js = '(window.MTL_PACK = window.MTL_PACK || {})[%s] = %s;\n' % (json.dumps('M2' + sfx), json.dumps({'data': data, 'fleet': fleet, 'live': '', 'turni': turni}))
         open(os.path.join(dati, name), 'w').write(js)
