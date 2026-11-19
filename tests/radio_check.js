@@ -1,13 +1,23 @@
 // The radio phrases (web/frasi.js, data/radio_m3.json from the Radio sheet of the rules Excel). Checks, on the code:
 // every phrase code the code uses is in the file, every phrase in the file is used, no radio text is left written in the
 // code (say / call / end / driverSays / stationSays / env.say / env.call with a literal text), every phrase has a text.
+// Every data/radio_<linea>.json (one file per line, tools/radio_excel.py): its own line in it, every phrase with a text.
+// The checks on the code are for the M3 (the other lines have no radio code yet).
 // Usage: node tests/radio_check.js
 const fs = require('fs'), path = require('path');
 const ROOT = path.resolve(__dirname, '..');
+let fail = 0;
+for (const f of fs.readdirSync(path.join(ROOT, 'data')).filter(f => /^radio_[a-z0-9]+\.json$/.test(f)).sort()) {
+  const line = f.slice(6, -5).toUpperCase(), J = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', f), 'utf8')), F = J.frasi || {};
+  const bad = Object.entries(F).filter(([, e]) => !e.testi || !e.testi.length || e.testi.some(x => !String(x).trim())).map(([c]) => c);
+  const ok = (J.linea === undefined || J.linea === line) && !bad.length;
+  console.log(`${ok ? 'ok  ' : 'FAIL'} data/${f}: ${Object.keys(F).length} phrases${J.linea !== undefined && J.linea !== line ? ', linea ' + J.linea + ' (the file is the ' + line + "'s)" : ''}${bad.length ? ', without a text: ' + bad.join(', ') : ''}`);
+  if (!ok) fail++;
+}
 const R = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/radio_m3.json'), 'utf8')).frasi || {};
 const FILES = ['web/faults.js', 'web/radio.js', 'web/DepotM3.js', 'web/template.html'];
 const PREF = new Set(Object.keys(R).map(c => c.split('.')[0]));
-let fail = 0; const used = new Set(), missing = [], literal = [];
+const used = new Set(), missing = [], literal = [];
 for (const f of FILES) {
   const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
   for (const m of src.matchAll(/['"]([a-z0-9_]+(?:\.[a-z0-9_]+)+)['"]/g)) {

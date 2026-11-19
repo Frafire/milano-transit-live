@@ -2570,8 +2570,10 @@ body.player .console, body.pc-console-off .console { display: none !important; }
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script>// The radio phrases (Giovanni, 2 Nov 2026: all the radio calls in a file of their own). They are written in the Radio
-// sheet of the rules Excel (data/Regole_interlocking_M3.xlsx) -> tools/rules_from_excel.py -> data/radio_m3.json; the
-// build puts them in the network (net.radio). The code only says which phrase: t('guasto.trazione.riarmato', { dove }).
+// sheets of the rules Excels (data/Regole_interlocking_M3.xlsx, data/Regole_M2.xlsx; column Linea: M3, M2 or comune)
+// -> tools/rules_from_excel.py -> one file per line, data/radio_<linea>.json; the build puts the line's file in the
+// network (net.radio). The column PROPOSTA (Claude's texts not approved yet) never comes here. How a call is made:
+// sheet Schema chiamate. The code only says which phrase: t('guasto.trazione.riarmato', { dove }).
 //
 // A phrase: { chi, quando, testi: [one or more variants] }. Placeholders in braces: {stazione}, {segnale}... filled from
 // the values given; {T} and {R} (the train, the rescuing train) are left as they are and filled later with the train
@@ -2587,8 +2589,15 @@ body.player .console, body.pc-console-off .console { display: none !important; }
         if (api.strict) throw new Error('frase radio mancante: ' + code);
         return '[' + code + ']';
       }
-      // (pesi: how often each variant comes out, from the Radio sheet, column Pesi (%))
-      const L = e.testi, R = (r || rng || Math.random)(), W = e.pesi && e.pesi.length === L.length ? e.pesi : null;
+      // (pesi: how often each variant comes out, from the Radio sheet, column Pesi (%); stili: the column Stile, one per
+      // text. vars.stile ('calmo', 'deciso', 'aggressivo': the driver's or the DCT's mood) keeps only the texts of that
+      // style, when the phrase has any; otherwise all of them)
+      let L = e.testi, W = e.pesi && e.pesi.length === L.length ? e.pesi : null;
+      if (vars && vars.stile && e.stili && e.stili.length === L.length) {
+        const keep = L.map((x, i) => i).filter(i => e.stili[i] === vars.stile);
+        if (keep.length) { L = keep.map(i => e.testi[i]); W = W && keep.map(i => W[i]); }
+      }
+      const R = (r || rng || Math.random)();
       let s = L[0];
       if (L.length > 1 && W) { const tot = W.reduce((a, b) => a + b, 0); let x = R * tot; s = L[L.length - 1]; for (let i = 0; i < L.length; i++) { x -= W[i]; if (x < 0) { s = L[i]; break; } } }
       else if (L.length > 1) s = L[Math.floor(R * L.length)];
@@ -5711,7 +5720,10 @@ body.player .console, body.pc-console-off .console { display: none !important; }
         if (before) { driverSays(tx('treno.sosta.risposta_aggiunta', { aggiunta: quanto, stazione: cap(n.name), totale: durTxt(total) })); return; }
         const st0 = trainState(F, tr, state.t);
         const dawn = state.t < 6 * 3600 + 15 * 60 && radioWhy !== 'nessun motivo';
-        if (radioWhy === 'treno davanti in ritardo' && st0.trip >= 0 && firstRuns(F).has(st0.trip))
+        // (the first train of the day each way: "Non è possibile DCT, ho aperto io la linea!", and it stops anyway; also
+        // before it leaves its terminus, when it has no run yet: its next run; Giovanni, B-021)
+        const run = st0.trip >= 0 ? st0.trip : nextRun(tr);
+        if (radioWhy !== 'nessun motivo' && radioWhy !== 'guasto più avanti' && run >= 0 && firstRuns(F).has(run))
           driverSays(tx('treno.sosta.risposta_primo_treno', sv));
         else if (dawn) driverSays(tx('treno.sosta.risposta_alba', sv));
         else if (radioStopSel > 30 && st0.trip >= 0 && lastRuns(F).has(st0.trip)) driverSays(tx('treno.sosta.risposta_ultimo_treno', sv));
@@ -5857,6 +5869,11 @@ body.player .console, body.pc-console-off .console { display: none !important; }
       F.trains.forEach(tr => tr.segs.forEach(sg => { if (sg[1] !== 'service' || sg[2] < 0) return; const tp = trips[sg[2]], a = D.stops[tp.st[0]], b = D.stops[tp.st[tp.st.length - 1]];
         const dir = b[1] > a[1] ? 'N' : 'S'; if (!best[dir] || tp.start < trips[best[dir]].start) best[dir] = sg[2]; }));
       return (FIRSTRUNS = new Set(Object.values(best)));
+    }
+    // the passenger run a train will do next (for a train still in the depot or turning back)
+    function nextRun(tr) {
+      const sg = tr.segs.find(x => x[1] === 'service' && x[2] >= 0 && x[3][x[3].length - 1] >= state.t);
+      return sg ? sg[2] : -1;
     }
     function lastRuns(F) {
       if (LASTRUNS) return LASTRUNS;

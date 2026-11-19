@@ -1,6 +1,8 @@
 // The radio phrases (Giovanni, 2 Nov 2026: all the radio calls in a file of their own). They are written in the Radio
-// sheet of the rules Excel (data/Regole_interlocking_M3.xlsx) -> tools/rules_from_excel.py -> data/radio_m3.json; the
-// build puts them in the network (net.radio). The code only says which phrase: t('guasto.trazione.riarmato', { dove }).
+// sheets of the rules Excels (data/Regole_interlocking_M3.xlsx, data/Regole_M2.xlsx; column Linea: M3, M2 or comune)
+// -> tools/rules_from_excel.py -> one file per line, data/radio_<linea>.json; the build puts the line's file in the
+// network (net.radio). The column PROPOSTA (Claude's texts not approved yet) never comes here. How a call is made:
+// sheet Schema chiamate. The code only says which phrase: t('guasto.trazione.riarmato', { dove }).
 //
 // A phrase: { chi, quando, testi: [one or more variants] }. Placeholders in braces: {stazione}, {segnale}... filled from
 // the values given; {T} and {R} (the train, the rescuing train) are left as they are and filled later with the train
@@ -16,8 +18,15 @@
         if (api.strict) throw new Error('frase radio mancante: ' + code);
         return '[' + code + ']';
       }
-      // (pesi: how often each variant comes out, from the Radio sheet, column Pesi (%))
-      const L = e.testi, R = (r || rng || Math.random)(), W = e.pesi && e.pesi.length === L.length ? e.pesi : null;
+      // (pesi: how often each variant comes out, from the Radio sheet, column Pesi (%); stili: the column Stile, one per
+      // text. vars.stile ('calmo', 'deciso', 'aggressivo': the driver's or the DCT's mood) keeps only the texts of that
+      // style, when the phrase has any; otherwise all of them)
+      let L = e.testi, W = e.pesi && e.pesi.length === L.length ? e.pesi : null;
+      if (vars && vars.stile && e.stili && e.stili.length === L.length) {
+        const keep = L.map((x, i) => i).filter(i => e.stili[i] === vars.stile);
+        if (keep.length) { L = keep.map(i => e.testi[i]); W = W && keep.map(i => W[i]); }
+      }
+      const R = (r || rng || Math.random)();
       let s = L[0];
       if (L.length > 1 && W) { const tot = W.reduce((a, b) => a + b, 0); let x = R * tot; s = L[L.length - 1]; for (let i = 0; i < L.length; i++) { x -= W[i]; if (x < 0) { s = L[i]; break; } } }
       else if (L.length > 1) s = L[Math.floor(R * L.length)];

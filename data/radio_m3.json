@@ -1,5 +1,6 @@
 {
- "_about": "Le frasi della radio, dal foglio Radio di data/Regole_interlocking_M3.xlsx (tools/rules_from_excel.py). Non modificare a mano: si cambia il foglio e si rilancia lo script. {T} e {R}: i numeri del treno e del treno di soccorso.",
+ "_about": "Le frasi della radio della M3: le righe con Linea M3 o comune dei fogli Radio degli Excel delle regole (tools/rules_from_excel.py, tools/radio_excel.py). Non modificare a mano: si cambia il foglio e si rilancia lo script. {T} e {R}: i numeri del treno e del treno di soccorso. La colonna PROPOSTA non entra mai qui.",
+ "linea": "M3",
  "frasi": {
   "anello.autorizzato_attendi": {
    "chi": "DCT",
@@ -208,14 +209,32 @@
    "chi": "macchinista",
    "quando": "Il treno è fermo a un segnale rosso da 30 secondi (in linea o in stazione senza ordini)",
    "testi": [
-    "DCT, qui treno {treno}, sono fermo al segnale {segnale}, via impedita. Chiedo spiegazioni. Passo."
+    "DCT, qui treno {treno}, sono fermo al segnale {segnale}, via impedita. Chiedo spiegazioni. Passo.",
+    "Ciao, sono il {treno} al segnale {segnale}"
+   ],
+   "pesi": [
+    50.0,
+    50.0
+   ],
+   "stili": [
+    "deciso",
+    "calmo"
    ]
   },
   "chiamata.rosso.via_libera": {
    "chi": "macchinista",
    "quando": "Il treno che aveva chiamato per il rosso riparte",
    "testi": [
-    "Qui {treno}, via libera. Ripartito, passo. Buona giornata."
+    "Qui {treno}, via libera. Ripartito, passo. Buona giornata.",
+    "Visto, grazie, ciao!"
+   ],
+   "pesi": [
+    50.0,
+    50.0
+   ],
+   "stili": [
+    "calmo",
+    "calmo"
    ]
   },
   "chiamata.rosso.via_libera_segnale": {
@@ -2025,7 +2044,19 @@
    "chi": "DCT",
    "quando": "Il DCT ordina una sosta prolungata alla prossima stazione",
    "testi": [
-    "Treno {treno}, {motivo}: fai una sosta di {durata} a {stazione}. Passo."
+    "Treno {treno}, {motivo}: fai una sosta di {durata} a {stazione}. Passo.",
+    "Ciao {treno}, mi fai {durata} a {stazione}?",
+    "{treno}, fermo {durata} a {stazione}. Poi riparti"
+   ],
+   "pesi": [
+    50.0,
+    30.0,
+    20.0
+   ],
+   "stili": [
+    "deciso",
+    "calmo",
+    "deciso"
    ]
   },
   "treno.sosta.ordine_aggiunta": {
@@ -2041,7 +2072,23 @@
    "testi": [
     "Ricevuto DCT, sosta di {durata} a {stazione}. Avviso i passeggeri. Passo.",
     "Copiato, DCT. A {stazione} tengo le porte aperte {durata}. Passo e chiudo.",
-    "Ricevuto. Fermata prolungata a {stazione}, {durata}. Passo."
+    "Ricevuto. Fermata prolungata a {stazione}, {durata}. Passo.",
+    "Va bene, ciao!",
+    "Certo! Ti richiamo alla ripartenza!"
+   ],
+   "pesi": [
+    20.0,
+    15.0,
+    15.0,
+    30.0,
+    20.0
+   ],
+   "stili": [
+    "calmo",
+    "calmo",
+    "deciso",
+    "calmo",
+    "calmo"
    ]
   },
   "treno.sosta.risposta_aggiunta": {
@@ -2060,10 +2107,16 @@
   },
   "treno.sosta.risposta_primo_treno": {
    "chi": "macchinista",
-   "quando": "Sosta per il treno davanti in ritardo ordinata al primo treno della giornata",
+   "quando": "Sosta con un motivo (non \"guasto più avanti\") ordinata al primo treno della giornata in quella direzione, anche prima che parta dal capolinea: protesta ma si ferma sempre (Giovanni, B-021)",
    "testi": [
+    "Non è possibile DCT, ho aperto io la linea! Va bene, ciao!",
     "Ritardo il treno davanti? DCT, sono il primo della giornata: davanti a me ci sono solo i topi e il buio. Va bene, sosta di {durata} a {stazione}. Passo.",
     "Davanti a me? DCT, ho aperto io la linea stamattina, davanti non c'è nessuno! Faccio comunque {durata} a {stazione}, magari il caffè è ancora caldo. Passo."
+   ],
+   "pesi": [
+    60.0,
+    20.0,
+    20.0
    ]
   },
   "treno.sosta.risposta_ultimo_treno": {
@@ -2605,6 +2658,416 @@
    "quando": "La via per il lavaggio passa da posti occupati: il DCT annulla l'ordine (proposta)",
    "testi": [
     "Treno {treno}, annullato: la via per il lavaggio passa da {posti}, occupato. Resta al tuo posto. Passo."
+   ]
+  },
+  "chiamata.dct.pronto": {
+   "chi": "macchinista",
+   "quando": "Il macchinista tira su la cornetta e risponde: dice la sua tabella",
+   "testi": [
+    "Pronto! {treno}",
+    "Pronto!",
+    "Dimmi!",
+    "Sì, dimmi",
+    "Eccomi, dimmi"
+   ],
+   "stili": [
+    "calmo",
+    "calmo",
+    "calmo",
+    "calmo",
+    "calmo"
+   ]
+  },
+  "chiamata.dct.posizione": {
+   "chi": "DCT",
+   "quando": "Il DCT dice al macchinista dove sa che si trova: tabella, stazione, binario pari (2, verso Comasina) o dispari (1, verso San Donato)",
+   "testi": [
+    "{treno} a {stazione} {binario}",
+    "{treno} {stazione} {binario}"
+   ],
+   "stili": [
+    "calmo",
+    "calmo"
+   ]
+  },
+  "chiamata.dct.ripeti": {
+   "chi": "macchinista",
+   "quando": "Il macchinista non ha capito l'ordine e chiede di ripeterlo",
+   "testi": [
+    "Come? Ripeti?",
+    "Non ho capito, ripeti?"
+   ],
+   "stili": [
+    "calmo",
+    "calmo"
+   ]
+  },
+  "chiamata.dct.va_bene": {
+   "chi": "macchinista",
+   "quando": "Il macchinista ha capito l'ordine e chiude",
+   "testi": [
+    "Va bene, ciao!"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "chiamata.dct.ciao": {
+   "chi": "DCT",
+   "quando": "Il DCT chiude la chiamata",
+   "testi": [
+    "Ciao!"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "chiamata.dct.posizione_tronchino": {
+   "chi": "DCT",
+   "quando": "Il DCT chiama un treno che è in un tronchino",
+   "testi": [
+    "{treno} in tronchino a {stazione}"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "chiamata.dct.posizione_segnale": {
+   "chi": "DCT",
+   "quando": "Il DCT chiama un treno fermo a un segnale",
+   "testi": [
+    "{treno} al segnale {segnale}"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "chiamata.dct.mi_senti": {
+   "chi": "DCT",
+   "quando": "Il macchinista non ha risposto alla prima chiamata",
+   "testi": [
+    "{treno} {stazione} {binario}, mi senti?"
+   ],
+   "stili": [
+    "deciso"
+   ]
+  },
+  "dialogo.rosso.chiama_segnale": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo a un segnale a via impedita in linea e il macchinista chiama il DCT",
+   "testi": [
+    "Ciao, sono il {treno} al segnale {segnale}"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.rosso.chiama_stazione": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo al rosso in stazione e il macchinista chiama il DCT",
+   "testi": [
+    "Ciao, sono il {treno} a {stazione} {binario}, ho il rosso"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.rosso.chiama_partenza": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo al segnale di partenza di una stazione (detto \"segnale di partenza di ... numero ...\")",
+   "testi": [
+    "Ciao, sono il {treno} al segnale di partenza di {stazione} numero {segnale}"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.rosso.chiama_attesa": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo al rosso da un po' e il macchinista chiede cosa succede",
+   "testi": [
+    "Sono il {treno} al {segnale}, è rosso da un po'. Che succede?"
+   ],
+   "stili": [
+    "deciso"
+   ]
+  },
+  "dialogo.rosso.richiama": {
+   "chi": "macchinista",
+   "quando": "Il macchinista richiama: il segnale è ancora rosso",
+   "testi": [
+    "Sono ancora il {treno} al {segnale}, sempre rosso. Quanto ne abbiamo?"
+   ],
+   "stili": [
+    "aggressivo"
+   ]
+  },
+  "dialogo.rosso.dct_banchina": {
+   "chi": "DCT",
+   "quando": "Il DCT risponde: il treno davanti è ancora in banchina",
+   "testi": [
+    "Ciao {treno}, sì, il treno davanti è ancora in banchina: aspetta un attimo"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.rosso.dct_treno_fermo": {
+   "chi": "DCT",
+   "quando": "Il DCT risponde: c'è un treno fermo più avanti, richiamerà lui",
+   "testi": [
+    "Lo so, ho un treno fermo a {stazione}. Stai lì, ti richiamo io"
+   ],
+   "stili": [
+    "deciso"
+   ]
+  },
+  "dialogo.rosso.dct_apro": {
+   "chi": "DCT",
+   "quando": "Il DCT sta per aprire il segnale",
+   "testi": [
+    "Aspetta un attimo che te lo apro"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.rosso.dct_aperto": {
+   "chi": "DCT",
+   "quando": "Il DCT ha aperto il segnale",
+   "testi": [
+    "Eccolo, dovrebbe essersi aperto"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.rosso.chiude_attesa": {
+   "chi": "macchinista",
+   "quando": "Il macchinista chiude: aspetta al segnale",
+   "testi": [
+    "Ok, aspetto, ciao!",
+    "Va bene…"
+   ],
+   "stili": [
+    "calmo",
+    "aggressivo"
+   ]
+  },
+  "dialogo.rosso.chiude_aperto": {
+   "chi": "macchinista",
+   "quando": "Il macchinista chiude: il segnale si è aperto",
+   "testi": [
+    "Visto, grazie, ciao!"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.fermo.ordine": {
+   "chi": "DCT",
+   "quando": "Il DCT ordina un fermo in stazione ({durata}: \"un minuto\", \"due minuti\"...)",
+   "testi": [
+    "Ciao {treno}, mi fai {durata} a {stazione}?",
+    "{treno}, fermo {durata} a {stazione}. Poi riparti"
+   ],
+   "stili": [
+    "calmo",
+    "deciso"
+   ]
+  },
+  "dialogo.fermo.ordine_aiuta_dietro": {
+   "chi": "DCT",
+   "quando": "Il DCT ordina un minuto di fermo per aiutare il treno dietro",
+   "testi": [
+    "{treno} {stazione} {binario}, mi fai un minutino di fermo così aiutiamo il treno dietro?"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.fermo.ordine_anticipo": {
+   "chi": "DCT",
+   "quando": "Il DCT ordina un fermo perché il treno è in anticipo",
+   "testi": [
+    "Ciao {treno}, a {stazione} fammi {durata} di fermo, che sei un po' in anticipo"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.fermo.ordine_ritardo_davanti": {
+   "chi": "DCT",
+   "quando": "Il DCT ordina un fermo perché il treno davanti è in ritardo",
+   "testi": [
+    "{treno}, a {stazione} stai fermo {durata}: il treno davanti è in ritardo"
+   ],
+   "stili": [
+    "deciso"
+   ]
+  },
+  "dialogo.fermo.risposta": {
+   "chi": "macchinista",
+   "quando": "Il macchinista ha capito l'ordine di fermo",
+   "testi": [
+    "Va bene, ciao!",
+    "Ok, {durata} a {stazione}, ciao!"
+   ],
+   "stili": [
+    "calmo",
+    "calmo"
+   ]
+  },
+  "dialogo.fermo.risposta_secondo": {
+   "chi": "macchinista",
+   "quando": "Secondo fermo di fila allo stesso treno",
+   "testi": [
+    "Ancora? Va bene, ciao"
+   ],
+   "stili": [
+    "aggressivo"
+   ]
+  },
+  "dialogo.fermo.ripeti": {
+   "chi": "macchinista",
+   "quando": "Il macchinista non ha capito l'ordine di fermo",
+   "testi": [
+    "Scusa, non ho capito: quanto e dove?",
+    "Come? Ripeti?"
+   ],
+   "stili": [
+    "calmo",
+    "calmo"
+   ]
+  },
+  "dialogo.fermo.capito_male": {
+   "chi": "macchinista",
+   "quando": "Il macchinista ha capito male (fase 3: il giocatore deve accorgersene): ripete durata o stazione sbagliate",
+   "testi": [
+    "Ok, {durata_errata} a {stazione_errata}, ciao!"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.fermo.correzione": {
+   "chi": "DCT",
+   "quando": "Il DCT corregge il macchinista che ha capito male",
+   "testi": [
+    "No no, {durata} a {stazione}!"
+   ],
+   "stili": [
+    "deciso"
+   ]
+  },
+  "dialogo.guasto.fermo_tratta": {
+   "chi": "macchinista",
+   "quando": "Il treno è fermo in linea per un guasto",
+   "testi": [
+    "Ciao, sono il {treno} tra {stazione} e {stazione2} {binario}, sono fermo, ho un guasto al treno"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.guasto.porte": {
+   "chi": "macchinista",
+   "quando": "In stazione le porte non si chiudono",
+   "testi": [
+    "Ciao, il {treno} a {stazione} {binario}: non mi si chiudono le porte"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.guasto.trazione": {
+   "chi": "macchinista",
+   "quando": "Il treno ha perso la trazione, il macchinista prova a riarmare",
+   "testi": [
+    "Sono il {treno}, ho perso la trazione, provo a riarmare e ti richiamo"
+   ],
+   "stili": [
+    "deciso"
+   ]
+  },
+  "dialogo.guasto.riarmato": {
+   "chi": "macchinista",
+   "quando": "Il macchinista ha riarmato ed è ripartito",
+   "testi": [
+    "Sono il {treno}, ho riarmato e sono ripartito, tutto a posto. Ciao!"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.guasto.non_riarma": {
+   "chi": "macchinista",
+   "quando": "Il macchinista non riesce a riarmare",
+   "testi": [
+    "Sono il {treno}, non riesco a riarmare, ho provato già due volte"
+   ],
+   "stili": [
+    "aggressivo"
+   ]
+  },
+  "dialogo.guasto.dct_riarma": {
+   "chi": "DCT",
+   "quando": "Il DCT dice al macchinista di provare a riarmare",
+   "testi": [
+    "Ok {treno}, prova a riarmare e fammi sapere"
+   ],
+   "stili": [
+    "calmo"
+   ]
+  },
+  "dialogo.guasto.dct_attendi": {
+   "chi": "DCT",
+   "quando": "Il DCT dice al macchinista di restare fermo",
+   "testi": [
+    "Ricevuto, resta fermo lì, ti richiamo io"
+   ],
+   "stili": [
+    "deciso"
+   ]
+  },
+  "dialogo.guasto.dct_aiuto": {
+   "chi": "DCT",
+   "quando": "Il DCT manda aiuto",
+   "testi": [
+    "Ok, ti mando una mano. Avvisa i passeggeri"
+   ],
+   "stili": [
+    "deciso"
+   ]
+  },
+  "dialogo.imperativa.autorizza": {
+   "chi": "DCT",
+   "quando": "Il DCT autorizza a superare un segnale a via impedita imperativa (niente cordialità: sicurezza)",
+   "testi": [
+    "Treno {treno}, sei autorizzato a superare il segnale {segnale} a via impedita imperativa."
+   ],
+   "stili": [
+    "deciso"
+   ]
+  },
+  "dialogo.imperativa.autorizza_partenza": {
+   "chi": "DCT",
+   "quando": "Come sopra, per un segnale di partenza",
+   "testi": [
+    "Treno {treno}, sei autorizzato a superare il segnale di partenza di {stazione} numero {segnale} a via impedita imperativa."
+   ],
+   "stili": [
+    "deciso"
+   ]
+  },
+  "dialogo.imperativa.ripete": {
+   "chi": "macchinista",
+   "quando": "Il macchinista ripete l'autorizzazione",
+   "testi": [
+    "Treno {treno}, autorizzato a superare il segnale {segnale} a via impedita imperativa."
+   ],
+   "stili": [
+    "deciso"
    ]
   }
  }

@@ -464,7 +464,10 @@
         if (before) { driverSays(tx('treno.sosta.risposta_aggiunta', { aggiunta: quanto, stazione: cap(n.name), totale: durTxt(total) })); return; }
         const st0 = trainState(F, tr, state.t);
         const dawn = state.t < 6 * 3600 + 15 * 60 && radioWhy !== 'nessun motivo';
-        if (radioWhy === 'treno davanti in ritardo' && st0.trip >= 0 && firstRuns(F).has(st0.trip))
+        // (the first train of the day each way: "Non è possibile DCT, ho aperto io la linea!", and it stops anyway; also
+        // before it leaves its terminus, when it has no run yet: its next run; Giovanni, B-021)
+        const run = st0.trip >= 0 ? st0.trip : nextRun(tr);
+        if (radioWhy !== 'nessun motivo' && radioWhy !== 'guasto più avanti' && run >= 0 && firstRuns(F).has(run))
           driverSays(tx('treno.sosta.risposta_primo_treno', sv));
         else if (dawn) driverSays(tx('treno.sosta.risposta_alba', sv));
         else if (radioStopSel > 30 && st0.trip >= 0 && lastRuns(F).has(st0.trip)) driverSays(tx('treno.sosta.risposta_ultimo_treno', sv));
@@ -610,6 +613,11 @@
       F.trains.forEach(tr => tr.segs.forEach(sg => { if (sg[1] !== 'service' || sg[2] < 0) return; const tp = trips[sg[2]], a = D.stops[tp.st[0]], b = D.stops[tp.st[tp.st.length - 1]];
         const dir = b[1] > a[1] ? 'N' : 'S'; if (!best[dir] || tp.start < trips[best[dir]].start) best[dir] = sg[2]; }));
       return (FIRSTRUNS = new Set(Object.values(best)));
+    }
+    // the passenger run a train will do next (for a train still in the depot or turning back)
+    function nextRun(tr) {
+      const sg = tr.segs.find(x => x[1] === 'service' && x[2] >= 0 && x[3][x[3].length - 1] >= state.t);
+      return sg ? sg[2] : -1;
     }
     function lastRuns(F) {
       if (LASTRUNS) return LASTRUNS;

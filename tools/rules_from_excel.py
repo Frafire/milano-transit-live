@@ -1,16 +1,45 @@
-"""Giovanni's rules (data/Regole_interlocking_M3.xlsx) -> data/regole_m3.json, what the build reads.
+"""Giovanni's rules (data/Regole_interlocking_M3.xlsx) -> data/regole_m3.json, what the build reads, and the radio
+phrases of the line of the Excel -> data/radio_<linea>.json.
 
 The Excel file is where the rules are written; the json is the same thing in a form the build can read without
 Excel libraries. Run after every change to the Excel file:  python3 tools/rules_from_excel.py
 (needs openpyxl: pip install openpyxl). Only values are read: colours, comments and formulas are not.
+
+One file of radio phrases per line, never the file of another line (tools/radio_excel.py says which rows go where):
+  python3 tools/rules_from_excel.py                         M3: regole_m3.json and radio_m3.json
+  python3 tools/rules_from_excel.py data/Regole_M2.xlsx     M2: only radio_m2.json (the other M2 sheets have their tools)
+  python3 tools/rules_from_excel.py --linea M2 file.xlsx    the line given, whatever the file name
 """
 import json, os, sys, warnings
 warnings.filterwarnings('ignore')
 import openpyxl
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import radio_excel
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, 'data', 'Regole_interlocking_M3.xlsx')
-OUT = sys.argv[2] if len(sys.argv) > 2 else os.path.join(ROOT, 'data', 'regole_m3.json')
+args = sys.argv[1:]; LINEA = None
+if '--linea' in args:
+    i = args.index('--linea'); LINEA = args[i + 1].upper(); del args[i:i + 2]
+SRC = args[0] if len(args) > 0 else os.path.join(ROOT, 'data', 'Regole_interlocking_M3.xlsx')
+LINEA = LINEA or radio_excel.line_of(SRC)
+if not LINEA: sys.exit('%s: di che linea è? Usa --linea M3 o --linea M2' % SRC)
+if LINEA not in radio_excel.EXCELS: sys.exit('linea %s: le linee con un Excel delle regole sono %s' % (LINEA, ', '.join(radio_excel.EXCELS)))
+OUT = args[1] if len(args) > 1 else os.path.join(ROOT, 'data', 'regole_%s.json' % LINEA.lower())
+DATA = os.path.dirname(os.path.abspath(OUT))
+
+
+def radio():
+    # the radio phrases of the line (Radio sheets, column Linea) -> data/radio_<linea>.json (the build puts them in net.radio)
+    frasi, problems = radio_excel.build(LINEA, dict(radio_excel.EXCELS, **{LINEA: SRC}))
+    for p in problems: print('radio, ATTENZIONE:', p)
+    out = radio_excel.out_path(LINEA, DATA)
+    json.dump(radio_excel.document(LINEA, frasi), open(out, 'w'), ensure_ascii=False, indent=1)
+    print('radio %s: %d frasi -> %s' % (LINEA, len(frasi), os.path.relpath(out, ROOT)))
+
+
+if LINEA != 'M3':
+    # the rules below are the M3's sheets: for the other lines only the radio (their sheets are read by their own tools)
+    radio(); sys.exit(0)
 wb = openpyxl.load_workbook(SRC, data_only=True)
 clean = lambda v: v.strip() if isinstance(v, str) else v
 
@@ -56,24 +85,5 @@ guasti = [r for r in rows('Guasti') if r.get('Guasto') and r.get('N.') is not No
 out = {'_about': 'Regole dell\'interlocking M3 scritte da Giovanni in data/Regole_interlocking_M3.xlsx, lette da tools/rules_from_excel.py. Non modificare a mano: si cambia il file Excel e si rilancia lo script.',
        'tempi': tempi, 'semafori': semafori, 'itinerari': itinerari, 'precedenze': precedenze, 'chiusure': chiusure, 'situazioni': situazioni, 'pannello_pc': pannello, 'guasti': guasti}
 json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1, default=str)
-# the radio phrases (sheet Radio): code -> { chi, quando, testi } -> data/radio_m3.json (the build puts them in net.radio)
-if 'Radio' in wb.sheetnames:
-    frasi = {}
-    for r in rows('Radio'):
-        c = r.get('Codice')
-        if not c: continue
-        testi = [r.get(h) for h in ('Testo', 'Variante 2', 'Variante 3', 'Variante 4', 'Variante 5')]
-        testi = [str(x) for x in testi if x not in (None, '')]
-        if testi: frasi[c] = {'chi': r.get('Chi parla'), 'quando': r.get('Quando si dice'), 'testi': testi}
-        # (Pesi (%): how often each variant comes out, in the order of the variants, e.g. "50, 50"; empty: all the same)
-        pw = r.get('Pesi (%)')
-        if testi and pw not in (None, ''):
-            try:
-                pesi = [float(x) for x in str(pw).replace(';', ',').split(',') if x.strip()]
-                if len(pesi) == len(testi) and sum(pesi) > 0: frasi[c]['pesi'] = pesi
-            except ValueError: pass
-    RADIO = os.path.join(os.path.dirname(OUT), 'radio_m3.json')
-    json.dump({'_about': 'Le frasi della radio, dal foglio Radio di data/Regole_interlocking_M3.xlsx (tools/rules_from_excel.py). Non modificare a mano: si cambia il foglio e si rilancia lo script. {T} e {R}: i numeri del treno e del treno di soccorso.', 'frasi': frasi},
-              open(RADIO, 'w'), ensure_ascii=False, indent=1)
-    print('radio: %d frasi -> %s' % (len(frasi), os.path.relpath(RADIO, ROOT)))
+radio()
 print('regole: %d tempi, %d semafori, %d itinerari, %d precedenze, %d chiusure, %d righe del pannello PC -> %s' % (len(tempi), len(semafori), len(itinerari), len(precedenze), len(chiusure), len(pannello), os.path.relpath(OUT, ROOT)))

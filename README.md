@@ -103,6 +103,17 @@ Click a metro train: the card shows its speed as the simulation calculates it, w
 
 On an M3 train card, **📻 Radio al treno** opens a pixel-style radio. You are the Posto Centrale; everything is in Italian. Orders: a longer stop at the next station (30 s, 1 min, 1:30, 2 min, with a reason), the departure platform at San Donato, and platform 2 with reversal there coming from Rogoredo (refused if platform 2 is not free). The driver answers, then reports when he stops and when he leaves.
 
+The phrases are in the Radio sheet of the rules Excel, one file per line: column **Linea** (M3, M2 or comune),
+`python3 tools/rules_from_excel.py` writes `data/radio_m3.json`, `python3 tools/rules_from_excel.py data/Regole_M2.xlsx`
+only `data/radio_m2.json` (with the "comune" rows of both Excels). The column **PROPOSTA** holds Claude's texts, never
+read by the game until Giovanni copies them into Testo; **Chiamata** and **Parte** say which exchange and which part of
+the call a phrase is (sheet *Schema chiamate*: the DCT calls the train, "Pronto! 36", "36 a Duomo pari", the order,
+"Va bene, ciao!", "Ciao!"). `tests/radio_excel_check.py` checks the files are up to date with the Excels.
+How often each phrase is said: `node tools/radio_conteggio.js` plays a weekday in the page with random failures on and
+nobody at the controls (about 5 minutes) and writes `data/radio_uso_m3.json`; `tests/radio_varieta_check.js` notes the
+most used phrases with only one text. Column **Stile** (calmo, deciso, aggressivo, one per text): `t(code, { stile })`
+in `web/frasi.js` keeps only the texts of that style.
+
 ## Terminal junctions (San Donato, Comasina)
 
 Between the platforms and the tail tracks only one train at a time may use the junction (incrocio); at San Donato the depot access to platform 1 is part of it, and platform 1 itself is one train at a time. A train waits on its platform, in the tail, or at the depot exit signal until the train in front has cleared the junction. When a train is leaving a tail and another is about to go into one within a minute, the one leaving goes first. The depot exit signal is a white/red dot (Admin → Segnali) you can drag to its real place; it is saved with the other edits.

@@ -40,6 +40,8 @@ node "$ROOT/tests/routes_rules_check.js"
 node "$ROOT/tests/closures_check.js"
 node "$ROOT/tests/c1_check.js"
 node "$ROOT/tests/radio_check.js"
+python3 "$ROOT/tests/radio_excel_check.py"   # (the radio files up to date with the Excels; skipped without openpyxl)
+node "$ROOT/tests/radio_varieta_check.js"    # (the phrases said most in a day with one text only: a note; data/radio_uso_m3.json from tools/radio_conteggio.js)
 python3 "$ROOT/tests/schema_check.py"
 node "$ROOT/tests/pc_check.js"
 node "$ROOT/tests/instr_check.js"
