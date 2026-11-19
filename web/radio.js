@@ -4,7 +4,7 @@
 //   const R = MTLRadio.create(env); R.say(...), R.openRadio(F, tr), R.radioTick(), R.dcoTick(), R.closingTick() ...
 (function (root) {
   function create(env) {
-    const { tx, D, trips, state, fmt, osOpen, osHours, rand, showRoute, P2WAY, trackAt, realTrain, trainState, trainOnPlatform, relive, reliveFleet, setPlat, orderP2, closureNow, depotAssign, depotName, depotTaken, pastEntrance, loopRole, m3eng, sigNo } = env;
+    const { tx, D, trips, state, fmt, osOpen, osHours, rand, showRoute, P2WAY, trackAt, realTrain, trainState, trainOnPlatform, relive, reliveFleet, setPlat, orderP2, altOpen, closureNow, depotAssign, depotName, depotTaken, pastEntrance, loopRole, m3eng, sigNo } = env;
     // ================= RADIO TERRA-TRENO (M3) =================
     // The player is the Dirigente Centrale del Traffico (DCT). Orders: a longer stop at the next station, the departure platform at
     // San Donato, platform 2 and reversal there coming from Rogoredo. The driver answers in Italian.
@@ -441,10 +441,10 @@
       if (ci >= 0) { const c = tr.calts[ci];
         h += radioSec('tail', 'Tronchetto a Comasina', `<div class="row">${Object.keys(c.opts).map(Number).sort((a, b) => c.names[a] - c.names[b]).map(t => `<button data-rt="${t}" data-ci="${ci}" ${c.tail === t ? 'disabled' : ''}>Tronchetto ${c.names[t]}</button>`).join('')}</div>`, c.tail != null && c.names[c.tail] != null ? 'tronchetto ' + c.names[c.tail] : ''); }
       // platform 2 and reversal, coming from Rogoredo
-      const k2 = (tr.arr2 || []).findIndex(a => !a.done && state.t >= a.open && state.t <= a.close);
+      const k2 = (tr.arr2 || []).findIndex(a => altOpen(F, tr, a));
       if (k2 >= 0) h += radioSec('arr2', 'Arrivo a San Donato', `<div class="row"><button id="radioP2">Entra al binario 2 e inverti lì</button></div>`);
       // platform 1 at Comasina, coming from San Donato: over the crossover before the station, change of cab on the platform
-      const k1 = (tr.carr1 || []).findIndex(a => !a.done && state.t >= a.open && state.t <= a.close);
+      const k1 = (tr.carr1 || []).findIndex(a => altOpen(F, tr, a));
       if (k1 >= 0) h += radioSec('c1', 'Arrivo a Comasina', `<div class="row"><button id="radioC1">Entra al binario 1 e cambia banco lì</button></div>`);
       if (h === radioCmdHtml) return;          // unchanged: keep the buttons as they are (nothing closes or flickers)
       radioCmdHtml = h; radioCmds.innerHTML = h; bindRadioSecs(); bindSpeed(F, tr);
@@ -528,7 +528,7 @@
       if (c1) c1.onclick = () => {
         const a = tr.carr1[k1];
         say('DCT', tx('treno.comasina_binario1.ordine', { treno: radioTrain.no }), 'pc');
-        if (!a || a.done || state.t > a.close) { driverSays(tx('treno.comasina_binario1.negativo')); return; }
+        if (!altOpen(F, tr, a)) { driverSays(tx('treno.comasina_binario1.negativo')); return; }
         (tr.calts || []).forEach(c => { if (c.i === a.i) c.done = true; });
         applyAlt(tr, a.i, a.n, a.segs); a.done = true; tr.c1 = { arr: a.arr, dep: a.dep }; if (tr.env) tr.env.extra = {};
         closeAfter(F, tr, a.dep);

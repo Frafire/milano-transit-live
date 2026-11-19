@@ -263,18 +263,18 @@
    "note": "usato in: servizio normale"
   },
   "41": {
-   "legale": true,
+   "legale": false,
    "aspetto": "rosso",
    "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi)",
    "comando": "automatico",
-   "note": "usato in: guasto binario, guasto treno"
+   "note": "usato in: guasto binario, guasto treno; illegale (Giovanni 18/11/2026), disegnato come illegale"
   },
   "44": {
-   "legale": true,
+   "legale": false,
    "aspetto": "rosso",
    "via_libera": "itinerario libero fino al semaforo successivo (sezione e scambi)",
    "comando": "automatico",
-   "note": "usato in: guasto treno"
+   "note": "usato in: guasto treno; illegale (Giovanni 18/11/2026), disegnato come illegale"
   },
   "45": {
    "legale": true,

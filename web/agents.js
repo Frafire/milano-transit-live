@@ -1192,6 +1192,10 @@
         if (S.lastDep[key] != null && S.t - S.lastDep[key] < (leg.status === 'service' ? HEADWAY : NON_SERVICE_HEADWAY)) { a.why = 'intervallo'; return; }
         const au = authority(a, leg);
         if (au.lim < a.d + 5) { a.why = 'segnale'; if (!a.red) a.red = { since: S.t, why: au.why }; a.red.now = au.why; return; }
+        // the doors closed, the driver presses the start 1 to 3 s later (Giovanni 18 Nov 2026, bug B-18: "nello stesso
+        // momento che un treno chiude le porte riparte immediatamente")
+        const dly = 1 + ((a.k * 2654435761 + st.st * 40503 + Math.floor(a.dwellUntil)) >>> 0) % 2000 / 1000;
+        if (S.t < a.dwellUntil + dly) { a.why = 'porte'; return; }
         S.lastDep[key] = S.t; if (leg.status === 'service') (S.lastSvc = S.lastSvc || {})[st.st] = S.t; a.red = null; a.why = null; a.stopAt = null; leg.stops.shift(); a.lastStop = { pid: a.pid, d: a.d };
         // a station closed to the public before its next stop: in M3 a train goes through a station without stopping only
         // by hand (the interlocking: Giovanni's colleague, Nov 2026): manual driving from here to the station after it
