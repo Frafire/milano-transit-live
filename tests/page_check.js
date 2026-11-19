@@ -225,7 +225,7 @@ const SCENARIOS = {
       st.sel = 'f' + M.fleets.indexOf(F) + ':' + k; M.renderCard(); document.getElementById('radioOpen').click(); await sleep(400);
       const out = {}, log = () => document.getElementById('radioLog').innerText;
       const stop = document.getElementById('radioSendStop'); if (stop) { stop.click(); await sleep(2200); }
-      out.stop = /sosta di/.test(log());
+      out.stop = /sosta di|mi fai .+ a |fermo .+ a /.test(log());      // (the order of the DCT: old and new texts, Radio sheet)
       const sp = document.getElementById('radioSendSpeed'); if (sp) { sp.click(); await sleep(2200); }
       out.speed = /limita la velocità/.test(log()) && /km\/h/.test(log());
       out.noFree = !document.getElementById('radioFree');

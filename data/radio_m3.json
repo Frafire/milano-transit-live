@@ -209,15 +209,9 @@
    "chi": "macchinista",
    "quando": "Il treno è fermo a un segnale rosso da 30 secondi (in linea o in stazione senza ordini)",
    "testi": [
-    "DCT, qui treno {treno}, sono fermo al segnale {segnale}, via impedita. Chiedo spiegazioni. Passo.",
     "Ciao, sono il {treno} al segnale {segnale}"
    ],
-   "pesi": [
-    50.0,
-    50.0
-   ],
    "stili": [
-    "deciso",
     "calmo"
    ]
   },
@@ -225,15 +219,9 @@
    "chi": "macchinista",
    "quando": "Il treno che aveva chiamato per il rosso riparte",
    "testi": [
-    "Qui {treno}, via libera. Ripartito, passo. Buona giornata.",
     "Visto, grazie, ciao!"
    ],
-   "pesi": [
-    50.0,
-    50.0
-   ],
    "stili": [
-    "calmo",
     "calmo"
    ]
   },
@@ -2044,17 +2032,14 @@
    "chi": "DCT",
    "quando": "Il DCT ordina una sosta prolungata alla prossima stazione",
    "testi": [
-    "Treno {treno}, {motivo}: fai una sosta di {durata} a {stazione}. Passo.",
     "Ciao {treno}, mi fai {durata} a {stazione}?",
     "{treno}, fermo {durata} a {stazione}. Poi riparti"
    ],
    "pesi": [
-    50.0,
-    30.0,
-    20.0
+    60.0,
+    40.0
    ],
    "stili": [
-    "deciso",
     "calmo",
     "deciso"
    ]
@@ -2070,23 +2055,17 @@
    "chi": "macchinista",
    "quando": "Il DCT ha ordinato una sosta prolungata (caso normale)",
    "testi": [
-    "Ricevuto DCT, sosta di {durata} a {stazione}. Avviso i passeggeri. Passo.",
-    "Copiato, DCT. A {stazione} tengo le porte aperte {durata}. Passo e chiudo.",
-    "Ricevuto. Fermata prolungata a {stazione}, {durata}. Passo.",
     "Va bene, ciao!",
+    "Ok, {durata} a {stazione}, ciao!",
     "Certo! Ti richiamo alla ripartenza!"
    ],
    "pesi": [
-    20.0,
-    15.0,
-    15.0,
+    40.0,
     30.0,
-    20.0
+    30.0
    ],
    "stili": [
     "calmo",
-    "calmo",
-    "deciso",
     "calmo",
     "calmo"
    ]
@@ -2109,14 +2088,7 @@
    "chi": "macchinista",
    "quando": "Sosta con un motivo (non \"guasto più avanti\") ordinata al primo treno della giornata in quella direzione, anche prima che parta dal capolinea: protesta ma si ferma sempre (Giovanni, B-021)",
    "testi": [
-    "Non è possibile DCT, ho aperto io la linea! Va bene, ciao!",
-    "Ritardo il treno davanti? DCT, sono il primo della giornata: davanti a me ci sono solo i topi e il buio. Va bene, sosta di {durata} a {stazione}. Passo.",
-    "Davanti a me? DCT, ho aperto io la linea stamattina, davanti non c'è nessuno! Faccio comunque {durata} a {stazione}, magari il caffè è ancora caldo. Passo."
-   ],
-   "pesi": [
-    60.0,
-    20.0,
-    20.0
+    "Non è possibile DCT, ho aperto io la linea! Va bene, ciao!"
    ]
   },
   "treno.sosta.risposta_ultimo_treno": {
