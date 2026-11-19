@@ -62,7 +62,7 @@ for suf, dn in (('6', 'build_sat'), ('7', 'build_sun')):
         l2 = base64.b64encode(gzip.compress(open(os.path.join(bd, 'm3_live.json'), 'rb').read(), 9)).decode()
         write_pack('M3', suf, d2, m2, l2)
 # the historical timetables of the M3 (../build_storico/<nome>_<1|6|7>, build.sh): dati/m3_<nome>_<1|6|7>.js, loaded only
-# with gioca.html?orario=<nome> (not playable yet: the menu shows them "in arrivo")
+# with gioca.html?orario=<nome> (playable: data/linee.json "orari")
 for bd in sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath('.')), 'build_storico', '*_[167]'))):
     if all(os.path.exists(os.path.join(bd, f)) for f in ('data.json.gz', 'm3.json', 'm3_live.json')):
         d2 = base64.b64encode(open(os.path.join(bd, 'data.json.gz'), 'rb').read()).decode()
