@@ -703,6 +703,9 @@ def linea(m3='m3.json'):
             s__ = where_xy(P[j - 1][0] + (P[j][0] - P[j - 1][0]) * q, P[j - 1][1] + (P[j][1] - P[j - 1][1]) * q)[1]
             xx = X(TS(s__) if (e['a'] in nS or e['b'] in nS) and onS(i) else s__)
             pts.append([round(t / k, 3), round(min(1, max(0, (xx - pa[0]) / (pb[0] - pa[0]) if level else drawn_u(dpts, xx))), 3)])
+        # (not when the piece does not span its own drawing: a short leg of an X crossing whose metres all fall outside it,
+        # its map all 0 and the piece not drawn at all, edges 199 and 202 at Brenta)
+        if abs(pts[-1][1] - pts[0][1]) < 0.05: continue
         if any(abs(a_ - b_) > 0.02 for a_, b_ in pts): fmap[str(i)] = pts
     # San Donato (Giovanni 18 Nov 2026): the departure signals of binario 3 and binario 2 at the same height
     for a_n, b_n in SAME_X:

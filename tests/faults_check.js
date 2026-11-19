@@ -186,10 +186,17 @@ if (!ARG || ARG === 'rescue') for (const how of ['rback', 'rfront', 'badoni']) {
 if (!ARG || ARG === 'rescue' || ARG === 'badoni') {
   const ag = L.agents(M, D, t => L.posAt(day, t)), t0 = Date.now();
   ag.start(T0 - 600, L.posAt(day, T0 - 600)); ag.step(T0);
-  const S_ = ag.agents().filter(x => !x.hidden && x.status === 'service' && x.v > 8 && x.at >= 3 && (x.legs[0] || {}).dir === 'S').sort((p, q) => p.at - q.at);
-  const a = S_[0], id = a ? ag.event({ kind: 'fault', what: 'new', fault: 'soccorso', k: a.k }) : null;
+  // (the first moment from 08:00 with such a train: nobody on its way to San Donato. Taking the first train going there
+  // whatever stood in front of it made the test hang on the timing of the day: with the doors closing 1-3 s before the
+  // start, 18 Nov 2026, train 3 at 08:00 had trains in front and the Badoni rightly stayed in)
+  const free = x => { const leg = x.legs[0] || {}; if (leg.end == null) return false; const end = leg.end - M.half - 5;      // (up to its stop at San Donato, as the Badoni looks)
+    return !ag.agents().some(r => r !== x && !r.hidden && (y => y != null && y > x.d && y < end)(ag.mapTo(r.pid, r.d, x.pid))); };
+  let a = null, tS = T0;
+  for (; !a && tS <= 10 * 3600; tS += 30) { if (tS > T0) ag.step(tS);
+    a = ag.agents().filter(x => !x.hidden && x.status === 'service' && x.v > 8 && x.at >= 2 && (x.legs[0] || {}).dir === 'S').sort((p, q) => q.at - p.at).find(free) || null; }
+  const id = a ? ag.event({ kind: 'fault', what: 'new', fault: 'soccorso', k: a.k }) : null;
   let answered = false, bd = null, sts = [], vB = 0, vT = 0, vY = 0, prev = null, ov = 0, t;
-  for (t = T0 + 10; a && t <= 12 * 3600; t += 10) {
+  for (t = tS + 10; a && t <= 12 * 3600; t += 10) {
     ag.step(t); const f = ag.S.faults.list.find(x => x.id === id);
     if (!answered && f.call && f.call.opts.includes('badoni')) { answered = true; ag.event({ kind: 'fault', what: 'answer', id, answer: 'badoni' }); }
     if (f.bd) { bd = bd || JSON.parse(JSON.stringify(f.bd)); if (sts[sts.length - 1] !== f.bd.st) sts.push(f.bd.st);
