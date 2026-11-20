@@ -773,7 +773,9 @@ def facing_signals(pid):
             if not L2: continue
             u = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); e = math.hypot(x - ax - u * dx, y - ay - u * dy)
             if e < 1.8 and (best is None or e < best[0]): best = (e, c[i] + u * (c[i + 1] - c[i]), math.degrees(math.atan2(dx, dy)) % 360)
-        if best and abs((best[2] - sg.get('heading', best[2]) + 180) % 360 - 180) < 60: out.append(best[1])
+        # (a signal with dir -1, as #A99: the trains obey it the other way too, sigall; both ways here)
+        hd_ = sg.get('heading', best[2]) if best else 0
+        if best and (abs((best[2] - hd_ + 180) % 360 - 180) < 60 or (os.environ.get('CAB_BOTH') and sg.get('dir') == -1 and abs((best[2] - hd_) % 360 - 180) < 60)): out.append(best[1])
     _facing_cache[pid] = sorted(out); return _facing_cache[pid]
 def cab_ok(pid, d):
     """After a change of cab, the train's centre at d on path pid (its new way): no signal facing it under the train."""
@@ -1348,7 +1350,7 @@ if CFG['training']:
     # build, by the tracks and places they depend on, and anything going wrong only leaves the wash out, with a warning)
     import hashlib as _hl
     _wkey = _hl.sha1(json.dumps([sorted((k, [round(v[0], 1), round(v[1], 1)]) for k, v in node_pos.items()), [(e['a'], e['b'], round(e['len'], 1)) for e in edges],
-                                 sorted(RIMESSA_TRACKS.items()), sorted(SECOND.items(), key=str), [sh.get('pts') for sh in SHEDS], sorted(STORE_EXIT.items()), sorted(STORE_ARR_FROM.items()), WASH_APPROACH, V_WASH, sorted(_router.OPEN_WITH.items()), _router.SMOOTH_MAX, 'cambio banco oltre il segnale', [sg.get('on_track') for sg in _rules_.get('signals', []) if sg.get('line', LINE) == LINE]], default=str).encode()).hexdigest()
+                                 sorted(RIMESSA_TRACKS.items()), sorted(SECOND.items(), key=str), [sh.get('pts') for sh in SHEDS], sorted(STORE_EXIT.items()), sorted(STORE_ARR_FROM.items()), WASH_APPROACH, V_WASH, sorted(_router.OPEN_WITH.items()), _router.SMOOTH_MAX, 'cambio banco oltre il segnale v3', [sg.get('on_track') for sg in _rules_.get('signals', []) if sg.get('line', LINE) == LINE]], default=str).encode()).hexdigest()
     _wcache = os.path.join(os.environ.get('WASH_CACHE_DIR', os.path.dirname(os.path.abspath(os.getcwd())) + '/build'), 'wash_cache_%s.json' % LINE.lower())
     def _wash_ways():
         _lavP = next((P for sh, P in zip(SHEDS, SHED_XY) if sh.get('uso') == 'lavaggio'), None)
@@ -2388,6 +2390,28 @@ for pid_, pe_ in enumerate(PATH_EDGES):
             ded.append(x)
         SIGALL[str(pid_)] = ded
 NET['sigall'] = SIGALL
+# the changes of cab of the wash beyond the signal that will clear the way back (Giovanni 20 Nov 2026: "dopo i semafori
+# A98 e A99 non prima e in mezzo ai binari"), on the final paths with all their signals (line and depot): the leg before
+# goes on as far as needed, the next one starts that much further back (tests/cambio_banco_check.js)
+def _cab_fix(legs):
+    for i in range(len(legs) - 1):
+        a_, b_ = legs[i], legs[i + 1]
+        if not a_[3]: continue
+        F_ = sorted([x[0] for x in SIGALL.get(str(b_[0]), [])] + [x[0] for x in SIGPOS.get(str(b_[0]), [])])
+        d_ = b_[1]; sh_ = max([d_ + TRAIN_HALF + 3 - x for x in F_ if d_ - TRAIN_HALF + 1 < x < d_ + TRAIN_HALF + 3], default=0)
+        if sh_ <= 0: continue
+        La = PATH_EDGES[a_[0]]['e'][-1][3] if PATH_EDGES[a_[0]] else 0
+        if a_[2] + sh_ + 1 + TRAIN_HALF > La or b_[1] - sh_ - 1 < TRAIN_HALF: print('wash: change of cab not beyond its signal (no room)', a_[0], b_[0]); continue
+        a_[2] = round(a_[2] + sh_ + 1, 1); b_[1] = round(b_[1] - sh_ - 1, 1)
+for _p, _w in (TEST.get('wash') or {}).items():
+    _cab_fix(_w['go'])
+    _bk = _w.get('back', {})
+    if _bk and _w['go'] and _w['go'][-1][3] is not None:
+        # (the change of cab before going back: the same point for every place back; the shift from the first one)
+        _q0 = next(iter(_bk)); _ch = [list(_w['go'][-1]), list(_bk[_q0])]; _ch[0][3] = 1; _e0 = _ch[0][2]; _cab_fix(_ch); _sh = _ch[0][2] - _e0
+        if _sh > 0:
+            _w['go'][-1][2] = round(_w['go'][-1][2] + _sh, 1)
+            for _q in _bk: _bk[_q][1] = round(_bk[_q][1] - _sh, 1)
 # the table of the itineraries (tools/itineraries.py, from the track) with Giovanni's rules (tools/rules_from_excel.py):
 # every movement over a switch, its ways (the usual one first, then the others), when it is used and who sets it
 _ITF, _RGF = 'itineraries_%s.json' % LINE.lower(), 'regole_%s.json' % LINE.lower()
