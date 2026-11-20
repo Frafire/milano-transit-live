@@ -1545,8 +1545,20 @@ window.MTL_CAPS = __CAPS__;
     to_depot: 'Returning to the depot', empty: 'Empty run, not in service', training: 'Driver training on the test loop (anello di prova)',
     stopped: 'Fermo in linea: tratta chiusa', held: 'Trattenuto a San Donato: tratta chiusa'
   };
+  // a path of the game (web/agents.js: a train on an itinerary prepared by the PC): its line on the map from its track pieces
+  function gamePath(F, pid) {
+    const pe = F.engine && F.engine.pathEdges[pid]; if (!pe) return null;
+    const kx = 111320 * Math.cos(45.46 * Math.PI / 180), ky = 110540, lat = [], lon = [], dd = [];
+    for (const [ei, dir, x0, x1] of pe.e) {
+      const E = F.engine.net.edges[ei]; let pts = E._pts || (E._pts = decodeFlat(E.p)); if (dir < 0) pts = pts.slice().reverse();
+      const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot((pts[i][1] - pts[i - 1][1]) * kx, (pts[i][0] - pts[i - 1][0]) * ky));
+      const L = cum[cum.length - 1] || 1;
+      pts.forEach((q, i) => { const x = x0 + (x1 - x0) * cum[i] / L; if (dd.length && x <= dd[dd.length - 1] + 0.01) return; lat.push(q[0]); lon.push(q[1]); dd.push(x); });
+    }
+    return F.paths[pid] = { lat, lon, d: dd, game: true };
+  }
   function trackAt(F, pid, d) {
-    const sh = F.paths[pid], sd = sh.d; let a = 0, b = sd.length - 1;
+    const sh = F.paths[pid] || gamePath(F, pid), sd = sh.d; let a = 0, b = sd.length - 1;
     if (F.test && F.test.cyclic && pid === F.test.cycle) { const L = sd[b]; d = ((d % L) + L) % L; }   // the test loop closes on itself
     // beyond either end: carry on in the same direction, so a parked train keeps all its cars
     const ext = (i, j, over) => { const L = (sd[j] - sd[i]) || 1, f = over / L;
@@ -2629,7 +2641,7 @@ window.MTL_CAPS = __CAPS__;
     const tipo = !a ? 0 : a.why === 'guasto' || a.why === 'soccorso' ? 6 : (st.trip >= 0 || a.status === 'service') ? 1 : a.status === 'parked' ? 0 : 4;
     const corsa = st.seg >= 0 ? tr.segs.slice(0, st.seg + 1).filter(x => x[1] === 'service').length : 0;
     const tp = st.trip >= 0 ? trips[st.trip] : null, orig = tp ? D.stops[tp.st.find(x => x >= 0)][0] : '', dest = tp ? tp.h : (a && a.to != null ? G.names[a.to] : '');
-    const doors = !!(a && a.stopAt != null && state.t < (a.dwellUntil || 0) && !hold), guida = a && (a.vlim || a.why === 'tensione') ? 'MA' : 'ATO';
+    const doors = !!(a && a.stopAt != null && state.t < (a.dwellUntil || 0) && !hold), guida = a && (a.vlim || a.why === 'tensione' || (a.legs && a.legs[0] && a.legs[0].man)) ? 'MA' : 'ATO';
     const em = a && (a.why === 'rosso' || a.why === 'guasto') ? 'Frenatura di emergenza' : 'Nessuna frenatura di emergenza';
     const pross = ns ? String(ns.name).toUpperCase() + '_' + (lg.dir === 'N' ? 'Pari' : 'Dispari') : '—';
     const v = x => `<div class="scv">${x}</div>`, id = tipo + String(tr.n).padStart(2, '0') + String(corsa).padStart(2, '0');
@@ -4360,6 +4372,7 @@ window.MTL_CAPS = __CAPS__;
       planOf: k => F.trains[k].segs, count: F.trains.length, depotPark: k => (F.dm && F.ag && F.ag.S.faults && F.ag.S.faults.list.some(f => f.k === k && f.maint)) ? F.dm.officinaPark(k) : null, tempi: (E_.net.rules || {}).tempi, sdTails: E_.net.sd_tail_edges, depotIn: Object.values(F.depotPaths || {}).map(P => [P.in, P.in_stop]), sdTailSig: Object.fromEntries(((E_.net.schema_depot || {}).signals || []).filter(x => (E_.net.sd_tail_edges || []).includes(x.e)).map(x => [x.e, x.n])), badoni: F.test && F.test.badoni, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, unitOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t); return d && d[2] >= 0 ? stock[d[2]] : null; })(F.trains.map(tr => tr.duties), F.stock || []), hasSocimi: (F.stock || []).some(u => /socimi/i.test(u.type || '')), kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino|hitachi/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
+      makeProf: pe => MTLEngine.buildProfiles([pe], E_.net.edges, E_.fileSpeeds, E_.ops, E_.fileCuts)[0], onPath: pid => { if (F.paths[pid] && F.paths[pid].game) delete F.paths[pid]; },
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
   }
@@ -6016,9 +6029,22 @@ window.MTL_CAPS = __CAPS__;
         return sinMsg(`Treno ${no}: entra al binario 1 di ${cap(F.far)} e cambia banco lì, per seguire l'itinerario ${it.id}.`); }
       for (const x of tr.alts || []) for (const [p, segs] of Object.entries(x.opts || {})) if (+p !== x.plat && altRun(F, tr, x) && fits(segs) && altReach(F, tr, segs)) { setPlat(tr, x, +p); return sinMsg(`Treno ${no}: parte dal binario ${(F.engine.net.sd_plat_names || {})[p] || p}, per seguire l'itinerario ${it.id}.`); }
       for (const c of tr.calts || []) { if (c.done || !altRun(F, tr, c)) continue; for (const [t, segs] of Object.entries(c.opts || {})) if (+t !== c.tail && fits(segs) && altReach(F, tr, segs)) { applyAlt(tr, c.i, c.n, segs); c.tail = +t; return sinMsg(`Treno ${no}: va nel tronchetto ${(c.names || {})[t] || t}, per seguire l'itinerario ${it.id}.`); } }
-      return sinMsg(`Treno ${no}: la sua corsa non passa da ${it.id} e non ha un'alternativa che ci passi: resta fermo a ${sigName(n)}.`);
+      return null;          // (no alternative of its plan goes along it: it takes the itinerary on a path of the game, web/agents.js; pcfWatch says so)
     }
     return null;
+  }
+  // a train on an itinerary of the PC off its run (web/agents.js, a.pcf): the DCT authorises the marcia illegale by radio;
+  // back on the legal track, it goes back to its timetable (the board says so too)
+  const PCF_SEEN = new Map();
+  function pcfWatch(F) {
+    const A = F.ag.agents(); if (!A) return;
+    for (const a of A) { if (!a) continue; const was = PCF_SEEN.get(a.k), now = a.pcf ? a.pcf.id + ':' + a.pcf.from : null; if (was === now) continue; PCF_SEEN.set(a.k, now);
+      const tr = F.trains[a.k]; if (!tr) continue; const no = trainNo(F, tr), kmh = Math.round(F.engine.ops.illegal_kmh || 30);
+      if (now && a.pcf.contra && (!was || !String(was).startsWith(a.pcf.id + ':'))) { say('DCT', tx('treno.illegale.ordine', { treno: no, segnale: sigName(a.pcf.n), kmh }), 'pc'); say('T' + no, tx('treno.illegale.ordine_risposta', { treno: no, kmh }), 'dr');
+        sinMsg(`Treno ${no}: segue l'itinerario ${a.pcf.id} in marcia illegale, in manuale a ${kmh} km/h, con servizio nelle stazioni aperte. Si ferma al rosso a fine itinerario.`); }
+      else if (now && !was) sinMsg(`Treno ${no}: segue l'itinerario ${a.pcf.id}, fuori dalla sua corsa. Si ferma al rosso a fine itinerario.`);
+      else if (!now && was && a.mode === 'plan') { say('DCT', tx('treno.illegale.rientro', { treno: no }), 'pc'); sinMsg(`Treno ${no}: di nuovo sulla sua corsa, riprende l'orario dalla prossima stazione.`); }
+    }
   }
   // Segnala bug (Giovanni 20 Nov 2026, "fai pure"): a file with the state of the game (the engine's own snapshot, the trains'
   // plans, the depot, the board's itineraries) and the last things done (orders to the engine, messages of the board, the
@@ -6510,6 +6536,7 @@ window.MTL_CAPS = __CAPS__;
     const dt = Math.min(0.25, (now - last) / 1000); last = now;
     if (DAY_SWITCHING) { requestAnimationFrame(frame); return; }
     for (const F_ of fleets) if (F_.ag && !F_.ag.__bug) bugWrap(F_);
+    for (const F_ of fleets) if (F_.ag && F_.line === 'M3') pcfWatch(F_);
     if (state.playing) {
       state.t += dt * state.speed;
       if (state.t > 25 * 3600) preloadNextDay();

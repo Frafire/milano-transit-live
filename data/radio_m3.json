@@ -2688,6 +2688,20 @@
     "Treno {treno}, sei di nuovo sul legale: riprendi il servizio regolare."
    ]
   },
+  "treno.illegale.ordine": {
+   "chi": "DCT",
+   "quando": "Il PC ha preparato un itinerario sul binario illegale e il treno lo prende: il DCT lo autorizza (segnale: il segnale di partenza; kmh: la velocità)",
+   "testi": [
+    "Treno {treno}, a {segnale} sei autorizzato in marcia illegale, in manuale a {kmh} km/h, fai servizio nelle stazioni aperte. Passo."
+   ]
+  },
+  "treno.illegale.ordine_risposta": {
+   "chi": "macchinista",
+   "quando": "Il macchinista conferma la marcia illegale con servizio",
+   "testi": [
+    "Ricevuto DCT, marcia illegale in manuale a {kmh} km/h. Passo."
+   ]
+  },
   "chiamata.dct.pronto": {
    "chi": "macchinista",
    "quando": "Il macchinista tira su la cornetta e risponde: dice la sua tabella",

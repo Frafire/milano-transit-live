@@ -299,7 +299,7 @@
         }
         const no = S.rt.lastNo;
         // marcia illegale (San Donato): the DCT's order covers the routes of the whole move that need the PC
-        if (leg.ill && no && no.pc && RT.authorize(S.rt, no.pc) && RT.request(S.rt, a.k, a.pid, c.d, c.n, occ, blockOf(a), upTo)) { if (RT.ready(S.rt, a.k, a.pid, c.d)) continue; lim = stop; why = { sig: c.n, route: { wait: 'scambio' } }; break; }
+        if ((leg.ill || (leg.pcf && c.n === leg.pcf.n)) && no && no.pc && RT.authorize(S.rt, no.pc) && RT.request(S.rt, a.k, a.pid, c.d, c.n, occ, blockOf(a), upTo)) { if (RT.ready(S.rt, a.k, a.pid, c.d)) continue; lim = stop; why = { sig: c.n, route: { wait: 'scambio' } }; break; }
         if (otherWay(a, leg, c, occ)) return { lim: a.d, why: { sig: c.n, other: true } };    // the twin path: from the next step
         lim = stop; why = { sig: c.n, route: no }; break;
       }
@@ -932,6 +932,7 @@
         if (!f) { a.rescuing = null; a.legs = [{ kind: 'home', dir: m.dir || 'S' }]; return true; }
         a.attached = m.f; a.rescuing = null; f.rescue.stage = 'towed'; f.vlim = 15 / 3.6; goHome(f, false); return false;
       }
+      if (m.kind === 'pcfwait') return pcfWait(a);
       if (m.kind === 'assign') { assign(a); return a.legs.length > 0; }
       if (m.kind === 'retry') { a.legs.unshift(...nextShuttleLegs(a)); return a.legs[0] && a.legs[0].kind !== 'retry'; }
       if (m.kind === 'navback') {
@@ -1194,6 +1195,7 @@
         const key = st.st + ':' + (leg.dir || '');
         if (S.lastDep[key] != null && S.t - S.lastDep[key] < (leg.status === 'service' ? HEADWAY : NON_SERVICE_HEADWAY)) { a.why = 'intervallo'; return; }
         const au = authority(a, leg);
+        if (pcDivert(a, au)) return;
         if (au.lim < a.d + 5) { a.why = 'segnale'; if (!a.red) a.red = { since: S.t, why: au.why }; a.red.now = au.why; return; }
         // the doors closed, the driver presses the start 1 to 3 s later (Giovanni 18 Nov 2026, bug B-18: "nello stesso
         // momento che un treno chiude le porte riparte immediatamente")
@@ -1212,7 +1214,9 @@
       // (a stop to be skipped (Salto fermata, the DCT): passed without stopping, the next one is the target)
       while (leg.skipSet && leg.stops.length > 1 && leg.skipSet.has(leg.stops[0].st) && a.stopAt == null && leg.stops[0].d > a.d + half + 1) { if (leg.stops[0].d - a.d < 400) leg.stops.shift(); else break; }
       const target = leg.stops.length && !(leg.skipSet && leg.stops.length > 1 && leg.skipSet.has(leg.stops[0].st)) ? leg.stops[0].d : leg.stops.length > 1 ? leg.stops[1].d : leg.stops.length ? leg.stops[0].d : leg.end;
-      const au = authority(a, leg), goal = Math.min(target, au.lim);
+      const au = authority(a, leg);
+      if (pcDivert(a, au)) return;
+      const goal = Math.min(target, au.lim);
       const B = a.brk || brk, vmax = Math.min(speedLimit(a, leg), Math.sqrt(2 * B * Math.max(0, goal - a.d)));
       if (a.v < vmax) a.v = Math.min(vmax, a.v + (a.accCap || acc) * DT); else a.v = Math.max(vmax, a.v - B * 1.5 * DT);
       if (goal - a.d > 0.4 && a.v < 0.3) a.v = 0.3;
@@ -1267,7 +1271,7 @@
     // ---------- time line: saved states and events ----------
     const SNAP = 600, TL = { snaps: [], events: [] };
     function snapshot() {
-      const snap = structuredClone({ clLast: S.clLast, strike: S.strike, zones: S.zones, zoneSeq: S.zoneSeq, faults: S.faults, stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], lastSvc: S.lastSvc || {}, turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
+      const snap = structuredClone({ clLast: S.clLast, strike: S.strike, zones: S.zones, zoneSeq: S.zoneSeq, faults: S.faults, stn: S.stn, t: S.t, il: S.il, rt: S.rt, agents: S.agents, log: S.log, lastDep: S.lastDep, cl: S.cl, parts: S.parts, reopened: S.reopened, usedRuns: [...usedRuns], lastSvc: S.lastSvc || {}, turnOv: S.turnOv, nav: S.nav, navInfo: S.navInfo, navWant: S.navWant, clEff: S.clEff, navHold: NAVHOLD ? [...NAVHOLD] : null, rtp: S.rtp || [], slow: SLOW ? { set: [...SLOW.set], until: SLOW.until, kmh: SLOW.kmh } : null });
       TL.snaps = TL.snaps.filter(x => x.t < S.t); TL.snaps.push(snap);
       if (TL.snaps.length > 220) TL.snaps.splice(1, 1);
     }
@@ -1277,6 +1281,8 @@
       S.stn = c.stn || {}; S.faults = c.faults || null; S.clLast = c.clLast || null; S.strike = c.strike || null; S.zones = c.zones || []; S.zoneSeq = c.zoneSeq || 0; setZones();
       S.turnOv = c.turnOv || {}; S.nav = c.nav || []; S.navInfo = c.navInfo || {}; S.navWant = c.navWant || {}; NAVHOLD = c.navHold ? new Set(c.navHold) : null; SLOW = c.slow ? { set: new Set(c.slow.set), until: c.slow.until, kmh: c.slow.kmh } : null;
       S.clEff = c.clEff || null;
+      // the paths of the game (a save from another page: built again, at the same numbers)
+      S.rtp = []; for (const x of c.rtp || []) { if (!pathEdges[x.pid] || !pathEdges[x.pid].game) makePath(x.e, x.pid); else S.rtp.push(x); }
       if (S.cl) { CLOSED0 = closedPieces(S.cl); CLOSED = S.clEff && (S.clEff.a !== S.cl.a || S.clEff.b !== S.cl.b) ? closedPieces(S.clEff) : CLOSED0; } else { CLOSED = CLOSED0 = null; }
       usedRuns.clear(); (c.usedRuns || []).forEach(x => usedRuns.add(x)); atoLast = -Infinity; S.lastSvc = c.lastSvc || {};
       TL.events.forEach(e => { e.done = e.t <= S.t; });
@@ -1399,6 +1405,147 @@
       const legs = w.hops.map((h, i) => ({ pid: h.pid, status: 'empty', stops: [], start: h.start, end: h.end, rev: h.rev, ill: true }));
       legs.push(w.goal === 'dep' ? { kind: 'depot' } : { kind: 'sdtail' });
       return { legs, after: () => { a.mode = 'moving'; a.illMove = true; a.illGoal = w.goal; a.inside = null; a.sdTailHeld = false; a.kept = false; } };
+    }
+    // ---------- the trains on the PC's itineraries (Giovanni 18-20 Nov 2026) ----------
+    // The PC prepares by hand an itinerary from a signal (Piano linea) that is not the one the train there would take: the
+    // first train that comes to that signal takes it. Its path is built now (a path of the game, not of the build): the
+    // train's own path up to the signal, then the track pieces of the itinerary. On it the train stops at the red of the
+    // end of the itinerary and waits for the next one; back on its own track (legal, the path of its run) it takes up its
+    // timetable again from the next station. The wrong way (contromano): by hand, at 30 km/h (ops illegal_kmh), with a stop
+    // at the platforms of the open stations (in service; the DCT can have it skip one). Giovanni: "Il treno a cui dai
+    // l'ordine costruisce il suo percorso… Va a 30 km/h sul binario illegale e in MANUALE e fa servizio alle banchine DELLE
+    // STAZIONI APERTE… Si ferma al rosso di fine itinerario e aspetta il prossimo… Quando torna sul legale riprende
+    // l'orario dalla stazione dopo". At a terminus on a path of the game: it waits there for the PC (to be decided).
+    const PID0 = pathEdges.length, ITS = {};
+    for (const it of o.itineraries || []) ITS[it.id] = it;
+    // the signals by track piece: ei -> [{ n, dir, l, fl }] (l: metres from the piece's node a), from the paths of the build
+    let EDGESIG = null;
+    function edgeSigs() {
+      if (EDGESIG) return EDGESIG; EDGESIG = new Map(); const seen = new Set();
+      for (const [pid, list] of Object.entries(o.sigall || {})) { if (+pid >= PID0) continue; const pe = pathEdges[+pid]; if (!pe) continue;
+        for (const [d, n, fl] of list) { const sp = pe.e.find(([, , x0, x1]) => d >= x0 - 0.01 && d <= x1 + 0.01); if (!sp) continue;
+          const [ei, dir, x0, x1] = sp, len = netEdges[ei].len || 1, l = (dir > 0 ? d - x0 : x1 - d) * len / ((x1 - x0) || 1), key = ei + ':' + n + ':' + dir;
+          if (seen.has(key)) continue; seen.add(key); if (!EDGESIG.has(ei)) EDGESIG.set(ei, []); EDGESIG.get(ei).push({ n, dir, l, fl }); } }
+      return EDGESIG;
+    }
+    const nodeEnd = ([ei, dir]) => dir > 0 ? netEdges[ei].b : netEdges[ei].a;
+    const NDEG = new Map(); netEdges.forEach((e, i) => { for (const nd of [e.a, e.b]) NDEG.set(nd, (NDEG.get(nd) || []).concat([i])); });
+    // a path of the game from its track pieces [[ei, dir, x0, x1]]: signals, speeds, platforms (S.rtp keeps it for the saves)
+    function makePath(e, pid) {
+      const np = pid != null ? pid : pathEdges.length;
+      // the switches taken in deviata (not their two pieces of running line): the speed of the deviata there
+      const div = [];
+      for (let i = 0; i + 1 < e.length; i++) { const nd = nodeEnd(e[i]), es = NDEG.get(nd) || []; if (es.length < 3) continue;
+        const m = es.filter(x => netEdges[x].cat === 'main'); if (m.length === 2 && m.includes(e[i][0]) && m.includes(e[i + 1][0])) continue; div.push(e[i][3]); }
+      while (pathEdges.length < np) pathEdges.push(null);
+      pathEdges[np] = { e, div, curves: [], game: true };
+      const sig = [], ES = edgeSigs();
+      for (const [ei, dir, x0, x1] of e) for (const x of ES.get(ei) || []) if (x.dir === dir) { const k = (x1 - x0) / (netEdges[ei].len || 1); sig.push([dir > 0 ? x0 + x.l * k : x1 - x.l * k, x.n, x.fl]); }
+      sig.sort((p, q) => p[0] - q[0]);
+      if (o.sigall) o.sigall[np] = sig.filter((x, i) => !sig.slice(0, i).some(y => y[1] === x[1] && Math.abs(y[0] - x[0]) < 2));
+      if (prof && o.makeProf) prof[np] = o.makeProf(pathEdges[np]);
+      // the platforms on it (the mains' platform zones, the same track)
+      if (o.zones) { const z = [];
+        for (const P of [G.N, G.S, ...((G.pairs || []).flatMap(x => [x.N, x.S]))]) for (const [z0, z1, v, st] of o.zones[P.pid] || []) {
+          const a0 = mapTo(P.pid, z0, np), a1 = mapTo(P.pid, z1, np); if (a0 == null || a1 == null) continue;
+          if (!z.some(y => y[3] === st && Math.abs(y[0] - Math.min(a0, a1)) < 5)) z.push([Math.min(a0, a1), Math.max(a0, a1), v, st]); }
+        o.zones[np] = z.sort((p, q) => p[0] - q[0]); }
+      S.rtp = (S.rtp || []).filter(x => x.pid !== np); S.rtp.push({ pid: np, e });
+      if (o.onPath) o.onPath(np);
+      return np;
+    }
+    // the way the train runs on a path at d: 'N' towards Comasina, 'S' towards San Donato
+    function dirOn(pid, d) {
+      for (const [P, sgn] of [[G.N.pid, 1], [G.S.pid, -1]]) { const x0 = mapTo(pid, d, P), x1 = mapTo(pid, d + 20, P); if (x0 != null && x1 != null && x1 !== x0) return (x1 > x0) === (sgn > 0) ? 'N' : 'S'; }
+      return null;
+    }
+    // the stations whose platform the train passes on path pid between d0 and d1: [{ st, d }] (the place of the stop: the
+    // stop of the mains, the same place of the platform)
+    function stopsOn(pid, d0, d1) {
+      const out = [];
+      for (const P of [G.N, G.S, ...((G.pairs || []).flatMap(x => [x.N, x.S]))]) {
+        const dirP = P.pid === G.S.pid || (G.pairs || []).some(x => x.S === P) ? 'S' : 'N';
+        P.stops.forEach((sd, j) => { const st = dirP === 'N' ? j : last - j, x = mapTo(P.pid, sd, pid); if (x == null || x <= d0 || x > d1) return;
+          if (!out.some(y => y.st === st)) out.push({ st, d: x, j: -1 }); });
+      }
+      return out.sort((p, q) => p.d - q.d);
+    }
+    // the itinerary from signal n prepared by the PC, which the train standing there does not take on its path: its path of
+    // the game, its move up to the end signal, then it waits there
+    // stopped at a signal the PC prepared another itinerary from: it takes that one
+    const pcDivert = (a, au) => !!(au.why && au.why.sig != null && au.why.route && au.why.route.pcRoute === au.why.sig && a.v < 0.1 && S.agents[a.k] === a && pcFollow(a, au.why.sig));
+    function pcFollow(a, n) {
+      const pr = S.rt.pcRoutes && S.rt.pcRoutes[n], it = pr && ITS[pr.id]; if (!it || !it.ways || !it.ways[0]) return false;
+      const pe = pathEdges[a.pid], sg = (o.sigall[a.pid] || []).find(x => x[1] === n && x[0] > a.d - 5); if (!pe || !sg) return false;
+      const W = it.ways[0], i = pe.e.findIndex(([, , x0, x1]) => sg[0] >= x0 - 0.01 && sg[0] <= x1 + 0.01); if (i < 0) return false;
+      // (a signal at the very end of a piece: the itinerary may start on that piece or on the next one)
+      const j = pe.e[i][0] === W[0] ? i : i + 1 < pe.e.length && pe.e[i + 1][0] === W[0] ? i + 1 : -1;
+      const e = pe.e.slice(0, (j >= 0 ? j : i) + 1).map(x => x.slice());
+      for (let q = j >= 0 ? 1 : 0; q < W.length; q++) { const last_ = e[e.length - 1], X = nodeEnd(last_), E = netEdges[W[q]]; if (!E) return false;
+        if (E.a !== X && E.b !== X) return false; const dir = E.a === X ? 1 : -1, x0 = last_[3]; e.push([W[q], dir, x0, x0 + (E.len || 1)]); }
+      const np = makePath(e);
+      // the end: the red of the end signal of the itinerary (else the end of its track: a tail)
+      const sm = it.end != null ? (o.sigall[np] || []).find(x => x[1] === it.end && x[0] > sg[0] + 5) : null;
+      const end = sm ? sm[0] - half - 3 : e[e.length - 1][3] - half - 5;
+      if (end < a.d + 1) { pathEdges[np] = null; S.rtp = S.rtp.filter(x => x.pid !== np); return false; }
+      const contra = /contromano/.test(it.sense || '') && !/rientra/.test(it.sense || '');
+      const svc = a.status === 'service' && !(a.legs[0] && a.legs[0].status !== 'service');
+      const stops = svc ? stopsOn(np, a.d + half + 5, end + 6).filter(z => !(S.stn[z.st] && S.stn[z.st].closed)) : [];
+      if (stops.length && stops[stops.length - 1].d > end) stops[stops.length - 1].d = end;
+      a.pid = np; a.stopAt = null; a.red = null; a.why = null; a.lastStop = { pid: np, d: a.d };
+      a.pcf = { id: it.id, n, end: it.end, contra, from: S.t, si: a.si, mode: a.mode };
+      a.legs = [{ pid: np, status: svc ? 'service' : 'empty', trip: a.trip, stops, end, start: a.d, dir: dirOn(np, a.d), pcf: { n, id: it.id }, ill: contra, man: contra || undefined, kmh: it.kmh },
+                { kind: 'pcfwait' }];
+      S.log.push({ t: S.t, k: a.k, pcf: it.id });
+      return true;
+    }
+    // past the end signal of an itinerary there is only plain line (no switch: no itinerary starts there, as #A322 at
+    // Centrale FS on binario 2 the wrong way): the train goes on along its track, its signals open for it (the illegal
+    // ones too, Giovanni 18 Nov 2026), up to the next signal an itinerary starts from (there it waits for the PC), or up to
+    // a switch or the end of the track
+    const ITSTART = new Set((o.itineraries || []).map(it => it.start).filter(x => x != null));
+    function pcfPlain(a) {
+      const pe = pathEdges[a.pid], pf = a.pcf || {}; if (!pe) return false;
+      const e = pe.e.map(x => x.slice()), ES = edgeSigs(); let stopSig = null, endD = null;
+      // (a signal an itinerary starts from already on the path, ahead: the train had stopped short of it)
+      for (const [d, n] of o.sigall[a.pid] || []) if (d > a.d + half + 5 && ITSTART.has(n)) { stopSig = n; endD = d - half - 3; break; }
+      for (let guard = 0; stopSig == null && guard < 60; guard++) {
+        const L = e[e.length - 1], X = nodeEnd(L), es = (NDEG.get(X) || []).filter(x => x !== L[0]);
+        if (es.length !== 1) { endD = L[3] - half - 3 - (es.length ? 0 : 2); break; }        // a switch, or the end of the track
+        const E = netEdges[es[0]], dir = E.a === X ? 1 : -1, x0 = L[3], x1 = x0 + (E.len || 1); e.push([es[0], dir, x0, x1]);
+        const hit = (ES.get(es[0]) || []).filter(x => x.dir === dir && ITSTART.has(x.n)).map(x => [dir > 0 ? x0 + x.l : x1 - x.l, x.n]).sort((p, q) => p[0] - q[0])[0];
+        if (hit) { stopSig = hit[1]; endD = hit[0] - half - 3; }
+      }
+      if (endD == null || endD < a.d + 20) return false;
+      const np = e.length > pe.e.length ? makePath(e) : a.pid, svc = a.status === 'service';
+      const stops = svc ? stopsOn(np, a.d + half + 5, endD + 6).filter(z => !(S.stn[z.st] && S.stn[z.st].closed)) : [];
+      if (stops.length && stops[stops.length - 1].d > endD) stops[stops.length - 1].d = endD;
+      a.pid = np; a.pcf = Object.assign({}, pf, { end: stopSig, plain: true });
+      a.legs = [{ pid: np, status: svc ? 'service' : 'empty', trip: a.trip, stops, end: endD, start: a.d, dir: dirOn(np, a.d), pcf: { n: null }, ill: !!pf.contra, man: pf.contra || undefined }, { kind: 'pcfwait' }];
+      return true;
+    }
+    // at the end of an itinerary of the PC: the next one prepared from the end signal, or back on the run's own track
+    function pcfWait(a) {
+      a.v = 0; a.why = 'segnale';
+      const pf = a.pcf || {};
+      // back on its own track: the path of its run (or of the next one of its day), the same way
+      if (a.mode === 'plan' && !pf.contra) {
+        const plan = planOf(a.k) || [];
+        for (const si of [a.si, a.si + 1]) { const s = plan[si]; if (!s) continue;
+          const d2 = mapTo(a.pid, a.d, s[0]), f2 = mapTo(a.pid, a.d + half, s[0]);
+          if (d2 == null || f2 == null || f2 <= d2 || d2 >= s[4][s[4].length - 1] - 1) continue;
+          a.pid = s[0]; a.d = d2; a.si = si; a.legs = [planLeg(a.k, si, d2)]; a.legs[0].start = d2;
+          // (the station it has just served on the itinerary, where it stands: from the next one)
+          { const L0 = a.legs[0]; if (L0.stops.length > 1 && L0.stops[0].st === a.at && Math.abs(L0.stops[0].d - d2) < 80) L0.stops.shift(); } a.pcf = null; a.why = null; a.status = a.legs[0].status;
+          S.log.push({ t: S.t, k: a.k, pcfBack: si }); return true; }
+      }
+      if ((a.mode === 'shuttle' || a.mode === 'timetable') && !pf.contra) { a.pcf = null; a.at = null; assign(a); if (a.legs.length) return true; a.pcf = pf; }
+      // the next itinerary prepared by the PC from the signal it stands at
+      if (pf.end != null && S.rt.pcRoutes && S.rt.pcRoutes[pf.end] && pcFollow(a, pf.end)) return true;
+      // no itinerary from here (plain line ahead): on along the track
+      if ((pf.end == null || !ITSTART.has(pf.end)) && !pf.plainEnd && pcfPlain(a)) return true;
+      if (pf.end == null || !ITSTART.has(pf.end)) a.pcf.plainEnd = true;          // (the end of the track: it stays)
+      a.legs.unshift({ kind: 'pcfwait' }); return false;
     }
     // ---------- the PC's instructions to a train standing in a closed stretch (Pannello PC) ----------
     // ahead on its track to a station (to the first open one at most: there it joins the service), back the wrong way

@@ -312,6 +312,30 @@
       if (st.pcRoutes && st.pcRoutes[n]) { delete st.pcRoutes[n]; c++; }
       return c;
     }
+    // the stretch of an itinerary from its own track pieces (no path of the build goes along it: the trains take it on a
+    // path of the game, web/agents.js): from its start signal to its end signal (or to the end of its track)
+    const ORIG = Object.keys(SA).length;
+    function sigOn(n, ei) {           // where signal n stands on track piece ei: [metres from node a, dir]
+      for (const [pid, list] of Object.entries(SA)) { if (+pid >= ORIG && PE[+pid] && PE[+pid].game) continue;
+        for (const [d, m] of list) { if (m !== n) continue; const x = (PE[+pid] || { e: [] }).e.find(([e2, , x0, x1]) => e2 === ei && d >= x0 - 0.01 && d <= x1 + 0.01);
+          if (x) { const [, dir, x0, x1] = x, k = (NE[ei].len || 1) / ((x1 - x0) || 1); return [dir > 0 ? (d - x0) * k : (x1 - d) * k, dir]; } } }
+      return null;
+    }
+    function wayPieces(it) {
+      const W = it.ways && it.ways[0]; if (!W || !W.length) return null;
+      const dirs = []; let X = null;
+      for (let i = 0; i < W.length; i++) { const E = NE[W[i]];
+        if (i === 0) { if (W.length > 1) { const nd = nodeOf(W[0], W[1]); dirs.push(nd === E.b ? 1 : -1); X = nd; } else { const s0 = sigOn(it.start, W[0]); if (!s0) return null; dirs.push(s0[1]); X = s0[1] > 0 ? E.b : E.a; } continue; }
+        if (E.a !== X && E.b !== X) return null; dirs.push(E.a === X ? 1 : -1); X = E.a === X ? E.b : E.a; }
+      const s0 = sigOn(it.start, W[0]), s1 = it.end != null ? sigOn(it.end, W[W.length - 1]) : null;
+      const pieces = [], nodes = [];
+      W.forEach((ei, i) => { const L = NE[ei].len || 1, dir = dirs[i];
+        let l0 = 0, l1 = L;
+        if (i === 0 && s0 && s0[1] === dir) { if (dir > 0) l0 = s0[0]; else l1 = s0[0]; }
+        if (i === W.length - 1 && s1 && s1[1] === dir) { if (dir > 0) l1 = s1[0]; else l0 = s1[0]; }
+        pieces.push([ei, l0, l1]); if (i < W.length - 1) nodes.push(dir > 0 ? NE[ei].b : NE[ei].a); });
+      return { pieces, nodes: nodes.map(nd => [nd, 0]) };
+    }
     // the PC forms itinerary id (from its signal) by hand: the switches go into position and the pieces are locked
     // for the next train that takes it; refused when something on it is taken or locked the other way
     function formPc(st, id, occ) {
@@ -321,6 +345,7 @@
       for (const [pid, list] of Object.entries(SA)) { const x = list.find(y => y[1] === it.start); if (!x) continue;
         const sp = span(+pid, x[0], nextSignal(+pid, x[0])), m = identify(it.start, sp.pieces);
         if (m && m.id === id) { pieces = sp.pieces; nodes = sp.nodes; break; } }
+      if (!pieces) { const w = wayPieces(it); if (w) { pieces = w.pieces; nodes = w.nodes; } }
       if (!pieces) return { no: 'percorso' };
       const W = it.ways[0];
       const why = free(st, -1, pieces, nodes, occ, it.start);

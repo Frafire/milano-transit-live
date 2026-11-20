@@ -44,6 +44,7 @@ python3 "$ROOT/tests/radio_excel_check.py"   # (the radio files up to date with 
 node "$ROOT/tests/radio_varieta_check.js"    # (the phrases said most in a day with one text only: a note; data/radio_uso_m3.json from tools/radio_conteggio.js)
 python3 "$ROOT/tests/schema_check.py"
 node "$ROOT/tests/pc_check.js"
+node "$ROOT/tests/pcf_check.js"
 node "$ROOT/tests/instr_check.js"
 node "$ROOT/tests/illegal_sd_check.js"
 node "$ROOT/tests/sheds_check.js"
