@@ -1172,7 +1172,9 @@
         const st = leg.stops[0];
         const ex = a.stopKey && o.extra ? (o.extra(a.k, a.stopKey) || 0) : 0;      // longer stop ordered by radio
         const fx = FX ? FX.extraDwell(a) : 0;                                      // doors, passenger alarm, a passenger taken ill
-        a.dwellUntil = (a.arriveT != null ? a.arriveT : S.t) + (a.dwBase || 0) + ex + fx;
+        // (a negative extra: Partenza anticipata from the board's train card, Giovanni 20 Nov 2026: leaves that much before its
+        // time, never with less than 15 s of doors)
+        a.dwellUntil = (a.arriveT != null ? a.arriveT : S.t) + Math.max(15, (a.dwBase || 0) + ex) + fx;
         // the departure signal is set while the doors are still open (the route is ready when the train leaves)
         // (but not before 30 s from its departure time: the route is always for the train that leaves first. Giovanni,
         // Precedenze 4 and 27: at San Donato a train that arrived first and leaves later took the exit over the crossover
@@ -1184,7 +1186,8 @@
         }
         if (a.pcHold) { a.why = 'pc'; return; }                                                              // held by the PC
         // never early; departure signals: via libera 30 s before leaving
-        if (leg.plan && st.dep && S.t < st.dep) { if (S.t >= st.dep - 30) authority(a, leg); a.why = 'orario'; return; }
+        const early_ = Math.min(0, ex);
+        if (leg.plan && st.dep && S.t < st.dep + early_) { if (S.t >= st.dep + early_ - 30) authority(a, leg); a.why = 'orario'; return; }
         // closure and after reopening: the times of a timetable run, at most a minute's wait for them
         if (leg.timed && !leg.plan && st.dep && S.t < st.dep && (leg.hard || S.t - a.dwellUntil < 60)) { if (S.t >= st.dep - 30) authority(a, leg); a.why = 'orario'; return; }
         // at least two minutes after the train before it left this station the same way (90 s when not in service)

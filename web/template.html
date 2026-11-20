@@ -2624,7 +2624,7 @@ window.MTL_CAPS = __CAPS__;
   let SC_DUR = 60, SC_DLG = false;
   function renderScada(F, fi, i) {
     const tr = F.trains[i], st = trainState(F, tr, state.t), a = F.ag.agents()[i], G = F.engine.G, no = trainNo(F, tr);
-    const ns = MR.nextStop ? MR.nextStop(F, tr) : null, ex = ns && tr.env && tr.env.extra ? tr.env.extra[ns.key] || 0 : 0;
+    const ns = scStop(F, tr), ex = ns && tr.env && tr.env.extra ? tr.env.extra[ns.key] || 0 : 0;
     const hold = sinHolds(F).find(h => h.k === i), lg = a ? a.legs.find(l => l && l.dir) || {} : {};
     const tipo = !a ? 0 : a.why === 'guasto' || a.why === 'soccorso' ? 6 : (st.trip >= 0 || a.status === 'service') ? 1 : a.status === 'parked' ? 0 : 4;
     const corsa = st.seg >= 0 ? tr.segs.slice(0, st.seg + 1).filter(x => x[1] === 'service').length : 0;
@@ -2644,9 +2644,9 @@ window.MTL_CAPS = __CAPS__;
       <fieldset><legend>Movimento del treno</legend><div class="scg"><label>Origine${v(String(orig).toUpperCase() || '—')}</label><label>Destinazione${v(String(dest).toUpperCase() || '—')}</label><label></label></div>
         <div class="scb"><button disabled title="Non ancora nel gioco">Treno ad orario libero</button><button disabled title="Non ancora nel gioco">Treno in manovra</button></div></fieldset>
       <fieldset><legend>Altre informazioni</legend><div class="scg"><label>Modalità di guida${v(guida)}</label><label>Porte treno${v(doors ? 'Porte aperte' : 'Porte chiuse')}</label><label>Frenatura d'emergenza${v(em)}</label></div></fieldset>
-      <fieldset><legend>Regolazione treno</legend><div class="scg"><label>Pross. fermata${v(pross)}</label><label>Tratt. alla pross. fermata${v(ex > 0 && !hold ? 'Richiesto ' + ex + ' s' : 'Non richiesto')}</label><label>Stato trattenimento${v(hold ? (hold.until ? 'Trattenuto fino alle ' + fmt(hold.until, true).join('') : 'Trattenuto') : 'Non trattenuto')}</label></div>
+      <fieldset><legend>Regolazione treno</legend><div class="scg"><label>Pross. fermata${v(pross)}</label><label>Tratt. alla pross. fermata${v(hold ? (hold.until ? 'Trattenuto fino alle ' + fmt(hold.until, true).join('') : 'Trattenuto') : ex > 0 ? 'Richiesto ' + ex + ' s' : ex < 0 ? 'Anticipo ' + (-ex) + ' s' : 'Non richiesto')}</label><label>Stato trazione${v('Normale')}</label></div>
         <div class="scb"><button id="scHold" ${ns ? '' : 'disabled'}>Trattieni il treno</button><select id="scDur" aria-label="Durata">${[30, 60, 90, 120, 180].map(x => `<option value="${x}" ${x === SC_DUR ? 'selected' : ''}>${x < 60 ? x + ' s' : x / 60 + ' min'}</option>`).join('')}</select>
-          ${hold ? '<button id="scRel">Rilascia</button>' : ''}<button id="scSkip" ${ns && !ns.here ? '' : 'disabled'}>Salto fermata</button><span style="flex:1"></span><button id="scClose">Chiudi</button></div></fieldset>`;
+          ${hold ? '<button id="scRel">Rilascia</button>' : ''}<button id="scEarly" ${ns ? '' : 'disabled'} title="Parte prima del suo orario, del tempo scelto">Partenza anticipata</button><button id="scSkip" ${ns && !ns.here ? '' : 'disabled'}>Salto fermata</button><span style="flex:1"></span><button id="scClose">Chiudi</button></div></fieldset>`;
     card.hidden = false;
     const on = (idd, f) => { const b = document.getElementById(idd); if (b) b.onclick = f; };
     on('scClose', () => { state.sel = null; card.classList.remove('scada'); card.hidden = true; });
@@ -2655,7 +2655,11 @@ window.MTL_CAPS = __CAPS__;
     const sd = document.getElementById('scDur'); if (sd) sd.onchange = () => { SC_DUR = +sd.value; };
     on('scHold', () => { sinHoldTrain(F, tr, SC_DUR); renderCard(); sinRefresh(); });
     on('scRel', () => { const h = sinHolds(F).find(x => x.k === i); if (h) sinHoldRelease(F, h); renderCard(); sinRefresh(); });
-    on('scSkip', () => { const r = F.ag.event({ kind: 'order', k: i, what: 'skip1' }); if (r) MR.say('DCT', `Treno ${no}, salta la fermata di ${cap(String(r))}.`, 'pc');
+    on('scEarly', () => { const ns2 = scStop(F, tr); if (!ns2) return; tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {};
+      tr.env.extra[ns2.key] = -SC_DUR; relive(tr); MR.say('DCT', tx('treno.partenza_anticipata.ordine', { treno: no, stazione: cap(ns2.name), durata: SC_DUR < 60 ? SC_DUR + ' secondi' : SC_DUR / 60 + (SC_DUR === 60 ? ' minuto' : ' minuti') }), 'pc');
+      MR.say('T' + no, tx('treno.partenza_anticipata.risposta', { treno: no, stazione: cap(ns2.name) }), 'dr');
+      sinMsg(`Treno ${no}: partenza anticipata a ${cap(ns2.name)} (fino a ${SC_DUR} s prima dell'orario).`); renderCard(); });
+    on('scSkip', () => { const r = F.ag.event({ kind: 'order', k: i, what: 'skip1' }); if (r) { MR.say('DCT', tx('treno.salta_fermata.ordine', { treno: no, stazione: cap(String(r)) }), 'pc'); MR.say('T' + no, tx('treno.salta_fermata.risposta', { treno: no, stazione: cap(String(r)) }), 'dr'); }
       sinMsg(r ? `Treno ${no}: salta la fermata di ${cap(String(r))}.` : `Treno ${no}: nessuna fermata da saltare (non l'ultima della corsa).`); renderCard(); });
   }
   function renderTrainCard() {
@@ -6044,10 +6048,14 @@ window.MTL_CAPS = __CAPS__;
   // the trains held at a platform by the DCT (Trattieni il treno on the board's train card, or the radio's longer stop):
   // standing there; the signal it leaves by stays red while it is held (Giovanni 20 Nov 2026: "senza segnale rosso sarebbe a
   // discrezione del macchinista"), the release is automatic when the time is up, earlier from the board's pop-up
+  // the stop a train is at (its own key, the first stop of a run too) or its next one
+  function scStop(F, tr) { const k = F.trains.indexOf(tr), a = F.ag && k >= 0 ? F.ag.agents()[k] : null;
+    if (a && !a.hidden && a.stopAt != null && a.stopKey) return { key: a.stopKey, name: F.engine.G.names[a.stopAt], here: true };
+    return MR.nextStop ? MR.nextStop(F, tr) : null; }
   function sinHolds(F) {
     const out = []; let mr = null; try { mr = MR; } catch (e) { return out; } if (!F || !F.ag || !mr || !mr.nextStop) return out; const SA = F.engine.net.sigall || {}, half = F.engine.half, G = F.engine.G;
     F.trains.forEach((tr, k) => { const a = F.ag.agents()[k]; if (!a || a.hidden || a.stopAt == null) return;
-      const ns = MR.nextStop(F, tr), ex = ns && ns.here && tr.env && tr.env.extra ? tr.env.extra[ns.key] || 0 : 0;
+      const ns = scStop(F, tr), ex = ns && ns.here && tr.env && tr.env.extra ? tr.env.extra[ns.key] || 0 : 0;
       if (!(ex > 0 && a.why === 'sosta') && !a.pcHold) return;
       const sx = (SA[a.pid] || []).find(x => x[0] >= a.d + half - 1), lg = a.legs.find(l => l && l.dir) || {};
       out.push({ k, tr, a, key: ns && ns.key, n: sx ? sx[1] : null, until: a.pcHold ? null : a.dwellUntil, pc: !!a.pcHold,
@@ -6063,7 +6071,7 @@ window.MTL_CAPS = __CAPS__;
   }
   // Trattieni il treno: a hold of secs at its next stop (or here, standing at one), told to the driver by radio
   function sinHoldTrain(F, tr, secs) {
-    const ns = MR.nextStop(F, tr), no = trainNo(F, tr); if (!ns) { sinMsg(`Treno ${no}: nessuna fermata davanti, non è in servizio.`); return false; }
+    const ns = scStop(F, tr), no = trainNo(F, tr); if (!ns) { sinMsg(`Treno ${no}: nessuna fermata davanti, non è in servizio.`); return false; }
     tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {}; const before = tr.env.extra[ns.key] || 0;
     tr.env.extra[ns.key] = before + secs; relive(tr);
     const dur = secs % 60 ? secs + ' secondi' : secs === 60 ? 'un minuto' : (secs / 60) + ' minuti';

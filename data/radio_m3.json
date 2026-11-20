@@ -2632,6 +2632,62 @@
     "Treno {treno}, annullato: la via per il lavaggio passa da {posti}, occupato. Resta al tuo posto. Passo."
    ]
   },
+  "treno.salta_fermata.ordine": {
+   "chi": "DCT",
+   "quando": "Salto fermata dalla scheda treno del piano linea: il DCT fa saltare al treno la prossima fermata",
+   "testi": [
+    "Treno {treno}, salta la fermata di {stazione}."
+   ]
+  },
+  "treno.salta_fermata.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno salterà la prossima fermata come ordinato",
+   "testi": [
+    "Ricevuto, salto {stazione} e lo annuncio ai passeggeri."
+   ]
+  },
+  "treno.partenza_anticipata.ordine": {
+   "chi": "DCT",
+   "quando": "Partenza anticipata dalla scheda treno del piano linea: il treno parte prima del suo orario",
+   "testi": [
+    "Treno {treno}, a {stazione} parti appena sei pronto, fino a {durata} prima del tuo orario."
+   ]
+  },
+  "treno.partenza_anticipata.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno partirà prima del suo orario",
+   "testi": [
+    "Ricevuto, parto appena chiudo le porte."
+   ]
+  },
+  "treno.illegale.fermata.ordine": {
+   "chi": "DCT",
+   "quando": "Treno sul binario illegale: il DCT gli conferma la fermata alla prossima stazione aperta",
+   "testi": [
+    "Treno {treno}, fai servizio a {stazione} sul binario illegale."
+   ]
+  },
+  "treno.illegale.salta.ordine": {
+   "chi": "DCT",
+   "quando": "Treno sul binario illegale: il DCT gli dice di non fermare alla prossima stazione",
+   "testi": [
+    "Treno {treno}, sull'illegale non fermare a {stazione}."
+   ]
+  },
+  "treno.illegale.risposta": {
+   "chi": "macchinista",
+   "quando": "Il treno sull'illegale conferma la fermata o il salto",
+   "testi": [
+    "Ricevuto, {stazione}."
+   ]
+  },
+  "treno.illegale.rientro": {
+   "chi": "DCT",
+   "quando": "Il treno è tornato sul binario legale: riprende il servizio regolare",
+   "testi": [
+    "Treno {treno}, sei di nuovo sul legale: riprendi il servizio regolare."
+   ]
+  },
   "chiamata.dct.pronto": {
    "chi": "macchinista",
    "quando": "Il macchinista tira su la cornetta e risponde: dice la sua tabella",
