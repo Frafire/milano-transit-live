@@ -4867,6 +4867,11 @@ window.MTL_CAPS = __CAPS__;
     // (as on the board of the depot, Giovanni 16 Nov 2026: the head on a mast beside the track, its foot towards the trains
     // coming, the red lamp at the far end; round head on the legal side (A), square on the wrong-way side (B), on the left
     // of the trains it is for)
+    // (A98 and A99 drawn the other way round, Giovanni 20 Nov 2026: "puntano dal lato sbagliato"; only the drawing, they
+    // work as before) and the label: the board's name, with the game's number beside it when "numeri dei segnali" is on, so
+    // the two never read as one ("c'è discrepanza tra etichette dei segnali e il numero scritto")
+    const FLIPD = n => SIN_WHICH === 'dep' && (n === 98 || n === 99) ? -1 : 1;
+    const sgLabel = sg => { const nm = SGNM(sg); return nm && SIN_NUM && String(nm) !== String(sg.n) ? `${nm} (#A${String(sg.n).padStart(2, '0')})` : nm || sg.n; };
     const drawSig = sg => { const full = FULL[sg.e]; if (!full) return; const [p0, p1] = sinPart(SCH, sg.e); if (sg.f < p0 - 0.001 || sg.f > p1 + 0.001) return;
       const S_ = sigOf(sg), a = S_ && S_.asp || 'stop', tag = S_ ? S_.tag : '#A' + String(sg.n).padStart(2, '0'), ill = !!(S_ && S_.illegal);
       if (ill && !SIN_ILL && a !== 'go') return;          // (hidden unless asked for, or at via libera: a train on the illegal)
@@ -4879,15 +4884,20 @@ window.MTL_CAPS = __CAPS__;
       // three white lamps, upright beside the track: the two below lit = via impedita, the top and the bottom-left = via libera
       // (mirrored by the way its trains go, Giovanni 18 Nov 2026, as on the M2 map: the high side towards where they go, like the red lamp of the heads)
       if (SIN_WHICH === 'dep' && S_ && S_.shunt) {
-        let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
-        const side = (sg.b || ill) ? -1 : 1, nx = -ty * side, ny = tx * side, K = 0.9, O = [m[0] + nx * 9 * K, m[1] + ny * 9 * K], lit = a === 'sgo';
+        let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d * FLIPD(sg.n); ty = ty / tl * sg.d * FLIPD(sg.n);
+        // (Giovanni 20 Nov 2026: "A23 fino A35 sono troppo attaccati… dagli un po' di spazio alle marmotte A6XX"): the pair
+        // of talpe drawn 8 px apart each, backwards, and every name beside its marmotta, behind it along the track, no longer
+        // under it between two tracks
+        const tal = !!(S_.sg && S_.sg.talpa), lv = Math.abs(tx) >= 0.5, bk = tal ? 8 : 0;
+        const side = (sg.b || ill) ? -1 : 1, nx = -ty * side, ny = tx * side, K = 0.9, O = [m[0] + nx * 9 * K - tx * bk, m[1] + ny * 9 * K - ty * bk], lit = a === 'sgo';
         const L3 = (x, y, on) => `<rect x="${x}" y="${y}" width="2.8" height="2.8" fill="${on || SIN_TEST ? '#ffffff' : '#3a3a3a'}"/>`;
         marks += `<g class="sgi marm${lit ? ' go' : ''}${keyCls(sg.n)}" data-tag="${tag}" transform="translate(${P1(O)}) scale(${(Math.abs(tx) > 0.3 ? tx > 0 : ty > 0) ? -K : K},${K})"><title>${tagName(tag)} (marmotta) · ${lit ? 'via libera' : 'via impedita'}</title>` +
           `<path d="M-4.5,-5H0.5V-3.5H4.5V4H-4.5Z" fill="#101010"/><rect x="-4.5" y="4" width="9" height="1" fill="#8a8a8a"/>` +
           L3(-3.6, -4, lit) + L3(-3.6, 0, true) + L3(0.6, 0, !lit) + `<circle class="sg" data-n="${sg.n}" cx="0" cy="0" r="0"/></g>` +
-          ((SIN_NUM || SGNM(sg)) ? `<text class="sgn" x="${O[0] + nx * 9}" y="${O[1] + ny * 9 + 3}">${SGNM(sg) || sg.n}</text>` : '');
+          ((SIN_NUM || SGNM(sg)) ? (lv ? `<text class="sgn" x="${(O[0] - tx * 7).toFixed(1)}" y="${(O[1] + 3).toFixed(1)}" style="text-anchor:${tx > 0 ? 'end' : 'start'}">${sgLabel(sg)}</text>`
+            : `<text class="sgn" x="${O[0] + nx * 9}" y="${O[1] + ny * 9 + 3}">${sgLabel(sg)}</text>`) : '');
         return; }
-      let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d; ty = ty / tl * sg.d;
+      let tx = m2[0] - m1[0], ty = m2[1] - m1[1]; const tl = Math.hypot(tx, ty) || 1; tx = tx / tl * sg.d * FLIPD(sg.n); ty = ty / tl * sg.d * FLIPD(sg.n);
       // (on the line every head on the right of the trains it is for, so the illegal ones stand on the other side of the
       // track from the legal ones: Giovanni 18 Nov 2026, "metti gli illegali sul lato opposto dei legali così aumentiamo la
       // leggibilità"; on the depot's board as on the real one, B on the left)
@@ -4904,8 +4914,8 @@ window.MTL_CAPS = __CAPS__;
         `<path class="sgb" d="M-14,-3.2V3.2M-14,0H-7"/><rect class="sgc" x="-7" y="-3.7" width="14" height="7.4" rx="${sqr ? 0.8 : 3.7}"/>` +
         (sqr ? `<rect x="-5.5" y="-2.2" width="4.4" height="4.4" fill="${lit || SIN_TEST ? '#ffffff' : '#4a4943'}"/><rect x="1.1" y="-2.2" width="4.4" height="4.4" fill="#ff2a2a"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="0"/></g>`
           : `<circle class="sgw" cx="-3.3" cy="0" r="2.3" fill="${lit || SIN_TEST ? '#ffffff' : '#4a4943'}"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="2.3" fill="#ff2a2a"/></g>`) +
-        (SGNM(sg) && level ? `<text class="sgn sgname" x="${(O[0] + (nx >= 0 ? 10 : -10) * K).toFixed(1)}" y="${(O[1] + 3).toFixed(1)}" style="text-anchor:${nx >= 0 ? 'start' : 'end'}">${SGNM(sg)}</text>`
-          : SGNM(sg) && (grow([O[0] + nx * 13 * K + 42, O[1]]), grow([O[0] + nx * 13 * K - 42, O[1]]), true) ? `<text class="sgn sgname" x="${(O[0] + nx * 13 * K).toFixed(1)}" y="${(O[1] + ny * 13 * K + 3).toFixed(1)}" style="text-anchor:${Math.abs(nx) < 0.5 ? 'middle' : nx > 0 ? 'start' : 'end'}">${SGNM(sg)}</text>`   // (the door's names beside the head, outwards, as on the board)
+        (SGNM(sg) && level ? `<text class="sgn sgname" x="${(O[0] + (nx >= 0 ? 10 : -10) * K).toFixed(1)}" y="${(O[1] + 3).toFixed(1)}" style="text-anchor:${nx >= 0 ? 'start' : 'end'}">${sgLabel(sg)}</text>`
+          : SGNM(sg) && (grow([O[0] + nx * 13 * K + 42, O[1]]), grow([O[0] + nx * 13 * K - 42, O[1]]), true) ? `<text class="sgn sgname" x="${(O[0] + nx * 13 * K).toFixed(1)}" y="${(O[1] + ny * 13 * K + 3).toFixed(1)}" style="text-anchor:${Math.abs(nx) < 0.5 ? 'middle' : nx > 0 ? 'start' : 'end'}">${sgLabel(sg)}</text>`   // (the door's names beside the head, outwards, as on the board)
           : SIN_NUM ? `<text class="sgn" x="${O[0] + nx * 9 * K}" y="${O[1] + ny * 9 * K + 3}">${sg.n}</text>` : ''); };
     for (const sg of SCH.signals || []) { const m0_ = marks.length; drawSig(sg); if (marks.length > m0_) marks = marks.slice(0, m0_) + DK('sig:' + sg.n, marks.slice(m0_)); }
     // the switches: a lamp beside each, on the straight side, lit when it is set for the turnout (Giovanni 16 Nov 2026: "si
