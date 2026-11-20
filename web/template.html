@@ -2141,8 +2141,8 @@ window.MTL_CAPS = __CAPS__;
   // the Meneghino (M3, and the M2's with its profiles' colour), drawn from the photos of 958, 953, 943 (M3) and of 930, 992,
   // 996 (M2). All the measures in MEN_P, so that the interactive draft ("Meneghino su misura") and the game draw the same
   // front; the draft gives back the values to put here
-  const MEN_P = { rc: 41, ys: 38, yw: 10.5, yt: 90, sx: 55, sy: 4.5, sw: 152, sh: 14, pt: 35, pb: 131, dw: 69, ft: 6, gb: 126,
-    ux: 24.5, uy: 139, mw: 9, mh: 30, my: 36, mg: 1 };
+  const MEN_P = { tt: 5, rc: 41, ys: 38, yw: 10.5, yt: 55, sx: 55, sy: 7, sw: 152, sh: 14, pt: 35, pb: 131, dw: 69, ft: 6, gb: 126,
+    ux: 24.5, uy: 139 };
   // the cars with the door framed in black (photos, Giovanni 20 Nov 2026: not all of them have it; the frame is the same
   // thickness all round). The others: the grey door with its thin outline
   const MEN_FRAMED = new Set(['943', '953', '958']);
@@ -2187,9 +2187,13 @@ window.MTL_CAPS = __CAPS__;
         : '<circle cx="12.2" cy="26.5" r="5.2" fill="url(#dome)"/><circle cx="12.2" cy="26.5" r="3.2" fill="#3a3f44"/><circle cx="11" cy="25.3" r="1.1" fill="#fff" opacity=".85"/>'}`;
     const housing = (x, right) => `<g transform="translate(${right ? x + 47.5 : x} ${P.uy})${right ? ' scale(-1 1)' : ''}">${unit}</g>`;
     // the outline: straight sides, the big rounded corners into the roof (the proportions Giovanni approved, 20 Nov 2026)
-    const top = `M3 ${P.ys} Q4 ${5} ${3 + P.rc} 3 H${258 - P.rc} Q257 5 258 ${P.ys}`, outline = `${top} V203 H3 Z`;
-    // the coloured edges run up the sides and round the corners on to the roof; yt how far, in % of the way
-    const ex = 3 + P.yw / 2, edgePath = `M${ex} 206 V${P.ys} Q${ex + .6} ${3 + P.yw / 2 + 1.5} ${3 + P.rc} ${3 + P.yw / 2}`;
+    // (tt: how much roof above the front, Giovanni 20 Nov 2026: "aggiungi un po' più di tetto")
+    const rt = 3 - P.tt, top = `M3 ${P.ys} Q4 ${rt + 2} ${3 + P.rc} ${rt} H${258 - P.rc} Q257 ${rt + 2} 258 ${P.ys}`, outline = `${top} V203 H3 Z`;
+    // the coloured edges ("i montanti colorati vanno indietro, perché continuano sulla cassa"): up the side, then into the
+    // corner, narrowing where they turn back along the body; yt how far into the corner, in %
+    const te = P.yt / 100, lerp = (a, b, k) => a + (b - a) * k, q1 = [lerp(3, 4, te), lerp(P.ys, rt + 2, te)];
+    const E = [(1 - te) ** 2 * 3 + 2 * te * (1 - te) * 4 + te * te * (3 + P.rc), (1 - te) ** 2 * P.ys + 2 * te * (1 - te) * (rt + 2) + te * te * rt];
+    const edgeShape = `M3 206 V${P.ys} Q${q1[0].toFixed(2)} ${q1[1].toFixed(2)} ${E[0].toFixed(2)} ${E[1].toFixed(2)} Q${(3 + P.yw * .95).toFixed(2)} ${(q1[1] + P.yw * .55).toFixed(2)} ${3 + P.yw} ${P.ys + 4} V206 Z`;
     const dL = 130.5 - P.dw / 2, dR = 130.5 + P.dw / 2, gL = dL + P.ft, gR = dR - P.ft, pid = m2 ? 'm2' : 'm3';
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-17 -3 296 279">
       <defs>
@@ -2198,6 +2202,7 @@ window.MTL_CAPS = __CAPS__;
         <linearGradient id="sd" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".1" stop-color="#000" stop-opacity="0"/><stop offset=".9" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient>
         <linearGradient id="up" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34373b"/><stop offset=".1" stop-color="#202225"/><stop offset="1" stop-color="#121315"/></linearGradient>
         <linearGradient id="gl" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="#46505a"/><stop offset=".35" stop-color="#20272e"/><stop offset="1" stop-color="#0c1014"/></linearGradient>
+        <linearGradient id="yl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${edge[0]}"/><stop offset=".55" stop-color="${edge[1]}"/><stop offset="1" stop-color="${edge[2]}"/></linearGradient>
         <linearGradient id="hsg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9dcdf"/><stop offset="1" stop-color="#b9bec3"/></linearGradient>
         <linearGradient id="bp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2e3135"/><stop offset=".3" stop-color="#1d1f22"/><stop offset="1" stop-color="#0f1012"/></linearGradient>
         <linearGradient id="hdl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7f858b"/><stop offset=".3" stop-color="#b4b9be"/><stop offset="1" stop-color="#cdd1d5"/></linearGradient>
@@ -2210,24 +2215,18 @@ window.MTL_CAPS = __CAPS__;
         <filter id="bl" x="-1" y="-1" width="3" height="3"><feGaussianBlur stdDeviation="2.2"/></filter>
         <filter id="led" x="-.1" y="-.6" width="1.2" height="2.2"><feGaussianBlur stdDeviation=".8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
-      <!-- mirrors (zoomed on 958 and 943): a thin arm from the top of the edge bending out and down, the slim dark box hanging
-           just outside the edge; the right one the mirror of the left -->
-      ${[0, 1].map(r => { const bx = 3 - P.mg - P.mw;
-        return `<g${r ? ' transform="translate(261 0) scale(-1 1)"' : ''}>
-        <path d="M6 ${P.my - 15} Q${bx + P.mw / 2} ${P.my - 15} ${bx + P.mw / 2} ${P.my - 4}" fill="none" stroke="#26282b" stroke-width="2.6" stroke-linecap="round"/>
-        <rect x="${bx + P.mw / 2 - 2.2}" y="${P.my - 4}" width="4.4" height="4.5" rx=".8" fill="#1b1d1f"/>
-        <rect x="${bx}" y="${P.my}" width="${P.mw}" height="${P.mh}" rx="${Math.min(2.4, P.mw / 3)}" fill="url(#mr)" stroke="#121315" stroke-width=".7"/>
-        <path d="M${bx + 1.6} ${P.my + 2.5} V${P.my + P.mh - 2.5}" stroke="#5a5f64" stroke-opacity=".55" stroke-width=".8"/></g>`; }).join('')}
+      <!-- mirrors (black, on their arms: as approved, Giovanni 20 Nov 2026) -->
+      <path d="M3 26 h-4 l-3 -3 h-8 a3 3 0 0 0 -3 3 v54 a3 3 0 0 0 3 3 h8 l3 -3 h4 z" fill="#17181a"/><path d="M-13 29 h7 v48 h-7 z" fill="#25272a"/>
+      <path d="M258 26 h4 l3 -3 h8 a3 3 0 0 1 3 3 v54 a3 3 0 0 1 -3 3 h-8 l-3 -3 h-4 z" fill="#17181a"/><path d="M267 29 h7 v48 h-7 z" fill="#25272a"/>
       <!-- the grey body; the black upper part closes the roof itself, the same black -->
       <path d="${outline}" fill="url(#bd)"/><path d="${outline}" fill="url(#sd)"/>
       <path d="${top} V136 H3 Z" fill="url(#up)"/>
       <rect x="${V.x - 1.5}" y="${V.y - 1.5}" width="${V.w + 3}" height="${V.h + 3}" rx="2" fill="#2c2e31"/><rect x="${V.x}" y="${V.y}" width="${V.w}" height="${V.h}" rx="1" fill="#040405"/>
       ${sign}
-      <!-- the coloured edges: up the sides and over the corners on to the roof -->
+      <!-- the coloured edges: up the sides, into the corners, then back along the body -->
       <g clip-path="url(#ol${pid})">${[0, 1].map(r => `<g${r ? ' transform="translate(261 0) scale(-1 1)"' : ''}>
-        <path d="${edgePath}" pathLength="100" stroke-dasharray="${P.yt} 200" fill="none" stroke="${edge[1]}" stroke-width="${P.yw}" stroke-linecap="round"/>
-        <path d="${edgePath}" pathLength="100" stroke-dasharray="${P.yt} 200" fill="none" stroke="${edge[0]}" stroke-opacity=".55" stroke-width="${P.yw * .3}" transform="translate(${-P.yw * .3} 0)"/>
-        <path d="${edgePath}" pathLength="100" stroke-dasharray="${P.yt * .97} 200" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="1.2" transform="translate(${P.yw * .18} 0)"/></g>`).join('')}</g>
+        <path d="${edgeShape}" fill="url(#yl)"/>
+        <path d="M${3 + P.yw * .62} 206 V${P.ys + 6}" stroke="#fff" stroke-opacity=".25" stroke-width="1.2"/></g>`).join('')}</g>
       <!-- windscreen: two panes and the door between them -->
       <rect x="15" y="${P.pt}" width="${dL - 7 - 15}" height="${P.pb - P.pt}" rx="2" fill="url(#gl)"/><rect x="${dR + 7}" y="${P.pt}" width="${246 - dR - 7}" height="${P.pb - P.pt}" rx="2" fill="url(#gl)"/>
       ${framed ? `<rect x="${dL}" y="30" width="${P.dw}" height="158" rx="1.5" fill="#0f1012"/>` : ''}
@@ -2248,7 +2247,6 @@ window.MTL_CAPS = __CAPS__;
       <path d="M105.5 143.2 L117 147.8" stroke="#000" stroke-opacity=".25" stroke-width="2.6" stroke-linecap="round"/>
       <path d="M104.5 142 L116.5 146.8" stroke="#d3d7da" stroke-width="2.6" stroke-linecap="round"/><circle cx="104.8" cy="142" r="2.1" fill="#b9bec3" stroke="#55595e" stroke-width=".6"/>
       </g>
-      <rect x="${gR - 33}" y="136.5" width="31" height="31" rx="4" fill="#e4e6e8" stroke="#b9bdc1" stroke-width=".6"/>
       <g transform="translate(${gR - 17.5} 153) scale(1.1)"><path d="M-8 -9 h16 v9 q0 8 -8 11 q-8 -3 -8 -11 z" fill="#fff" stroke="#7d848a" stroke-width=".8"/><path d="M-1.5 -8 h3 v6 h6 v3 h-6 v8.5 h-3 v-8.5 h-6 v-3 h6 z" fill="#d0141f"/>
         <path d="M-11 -6 q-3.5 9 3 16 M11 -6 q3.5 9 -3 16" fill="none" stroke="#2f7d38" stroke-width="2.2"/><path d="M-5.5 -13.5 h11 l-1.5 3.5 h-8 z" fill="#c8a12a"/></g>
       <!-- light units (the lamps on the outer side; the left the mirror of the right, the same gap to the edge: B-013) -->
