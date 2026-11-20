@@ -120,9 +120,10 @@ const SCENARIOS = {
       document.querySelector('.tnav [data-t="turni"]').click(); await sleep(300); out.tools.turni = document.querySelectorAll('#pcTmain .tbl tbody tr').length;
       out.tools.adminTab = vis(document.querySelector('.tnav [data-t="guasti"]'));
       PC.setTools(false); PC.openWin('chiu'); await sleep(200); $('pcCDel').click(); await sleep(500);
-      // Piano linea: Linea, and Deposito a placeholder
+      // Piano linea: Linea, and Deposito drawn and usable in player mode too (Giovanni 20 Nov 2026)
       $('pcPiano').click(); await sleep(1500); out.piano = { open: vis($('depotPlan')), line: !!document.querySelector('#depotPlan .dp-sw button[data-w="line"][aria-pressed="true"]') };
-      document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); await sleep(800); out.piano.dep = /aspetta i miei disegni/.test($('depotPlan').innerText);
+      document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); await sleep(800);
+      out.piano.dep = !!document.querySelector('#depotPlan .dp-sw button[data-w="dep"][aria-pressed="true"]') && !!document.querySelector('#depotPlan .dp-body svg') && !document.querySelector('#depotPlan .dp-none');
       $('dpClose').click(); await sleep(200);
       document.querySelector('.role[data-role="admin"]').click(); await sleep(200);
       const ok = out.bar.clock && out.bar.speeds.join() === '1,2,5,10,30,60' && out.bar.piano && out.bar.roles.join() === 'player,admin' && out.bar.menu && out.bar.soon === 2 && out.bar.status0 === 0
@@ -518,6 +519,8 @@ const SCENARIOS = {
       if (!o) return { ok: false, why: 'no closure San Donato – Porta Romana' };
       sel.value = o.value; sel.onchange(); await sleep(200); document.querySelector('.closures #closeBtn').click(); await sleep(300);
       st.playing = true; st.speed = 30; await sleep(4000); st.playing = false; await sleep(300);
+      // (the screens show the real destination only after the radio order to the stations: Giovanni 20 Nov 2026)
+      G.names.forEach((_, X) => F.ag.event({ kind: 'station', st: X, what: 'dest' })); await sleep(300);
       let mis = alts('missori'), toPR = false; const lodi = alts('lodi');
       for (let i = 0; i < 30 && !toPR; i++) { mis = alts('missori'); toPR = /PER PORTA ROMANA/.test(mis[1] || ''); if (!toPR) await sleep(1000); }   // (the pages take turns)
       const inside = lodi.length === 2 && lodi.every(a => /^TRENI PER/.test(a));
@@ -738,7 +741,9 @@ const SCENARIOS = {
         document.getElementById('instrGo').click(); await sleep(2500);
         const log = document.getElementById('radioLog').innerText, said = /in marcia illegale/.test(log) && /Ricevuto DCT, (cambio banco e vado in )?marcia illegale/.test(log) && (!op.cab || /cambia banco/.test(log));
         st.playing = true; st.speed = 30; await sleep(25000); st.playing = false; await sleep(300);
-        const a = F.ag.agents()[k], there = op.key === 'ill:dep' ? a.hidden : a.mode === 'static' && a.sdTailHeld;
+        // (in the depot: off the map, or standing at a free place of the rimessa; Giovanni 20 Nov 2026, the trains sent in
+        // off their plan stood one on top of the other at the end of the way in)
+        const a = F.ag.agents()[k], there = op.key === 'ill:dep' ? a.hidden || (a.mode === 'static' && a.status === 'parked' && F.depot && F.depot.at[k] != null) : a.mode === 'static' && a.sdTailHeld;
         res.push({ want, k, key: op.key, note, said, there, ok: note && said && there });
       }
       return { ok: res.length === 2 && res.every(r => r.ok || r.none) && res.some(r => r.ok), res };
@@ -765,7 +770,7 @@ const SCENARIOS = {
       // the line: its own sinottico (tools/sinottico.py linea), the same drawing
       document.querySelector('#depotPlan .dp-sw button[data-w="line"]').click(); await sleep(1500);
       const line = { tk: new Set([...document.querySelectorAll('#depotPlan path.tk')].map(x => x.dataset.e)).size, want: (F.engine.net.schema_line || { edges: [] }).edges.length, labels: document.querySelectorAll('#depotPlan text.lab').length,
-        plat: document.querySelectorAll('#depotPlan rect.plat').length, m2: document.querySelectorAll('#depotPlan g.badge').length };
+        plat: document.querySelectorAll('#depotPlan rect.plat').length, isola: document.querySelectorAll('#depotPlan rect.plat.isola').length, m2: document.querySelectorAll('#depotPlan g.badge').length };
       // the line on one row (Giovanni 16 Nov 2026: the strips taken away until he cuts it): everything inside the drawing
       { const SL = F.engine.net.schema_line, cuts = (SL.strips || {}).cuts || [], body = document.querySelector('#depotPlan .dp-body'), svg = body.querySelector('svg'), vb = svg.viewBox.baseVal;
         const NE = F.engine.net.edges, NN = SL.nodes, cross = SL.edges.filter(ei => { const a = NN[NE[ei].a], b = NN[NE[ei].b]; return a && b && cuts.some(c => Math.min(a[0], b[0]) < c && c < Math.max(a[0], b[0])); });
@@ -777,7 +782,7 @@ const SCENARIOS = {
       document.querySelector('#depotPlan .dp-sw button[data-w="dep"]').click(); await sleep(500);
       document.getElementById('dpClose').click(); await sleep(200);
       const back = document.getElementById('depotPlan').hidden;
-      return { ok: res.every(r => r.same && r.want > 0 && r.sigs === r.sigWant && r.edges === SCH.edges.length && r.station) && line.tk === line.want && line.want > 50 && line.labels >= 21 && line.plat >= 42 && line.m2 >= 1 && line.stripsOk && back, res, line, back };
+      return { ok: res.every(r => r.same && r.want > 0 && r.sigs === r.sigWant && r.edges === SCH.edges.length && r.station) && line.tk === line.want && line.want > 50 && line.labels >= 21 && line.plat + line.isola >= 42 && line.isola === 6 &&  line.m2 >= 1 && line.stripsOk && back, res, line, back };
     });
   },
   async sindeco(p) {   // the sinottico editor (Giovanni 17 Nov 2026: "fai tutto spostabile ed eliminabile"): a window of the

@@ -5328,7 +5328,10 @@ window.MTL_CAPS = __CAPS__;
       else F.dm.rewriteOut(tr, i, q);
       const s1 = tr.segs[i]; a.pid = s1[0]; a.d = s1[4][0]; a.v = 0; F.depot.at[k2] = q;
       if (a.mode === 'plan') { a.si = i - 1; a.legs = []; a.wait = 0; } };        // (it takes this move again, from the new place)
-    moveTo(A, k, pb); moveTo(B, j, pa); F.ag.snapshot();
+    moveTo(A, k, pb); moveTo(B, j, pa);
+    // (their day driven again from the new plans: a jump of the clock places the trains from it, and the reserve stood
+    // again at its old place, on the way out of the other one)
+    reliveFleet(F, A); reliveFleet(F, B); F.ag.snapshot();
     return true;
   }
   function renderTurni() {
