@@ -1571,7 +1571,7 @@
       if (c.clLast && c.clLast.cl) { close(c.clLast.cl); S.clLast = Object.assign({}, c.clLast, { t0: S.t }); }
       snapshot();
     }
-    return { S, TL, IL, RT, FX, carryOut, carryIn, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, closureBlocked, agents: () => S.agents, occ: ei => edgeMap.get(ei),
+    return { S, TL, IL, RT, FX, restore, carryOut, carryIn, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, closureBlocked, agents: () => S.agents, occ: ei => edgeMap.get(ei),
       // the regolatore (fase E): a train out of the service at the end of its run, one kept in the depot, the runs taken in the hybrid timetable
       runs: () => [...usedRuns] };
   }
