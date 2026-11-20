@@ -379,6 +379,7 @@
       return v;
     }
     // the same point of track on another path (null if that path does not go over it)
+    const edgeAt = (pid, d) => { const pe = pathEdges[pid]; return pe && pe.e.find(([, , x0, x1]) => d >= x0 && d <= x1); };
     function mapTo(pid, d, pid2) {
       const pe = pathEdges[pid], pe2 = pathEdges[pid2]; if (!pe || !pe2) return null;
       const sp = pe.e.find(([, , x0, x1]) => d >= x0 && d <= x1); if (!sp) return null;
@@ -1179,6 +1180,10 @@
       if (cyc && leg.pid === a.pid && a.v === 0 && leg.start != null && Math.abs(Math.abs(a.d - leg.start) - cyc) < 8) a.d = leg.start;
       if (leg.pid !== a.pid || leg.rev) {                     // new path from a standing start (same place)
         const rev = leg.rev; leg.rev = false;
+        // (a change of cab: kept, to check that it is done beyond the signal that will clear the way back, the whole
+        // train past it; Giovanni 20 Nov 2026, "regola ferrea"; tests/cambio_banco_check.js)
+        { const e0 = edgeAt(a.pid, a.d), e1 = edgeAt(leg.pid, leg.start != null ? leg.start : a.d);
+          if (e0 && e1 && e0[0] === e1[0] && e0[1] !== e1[1]) { S.revs = S.revs || []; if (S.revs.length < 5000) S.revs.push({ t: S.t, k: a.k, pid: leg.pid, d: leg.start != null ? leg.start : a.d, from: a.pid }); } }
         a.pid = leg.pid; a.d = leg.start != null ? leg.start : a.d; a.v = 0;
         if (rev) { a.wait = S.t + reverse; a.status = 'turnback'; return; }      // change of cab
       }

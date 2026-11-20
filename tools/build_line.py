@@ -756,6 +756,32 @@ def stop_marks(pid):
             out.append((best[1], 'nose' if sg.get('type') == 'nose' else 'atp'))
             MARK_SIG[(pid, best[1])] = sg
     _marks_cache[pid] = sorted(out); return _marks_cache[pid]
+# every placed signal facing the way of path pid (not the talpe: they are on the joint between two places): [d]. For
+# the changes of cab (Giovanni 20 Nov 2026, "regola ferrea"): a train changes cab standing with the whole train beyond
+# the signal that will then clear its way back; tests/cambio_banco_check.js
+_facing_cache = {}
+def facing_signals(pid):
+    if pid in _facing_cache: return _facing_cache[pid]
+    p, c = paths[pid]; out = []
+    for sg in _rules_.get('signals', []):
+        if sg.get('line', LINE) != LINE or 'on_track' not in sg or sg.get('talpa'): continue
+        x, y = xy(*sg['on_track']); best = None
+        for i in range(len(p) - 1):
+            (ax, ay), (bx, by) = p[i], p[i + 1]
+            if min(ax, bx) - 3 > x or max(ax, bx) + 3 < x or min(ay, by) - 3 > y or max(ay, by) + 3 < y: continue
+            dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+            if not L2: continue
+            u = max(0, min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); e = math.hypot(x - ax - u * dx, y - ay - u * dy)
+            if e < 1.8 and (best is None or e < best[0]): best = (e, c[i] + u * (c[i + 1] - c[i]), math.degrees(math.atan2(dx, dy)) % 360)
+        if best and abs((best[2] - sg.get('heading', best[2]) + 180) % 360 - 180) < 60: out.append(best[1])
+    _facing_cache[pid] = sorted(out); return _facing_cache[pid]
+def cab_ok(pid, d):
+    """After a change of cab, the train's centre at d on path pid (its new way): no signal facing it under the train."""
+    return not any(d - TRAIN_HALF + 1 < x < d + TRAIN_HALF + 3 for x in facing_signals(pid))
+def cab_shift(pid, d):
+    """How far the train must go further (before the change of cab) so that it is beyond those signals: metres (0: fine)."""
+    under = [x for x in facing_signals(pid) if d - TRAIN_HALF + 1 < x < d + TRAIN_HALF + 3]
+    return max((d + TRAIN_HALF + 3 - x for x in under), default=0.0)
 NOSE_LOG = {}
 def nose_stop(pid, d, name, lo, hi):
     """Move a stop so the nose is at the flag / station signal. lo..hi: where the train's centre may be."""
@@ -1322,7 +1348,7 @@ if CFG['training']:
     # build, by the tracks and places they depend on, and anything going wrong only leaves the wash out, with a warning)
     import hashlib as _hl
     _wkey = _hl.sha1(json.dumps([sorted((k, [round(v[0], 1), round(v[1], 1)]) for k, v in node_pos.items()), [(e['a'], e['b'], round(e['len'], 1)) for e in edges],
-                                 sorted(RIMESSA_TRACKS.items()), sorted(SECOND.items(), key=str), [sh.get('pts') for sh in SHEDS], sorted(STORE_EXIT.items()), sorted(STORE_ARR_FROM.items()), WASH_APPROACH, V_WASH, sorted(_router.OPEN_WITH.items()), _router.SMOOTH_MAX], default=str).encode()).hexdigest()
+                                 sorted(RIMESSA_TRACKS.items()), sorted(SECOND.items(), key=str), [sh.get('pts') for sh in SHEDS], sorted(STORE_EXIT.items()), sorted(STORE_ARR_FROM.items()), WASH_APPROACH, V_WASH, sorted(_router.OPEN_WITH.items()), _router.SMOOTH_MAX, 'cambio banco oltre il segnale', [sg.get('on_track') for sg in _rules_.get('signals', []) if sg.get('line', LINE) == LINE]], default=str).encode()).hexdigest()
     _wcache = os.path.join(os.environ.get('WASH_CACHE_DIR', os.path.dirname(os.path.abspath(os.getcwd())) + '/build'), 'wash_cache_%s.json' % LINE.lower())
     def _wash_ways():
         _lavP = next((P for sh, P in zip(SHEDS, SHED_XY) if sh.get('uso') == 'lavaggio'), None)
@@ -1348,14 +1374,16 @@ if CFG['training']:
                 try: return route_nodes(a_, b_, via=list(via), first=first)
                 finally: _router.THROUGH_ALLOWED = set()
             def _tmin(p0, p1, lo=0.0):       # the change of cab as soon as the whole train is past the junction (and past lo): (d on p0, d on p1)
+                # (and beyond the signal that will clear its way back: A98 and A99, Giovanni 20 Nov 2026, "dopo i semafori
+                # A98 e A99 non prima e in mezzo ai binari")
                 d = paths[p0][1][-1] - TRAIN_HALF; dd = _turn(p0, d, p1)
-                if dd is None or d < lo: return None
+                if dd is None or d < lo or not cab_ok(p1, dd): return None
                 while d - 5 > max(TRAIN_HALF, lo):
                     x = _turn(p0, d - 5, p1)
-                    if x is None: break
+                    if x is None or not cab_ok(p1, x): break
                     d, dd = d - 5, x
                 x = _turn(p0, min(d + 3, paths[p0][1][-1] - TRAIN_HALF), p1)
-                return (min(d + 3, paths[p0][1][-1] - TRAIN_HALF), x) if x is not None else (d, dd)
+                return (min(d + 3, paths[p0][1][-1] - TRAIN_HALF), x) if x is not None and cab_ok(p1, x) else (d, dd)
             _bk = {}
             def _back(p1, q_):               # from the end of p1, after a change of cab, to place q_ (in by the end its train comes in by)
                 if (p1, q_) not in _bk:
@@ -1875,6 +1903,11 @@ if CFG.get('degraded'):
                         kg = [n for n, _ in nO].index(goal)
                         pid = make_path(('turnA', nm, dr_), r + PATH_STATES[Op][kg:])
                         stub = TRAIN_HALF + 15
+                        # (beyond the signal that clears the way back over the crossover: the stop further on, if the track goes on)
+                        sh_ = cab_shift(pid, plen(poly(e_next, dn)) - stub)
+                        if sh_ > 0:
+                            if edges[e_next]['len'] < stub + sh_ + TRAIN_HALF + 5: continue
+                            stub += sh_ + 1
                         xo = [e_ for e_, _ in r if _edge_cat(edges[e_]) == 'crossover']
                         cands.append((2, rlen(r), {'kind': 'A', 'stub_d': round(du + stub, 1), 'pid': pid, 'd0': round(plen(poly(e_next, dn)) - stub, 1), 'off': round(rlen(r) - posO[goal], 1),
                                                    '_lock': [(Dp, dX - TRAIN_HALF - 5, du + stub + TRAIN_HALF + 5), (Op, dv - 5, dXo + TRAIN_HALF + 5), xo]}))

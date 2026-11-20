@@ -343,6 +343,11 @@
         if (f.call && f.call.opts.includes('tech')) { f.call.opts = f.call.opts.filter(x => x !== 'tech'); if (!f.call.opts.length) f.call = null; }
         return null;
       }
+      // (Giovanni 20 Nov 2026: "fai che telefona alla manutenzione": a signal staying red, a false occupied section; the team
+      // in 15-30 minutes, then the repair: a proposal)
+      if (what === 'team' && (f.kind === 'segnale' || f.kind === 'sezione')) { if (f.team) return { no: true };
+        const m = between(15, 30); f.team = S.t; f.until = Math.min(f.until, S.t + m * 60 + between(300, 900));
+        say(f, 'pc', tx('manutenzione.squadra.ordine', { cosa: f.what.charAt(0).toLowerCase() + f.what.slice(1) })); say(f, 'man', tx('manutenzione.squadra.risposta', { minuti: m })); return null; }
       if (!f.call || !f.call.opts.includes(what)) return { no: true };
       f.call = null;
       if (what === 'vista') { giveVista(f.k, f.n); say(f, 'pc', tx('guasto.vista.autorizzato', { segnale: tag(f.n) })); say(f, 'dr', tx('guasto.vista.ricevuto', { segnale: tag(f.n) })); f.ph = 'go'; return null; }

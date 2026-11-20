@@ -399,7 +399,7 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan .trn rect, #depotPlan .trn.late rect, #depotPlan .trn.early rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; }
 #depotPlan .trn text, #depotPlan .disp .trn text { fill: #ffffff; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
 #depotPlan .trn.bare text { fill: #111; font-size: 10px; } #depotPlan .trn.bare.early text { fill: #137a2e; } #depotPlan .trn.bare.late text { fill: #c41d1d; }
-#depotPlan .badge.rod rect { fill: #3a3a3a; } #depotPlan .badge.rod text { font-size: 8.5px; }
+#depotPlan .badge.rod rect { fill: #ffcf3f; stroke: #22211c; } #depotPlan .badge.rod text { font-size: 9.5px; fill: #111 !important; font-weight: 900; }
 #depotPlan .cont text { fill: #2b2a25; }
 #depotPlan .vp { stroke: #26292c; }
 #depotPlan path.tk.tail, #depotPlan.line path.tk.tail { stroke: #5d5b52; }
@@ -563,7 +563,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
 .pcwin.emgwin .wh { background: #7a1712; }
 #w-radio { width: 620px; height: 440px; left: 108px; bottom: 16px; }
 #w-emg { width: 470px; left: 540px; top: 16px; } #w-info { width: 400px; height: 460px; left: 108px; top: 16px; } #w-chiu { width: 430px; left: 300px; top: 30px; max-height: calc(100% - 60px); }
-.rtabs { display: flex; border-bottom: 2px solid #2a3a2e; background: #12241a; flex: none; }
+.rtabs { display: flex; border-bottom: 2px solid #2a3a2e; background: #12241a; flex: none; } .pcwin .wh.rwh { padding: 0; background: #12241a; border-bottom: 2px solid #2a3a2e; } .pcwin .wh.rwh .rtabs { flex: 1; border-bottom: 0; }
 .rtabs button { background: none; border: 0; border-radius: 0; padding: 7px 16px; font: 20px var(--pix); color: #5f9a6b; cursor: pointer; text-transform: uppercase; }
 .rtabs button[aria-selected=true] { color: var(--crt); background: var(--crt-bg); }
 .rtabs button.calling { background: #2c6a1d; color: #fff; animation: pcpulse 1s infinite; }
@@ -735,8 +735,8 @@ body.player .console, body.pc-console-off .console { display: none !important; }
 </nav>
 <div class="pcstage" id="pcStage">
   <section class="pcwin" id="w-radio" data-title="Radio – DCT" hidden aria-label="Radio e telefono">
-    <div class="wh"><b>Radio – DCT</b><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
-    <div class="rtabs" role="tablist"><button data-r="radio" role="tab" aria-selected="true">Radio</button><button data-r="tel" role="tab" aria-selected="false" id="pcTelTab">Telefono</button></div>
+    <!-- (no blue band on top: the tabs are the handle, Giovanni 20 Nov 2026 "stona davvero tanto") -->
+    <div class="wh rwh"><div class="rtabs" role="tablist"><button data-r="radio" role="tab" aria-selected="true">Radio</button><button data-r="tel" role="tab" aria-selected="false" id="pcTelTab">Telefono</button><button data-r="man" role="tab" aria-selected="false" id="pcManTab">Manutenzione</button></div><button class="wb wx" title="Chiudi" aria-label="Chiudi">✕</button></div>
     <div class="rgrid"><div class="convs" id="pcConvs"></div>
       <div class="chat" id="pcChat">
         <div class="grpchat" id="pcGrp" hidden><div class="msgs" id="pcGrpMsgs" aria-live="polite"></div><div class="say" id="pcGrpSay"></div></div>
@@ -4656,7 +4656,7 @@ window.MTL_CAPS = __CAPS__;
     if (SCH_EDIT.drag) return;                                    // (not while a node or a bend is being moved)
     const SCH = sinSchema(F), title = SIN_WHICH === 'line' ? 'Linea M3 · sinottico' : 'Deposito Rogoredo (ROD) · sinottico';
     if (!planEl.querySelector('.dp-hd')) {
-      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><details class="dp-leg"><summary>Legenda</summary><div>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · marmotte del deposito: due luci in basso via impedita, verticali via libera · spia accanto allo scambio accesa: deviato (nomi degli scambi e numeri delle sezioni inventati, tranne la porta del deposito) · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s) · tasti (ACEI): premi un segnale, poi l'arrivo (un segnale; nel deposito anche un binario o la freccia del blocco): itinerario preparato tutto bianco fino all'arrivo, tasto giallo; di nuovo la partenza per la via libera (tasto bianco) e ancora per annullarlo; rossa la sezione dell'itinerario dove sta il treno, liberata dietro di lui; TEST LUCI accende tutto; tasto destro: la scheda del segnale</div></details><span class="dp-acei" id="dpAcei" aria-live="polite"></span>` +
+      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span class="dp-acei" id="dpAcei" aria-live="polite"></span>` +
         `<div class="dp-sw"><button data-w="dep" aria-pressed="${SIN_WHICH === 'dep'}">Deposito</button><button data-w="line" aria-pressed="${SIN_WHICH === 'line'}">Linea</button></div>` +
         `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><label class="dp-opt"><input type="checkbox" id="dpIll" ${SIN_ILL ? 'checked' : ''}> segnali illegali</label><label class="dp-opt"><input type="checkbox" id="dpNames" ${SIN_NAMES ? 'checked' : ''}> nomi dei binari</label><button id="dpTest" aria-pressed="${SIN_TEST}" title="Accende tutte le luci del sinottico">TEST LUCI</button><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
       document.getElementById('dpClose').onclick = () => setView('map');
@@ -6771,7 +6771,8 @@ window.MTL_CAPS = __CAPS__;
     let convH = '';
     function drawRadio(force) {
       const w = $('w-radio'); if (w.hidden && !force) return; const F = F3();
-      w.classList.toggle('tab-radio', RW.tab === 'radio'); w.classList.toggle('tab-tel', RW.tab === 'tel');
+      w.classList.toggle('tab-radio', RW.tab === 'radio'); w.classList.toggle('tab-tel', RW.tab === 'tel'); w.classList.toggle('tab-man', RW.tab === 'man');
+      if (RW.tab === 'man') { w.querySelectorAll('.rtabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.r === RW.tab))); drawMan(F); return; }
       w.querySelectorAll('.rtabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.r === RW.tab)));
       const ring = MR.phonePending().length > 0; $('pcTelTab').classList.toggle('calling', ring);
       // (the radio of today talks to one train: the conversation shown is that train's, also when a call opened it)
@@ -6797,6 +6798,22 @@ window.MTL_CAPS = __CAPS__;
         const sh = (GPHR[g] || []).map(([l, m, kind], i) => `<button data-gi="${i}"${kind === 'evac' ? ' title="L’ordine di evacuazione viene registrato"' : ''}>${esc(l)}</button>`).join('') + '<span class="prop">frasi segnaposto: vanno nel foglio Radio dell’Excel</span>';
         if ($('pcGrpSay').dataset.h !== sh + g) { $('pcGrpSay').dataset.h = sh + g; $('pcGrpSay').innerHTML = sh; $('pcGrpSay').querySelectorAll('[data-gi]').forEach(b => b.onclick = () => { const [, m, kind] = GPHR[g][+b.dataset.gi]; groupSay(g, m, 'DCT', kind); }); } }
       drawExtra(F, grp ? null : cur);
+    }
+    // the telephone of the line maintenance (Giovanni 20 Nov 2026): the failures of the line, a team sent for each; what
+    // they said. (Later: the test laps on the loop asked by the maintenance, the minor defects.)
+    let manH = '';
+    function drawMan(F) {
+      const convs = '<div class="c grp on"><span>Manutenzione di linea</span></div>';
+      if ($('pcConvs').innerHTML !== convs) { $('pcConvs').innerHTML = convs; convH = ''; }
+      $('pcGrp').hidden = true; $('pcEmpty').hidden = true; $('w-radio').classList.remove('grp-on', 'none-on');
+      const L_ = F && F.ag.FX ? F.ag.FX.list() : [], line = L_.filter(f => !f.done && (f.kind === 'segnale' || f.kind === 'sezione' || f.kind === 'scambio' || f.kind === 'tensione'));
+      const feed = F && F.ag.FX ? F.ag.FX.feed().filter(m => m.who === 'man' || (m.who === 'pc' && line.concat(L_).some(f => f.id === m.id && (f.kind === 'segnale' || f.kind === 'sezione' || f.kind === 'scambio')))).slice(-8) : [];
+      let h = '<span class="lbl">Guasti della linea</span>';
+      h += line.length ? line.map(f => `<div class="row"><span class="lbl">${esc(f.what || f.kind)}</span>${(f.kind === 'segnale' || f.kind === 'sezione') ? (f.team ? '<button disabled>Squadra in arrivo</button>' : `<button data-man="${f.id}">Manda la squadra</button>`) : '<span class="lbl">dagli Allarmi</span>'}</div>`).join('')
+        : '<p class="t">Nessun guasto della linea adesso.</p>';
+      if (feed.length) h += '<span class="lbl">Telefonate</span>' + feed.map(m => `<p><span class="t">${fmt(m.t)}</span> ${m.who === 'man' ? 'Manutenzione' : 'DCT'}: ${esc(m.text)}</p>`).join('');
+      const ex = $('pcExtra'); if (manH !== h) { manH = h; ex.innerHTML = h; ex.dataset.h = ''; ex.querySelectorAll('[data-man]').forEach(b => b.onclick = () => { fxAnswer(F, +b.dataset.man, 'team'); manH = ''; drawMan(F); }); }
+      ex.hidden = false;
     }
     // under the train's radio: the answers to its call for a failure (as in the Allarmi), and without power evacuate / wait
     function drawExtra(F, cur) {

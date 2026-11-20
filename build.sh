@@ -50,6 +50,9 @@ node "$ROOT/tests/illegal_sd_check.js"
 node "$ROOT/tests/sheds_check.js"
 node "$ROOT/tests/faults_check.js"
 node "$ROOT/tests/headway_check.js" || echo "WARNING: trains closer than 2 minutes"
+# (the changes of cab beyond the signal that clears the way back, Giovanni 20 Nov 2026: a warning until the tails of
+# Comasina are settled, position 1 reaches past #A10)
+node "$ROOT/tests/cambio_banco_check.js" || echo "WARNING: changes of cab not beyond their signal (tests/cambio_banco_check.js)"
 # Saturday and Sunday: their own service days of the same feed (GTFS s_ and f_), built the same way next to build/
 # (SAT_DAY, SUN_DAY: a Saturday and a Sunday of the feed); the main checks of the day driven by the agents on them
 SAT_DAY="${SAT_DAY:-20260919}"; SUN_DAY="${SUN_DAY:-20260920}"

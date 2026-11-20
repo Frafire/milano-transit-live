@@ -435,7 +435,11 @@
           if (!PE[w.pid]) continue; const inSet = new Set(PE[w.pid].e.map(x => x[0]));
           let M = null; for (const [ei, , x0, x1] of oe) { if (x1 <= d0 + half) continue; if (inSet.has(ei)) { M = Math.max(x0, d0 + half); break; } }
           if (M == null) continue;
-          const X = M + half + 25; if (X > L - 1) continue;
+          // (the change of cab beyond the signal that will clear the way in: Giovanni 20 Nov 2026, "regola ferrea")
+          let X = M + half + 25; const d1_ = F.ag.mapTo(o.pid, X, w.pid);
+          if (d1_ != null) { const SG = [...(F.engine.net.sigall[w.pid] || []).map(x => x[0]), ...((F.engine.net.sigpos || {})[w.pid] || []).map(x => x[0])];
+            const sh = Math.max(0, ...SG.filter(x => x > d1_ - half + 1 && x < d1_ + half + 3).map(x => d1_ + half + 3 - x)); X += sh; }
+          if (X > L - 1) continue;
           const d2 = F.ag.mapTo(o.pid, X, w.pid), d2b = F.ag.mapTo(o.pid, X + 10, w.pid);
           if (d2 == null || d2b == null || d2b > d2 || d2 >= w.in_end - 5) continue;           // (the way in goes the other way there)
           cand({ legs: [[o.pid, d0, X, false], [w.pid, d2, w.in_end, true]], len: X - d0 + w.in_end - d2, end: [w.pid, w.in_end] });
