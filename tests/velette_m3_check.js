@@ -7,9 +7,9 @@ const { chromium } = require('playwright');
 const path = require('path');
 const page = 'file://' + path.resolve(__dirname, '..', 'docs', 'gioca.html') + '?linee=M3&day=1';
 // the signs as drawn in web/template.html (meneghinoSVG, hitachiSVG, tradSVG)
-// (20 Nov 2026: the Meneghino's sign narrower and smaller, measured on the frontal photo of 958, Giovanni: "la scritta fuori
-// servizio mi sembra più piccola in foto"; the Tradizionali's signs taller, measured on 8009 and 8106)
-const SIGN = { meneghino: { x: 55, y: 4.5, w: 152, h: 14, pmin: .9 }, hitachi: { x: 58, y: 17, w: 145, h: 19 }, lotto1: { x: 44, y: 10.5, w: 173, h: 23 }, lotto2: { x: 44, y: 12, w: 173, h: 22 } };
+// (20 Nov 2026: the Meneghino's and the Tradizionali's signs narrower and smaller, measured on the frontal photo of 958, Giovanni: "la scritta fuori
+// servizio mi sembra più piccola in foto")
+const SIGN = { meneghino: { x: 55, y: 7, w: 152, h: 14, pmin: .9 }, hitachi: { x: 58, y: 17, w: 145, h: 19 }, lotto1: { x: 54.5, y: 12, w: 152, h: 14, pmin: .9 }, lotto2: { x: 54.5, y: 12, w: 152, h: 14, pmin: .9 } };
 const PMIN = 1.2;     // smallest dot pitch still readable at the size the front is shown (the Meneghino's: its own)
 (async () => {
   const b = await chromium.launch(), p = await b.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
