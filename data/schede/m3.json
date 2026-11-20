@@ -38,11 +38,15 @@
     "Per pagare la linea si prova una strada nuova: coinvolgere investitori privati, a cui andrebbe per un certo periodo l'esercizio della linea, che poi tornerebbe pubblica, come per molte infrastrutture della Milano dell'Ottocento.",
     "Dal 1992 arriva Mani Pulite. Anche gli appalti della M3 finiscono sotto esame: le inchieste giornalistiche dell'epoca parlano di tangenti per oltre 2.000 miliardi di lire. I lavori rallentano, le sei ipotesi verso nord vengono abbandonate e al loro posto si fa una soluzione più piccola, la metrotranvia, oggi il tram 4.",
     "## Come è stata scavata",
-    "Lungo il tracciato ci sono troppi edifici storici per usare i metodi delle prime due linee: MM studia tecniche nuove, guardando soprattutto al Giappone e agli Stati Uniti. Tra Repubblica e Crocetta la linea corre in due gallerie sovrapposte: così passa sotto le strade strette del centro senza mettere a rischio le case e ha curve più larghe, quindi più veloci. Le cinque stazioni di questa tratta sfruttano l'esperienza di Sant'Agostino sulla M2.",
+    "Lungo il tracciato ci sono troppi edifici storici per usare i metodi delle prime due linee: MM studia tecniche nuove, guardando soprattutto al Giappone e agli Stati Uniti. Tra Repubblica e Porta Romana la linea corre in due gallerie sovrapposte, sopra il binario pari verso Comasina e sotto il dispari verso San Donato: così passa sotto le strade strette del centro senza mettere a rischio le case e ha curve più larghe, quindi più veloci. Le cinque stazioni di questa tratta sfruttano l'esperienza di Sant'Agostino sulla M2.",
     "Circa il 70% delle gallerie è scavato a foro cieco: prima una piccola fresa automatica fa le iniezioni che consolidano il terreno senza toccare la superficie, poi si scava con le tecniche tradizionali. Il restante 30% è fatto con il Metodo Milano.",
     "Il problema più grande è l'acqua della falda. A Crocetta la falda è circa sei metri sopra il fondo della galleria: uno strato di limo spesso un metro fa slittare la calotta in cemento armato prima che sia fatto l'arco rovescio, e circa duecento metri di galleria si allagano. I prodotti chimici fanno avanzare solo di pochi metri; alla fine si usa una tecnica delle miniere, l'azoto liquido a –196 °C, fatto passare in tubi d'acciaio dentro fori rivestiti di fanghi bentonitici, che congela il terreno e permette di finire lo scavo.",
     "Il caso più delicato è il Teatro alla Scala: in via Manzoni la galleria a due livelli passa a circa dieci metri dall'ingresso e a quindici di profondità. MM, Comune e Sovrintendenza della Scala decidono un armamento diverso e un monitoraggio continuo con sensori e lettori ottici, che trova i treni che fanno vibrare più del consentito e li manda in manutenzione.",
     "Fuori dal centro i due binari corrono affiancati in galleria; da Corvetto a San Donato, dove c'erano ampie aree libere, la linea è costruita a cielo aperto. L'eccezione è Rogoredo: per non fermare la ferrovia, sotto i binari vengono costruiti prima due grandi manufatti di circa cinquanta metri, alti più di dieci, uno per i treni e uno per i passeggeri.",
+    "## Il lotto 2A, la talpa sotto il centro",
+    "Il tratto più difficile è quello centrale, il lotto 2A: da via Turati a piazza Cavour, sotto gli archi di Porta Nuova e lungo via Manzoni fino a piazza del Duomo. Lì non si possono aprire grandi cantieri in superficie senza bloccare la città, quindi si scava tutto sottoterra.",
+    "Per prima cosa si scava un cunicolo pilota di 3,30 m di diametro con uno scudo meccanico, la «talpa»: un cilindro d'acciaio di 82 tonnellate con una testa fresante rotante davanti, spinto da 12 martinetti idraulici fino a 1.500 tonnellate, un metro alla volta, e guidato da un raggio laser. Il terreno sotto il centro è sciolto e tende a franare, quindi il cunicolo viene armato subito con anelli d'acciaio imbullonati, uno ogni metro, e tavole di larice. Il materiale scavato, lo «smarino», viaggia su nastri e vagonetti fino al pozzo di piazza Cavour, profondo 15 metri, e da lì sale in strada sui camion.",
+    "La talpa viene calata a inizio febbraio nel pozzo di largo Donegani e avanza per circa 8 mesi, in media 12 metri al giorno su due turni di 8 ore, fino al pozzo di via Tommaso Grossi, all'angolo con via Mengoni: più di 1.200 metri. Poi si consolida il terreno intorno al cunicolo con iniezioni di cemento e si scavano le due gallerie dei treni, prima quella di sopra e poi quella di sotto: sostegno provvisorio di centine, rete e calcestruzzo spruzzato, poi rivestimento in cemento armato sopra un telo impermeabile. Alla fine si posano binari, alimentazione e segnali.",
     "## Le stazioni e i reperti del Duomo",
     "Le stazioni della M3 non sono tutte uguali: dentro i bastioni sono quasi tutte a banchine sovrapposte, dove il livello di sotto regge anche la banchina di sopra; altrove ci sono banchine a isola in una o due gallerie, o banchine laterali e centrali nelle stazioni a cielo aperto. Mezzanini, scale e ascensori sono fatti quasi sempre a cielo aperto, negli spazi stretti ai lati delle gallerie. Le stazioni a nord di Centrale, progettate da Claudio Dini, sono più luminose e sprecano meno spazio.",
     "Come per la M1, gli scavi in piazza del Duomo trovano fondazioni antiche, mura dell'alto Medioevo e strade: si ricostruisce l'area sacra che c'era prima della cattedrale, con i resti di Santa Tecla, di Santa Maria Maggiore (fondata nell'836) e del battistero di San Giovanni alle Fonti, poi resi visitabili."
@@ -171,12 +175,12 @@
     {
      "data": "02.2026",
      "titolo": "Arriva il primo Galileo",
-     "testo": "Arriva 9201-9202, il primo Hitachi \"Galileo\" della M3, con i bordi gialli: per ora fa solo giri di prova sull'anello del deposito. Dei 46 Galileo ordinati, 25 sono per la M3 e prenderanno il posto dei Tradizionali."
+     "testo": "Arriva 9201-9202, il primo Hitachi Galileo della M3, con i bordi gialli: per ora fa solo giri di prova sull'anello del deposito. Dei 46 Galileo ordinati, 25 sono per la M3 e prenderanno il posto dei Tradizionali."
     }
    ],
    "fonti": [
     "G. Severi, R. Vasini, Metropolitana a Milano, Grafiche Alma, 1996; A. Mantegazza, L'ATM di Milano 1973-2005, Ciriec, 2013; G. L. Minici, La metropolitana milanese; Metropolitana Milanese, Linea 3 (gialla), 1981; MM, Linea 3 Rogoredo-Centrale FS: studi di fattibilità; MM, Linea 3 / MM Strutture ed infrastrutture del territorio, 1995; S. Baroni, Il ruolo della metropolitana nel trasporto pubblico; D. Caporusso, Scavi MM3, Soprintendenza archeologica della Lombardia, 1991; A. Calabrò, la Repubblica, 9/12/2025; BreA Studio Ingegneria, 2016;",
-    "Wikipedia, voci \"Sondrio\" e \"Elettromotrici della linea 3\" (CC BY-SA 4.0); articolo di cronaca sull'allagamento del 2010 (testata da indicare); Il Sole 24 Ore, M. Morino, 4/11/2022; <a href=\"https://www.ilpost.it/2015/05/26/expo-mezzanotte-weekend/\" style=\"color:inherit\">Il Post, 26/5/2015</a>; <a href=\"https://www.lapresse.it/cronaca/2015/04/30/expo-come-muoversi-a-milano-durante-lesposizione-universale/\" style=\"color:inherit\">LaPresse, 30/4/2015</a>; <a href=\"https://www.mentelocale.it/milano/110704-atm-milano-servizio-potenziato-durante-le-olimpiadi-fino-a-che-ora-aperta-la-metropolitana.htm\" style=\"color:inherit\">Mentelocale, 4/2/2026</a>; <a href=\"https://www.ilgiorno.it/milano/cronaca/mobilita-il-piano-olimpico-metro-fdacbd2b\" style=\"color:inherit\">Il Giorno</a>; Giovanni (treni corti, flotta, Galileo, Arena Santa Giulia)."
+    "Wikipedia, voci \"Sondrio\" e \"Elettromotrici della linea 3\" (CC BY-SA 4.0); articolo di cronaca sull'allagamento del 2010 (testata da indicare); Il Sole 24 Ore, M. Morino, 4/11/2022; <a href=\"https://www.ilpost.it/2015/05/26/expo-mezzanotte-weekend/\" style=\"color:inherit\">Il Post, 26/5/2015</a>; <a href=\"https://www.lapresse.it/cronaca/2015/04/30/expo-come-muoversi-a-milano-durante-lesposizione-universale/\" style=\"color:inherit\">LaPresse, 30/4/2015</a>; <a href=\"https://www.mentelocale.it/milano/110704-atm-milano-servizio-potenziato-durante-le-olimpiadi-fino-a-che-ora-aperta-la-metropolitana.htm\" style=\"color:inherit\">Mentelocale, 4/2/2026</a>; <a href=\"https://www.ilgiorno.it/milano/cronaca/mobilita-il-piano-olimpico-metro-fdacbd2b\" style=\"color:inherit\">Il Giorno</a>; Giovanni (treni corti, flotta, Galileo, Arena Santa Giulia). Lotto 2A: documentario sullo scavo, metà anni Ottanta (anno e imprese da confermare)."
    ],
    "crescita": {
     "provvisorio": true,
@@ -465,12 +469,12 @@
      "flotta": "Meneghino"
     },
     {
-     "titolo": "Hitachi \"Galileo\"",
+     "titolo": "Hitachi Galileo",
      "badge": "in prova",
      "dati": [
       [
        "Anno",
-       "2026"
+       "2025 - presente"
       ],
       [
        "Costruttore",
@@ -486,7 +490,7 @@
       ],
       [
        "Ordine",
-       "25 dei 46 Galileo sono per la M3"
+       "25 Galileo per la M3"
       ],
       [
        "Costruito a",
@@ -574,7 +578,7 @@
    "id": "sistemi",
    "titolo": "Sistemi e segnalamento",
    "fonti": [
-    "Segnali: gli stessi disegni del gioco. Testi: dati di Giovanni (docs/m3-signalling.md) e pannelli della mostra ATM sugli apparati Siemens."
+    "Segnali: gli stessi disegni del gioco. Testi: dati di Giovanni (docs/m3-signalling.md) e pannelli della mostra ATM sugli apparati Siemens. Marmotte: video di una visita al deposito; Giovanni."
    ],
    "blocchi": [
     {
@@ -613,7 +617,7 @@
     {
      "titolo": "Segnali legali e illegali",
      "paragrafi": [
-      "Legali sono i segnali posti nella direzione standard della linea, quella in cui i treni percorrono normalmente quel binario. Illegali sono quelli posti nella direzione non standard: servono ai treni che percorrono quel binario al contrario."
+      "Legali sono i segnali posti nella direzione standard della linea, quella in cui i treni percorrono normalmente quel binario. Illegali sono quelli posti nella direzione \"contromano\"."
      ],
      "vela": [
       {
@@ -632,7 +636,7 @@
      "titolo": "In deposito",
      "paragrafi": [
       "Segnali di manovra; al massimo 15 km/h ovunque tranne sull'anello di prova.",
-      "Segnali: gli stessi disegni del gioco. Testi: dati di Giovanni (docs/m3-signalling.md) e pannelli della mostra ATM sugli apparati Siemens."
+      "Ci sono due tipi di segnali. I segnali normali danno lo stop con il rosso e il via libera con rosso e bianco, come in linea. Quelli bassi, per esempio all'uscita dell'officina, in ATM si chiamano «marmotte» perché sembrano marmotte accovacciate: danno il via libera con la sola luce bianca e lo stop con la rossa. L'anello di prova ha segnali veri, come una linea."
      ]
     }
    ]
@@ -641,15 +645,15 @@
    "id": "depositi",
    "titolo": "Depositi",
    "fonti": [
-    "Fonti: pannello ATM \"Tecnologia e formazione\" al deposito; articolo sull'allagamento del 2010; Giovanni."
+    "Fonti: pannello ATM \"Tecnologia e formazione\" al deposito; articolo sull'allagamento del 2010; Giovanni; video di una visita guidata al deposito (data da verificare)."
    ],
    "deposito": {
     "nome": "Deposito Officina Rogoredo",
     "nel_gioco": "ROD",
     "paragrafi": [
-     "Aperto nel 1990 insieme alla linea, l'unico deposito della M3 (nel gioco: ROD). Fin dall'inizio è sembrato più un laboratorio che un deposito classico, tanto che ATM ci ha messo anche il campus per formare il personale.",
-     "Rimessa e officina sono zone ben separate. La linea, sotterranea, arriva in superficie con un tronchino, la galleria di servizio che porta i treni al deposito. Intorno corre un anello di prova di 1,8 km, del tutto indipendente, dove si simulano le condizioni di servizio normali e straordinarie.",
-     "La rimessa la governa una torre di controllo. Accanto c'è il deposito degli autobus ATM. Qui sta anche il Badoni, il mezzo di soccorso che traina i treni guasti; nel 2010 ci arrivò al traino il treno rimasto sott'acqua a Sondrio."
+     "Aperto nel 1990 insieme alla linea, l'unico deposito della linea (abbreviato in ROD).",
+     "Rimessa e officina sono zone ben separate. La linea, sotterranea, arriva in superficie con un tronchino, la galleria di servizio che porta i treni al deposito. Intorno corre un anello di prova di 1,8 km, del tutto indipendente, dove si simulano le condizioni di servizio normali e straordinarie. Nell'anello di prova si può far esercitare il personale, testare i treni nuovi o quelli appena usciti dalla manutenzione.",
+     "Il deposito è controllato da remoto da un \"capostazione\" posto nella torre di controllo, dove ha un quadro ACEI e una vista perfetta sul deposito. Accanto c'è il deposito degli autobus ATM. Nel deposito è presente un Badoni, il mezzo di servizio che traina i treni guasti nel deposito."
     ],
     "numeri": [
      [
@@ -668,6 +672,13 @@
       "1990",
       "apertura"
      ]
+    ],
+    "quadro": [
+     "## Il quadro del deposito",
+     "Il deposito ha una sala operativa sua, che governa solo il deposito. La linea la governa la sala della M3 in viale Monterosa, dove ogni linea ha la sua sala, con un quadro due o tre volte più grande.",
+     "Sul quadro del deposito ci sono quattro zone: l'officina in basso, la rimessa, i due binari che portano alla stazione di San Donato e, tutto intorno, l'anello di prova. I treni sono luci rosse. I due binari verso San Donato si percorrono in tutti e due i sensi; il treno passa al controllo della linea dopo i segnali di ingresso al deposito.",
+     "Nessun treno si muove senza un itinerario. Il macchinista o il tecnico dell'officina chiede il movimento per telefono, e le telefonate sono registrate. Il capostazione prepara l'itinerario: sul quadro il tracciato si illumina solo se è libero, il segnale davanti al treno passa al via libera e il treno parte. Se un binario è bloccato, il capostazione manovra i deviatoi e prepara un altro tracciato.",
+     "Un difetto minore, come una porta che non funziona, non toglie il treno dal servizio: lo decidono il manutentore e l'ufficio manutenzione, che fermano i guasti che rendono la corsa meno sicura. Un guasto piccolo si ripara in officina in circa due ore. Dopo un guasto serio il treno fa più giri di prova sull'anello, che ha due banchine e segnali veri come una linea, prima di tornare in servizio. Ogni treno ha una scatola nera che registra i dati: chi ripara sa subito dove guardare, e si manda solo lo specialista che serve."
     ]
    }
   },
@@ -682,7 +693,7 @@
     },
     {
      "titolo": "Treni giapponesi a Milano",
-     "testo": "Gli appassionati di treni giapponesi amano i Tradizionali: somigliano molto alla serie 207 di JR East. E le Socimi, con l'inverter Hitachi, suonavano come tanti treni giapponesi con inverter GTO."
+     "testo": "Gli appassionati di treni giapponesi amavano i Tradizionali: somigliano molto alla serie 207 di JR East. E le Socimi, con l'inverter Hitachi, suonavano come tanti treni giapponesi con inverter GTO."
     },
     {
      "titolo": "Al cinema",
@@ -695,6 +706,14 @@
     {
      "titolo": "Il numero sul muso",
      "testo": "All'inizio i Tradizionali non avevano il numero della motrice dipinto sul frontale: è arrivato dopo."
+    },
+    {
+     "titolo": "Le marmotte",
+     "testo": "In deposito i segnali bassi, come quelli all'uscita dell'officina, si chiamano marmotte, perché sembrano marmotte accovacciate."
+    },
+    {
+     "titolo": "Reggetevi due volte",
+     "testo": "«Reggetevi ai sostegni» si sente due volte di fila: è la fine dell'annuncio di arrivo e l'inizio di quello della fermata successiva."
     }
    ],
    "fonti": [
@@ -704,8 +723,144 @@
   {
    "id": "stazioni",
    "titolo": "Stazioni",
-   "presto": true,
-   "testo": "In arrivo: l'elenco delle stazioni con gli interscambi."
+   "paragrafi": [
+    "Le 21 stazioni da San Donato a Comasina, con il lato da cui si aprono le porte e l'interscambio annunciato a bordo. Verso San Donato il lato porte è lo stesso. Il lato cambia da stazione a stazione, anche nel tratto con i binari sovrapposti."
+   ],
+   "tabella": {
+    "colonne": [
+     "Stazione",
+     "Porte",
+     "Interscambio annunciato"
+    ],
+    "righe": [
+     [
+      "San Donato",
+      "—",
+      "capolinea"
+     ],
+     [
+      "Rogoredo FS",
+      "destra",
+      "stazione ferroviaria e linee S"
+     ],
+     [
+      "Porto di Mare",
+      "destra",
+      "—"
+     ],
+     [
+      "Corvetto",
+      "sinistra",
+      "—"
+     ],
+     [
+      "Brenta",
+      "sinistra",
+      "—"
+     ],
+     [
+      "Lodi T.I.B.B.",
+      "destra",
+      "linee S, stazione Scalo Romana"
+     ],
+     [
+      "Porta Romana",
+      "destra",
+      "—"
+     ],
+     [
+      "Crocetta",
+      "sinistra",
+      "—"
+     ],
+     [
+      "Missori Università degli Studi",
+      "destra",
+      "linea M4, stazione Sforza Policlinico"
+     ],
+     [
+      "Duomo",
+      "destra",
+      "linea M1"
+     ],
+     [
+      "Montenapoleone",
+      "sinistra",
+      "—"
+     ],
+     [
+      "Turati",
+      "sinistra",
+      "—"
+     ],
+     [
+      "Repubblica",
+      "sinistra",
+      "linee S"
+     ],
+     [
+      "Centrale FS",
+      "destra",
+      "linea M2, stazione ferroviaria, Malpensa Express e bus per gli aeroporti"
+     ],
+     [
+      "Sondrio",
+      "destra",
+      "—"
+     ],
+     [
+      "Zara",
+      "destra",
+      "linea M5"
+     ],
+     [
+      "Maciachini",
+      "destra",
+      "—"
+     ],
+     [
+      "Dergano",
+      "destra",
+      "—"
+     ],
+     [
+      "Affori Centro",
+      "destra",
+      "—"
+     ],
+     [
+      "Affori FN",
+      "destra",
+      "stazione ferroviaria e linee S"
+     ],
+     [
+      "Comasina",
+      "—",
+      "capolinea"
+     ]
+    ]
+   },
+   "fonti": [
+    "Annunci di bordo registrati da Giovanni, direzione Comasina."
+   ]
+  },
+  {
+   "id": "annunci",
+   "titolo": "Annunci a bordo",
+   "paragrafi": [
+    "Gli annunci della M3 sono in italiano e in inglese, e il nome della stazione si dice una volta sola, dopo le due lingue. Tra due stazioni seguono sempre lo stesso schema, in due blocchi: per questo «Reggetevi ai sostegni» si sente due volte di fila.",
+    "## In galleria, tra una stazione e l'altra",
+    "<i>Reggetevi ai sostegni. Please hold on to the handrails.</i><br><i>Prossima fermata. The next station is</i> {stazione}.<br>Se c'è un interscambio: <i>Cambiate qui per</i> {interscambio}. <i>Change here for</i> {interscambio in inglese}.<br>In alcune tratte: <i>Treno per, train to</i> {capolinea}.",
+    "## In arrivo in stazione",
+    "<i>Siamo a, this is</i> {stazione}.<br><i>Apertura porte a</i> {destra/sinistra}. <i>Doors open on the</i> {right/left}.<br><i>Reggetevi ai sostegni. Please hold on to the handrails.</i>",
+    "## Al capolinea",
+    "<i>Siamo arrivati al capolinea. Vi invitiamo a scendere e a non lasciare oggetti personali sul treno. This train terminates here. Please remember to take all your personal belongings with you when you leave the train. All change, please.</i>",
+    "Ogni tanto, di solito nella parte centrale della linea: <i>Attenzione a borseggiatrici e borseggiatori. Please be aware of pickpockets.</i> A Lodi T.I.B.B. fino al 2023 si sentiva «Cambiate qui per linee S»; oggi l'annuncio dice anche «stazione Scalo Romana».",
+    "Nel gioco gli annunci avranno una voce nostra: il testo è quello vero, la voce no."
+   ],
+   "fonti": [
+    "Annunci registrati da Giovanni su un treno da San Donato a Comasina."
+   ]
   }
  ]
 }

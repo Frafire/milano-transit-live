@@ -392,6 +392,7 @@ const vela = legal => { const W = 13, H = 21, PH = 18, C = 4, cut = legal ? 2 : 
     else if (x >= 5 && x <= 7) c = '#8e979d';
     if (c) r += `<rect x="${x * C}" y="${y * C}" width="${C}" height="${C}" fill="${c}"/>`; }
   return `<svg width="${W * C}" height="${H * C}" viewBox="0 0 ${W * C} ${H * C}" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`; };
+const paras = l => l.map(p => p.startsWith('## ') ? `<h3>${esc(p.slice(3))}</h3>` : `<p>${p}</p>`).join('');
 function cardHtml(k) {
   const S = SCHEDE[k], sec = id => S.sezioni.find(s => s.id === id) || {}, src = s => (s.fonti || []).length ? `<p class="src">Fonti: ${s.fonti.join(' ')}</p>` : '';
   const tappe = l => `<ol class="tl">${l.map(t => `<li>${t.data ? `<span class="led">${esc(t.data)}</span>` : ''}<h4>${t.titolo}</h4><p>${t.testo}</p>${t.giornata_speciale ? '<span class="playday">Giornata speciale · in arrivo</span>' : ''}</li>`).join('')}</ol>`;
@@ -416,8 +417,10 @@ function cardHtml(k) {
         if (b.vela) h += `<div class="sigs">${b.vela.map(v => `<div class="sig2">${vela(v.tipo === 'legale')}<div><b>${esc(v.nome)}</b><span>${esc(v.testo)}</span></div></div>`).join('')}</div>${b.da_completare ? `<div class="ask">${esc(b.da_completare)}</div>` : ''}`; }
       h += src(s); }
     else if (s.id === 'depositi') { const d = s.deposito; h += `<h3>${esc(d.nome)}</h3><p>${d.paragrafi[0]}</p><p>${d.paragrafi[1]}</p><div class="stats">${d.numeri.map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div>` +
-        `<p style="margin-top:12px">${d.paragrafi[2]}</p><div class="fam" style="grid-template-columns:1fr"><div class="ph" style="min-height:180px">Schema del deposito · dal sinottico del gioco</div></div>` + src(s); }
+        `<p style="margin-top:12px">${d.paragrafi[2]}</p><div class="fam" style="grid-template-columns:1fr"><div class="ph" style="min-height:180px">Schema del deposito · dal sinottico del gioco</div></div>` + paras(d.quadro || []) + src(s); }
     else if (s.id === 'curiosita') h += tappe(s.voci) + src(s);
+    // any other section: paragraphs ("## " = a subtitle), a table, the sources; or the one line of a section still to come
+    else if (s.paragrafi) h += paras(s.paragrafi) + (s.tabella ? `<div class="mat"><table><thead><tr>${s.tabella.colonne.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${s.tabella.righe.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : '') + src(s);
     else h += `<p>${esc(s.testo || '')}</p>`;
     h += '</section>';
   }
