@@ -7088,6 +7088,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     ux: 24.5, uy: 139 };
   // the cars with the door framed in black (photos, Giovanni 20 Nov 2026: not all of them have it; the frame is the same
   // thickness all round). The others: the grey door with its thin outline
+  const MEN_M2_K = 1.25, MEN_M2_DOTS = 85;
   const MEN_FRAMED = new Set(['943', '953', '958']);
   function meneghinoSVG(dest, lights, no, car, opt) {
     const o = opt || {}, P = Object.assign({}, MEN_P, o.P || {}), m2 = !!o.m2;
@@ -7097,7 +7098,9 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const num = m2 ? String(no || '').replace(/[^0-9]/g, '').slice(0, 2) : (String(no || '').replace(/[^0-9]/g, '').slice(0, 2) || '00').padStart(2, '0');
     const framed = o.framed != null ? !!o.framed : MEN_FRAMED.has(String(car || '').replace(/[^0-9]/g, ''));
     // the sign, one display high in the black: the train number in green on the left, the destination in orange
-    const V = { x: P.sx, y: P.sy, w: P.sw, h: P.sh };
+    // the M2's sign drawn bigger (Giovanni 20 Nov 2026: "le velette più grandi"): the whole display scaled by MEN_M2_K about its
+    // centre, so the same names run and stand still as on the approved one (same room in dots)
+    const K = m2 ? MEN_M2_K : 1, V = { x: P.sx + P.sw / 2 * (1 - K), y: P.sy, w: P.sw * K, h: P.sh * K };
     const ledText = (t, x0, p, fill) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;
       for (const ch of t) { const g = F57[ch] || F57[' '];
         for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .43).toFixed(2)}"/>`;
@@ -7105,12 +7108,14 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       return `<g fill="${fill}" filter="url(#led)">${out}</g>`; };
     const colsOf = t => [...t].reduce((n, ch) => n + (F57[ch] || F57[' '])[0].length + 1, -1);
     let sign = '';
-    const pM = Math.min(.98, V.h / 14);
+    // the M2: bigger dots, as big as leave room for MEN_M2_DOTS columns of destination at the smallest pitch (0.9): the
+    // names that ran on the approved sign still run, the others stand (Giovanni 20 Nov 2026)
+    const pM = m2 ? Math.min(V.h / 8.5, (V.w - 16 * K) / (.9 * MEN_M2_DOTS + colsOf('88') + 6)) : Math.min(.98, V.h / 14);
     // the number a quarter of the way in, the destination centred, a clear gap between them; long names shrink to fit (the
     // M2's run when they do not)
-    const nx = V.x + 12, p = Math.min(pM, (V.x + V.w - 4 - (nx + colsOf('88') + 6)) / Math.max(1, colsOf(txt))), nw = colsOf(num) * pM;
+    const nx = V.x + 12 * K, p = Math.min(pM, (V.x + V.w - 4 - (nx + colsOf('88') + 6)) / Math.max(1, colsOf(txt))), nw = colsOf(num) * pM;
     if (num) sign += ledText(num, nx, pM, '#5cff8c');
-    if (txt && m2) sign += ledDest(txt, nx + (num ? nw + 6 * pM : 0), V.x + V.w - 4, V.y + V.h / 2, pM, pM * .9, '#ffa03a', 'led');
+    if (txt && m2) sign += ledDest(txt, nx + (num ? nw + 6 * pM : 0), V.x + V.w - 4 * K, V.y + V.h / 2, pM, pM * .9, '#ffa03a', 'led');
     else if (txt) sign += ledText(txt, Math.max(nx + nw + 6 * p, V.x + V.w / 2 + 5 - colsOf(txt) * p / 2), p, '#ffa03a');
     // the two lamps of each unit are the same: white below when running, red above when standing
     const red = lights === 'red', off = lights === 'off', glow = red ? '#ff2a14' : '#fff4c8';
