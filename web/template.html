@@ -2155,9 +2155,9 @@ window.MTL_CAPS = __CAPS__;
     const num = m2 ? String(no || '').replace(/[^0-9]/g, '').slice(0, 2) : (String(no || '').replace(/[^0-9]/g, '').slice(0, 2) || '00').padStart(2, '0');
     const framed = o.framed != null ? !!o.framed : MEN_FRAMED.has(String(car || '').replace(/[^0-9]/g, ''));
     // the sign, one display high in the black: the train number in green on the left, the destination in orange
-    // the M2's sign drawn bigger (Giovanni 20 Nov 2026: "le velette più grandi"): the whole display scaled by MEN_M2_K about its
-    // centre, so the same names run and stand still as on the approved one (same room in dots)
-    const K = m2 ? MEN_M2_K : 1, V = { x: P.sx + P.sw / 2 * (1 - K), y: P.sy, w: P.sw * K, h: P.sh * K };
+    // the M2's sign drawn bigger in the game (Giovanni 20 Nov 2026: "le velette più grandi"): the whole display scaled by
+    // MEN_M2_K about its centre, the same names running as on the real one; opt.real keeps the real one (the line's card)
+    const big = m2 && !o.real, K = big ? MEN_M2_K : 1, V = { x: P.sx + P.sw / 2 * (1 - K), y: P.sy, w: P.sw * K, h: P.sh * K };
     const ledText = (t, x0, p, fill) => { let x = x0, out = ''; const y = V.y + (V.h - 7 * p) / 2;
       for (const ch of t) { const g = F57[ch] || F57[' '];
         for (let r = 0; r < 7; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') out += `<circle cx="${(x + (i + .5) * p).toFixed(2)}" cy="${(y + (r + .5) * p).toFixed(2)}" r="${(p * .43).toFixed(2)}"/>`;
@@ -2822,7 +2822,8 @@ window.MTL_CAPS = __CAPS__;
     </svg>`;
   }   // the Meneghino of the M2: the same drawing as the M3's (Giovanni 20 Nov 2026: "mi cambi anche i meneghini M2"), the edges in
   // the colour of its profiles (green; yellow on 949-950), the destination running when it does not fit
-  function meneghinoM2SVG(dest, lights, no, edge) { return meneghinoSVG(dest, lights, no, '', { m2: true, edge }); }
+  // real: the sign as small as on the real train (the line's information card, Giovanni 20 Nov 2026); the game the bigger one
+  function meneghinoM2SVG(dest, lights, no, edge, real) { return meneghinoSVG(dest, lights, no, '', { m2: true, edge, real: !!real }); }
   const F57 = {
 'A':['01110','10001','10001','11111','10001','10001','10001'],'B':['11110','10001','10001','11110','10001','10001','11110'],
 'C':['01110','10001','10000','10000','10000','10001','01110'],'D':['11100','10010','10001','10001','10001','10010','11100'],
