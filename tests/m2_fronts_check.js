@@ -16,9 +16,12 @@ const page = 'file://' + path.resolve(__dirname, '..', 'docs', 'gioca.html') + '
     return { valid: all.filter(([, s]) => !ok(s)).map(x => x[0]), n: all.length,
       longL: /animateTransform/.test(F.leonardo('ASSAGO MILANOFIORI FORUM', 'white', '14', 'black')), shortL: /animateTransform/.test(F.leonardo('GESSATE', 'white', '14', 'black')),
       longM: /animateTransform/.test(F.meneghinoM2('ASSAGO MILANOFIORI FORUM', 'white', '23', ['#077a39', '#16a552', '#0a8a42'])),
+      // the texts of the photos stand still on the Meneghino's narrow sign (Giovanni 20 Nov 2026)
+      stillM: ['ASSAGO M FORUM', 'FUORI SERVIZIO', 'COLOGNO NORD', 'GESSATE'].filter(d => /animateTransform/.test(F.meneghinoM2(d, 'white', '23', ['#077a39', '#16a552', '#0a8a42']))),
       url: /^data:image\/svg\+xml/.test(F.url('leonardo', 'GESSATE', 'white', '14', 'green')) && /^data:image\/svg\+xml/.test(F.url('meneghinoM2', 'GESSATE', 'white', '14', 'yellow')) }; });
   check(!r.valid.length, `M2 fronts: ${r.n} drawings, all valid SVG${r.valid.length ? ' (not: ' + r.valid.join(', ') + ')' : ''}`);
   check(r.longL && r.longM && !r.shortL, 'a destination too long for the sign runs (Leonardo, Meneghino), a short one stands still');
+  check(!r.stillM.length, `Meneghino M2: the texts of the photos stand still${r.stillM.length ? ' (run: ' + r.stillM.join(', ') + ')' : ''}`);
   check(r.url, 'trainFront gives the M2 fronts (leonardo, meneghinoM2)');
   check(!errs.length, 'no page errors' + (errs.length ? ': ' + errs[0] : ''));
   await b.close(); console.log(bad ? 'M2 fronts: FAILED' : 'M2 fronts: all ok'); process.exit(bad ? 1 : 0);
