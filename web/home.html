@@ -181,7 +181,12 @@ header { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
 .fam > * { min-width: 0; }
 .fam .side { display: grid; gap: 8px; align-content: start; }
 .fam .ph { min-height: 120px; display: grid; place-items: center; background: rgba(0,0,0,.25); border: 1px dashed rgba(255,255,255,.25); color: var(--muted); font: 600 12.5px var(--body); text-align: center; padding: 6px; }
-.fam .front { width: 100%; height: auto; display: block; background: rgba(0,0,0,.25); border-radius: 6px; padding: 6px; box-sizing: border-box; }
+.fam .front { width: 100%; height: auto; display: block; background: rgba(0,0,0,.25); border-radius: 6px; padding: 6px; box-sizing: border-box; cursor: pointer; }
+.fam .fedit { display: grid; gap: 6px; padding: 8px; background: rgba(0,0,0,.25); border-radius: 6px; font-size: 13px; }
+.fam .fedit[hidden] { display: none; }
+.fam .fedit label { display: grid; grid-template-columns: 88px 1fr; align-items: center; gap: 6px; color: var(--muted); }
+.fam .fedit input, .fam .fedit select { min-width: 0; font: inherit; padding: 4px 6px; background: #07090b; color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 4px; }
+.fam .fedit .reset { justify-self: start; font: inherit; padding: 4px 10px; background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; cursor: pointer; }
 .fam dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0 0 8px; font-size: 14px; }
 .fam dt { color: var(--muted); } .fam dd { margin: 0; }
 .media { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -317,6 +322,11 @@ header { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
 </div>
 
 <script>
+// the train fronts of the game (web/template.html, between its <fronti> marks; tools/assemble.py): the line cards draw
+// them, and the player changes number, destination and lights on them (Giovanni 20 Nov 2026)
+__FRONTI__
+</script>
+<script>
 // what can be played: data/linee.json, put here by tools/assemble.py
 const LINEE = __LINEE__;
 // "in test": it can be opened, to try it while it is being built (not finished: the tile says so)
@@ -393,6 +403,28 @@ const vela = legal => { const W = 13, H = 21, PH = 18, C = 4, cut = legal ? 2 : 
     else if (x >= 5 && x <= 7) c = '#8e979d';
     if (c) r += `<rect x="${x * C}" y="${y * C}" width="${C}" height="${C}" fill="${c}"/>`; }
   return `<svg width="${W * C}" height="${H * C}" viewBox="0 0 ${W * C} ${H * C}" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`; };
+// a front of the card: drawn by the game's code; a press on it opens what can be changed (number, destination, lights,
+// livery), drawn again at every change; "Come all'inizio" gives the card's own front back
+const MUSO = {}, EDGE = { green: ['#077a39', '#16a552', '#0a8a42'], yellow: ['#cf9c06', '#f9cf27', '#d9a70d'] };
+function musoSrc(m) {
+  const svg = m.tipo === 'meneghinoM2' ? meneghinoM2SVG(m.dest, m.luci, m.no, EDGE[m.livrea] || EDGE.green, !!m.reale) : leonardoSVG(m.dest, m.luci, m.no, m.livrea);
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); }
+function musoBox(s, g) {
+  const id = 'mu' + Object.keys(MUSO).length; MUSO[id] = { def: g.muso, cur: Object.assign({}, g.muso) }; const m = g.muso, dl = 'dl' + id;
+  return `<img class="front" id="${id}" role="button" tabindex="0" src="${musoSrc(m)}" alt="Frontale ${esc(g.titolo)}: premi per cambiare veletta e luci" title="Premi per cambiare numero, destinazione e luci">
+    <div class="fedit" id="${id}e" hidden><label>Numero <input data-k="no" inputmode="numeric" maxlength="2" value="${esc(m.no)}" placeholder="—"></label>
+    <label>Destinazione <input data-k="dest" list="${dl}" value="${esc(m.dest)}"></label><datalist id="${dl}">${(s.destinazioni || []).map(d => `<option value="${esc(d)}">`).join('')}</datalist>
+    <label>Luci <select data-k="luci">${[['white', 'bianche'], ['red', 'rosse'], ['off', 'spente']].map(([v, t]) => `<option value="${v}"${m.luci === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+    ${m.livree ? `<label>Livrea <select data-k="livrea">${m.livree.map(([v, t]) => `<option value="${v}"${m.livrea === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>` : ''}
+    <button type="button" class="reset">Come all'inizio</button></div>`; }
+function musoWire() {
+  for (const id of Object.keys(MUSO)) { const im = document.getElementById(id), ed = document.getElementById(id + 'e'); if (!im || im.dataset.w) continue; im.dataset.w = 1;
+    const tog = () => { ed.hidden = !ed.hidden; };
+    im.onclick = tog; im.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog(); } };
+    ed.querySelectorAll('[data-k]').forEach(f => f.oninput = f.onchange = () => { const M = MUSO[id];
+      M.cur[f.dataset.k] = f.dataset.k === 'no' ? f.value.replace(/[^0-9]/g, '').slice(0, 2) : f.dataset.k === 'dest' ? f.value.slice(0, 30) : f.value; im.src = musoSrc(M.cur); });
+    ed.querySelector('.reset').onclick = () => { const M = MUSO[id]; M.cur = Object.assign({}, M.def);
+      ed.querySelectorAll('[data-k]').forEach(f => { f.value = M.def[f.dataset.k] == null ? '' : M.def[f.dataset.k]; }); im.src = musoSrc(M.cur); }; } }
 const paras = l => l.map(p => p.startsWith('## ') ? `<h3>${esc(p.slice(3))}</h3>` : `<p>${p}</p>`).join('');
 function cardHtml(k) {
   const S = SCHEDE[k], sec = id => S.sezioni.find(s => s.id === id) || {}, src = s => (s.fonti || []).length ? `<p class="src">Fonti: ${s.fonti.join(' ')}</p>` : '';
@@ -409,7 +441,7 @@ function cardHtml(k) {
       h += src(s); }
     else if (s.id === 'treni') { h += `<p>${s.intro}</p><h3>${esc(s.tradizionali.titolo)}</h3>${s.tradizionali.paragrafi.map((p, i, a) => `<p>${p}${i === a.length - 1 && s.tradizionali.foto ? ` <span class="badge">${esc(s.tradizionali.foto)}</span>` : ''}</p>`).join('')}`;
       for (const g of s.gruppi) { const cols = g.colonne || ['Matricole', 'Costruttore', 'Anno', 'Indicatori', 'Note'], key = { Matricole: 'matricole', Costruttore: 'costruttore', Anno: 'anno', Indicatori: 'indicatori', Note: 'note' };
-        h += `<article class="fam"><div class="side">${g.frontale ? `<img class="front" src="${g.frontale}" alt="Frontale ${esc(g.titolo)}">` : '<div class="ph">Frontale e fianco<br>disegno nostro</div>'}<div class="media"><span>Vista 3D · presto</span><span>Suoni · presto</span></div></div><div><h4>${esc(g.titolo)}${g.badge ? ` <span class="badge">${esc(g.badge)}</span>` : ''}</h4>` +
+        h += `<article class="fam"><div class="side">${g.muso ? musoBox(s, g) : '<div class="ph">Frontale e fianco<br>disegno nostro</div>'}<div class="media"><span>Vista 3D · presto</span><span>Suoni · presto</span></div></div><div><h4>${esc(g.titolo)}${g.badge ? ` <span class="badge">${esc(g.badge)}</span>` : ''}</h4>` +
           `<dl>${g.dati.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl><div class="mat"><table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>` +
           (g.righe || []).map(r => `<tr${r.storico ? ' class="old"' : ''}>${cols.map(c => `<td>${esc(r[key[c]] || '—')}</td>`).join('')}</tr>`).join('') + `</tbody></table></div></div></article>`; }
       h += src(s); }
@@ -450,7 +482,8 @@ function spy() {
 function openCard(k) {
   const S = SCHEDE[k]; if (!S) return;
   document.documentElement.style.setProperty('--y', S.colore || '#fbb816');
-  ls.innerHTML = cardHtml(k); drawGrowth(S); lastFocus = document.activeElement; ls.hidden = false; ls.scrollTop = 0; spy();
+  for (const m of Object.keys(MUSO)) delete MUSO[m];
+  ls.innerHTML = cardHtml(k); drawGrowth(S); musoWire(); lastFocus = document.activeElement; ls.hidden = false; ls.scrollTop = 0; spy();
   ls.querySelectorAll('#lsnav a').forEach(a => a.onclick = e => { e.preventDefault(); const t = ls.querySelector(a.getAttribute('href'));
     ls.scrollTo({ top: t.offsetTop - 50, behavior: reduce() ? 'auto' : 'smooth' }); });
   document.getElementById('lsClose').onclick = closeCard;

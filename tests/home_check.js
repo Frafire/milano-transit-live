@@ -78,6 +78,14 @@ const ORARI = LINEE.orari || {};
     const trad = M.fam.filter(f => /Tradizionale/.test(f.t)), men = M.fam.find(f => /Meneghino/.test(f.t)) || {}, leo = M.fam.find(f => /Leonardo/.test(f.t)) || {};
     check(trad.reduce((n, f) => n + f.n, 0) === 88 && men.n > 0 && leo.n > 0 && men.img && leo.img, `M2 card: 88 Tradizionali, Meneghino and Leonardo with their fronts (${JSON.stringify(M.fam.map(f => f.n))})`);
     check(M.dep === 3 && M.st === 35, `M2 card: 3 depots, 35 stations (${M.dep}, ${M.st})`);
+    // a press on a front: number, destination, lights and livery change it at once; "Come all'inizio" gives it back
+    const im = '#ls article.fam img.front', src0 = await p.$eval(im, e => e.src);
+    await p.click(im); const ed = await p.$eval(im, e => e.id + 'e');
+    check(await p.isVisible('#' + ed), 'M2 card: a press on the front opens its sign and lights');
+    await p.fill(`#${ed} [data-k="no"]`, '77'); await p.fill(`#${ed} [data-k="dest"]`, 'PIOLA'); await p.selectOption(`#${ed} [data-k="luci"]`, 'red'); await p.selectOption(`#${ed} [data-k="livrea"]`, 'yellow');
+    const src1 = decodeURIComponent(await p.$eval(im, e => e.src));
+    check(src1 !== decodeURIComponent(src0) && /#ff3030/.test(src1) && /#f9cf27/.test(src1), 'M2 card: the front changes with number, destination, lights and livery');
+    await p.click(`#${ed} .reset`); check(await p.$eval(im, e => e.src) === src0, 'M2 card: "Come all\'inizio" gives the front back');
     await p.click('#lsClose'); }
   // the choice of the timetable: the M3 tile opens it; a historical one in arrivo opens nothing, a giocabile one opens the
   // game with ?orario= (data/linee.json "orari"; Milano Cortina giocabile since 10 Nov 2026, Giovanni)

@@ -7084,6 +7084,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // the Meneghino (M3, and the M2's with its profiles' colour), drawn from the photos of 958, 953, 943 (M3) and of 930, 992,
   // 996 (M2). All the measures in MEN_P, so that the interactive draft ("Meneghino su misura") and the game draw the same
   // front; the draft gives back the values to put here
+  // <fronti> (from here to </fronti>: copied by tools/assemble.py into the menu, for the fronts of the line cards)
   const MEN_P = { tt: 5, rc: 41, ys: 38, yw: 10.5, yt: 55, sx: 55, sy: 7, sw: 152, sh: 14, pt: 35, pb: 131, dw: 69, ft: 6, gb: 126,
     ux: 24.5, uy: 139 };
   // the cars with the door framed in black (photos, Giovanni 20 Nov 2026: not all of them have it; the frame is the same
@@ -7223,6 +7224,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       <path d="M133 238 q6 10 6 20 q0 6 6 8" fill="none" stroke="#b5221c" stroke-width="2"/><path d="M121 238 q-6 9 -12 12" fill="none" stroke="#8a2a26" stroke-width="1.6"/>
     </svg>`;
   }
+  // </fronti>
   // the Hitachi Rail STS "Galileo" (M3, 2026), drawn from the photos of the first one and the renders: an octagonal frame
   // round the whole front (yellow for the M3), inside it one black glass face: the sign on top (number blue, destination
   // orange: Giovanni's guess, nobody has seen it lit yet), the windscreen, below it the two light units (a slanted strip of
@@ -7670,6 +7672,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // 2nd train, notice. From 10 s before the train comes in until it leaves: "Treno per ...". After the last train:
   // "TRENI PER ...". Minutes in halves down to 1 (Giovanni).
   const SCR_NOTICES = [['IN BANCHINA', 'NON SUPERARE LA RIGA', 'GIALLA DI SICUREZZA'], ['PER LA SALITA', 'UTILIZZARE TUTTE LE', 'PORTE DEL TRENO']];
+  // <fronti> (from here to </fronti>: copied by tools/assemble.py into the menu, for the fronts of the line cards)
   // a destination on a LED sign, between x0 and x1, its rows centred on yMid: shrunk a little if it does not fit, and if it
   // still does not fit, running from right to left without end (Giovanni 7 Nov: "Assago Milanofiori Forum" does not fit)
   let LEDN = 0;
@@ -7797,6 +7800,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
 '8':['01110','10001','10001','01110','10001','10001','01110'],'9':['01110','10001','10001','01111','00001','00010','01100'],
 ':':['0','0','1','0','1','0','0'],'.':['0','0','0','0','0','1','1'],' ':['000','000','000','000','000','000','000'],
 '°':['111','101','111','000','000','000','000'],'½':['10000','10000','10010','00101','00001','00010','00111'],"'":['1','1','0','0','0','0','0']};
+  // </fronti>
   // the half minute on the big line, as on the real screens: a small 1 up on the left, a small 2 down on the right
   // (with the slant bar between them: two rows taller than the digits, it reaches up into the space above them)
   // (the bar: one column every two rows, straight)
