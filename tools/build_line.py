@@ -1904,7 +1904,9 @@ if CFG.get('degraded'):
                         pid = make_path(('turnA', nm, dr_), r + PATH_STATES[Op][kg:])
                         stub = TRAIN_HALF + 15
                         # (beyond the signal that clears the way back over the crossover: the stop further on, if the track goes on)
-                        sh_ = cab_shift(pid, plen(poly(e_next, dn)) - stub)
+                        # (not yet by default, CAB_A=1: at Centrale the stop beyond #A362 takes binario 2 from the navetta
+                        # Centrale – Sondrio, which then waits for ever; to settle with Giovanni)
+                        sh_ = cab_shift(pid, plen(poly(e_next, dn)) - stub) if os.environ.get('CAB_A') else 0
                         if sh_ > 0:
                             if edges[e_next]['len'] < stub + sh_ + TRAIN_HALF + 5: continue
                             stub += sh_ + 1
