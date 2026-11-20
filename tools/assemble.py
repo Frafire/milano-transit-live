@@ -135,7 +135,8 @@ def scheda(line):
             num = lambda r: int(''.join(ch for ch in r['matricole'].split('-')[0] if ch.isdigit()) or 0)
             g['righe'] = sorted(rows, key=num); g['nel_gioco'] = n
             if g.get('flotta'): g['dati'].append(['Nel gioco', '%d %s' % (n, 'treno' if n == 1 else 'treni')])
-    sec['breve']['numeri'] = [[str(len(st)), 'stazioni'], [('%.1f km' % km).replace('.', ','), 'tra Comasina e San Donato, sul tracciato dell\'orario'],
+    # the length: written by hand when the sheet gives it (M3: "circa 17 km", Giovanni 20/11), else measured on the timetable's track
+    sec['breve']['numeri'] = [[str(len(st)), 'stazioni'], sec['breve']['lunghezza'] if sec['breve'].get('lunghezza') else [('%.1f km' % km).replace('.', ','), 'tra Comasina e San Donato, sul tracciato dell\'orario'],
                               [sec['breve']['apertura']['anno'], sec['breve']['apertura']['testo']], [str(sec['breve'].get('depositi', 1)), 'deposito'],
                               [str(len(stock)), 'treni nella flotta del gioco']]
     return sc

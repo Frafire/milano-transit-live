@@ -20,7 +20,11 @@
    ],
    "fonti": [
     "Testo: Giovanni, con informazioni da Wikipedia (voci Linea M3 e San Donato della metropolitana di Milano).",
-    "Stazioni e km: dal tracciato dell'orario; treni: dalla flotta del gioco (calcolati nella build)"
+    "Stazioni: dal tracciato dell'orario; lunghezza: dalle fonti pubbliche, che danno da 16,6 a 17,3 km; treni: dalla flotta del gioco (calcolati nella build)"
+   ],
+   "lunghezza": [
+    "circa 17 km",
+    "tra Comasina e San Donato"
    ]
   },
   {
@@ -46,7 +50,7 @@
     "## Il lotto 2A, la talpa sotto il centro",
     "Il tratto più difficile è quello centrale, il lotto 2A: da via Turati a piazza Cavour, sotto gli archi di Porta Nuova e lungo via Manzoni fino a piazza del Duomo. Lì non si possono aprire grandi cantieri in superficie senza bloccare la città, quindi si scava tutto sottoterra.",
     "Per prima cosa si scava un cunicolo pilota di 3,30 m di diametro con uno scudo meccanico, la «talpa»: un cilindro d'acciaio di 82 tonnellate con una testa fresante rotante davanti, spinto da 12 martinetti idraulici fino a 1.500 tonnellate, un metro alla volta, e guidato da un raggio laser. Il terreno sotto il centro è sciolto e tende a franare, quindi il cunicolo viene armato subito con anelli d'acciaio imbullonati, uno ogni metro, e tavole di larice. Il materiale scavato, lo «smarino», viaggia su nastri e vagonetti fino al pozzo di piazza Cavour, profondo 15 metri, e da lì sale in strada sui camion.",
-    "La talpa viene calata a inizio febbraio nel pozzo di largo Donegani e avanza per circa 8 mesi, in media 12 metri al giorno su due turni di 8 ore, fino al pozzo di via Tommaso Grossi, all'angolo con via Mengoni: più di 1.200 metri. Poi si consolida il terreno intorno al cunicolo con iniezioni di cemento e si scavano le due gallerie dei treni, prima quella di sopra e poi quella di sotto: sostegno provvisorio di centine, rete e calcestruzzo spruzzato, poi rivestimento in cemento armato sopra un telo impermeabile. Alla fine si posano binari, alimentazione e segnali.",
+    "Tra il 1982 e il 1985, a inizio febbraio, la talpa viene calata nel pozzo di largo Guido Donegani e avanza per circa 8 mesi, in media 12 metri al giorno su due turni di 8 ore, fino al pozzo di via Tommaso Grossi, all'angolo con via Mengoni: più di 1.200 metri. Poi si consolida il terreno intorno al cunicolo con iniezioni di cemento e si scavano le due gallerie dei treni, prima quella di sopra e poi quella di sotto: sostegno provvisorio di centine, rete e calcestruzzo spruzzato, poi rivestimento in cemento armato sopra un telo impermeabile. Alla fine si posano binari, alimentazione e segnali. I lavori del lotto sono affidati da Metropolitana Milanese a un raggruppamento di imprese guidato da Torno, con Guffanti e Collini.",
     "## Le stazioni e i reperti del Duomo",
     "Le stazioni della M3 non sono tutte uguali: dentro i bastioni sono quasi tutte a banchine sovrapposte, dove il livello di sotto regge anche la banchina di sopra; altrove ci sono banchine a isola in una o due gallerie, o banchine laterali e centrali nelle stazioni a cielo aperto. Mezzanini, scale e ascensori sono fatti quasi sempre a cielo aperto, negli spazi stretti ai lati delle gallerie. Le stazioni a nord di Centrale, progettate da Claudio Dini, sono più luminose e sprecano meno spazio.",
     "Come per la M1, gli scavi in piazza del Duomo trovano fondazioni antiche, mura dell'alto Medioevo e strade: si ricostruisce l'area sacra che c'era prima della cattedrale, con i resti di Santa Tecla, di Santa Maria Maggiore (fondata nell'836) e del battistero di San Giovanni alle Fonti, poi resi visitabili."
@@ -70,7 +74,7 @@
     {
      "data": "1982",
      "titolo": "Cantieri in centro",
-     "testo": "Si scava tra Centrale e Duomo, con le gallerie sovrapposte da tre pozzi in largo Donegani, piazza Cavour e via Santa Margherita, e il raccordo con la M2 in piazza Duca d'Aosta. Alla fine dell'anno i lavori arrivano a Medaglie d'Oro; nel 1983 tutta la tratta fino a Rogoredo è in costruzione."
+     "testo": "Si scava tra Centrale e Duomo, con le gallerie sovrapposte da tre pozzi in largo Guido Donegani, piazza Cavour e via Santa Margherita, e il raccordo con la M2 in piazza Duca d'Aosta. Alla fine dell'anno i lavori arrivano a Medaglie d'Oro; nel 1983 tutta la tratta fino a Rogoredo è in costruzione."
     },
     {
      "data": "22.10.1984",
@@ -84,7 +88,7 @@
      "giornata_speciale": true
     },
     {
-     "data": "16.12.1990",
+     "data": "12.1990",
      "titolo": "Fino a Porta Romana",
      "testo": "Porta Romana ha una comunicazione tra i binari: finiscono le navette e i treni girano come su una linea normale."
     },
@@ -180,7 +184,7 @@
    ],
    "fonti": [
     "G. Severi, R. Vasini, Metropolitana a Milano, Grafiche Alma, 1996; A. Mantegazza, L'ATM di Milano 1973-2005, Ciriec, 2013; G. L. Minici, La metropolitana milanese; Metropolitana Milanese, Linea 3 (gialla), 1981; MM, Linea 3 Rogoredo-Centrale FS: studi di fattibilità; MM, Linea 3 / MM Strutture ed infrastrutture del territorio, 1995; S. Baroni, Il ruolo della metropolitana nel trasporto pubblico; D. Caporusso, Scavi MM3, Soprintendenza archeologica della Lombardia, 1991; A. Calabrò, la Repubblica, 9/12/2025; BreA Studio Ingegneria, 2016;",
-    "Wikipedia, voci \"Sondrio\" e \"Elettromotrici della linea 3\" (CC BY-SA 4.0); articolo di cronaca sull'allagamento del 2010 (testata da indicare); Il Sole 24 Ore, M. Morino, 4/11/2022; <a href=\"https://www.ilpost.it/2015/05/26/expo-mezzanotte-weekend/\" style=\"color:inherit\">Il Post, 26/5/2015</a>; <a href=\"https://www.lapresse.it/cronaca/2015/04/30/expo-come-muoversi-a-milano-durante-lesposizione-universale/\" style=\"color:inherit\">LaPresse, 30/4/2015</a>; <a href=\"https://www.mentelocale.it/milano/110704-atm-milano-servizio-potenziato-durante-le-olimpiadi-fino-a-che-ora-aperta-la-metropolitana.htm\" style=\"color:inherit\">Mentelocale, 4/2/2026</a>; <a href=\"https://www.ilgiorno.it/milano/cronaca/mobilita-il-piano-olimpico-metro-fdacbd2b\" style=\"color:inherit\">Il Giorno</a>; Giovanni (treni corti, flotta, Galileo, Arena Santa Giulia). Lotto 2A: documentario sullo scavo, metà anni Ottanta (anno e imprese da confermare)."
+    "Wikipedia, voci \"Sondrio\" e \"Elettromotrici della linea 3\" (CC BY-SA 4.0); articolo di cronaca sull'allagamento del 2010 (testata da indicare); Il Sole 24 Ore, M. Morino, 4/11/2022; <a href=\"https://www.ilpost.it/2015/05/26/expo-mezzanotte-weekend/\" style=\"color:inherit\">Il Post, 26/5/2015</a>; <a href=\"https://www.lapresse.it/cronaca/2015/04/30/expo-come-muoversi-a-milano-durante-lesposizione-universale/\" style=\"color:inherit\">LaPresse, 30/4/2015</a>; <a href=\"https://www.mentelocale.it/milano/110704-atm-milano-servizio-potenziato-durante-le-olimpiadi-fino-a-che-ora-aperta-la-metropolitana.htm\" style=\"color:inherit\">Mentelocale, 4/2/2026</a>; <a href=\"https://www.ilgiorno.it/milano/cronaca/mobilita-il-piano-olimpico-metro-fdacbd2b\" style=\"color:inherit\">Il Giorno</a>; Giovanni (treni corti, flotta, Galileo, Arena Santa Giulia). Lotto 2A: documentario sullo scavo, metà anni Ottanta."
    ],
    "crescita": {
     "provvisorio": true,
