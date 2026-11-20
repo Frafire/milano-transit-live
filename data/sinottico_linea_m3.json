@@ -17043,5 +17043,26 @@
   "166": "binario del deposito (ROD)",
   "132": "binario del deposito (ROD)"
  },
- "deco": {}
+ "deco": {},
+ "porte": {
+  "CORVETTO": "sinistra",
+  "BRENTA": "sinistra",
+  "CROCETTA": "sinistra",
+  "MONTENAPOLEONE": "sinistra",
+  "TURATI": "sinistra",
+  "REPUBBLICA": "sinistra",
+  "ROGOREDO FS": "destra",
+  "PORTO DI MARE": "destra",
+  "LODI T.I.B.B.": "destra",
+  "PORTA ROMANA": "destra",
+  "MISSORI": "destra",
+  "DUOMO M3": "destra",
+  "CENTRALE FS": "destra",
+  "SONDRIO": "destra",
+  "ZARA": "destra",
+  "MACIACHINI": "destra",
+  "DERGANO": "destra",
+  "AFFORI CENTRO": "destra",
+  "AFFORI FN": "destra"
+ }
 }

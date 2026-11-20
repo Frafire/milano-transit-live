@@ -156,6 +156,12 @@
         && a.legs[0].stops[0] && a.legs[0].stops[0].st === X && a.legs[0].stops[0].d - a.d >= 0 && a.legs[0].stops[0].d - a.d <= 2 * half_()) || null;
     }
     const half_ = () => (c.half || 52.5);
+    // the track of a person or an object: 'N' (pari, towards Comasina) or 'S' (dispari); null: both
+    const SIDE = [['SAN DONATO', 'PORTO DI MARE'], ['LODI', 'PORTA ROMANA'], ['CENTRALE', 'COMASINA']];
+    const idxOf = w => G.names.findIndex(n => String(n).toUpperCase().startsWith(w));
+    const parallel = X => SIDE.some(([p, q]) => { const i = idxOf(p), j = idxOf(q); return i >= 0 && j >= 0 && X >= Math.min(i, j) && X <= Math.max(i, j); });
+    const oneTrack = X => parallel(X) && rnd() < 0.5 ? null : rnd() < 0.5 ? 'N' : 'S';
+    const trackTxt = t => t === 'N' ? ' pari' : t === 'S' ? ' dispari' : ', entrambi i binari';
     // why a failure cannot start now on that target (null: it can)
     function cannot(kind, target) {
       if (kind === 'investimento') { if (target == null) return G.names.some((_, X) => entering(X)) ? null : 'nessun treno in arrivo'; return entering(target) ? null : 'nessun treno in arrivo'; }
@@ -200,11 +206,14 @@
         f.marks = { out1: S.t >= G1 + 60, back: S.t >= G2a + 60, out2: S.t >= G2b + 60 };
         call(f, tx('sciopero.adesione', { adesione: f.pct, treni: n, totale: all.length }), ['freq', 'gaps', 'limit']);
       }
-      // people and emergencies (D3)
-      else if (kind === 'persona') { f.st = X; f.what = name(X); f.ph = 'alarm'; f.around = around; f.callWho = 'ag'; f.zones = [L.zone('stop', X, X)];
-        call(f, tx('emergenza.persona.binari', { stazione: name(X) }), ['red'], 30); }
-      else if (kind === 'oggetto') { f.st = X; f.what = name(X); f.ph = 'told'; f.callWho = 'ag';
-        call(f, tx('emergenza.oggetto.segnalato', { stazione: name(X) }), ['agent']); }
+      // people and emergencies (D3). A person or an object on the tracks: the station agent says which track ("Comasina
+      // pari"), only that one is out of use; where the two tracks run side by side (San Donato – Porto di Mare, Lodi
+      // T.I.B.B. – Porta Romana, Centrale FS – Comasina) sometimes both (Giovanni 20 Nov 2026: "parzialmente falso" there;
+      // half the times both: a proposal)
+      else if (kind === 'persona' || kind === 'oggetto') { f.st = X; f.track = oneTrack(X); f.what = name(X) + trackTxt(f.track); f.callWho = 'ag';
+        if (kind === 'persona') { f.ph = 'alarm'; f.around = around; f.zones = [L.zone('stop', X, X, f.track ? { track: f.track } : undefined)];
+          call(f, tx('emergenza.persona.binari', { stazione: f.what }), ['red'], 30); }
+        else { f.ph = 'told'; call(f, tx('emergenza.oggetto.segnalato', { stazione: f.what }), ['agent']); } }
       else if (kind === 'malore_stazione') { f.st = X; f.what = name(X); f.ph = 'help'; f.callWho = 'ag'; f.until = S.t + between(600, 1800); f.holdAt = S.t + between(120, 400);
         call(f, tx('emergenza.malore_stazione.soccorsi', { stazione: name(X) }), ['ack']); }
       else if (kind === 'tunnel') { f.what = name(X) + ' – ' + name(X + 1); f.a = X; f.ph = 'alarm'; f.callWho = 'drx';
@@ -348,8 +357,8 @@
       }
       if (what === 'power') { unLine(f); end(f, tx('energia.ridata', { tratta: f.what }), 'pc'); return null; }
       if (what === 'red') {                    // pulsante rosso and no power: around the station, or the stretch of the tunnel
-        const [a, b] = f.kind === 'tunnel' ? [f.a, f.a + 1] : f.around; f.zones = (f.zones || []).concat([L.zone('red', a, b), L.zone('power', a, b)]);
-        say(f, 'pc', tx('emergenza.pulsante_rosso', { da: name(a), a: name(b) }));
+        const [a, b] = f.kind === 'tunnel' ? [f.a, f.a + 1] : f.around, ex = f.track ? { track: f.track } : undefined; f.zones = (f.zones || []).concat([L.zone('red', a, b, ex), L.zone('power', a, b, ex)]);
+        say(f, 'pc', tx('emergenza.pulsante_rosso', { da: name(a), a: name(b) + (f.track ? ', binario' + trackTxt(f.track) : '') }));
         if (f.kind === 'persona') { f.ph = 'recover'; f.gone = rnd() < 0.1; f.until = S.t + (f.gone ? between(180, 300) : between(600, 1800)); say(f, 'ag', tx('emergenza.persona.scendo')); }
         if (f.kind === 'tunnel') { f.ph = 'recover'; f.until = S.t + between(900, 3600); say(f, 'pc', tx('emergenza.tunnel.chiamo_polizia', { da: name(a), a: name(b) })); }
         if (f.kind === 'investimento') { f.ph = 'recover'; f.until = S.t + between(10800, 18000); L.station(f.st, true);
@@ -358,7 +367,7 @@
         return null;
       }
       if (what === 'fire') { L.station(f.st, true, 'fire'); f.ph = 'fire'; say(f, 'pc', tx('emergenza.incendio.chiudo', { stazione: name(f.st) })); say(f, 'ag', tx('emergenza.incendio.faccio_uscire')); return null; }
-      if (what === 'cut') { f.zones = (f.zones || []).concat([L.zone('power', f.st, f.st)]); f.ph = 'recover'; f.until = S.t + between(300, 900); say(f, 'pc', tx('emergenza.oggetto.tolgo_tensione', { stazione: name(f.st) })); return null; }
+      if (what === 'cut') { f.zones = (f.zones || []).concat([L.zone('power', f.st, f.st, f.track ? { track: f.track } : undefined)]); f.ph = 'recover'; f.until = S.t + between(300, 900); say(f, 'pc', tx('emergenza.oggetto.tolgo_tensione', { stazione: name(f.st) })); return null; }
       if (what === 'hold') { f.zones = (f.zones || []).concat([L.zone('stop', f.st, f.st)]); f.ph = 'holding'; f.holdUntil = S.t + between(120, 300); say(f, 'pc', tx('emergenza.malore_stazione.fermo_treni', { stazione: name(f.st) })); return null; }
       if (/^cl\d$/.test(what)) { const i = f.closeAsk[+what.slice(2)]; if (L.close(i)) { f.closed = true; say(f, 'pc', tx('emergenza.investimento.tratta_chiusa', { chiusura: f.labels[what] })); } return null; }
       if (what === 'reopenSt') { L.station(f.st, false); end(f, tx('prefettura.riaperta', { stazione: name(f.st) }), 'pc'); return null; }

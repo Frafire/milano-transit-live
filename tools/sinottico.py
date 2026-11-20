@@ -820,6 +820,9 @@ def linea(m3='m3.json'):
            'signals': sig, 'places': [], 'labels': labels, 'platforms': platforms, 'badges': badges, 'strips': None,
            'tails': tails, 'names': names_e}
     OUT = os.path.join(ROOT, 'data', 'sinottico_linea_m3.json')
+    # (the side the doors open on, by station: one platform between the tracks where it is on the left; Giovanni 20 Nov 2026)
+    try: out['porte'] = {k: v for k, v in json.load(open(os.path.join(ROOT, 'data', 'fermate_m3.json'))).get('porte', {}).items() if k != '_about'}
+    except Exception: pass
     out['deco'] = keep_deco(OUT); json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1)
     print('sinottico della linea: %d tratte, %d nodi (%d fuori dalla linea), %d segnali, %d stazioni, %d loghi M2, una riga larga %d px (la linea %d m)'
           % (len(edges), len(pos), len(far), len(sig), len(labels), len(badges), X0, TOT))

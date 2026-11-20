@@ -6,5 +6,27 @@
    "est_m": 3.3,
    "_perche": "Giovanni 16/11/2026: la stazione è troppo indietro, deve uscire dalla curva ed essere sul rettilineo; i segnali fuori dalla stazione sono giusti. Prima 35 m, poi altri 10 (Giovanni, sera): 45 m verso Comasina lungo il binario (direzione 4 gradi)."
   }
+ },
+ "porte": {
+  "_about": "Lato di apertura delle porte in direzione Comasina, dagli annunci di bordo registrati da Giovanni (briefing 'Annunci di bordo', 20/11/2026); in direzione San Donato lo stesso lato (indicazione di Giovanni). Sinistra = banchina centrale unica tra i due binari; destra = due banchine laterali. San Donato e Comasina: capolinea, non annunciato.",
+  "CORVETTO": "sinistra",
+  "BRENTA": "sinistra",
+  "CROCETTA": "sinistra",
+  "MONTENAPOLEONE": "sinistra",
+  "TURATI": "sinistra",
+  "REPUBBLICA": "sinistra",
+  "ROGOREDO FS": "destra",
+  "PORTO DI MARE": "destra",
+  "LODI T.I.B.B.": "destra",
+  "PORTA ROMANA": "destra",
+  "MISSORI": "destra",
+  "DUOMO M3": "destra",
+  "CENTRALE FS": "destra",
+  "SONDRIO": "destra",
+  "ZARA": "destra",
+  "MACIACHINI": "destra",
+  "DERGANO": "destra",
+  "AFFORI CENTRO": "destra",
+  "AFFORI FN": "destra"
  }
 }

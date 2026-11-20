@@ -328,6 +328,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 #depotPlan .dp-hd { color: #e8eef6; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; background: var(--sin-hd); border-bottom: 1px solid rgba(255,255,255,.12); font: 14px var(--display); } #depotPlan .dp-hd span { color: #a9bad0; font-size: 12px; flex: 1; min-width: 200px; }
 #depotPlan .dp-hd button { background: #e8eef6; color: #0b2a5b; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; font: 600 13px var(--display); } #depotPlan #dpIn, #depotPlan #dpOut { padding: 6px 10px; min-width: 32px; }
 #depotPlan .dp-sw { display: flex; border: 1px solid rgba(255,255,255,.25); border-radius: 6px; overflow: hidden; } #depotPlan .dp-sw button { border-radius: 0; background: none; color: #e8eef6; } #depotPlan .dp-sw button[aria-pressed="true"] { background: #ffcf3f; color: #111; }
+#depotPlan .dp-leg { position: relative; font-size: 12px; } #depotPlan .dp-leg summary { cursor: pointer; padding: 5px 10px; border: 1px solid rgba(255,255,255,.25); border-radius: 6px; list-style: none; } #depotPlan .dp-leg > div { position: absolute; z-index: 30; top: 32px; left: 0; width: 420px; max-width: 70vw; padding: 10px 12px; background: var(--sin-hd); border: 1px solid rgba(255,255,255,.25); border-radius: 8px; line-height: 1.45; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
 #depotPlan .dp-body { flex: 1; overflow: auto; } #depotPlan .dp-none { padding: 20px; color: #cfdbe9; }
 #depotPlan svg { display: block; height: auto; min-width: 640px; }
 #depotPlan text { font: 12px var(--display); fill: #e8eef6; text-anchor: middle; } #depotPlan .pl { font-size: 8.5px; font-weight: 600; fill: #c3d1e2; paint-order: stroke; stroke: var(--sin-bg); stroke-width: 4px; } #depotPlan .lab { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
@@ -667,7 +668,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
    panel open over it; Giovanni 18 Nov 2026: "il piano sinottico quando aperto prende il posto della mappa quindi è elemento
    più basso". The map is its own layer, so its markers stay under the plan too) */
 #map { z-index: 0; }
-#depotPlan { inset: var(--pc-top) 0 var(--pc-bot) var(--pc-left); border-radius: 0; z-index: 10; }
+#depotPlan { inset: var(--pc-top) 0 var(--pc-bot) var(--pc-left); border-radius: 0; z-index: 10; } #depotPlan .dp-hd { padding-left: 22px; }
 /* (the admin panel in the stage like a window: the windows opened after it go over it, Info and Radio were opening under it) */
 .pcstage .console { z-index: 25; }
 #depotPlan .dp-ph { padding: 40px; color: #cfd6dc; font: 600 16px var(--body); } #depotPlan .dp-ph b { display: block; font: 800 20px var(--display); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
@@ -2045,7 +2046,7 @@ window.MTL_CAPS = __CAPS__;
     updateTiles();
     card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
     card.querySelectorAll('[data-wash]').forEach(b => b.onclick = () => { const sel = card.querySelector('#washTo'); if (F.dm && tr.agentK != null) F.dm.sendToWash(tr.agentK, sel ? sel.value : null); renderCard(); });
-    card.querySelectorAll('[data-move]').forEach(b => b.onclick = () => { const sel = card.querySelector('#moveTo'); if (F.dm && tr.agentK != null && sel) { if (!F.dm.moveTo(tr.agentK, sel.value)) flashNote('Cambio posto non possibile ora'); } renderCard(); });
+        card.querySelectorAll('[data-move]').forEach(b => b.onclick = () => { const sel = card.querySelector('#moveTo'); if (F.dm && tr.agentK != null && sel) { if (!F.dm.moveTo(tr.agentK, sel.value)) flashNote('Cambio posto non possibile ora'); } renderCard(); });
     card.querySelectorAll('[data-arr2]').forEach(b => b.onclick = () => { orderP2(F, tr, +b.dataset.arr2); renderCard(); });
     const nx = card.querySelector('li.next');
     if (nx && !card.matches(':hover')) nx.scrollIntoView({ block: 'nearest' });
@@ -2722,7 +2723,7 @@ window.MTL_CAPS = __CAPS__;
     const logo = F.line === 'M3' && M3LOGO.startsWith('data:') ? `<img class="lnlogo" src="${M3LOGO}" alt="M3">` : `<span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>`;
     card.innerHTML = `<div class="hd">${logo}<div class="hdtx"><h2>${title}</h2>${what ? `<div class="what">${what}</div>` : ''}
         <div class="sub"><span>${no}</span> ${stTxt}${F.bus ? '' : '<span class="pill" id="delayTile" hidden></span>'}</div></div></div>
-      ${info}${cab}${velBox(F, tr)}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${trial && F.dm && tr.agentK != null && (F.dm.loopInfo(tr.agentK) || {}).onLoop ? '' : testLoopBox(F, tr, st)}${moveBox(F, tr)}${washBox(F, tr)}
+      ${info}${cab}${velBox(F, tr)}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${trial && F.dm && tr.agentK != null && (F.dm.loopInfo(tr.agentK) || {}).onLoop ? '' : testLoopBox(F, tr, st)}${regoBox(F, tr)}${moveBox(F, tr)}${washBox(F, tr)}
       <div class="foot"><button id="followBtn" aria-pressed="${state.follow}">Segui</button><button id="cardClose">Chiudi</button></div>`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
@@ -2734,6 +2735,7 @@ window.MTL_CAPS = __CAPS__;
     card.querySelectorAll('[data-fxid]').forEach(b => b.onclick = () => { fxAnswer(F, +b.dataset.fxid, b.dataset.fxa); renderCard(); });
     card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
     card.querySelectorAll('[data-wash]').forEach(b => b.onclick = () => { const sel = card.querySelector('#washTo'); if (F.dm && tr.agentK != null) F.dm.sendToWash(tr.agentK, sel ? sel.value : null); renderCard(); });
+    card.querySelectorAll('[data-rgo]').forEach(b => b.onclick = () => { const k = tr.agentK; if (k == null) return; const ok = b.dataset.rgo === 'home' ? withdraw(F, k) : recall(F, k); if (!ok) flashNote('Il regolatore non può farlo ora'); renderCard(); });
     card.querySelectorAll('[data-move]').forEach(b => b.onclick = () => { const sel = card.querySelector('#moveTo'); if (F.dm && tr.agentK != null && sel) { if (!F.dm.moveTo(tr.agentK, sel.value)) flashNote('Cambio posto non possibile ora'); } renderCard(); });
     card.querySelectorAll('[data-arr2]').forEach(b => b.onclick = () => { orderP2(F, tr, +b.dataset.arr2); renderCard(); });
     card.querySelectorAll('[data-plat]').forEach(b => b.onclick = () => {
@@ -4654,7 +4656,7 @@ window.MTL_CAPS = __CAPS__;
     if (SCH_EDIT.drag) return;                                    // (not while a node or a bend is being moved)
     const SCH = sinSchema(F), title = SIN_WHICH === 'line' ? 'Linea M3 · sinottico' : 'Deposito Rogoredo (ROD) · sinottico';
     if (!planEl.querySelector('.dp-hd')) {
-      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><span>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · marmotte del deposito: due luci in basso via impedita, verticali via libera · spia accanto allo scambio accesa: deviato (nomi degli scambi e numeri delle sezioni inventati, tranne la porta del deposito) · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s) · tasti (ACEI): premi un segnale, poi l'arrivo (un segnale; nel deposito anche un binario o la freccia del blocco): itinerario preparato tutto bianco fino all'arrivo, tasto giallo; di nuovo la partenza per la via libera (tasto bianco) e ancora per annullarlo; rossa la sezione dell'itinerario dove sta il treno, liberata dietro di lui; TEST LUCI accende tutto; tasto destro: la scheda del segnale</span><span class="dp-acei" id="dpAcei" aria-live="polite"></span>` +
+      planEl.innerHTML = `<div class="dp-hd"><b>${title}</b><details class="dp-leg"><summary>Legenda</summary><div>sezioni: punti rossi occupata, punti bianchi itinerario formato · segnali: testa tonda legale (A), quadrata illegale (B); rosso, rosso e bianco via libera · marmotte del deposito: due luci in basso via impedita, verticali via libera · spia accanto allo scambio accesa: deviato (nomi degli scambi e numeri delle sezioni inventati, tranne la porta del deposito) · finestre nere: numero del treno (bianco in orario, verde in anticipo, rosso in ritardo di 30 s) · tasti (ACEI): premi un segnale, poi l'arrivo (un segnale; nel deposito anche un binario o la freccia del blocco): itinerario preparato tutto bianco fino all'arrivo, tasto giallo; di nuovo la partenza per la via libera (tasto bianco) e ancora per annullarlo; rossa la sezione dell'itinerario dove sta il treno, liberata dietro di lui; TEST LUCI accende tutto; tasto destro: la scheda del segnale</div></details><span class="dp-acei" id="dpAcei" aria-live="polite"></span>` +
         `<div class="dp-sw"><button data-w="dep" aria-pressed="${SIN_WHICH === 'dep'}">Deposito</button><button data-w="line" aria-pressed="${SIN_WHICH === 'line'}">Linea</button></div>` +
         `<label class="dp-opt"><input type="checkbox" id="dpNum" ${SIN_NUM ? 'checked' : ''}> numeri dei segnali</label><label class="dp-opt"><input type="checkbox" id="dpIll" ${SIN_ILL ? 'checked' : ''}> segnali illegali</label><label class="dp-opt"><input type="checkbox" id="dpNames" ${SIN_NAMES ? 'checked' : ''}> nomi dei binari</label><button id="dpTest" aria-pressed="${SIN_TEST}" title="Accende tutte le luci del sinottico">TEST LUCI</button><button id="dpOut" title="Allontana">−</button><button id="dpIn" title="Avvicina">+</button><button id="dpClose">Mappa</button></div><div class="dp-body"></div>`;
       document.getElementById('dpClose').onclick = () => setView('map');
@@ -4668,7 +4670,7 @@ window.MTL_CAPS = __CAPS__;
     }
     const body = planEl.querySelector('.dp-body');
     // (Piano linea, Deposito: Giovanni draws it; until then a placeholder for the player. The admin keeps today's drawing)
-    if (SIN_WHICH === 'dep' && PIANO_PH && isPlayer) { body.innerHTML = '<div class="dp-ph"><b>Deposito Rogoredo</b>Segnaposto: aspetta i miei disegni.</div>'; return; }
+    // (the player uses and works both boards, line and depot, as the admin: Giovanni 20 Nov 2026)
     if (!SCH) { body.innerHTML = `<p class="dp-none">${SIN_WHICH === 'line' ? 'Sinottico della linea mancante: fallo con tools/sinottico.py linea (data/sinottico_linea_m3.json).' : 'Schema del deposito mancante.'}</p>`; return; }
     sinStale(SCH);
     if (!SIGS) SIGS = buildSignals(F); sigAspects(F);
@@ -4884,7 +4886,15 @@ window.MTL_CAPS = __CAPS__;
       marks += DK('bin:' + bn.t, `<text class="binn" x="${c[0].toFixed(1)}" y="${c[1].toFixed(1)}" text-anchor="end"><title>${bn.places.join(' · ')}</title>${bn.t}</text>`); }
     for (const tx of SCH.texts || []) { const c = T([tx.x, tx.y]); marks += DK('txt:' + tx.t, `<text class="${tx.c || 'lab'}" x="${c[0]}" y="${c[1]}" text-anchor="middle">${tx.t}</text>`); grow([c[0] - 60, c[1] - 16]); grow([c[0] + 60, c[1] + 8]); }
     // the stations: their platforms, a frame round each, the number of the track above it
-    for (const pf0 of SCH.platforms || []) { const [x0, y] = T([pf0.x0, pf0.y]), pf = { x0, x1: x0 + pf0.x1 - pf0.x0, y };
+    // (doors on the left, Giovanni 20 Nov 2026: one platform between the two tracks, the island; on the right two, one on
+    // the outer side of each track, as before)
+    const pKey = x => String(x || '').toUpperCase().replace(/[^A-Z]/g, ''), PL = {}; for (const [k, v] of Object.entries(SCH.porte || {})) PL[pKey(k)] = v;
+    const isl = {}; for (const pf0 of SCH.platforms || []) if (PL[pKey(pf0.st)] === 'sinistra' || (PL[pKey(pf0.st) + 'M'] === 'sinistra')) (isl[pf0.st] = isl[pf0.st] || []).push(pf0);
+    for (const [st, L] of Object.entries(isl)) { if (L.length < 2) { delete isl[st]; continue; }
+      const P = L.map(pf0 => { const [x0, y] = T([pf0.x0, pf0.y]); return { x0, x1: x0 + pf0.x1 - pf0.x0, y }; }), xa = Math.min(...P.map(q => q.x0)), xb = Math.max(...P.map(q => q.x1)), ya = Math.min(...P.map(q => q.y)), yb = Math.max(...P.map(q => q.y));
+      marks += DK('plat:' + st + ':isola', `<rect class="plat isola" x="${xa}" y="${ya + 6}" width="${Math.max(4, xb - xa)}" height="${Math.max(6, yb - ya - 12)}" rx="2"><title>${st} · banchina centrale (porte a sinistra)</title></rect>` +
+        L.map((pf0, j) => `<text class="binno" x="${(P[j].x0 + P[j].x1) / 2}" y="${P[j].y - 7.5}">${({ 1: 'I', 2: 'II' })[pf0.bin] || pf0.bin}</text>`).join('')); grow([xa, ya - 12]); grow([xb, yb + 6]); }
+    for (const pf0 of SCH.platforms || []) { if (isl[pf0.st]) continue; const [x0, y] = T([pf0.x0, pf0.y]), pf = { x0, x1: x0 + pf0.x1 - pf0.x0, y };
       marks += DK('plat:' + pf0.st + ':' + pf0.bin, `<rect class="plat" x="${pf.x0}" y="${pf.y - 5}" width="${Math.max(4, pf.x1 - pf.x0)}" height="10" rx="1.5"><title>${pf0.st} · binario ${pf0.bin}</title></rect>` +
       `<text class="binno" x="${(pf.x0 + pf.x1) / 2}" y="${pf.y - 7.5}">${({ 1: 'I', 2: 'II' })[pf0.bin] || pf0.bin}</text>`); grow([pf.x0, pf.y - 12]); grow([pf.x1, pf.y + 6]); }
     // where the track leaves the line for another (the M2 link): that line's logo
@@ -5384,7 +5394,11 @@ window.MTL_CAPS = __CAPS__;
   const reserves = F => F.trains.map((tr, k) => ({ tr, k, r: realTrain(F, tr, state.t) })).filter(x => !isTab(x.tr) && !x.tr.cover && standing(F, x.k)
     && x.r && !x.r.none && !x.r.missing && !(x.r.cars && x.r.cars < 6) && !inMaint(x.r.units) && (!(F.stock[x.r.u] || {}).trial || ADMIT.has(String(x.r.units))));      // (the officina trains too: reserves, Giovanni 9 Nov)
   function withdraw(F, k) {
-    const a = F.ag.agents()[k], no = realTrain(F, F.trains[k], state.t); if (!a || a.mode !== 'plan' || a.wdWant || !no) return false;
+    const a = F.ag.agents()[k], no = realTrain(F, F.trains[k], state.t);
+    // (a train of the service during or after a closure: off at its next station and in; called back later)
+    if (a && no && (a.mode === 'shuttle' || a.mode === 'timetable')) { if (!F.ag.event({ kind: 'regola', what: 'home', k })) return false;
+      say('DCT', tx('dct.regola.ritira_subito', { treno: no.n }), 'pc'); say('T' + no.n, tx('regola.ricevuto_rientro_subito'), 'dr'); return true; }
+    if (!a || a.mode !== 'plan' || a.wdWant || !no) return false;
     if (standing(F, k)) { if (!F.ag.event({ kind: 'regola', what: 'keep', k })) return false; say('DCT', tx('dct.regola.trattieni', { treno: no.n }), 'pc'); return true; }
     if (!F.ag.event({ kind: 'regola', what: 'home', k })) return false;
     say('DCT', tx('dct.regola.ritira', { treno: no.n }), 'pc'); say('T' + no.n, tx('regola.ricevuto_rientro'), 'dr'); return true;
@@ -5404,9 +5418,10 @@ window.MTL_CAPS = __CAPS__;
     return null;
   }
   // the reserve train k out of its place for tabella m: a run out of the depot to San Donato, then the day of the tabella
-  function insertReserve(F, k, m) {
+  // (own: a train of a tabella sent into the depot during a closure, called back for its own tabella)
+  function insertReserve(F, k, m, own) {
     const R = F.trains[k], T = F.trains[m], a = F.ag.agents()[k], q = F.depot && F.depot.at[k];
-    if (!a || q == null || !reserves(F).some(x => x.k === k) || !uncovered(F, m)) return null;
+    if (!a || q == null || !(own ? k === m : reserves(F).some(x => x.k === k)) || !uncovered(F, m)) return null;
     const t0 = state.t + PREP(F), save = R.segs;
     for (const r of runsOf(F, m)) {
       if (r.X !== 0 || r.dir !== 'N' || r.t < t0) continue;
@@ -5414,11 +5429,42 @@ window.MTL_CAPS = __CAPS__;
       R.segs = [[s[0], 'from_depot', -1, [s[3][0] - 1, s[3][0]], [s[4][0], s[4][0]], +q], s, ...JSON.parse(JSON.stringify(T.segs.slice(r.j + 1)))];
       if (!F.dm.rewriteOut(R, 0, q) || R.segs[0][3][0] < t0) { R.segs = save; continue; }
       R.starts = R.segs.map(x => x[3][0]); R.where0 = R.where0 || R.where; R.where = ['depot', (T.where || [])[1] || 'depot'];
-      R.cover = { m, from: r.j }; T.coveredBy = { k, from: r.j }; R.live = null; T.live = null;
+      if (!own) { R.cover = { m, from: r.j }; T.coveredBy = { k, from: r.j }; } R.live = null; T.live = null;
       F.ag.event({ kind: 'regola', what: 'insert', k, pid: R.segs[0][0], d: R.segs[0][4][0] });
       return { t: r.t, q };
     }
     R.segs = save; return { none: true };
+  }
+  // ---- a train sent in during a closure (Giovanni 20 Nov 2026: "qualcuno rientra nei tronchetti se si forma la coda ...
+  // oppure deposito e poi il regolatore può richiamarli per riprendere la linea") ----
+  // In the depot or in a tail, switched off: called back. During a closure (or after it, while the timetable is the
+  // hybrid one): out to San Donato (or out of the tail) and into the service of its part; with the plan of the day again
+  // (no closure today): from the depot, its own tabella from the first departure from San Donato it can make.
+  function recallInfo(F, k) {
+    const a = F.ag && F.ag.agents()[k]; if (!a || a.mode !== 'static' || a.hidden || a.broken || a.v > 0.05 || a.status !== 'parked') return null;
+    if (a.inTail === 'brenta') return F.ag.S.cl ? { no: 'la tratta è ancora chiusa, dal tronchetto di Brenta riparte dopo la riapertura' } : { from: 'brenta', hyb: true };
+    const q = F.depot && F.depot.at[k], hyb = !!(F.ag.S.cl || F.ag.S.reopened != null), last = F.engine.G.names.length - 1;
+    const parts = F.ag.S.parts || [[0, last]], open = X => parts.some(p => X >= p[0] && X <= p[1]);
+    if (q != null && F.depotPaths && F.depotPaths[q]) return hyb && !open(0) ? { no: 'San Donato è dentro la tratta chiusa' } : { from: 'deposito', q, hyb };
+    if (a.at === last || /tronc|tail/.test(String(a.why || '')) || F.ag.mapTo(a.pid, a.d, F.engine.G.N.pid) == null) return hyb ? (open(last) ? { from: 'tronchetto', hyb } : { no: 'Comasina è dentro la tratta chiusa' }) : { no: 'si richiama dal tronchetto solo con una chiusura in corso o dopo' };
+    return null;
+  }
+  function recall(F, k) {
+    const I = recallInfo(F, k), no = realTrain(F, F.trains[k], state.t); if (!I || I.no || !no) return false;
+    if (I.from === 'deposito' && !I.hyb) { const r = insertReserve(F, k, k, true); if (!r || r.none) return false; say('DCT', tx('dct.regola.richiama', { treno: no.n, ora: fmt(r.t) }), 'pc'); return true; }
+    let legs = [];
+    if (I.from === 'deposito') { const o = Object.values(F.depotPaths[I.q].out)[0]; legs = [{ pid: o.pid, status: 'from_depot', stops: [], start: o.start, end: o.plat }]; }
+    if (!F.ag.event({ kind: 'regola', what: 'recall', k, legs })) return false;
+    if (I.from === 'deposito') { delete F.depot.at[k]; }
+    say('DCT', tx('dct.regola.richiama_subito', { treno: no.n }), 'pc'); say('T' + no.n, tx('regola.ricevuto_richiamo'), 'dr'); return true;
+  }
+  function regoBox(F, tr) {
+    const k = tr.agentK; if (k == null || !F.ag || F.line !== 'M3') return '';
+    const a = F.ag.agents()[k]; if (!a) return '';
+    if (a.mode === 'shuttle' || a.mode === 'timetable') return `<div class="picker"><div class="label">Regolatore</div><div class="row"><button data-rgo="home">Fai rientrare</button></div><p class="note">Scende i passeggeri alla prossima stazione e rientra in deposito (verso San Donato) o in un tronchetto di Comasina. Poi lo richiami da qui.</p></div>`;
+    const I = recallInfo(F, k); if (!I) return '';
+    if (I.no) return `<div class="picker"><div class="label">Regolatore</div><p class="note">Non si può richiamare ora: ${I.no}.</p></div>`;
+    return `<div class="picker"><div class="label">Regolatore</div><div class="row"><button data-rgo="recall">Richiama in linea</button></div><p class="note">${I.from === 'brenta' ? 'Esce dal tronchetto di Brenta (BRE-1) alla banchina di Brenta, binario 1, e riprende il servizio verso San Donato.' : I.hyb ? (I.from === 'deposito' ? 'Esce dal deposito a San Donato e riprende il servizio della sua parte di linea.' : 'Esce dal tronchetto e riprende il servizio della sua parte di linea.') : 'Esce dal deposito per la prima partenza da San Donato della sua tabella.'}</p></div>`;
   }
   // ---- the reserve at Comasina (B-016, Giovanni 4 Nov 2026): Saturday and Sunday it stands in position 3 of a tail. The DCT
   // can send it out for a tabella left without its train, from a departure from Comasina. Then that evening the trains

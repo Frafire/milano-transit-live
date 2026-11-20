@@ -2709,6 +2709,41 @@
     "Stazione {stazione}: sugli schermi di banchina mettete la destinazione reale, treni per {destinazione}."
    ]
   },
+  "dct.regola.ritira_subito": {
+   "chi": "DCT",
+   "quando": "Durante una chiusura il regolatore fa rientrare un treno del servizio",
+   "testi": [
+    "Treno {treno}, alla prossima stazione scarichi i passeggeri e rientri. Passo."
+   ]
+  },
+  "regola.ricevuto_rientro_subito": {
+   "chi": "macchinista",
+   "quando": "Risposta al rientro durante una chiusura",
+   "testi": [
+    "Ricevuto DCT, alla prossima scarico e rientro. Passo."
+   ]
+  },
+  "dct.regola.richiama_subito": {
+   "chi": "DCT",
+   "quando": "Il regolatore richiama in linea un treno fermo in deposito o in tronchetto (durante o dopo una chiusura)",
+   "testi": [
+    "Treno {treno}, qui DCT: esci e riprendi servizio. Passo."
+   ]
+  },
+  "regola.ricevuto_richiamo": {
+   "chi": "macchinista",
+   "quando": "Risposta al richiamo in linea",
+   "testi": [
+    "Ricevuto DCT, esco e riprendo servizio. Passo."
+   ]
+  },
+  "dct.regola.richiama": {
+   "chi": "DCT",
+   "quando": "Il regolatore richiama in linea un treno fermo in deposito per la sua tabella (senza chiusura)",
+   "testi": [
+    "Treno {treno}, qui DCT: riprendi la tua tabella, partenza da San Donato alle {ora}. Passo."
+   ]
+  },
   "chiamata.dct.pronto": {
    "chi": "macchinista",
    "quando": "Il macchinista tira su la cornetta e risponde: dice la sua tabella",

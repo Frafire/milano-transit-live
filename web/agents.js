@@ -429,8 +429,10 @@
     // (pulsante rosso: the trains in it brake at once, emergency brake), trains held by the PC, slow (km/h), marcia a
     // vista (the first train on each track at walking pace). No route into a zone that stops the trains.
     let ZONES = [];
-    function zoneMap(a, b) {
-      const map = new Map(), add = (pid, lo, hi, T) => { for (const [ei, l0, l1] of RT.span(pid, lo, hi).pieces) map.set(ei, [l0, l1, T]); };
+    // (track: only one of the two tracks, 'N' the binario pari towards Comasina, 'S' the dispari: a person or an object on
+    // one track, Giovanni 20 Nov 2026)
+    function zoneMap(a, b, track) {
+      const map = new Map(), add = (pid, lo, hi, T) => { if (track && T !== track) return; for (const [ei, l0, l1] of RT.span(pid, lo, hi).pieces) map.set(ei, [l0, l1, T]); };
       if (a === b) { add(G.N.pid, stopOf('N', a) - half - 30, stopOf('N', a) + half + 30, 'N'); add(G.S.pid, stopOf('S', a) - half - 30, stopOf('S', a) + half + 30, 'S'); }
       else { add(G.N.pid, stopOf('N', a) + half + 5, stopOf('N', b) - half - 5, 'N'); add(G.S.pid, stopOf('S', b) + half + 5, stopOf('S', a) - half - 5, 'S'); }
       return map;
@@ -438,7 +440,7 @@
     // (all: the whole line, the stations and between them, both tracks: the red button on all the line)
     const pathLen = pid => Math.max(0, ...((pathEdges[pid] || {}).e || []).map(x => x[3]));
     function zoneAll() { const map = new Map(); for (const [pid, T] of [[G.N.pid, 'N'], [G.S.pid, 'S']]) for (const [ei, l0, l1] of RT.span(pid, 0, pathLen(pid)).pieces) map.set(ei, [l0, l1, T]); return map; }
-    function setZones() { ZONES = (S.zones || []).map(z => ({ z, map: z.all ? zoneAll() : zoneMap(z.a, z.b) })); }
+    function setZones() { ZONES = (S.zones || []).map(z => ({ z, map: z.all ? zoneAll() : zoneMap(z.a, z.b, z.track) })); }
     function addZone(kind, a, b, extra) {
       const x = Math.max(0, Math.min(a, b)), y = Math.min(last, Math.max(a, b)); S.zoneSeq = (S.zoneSeq || 0) + 1;
       S.zones = (S.zones || []).concat([Object.assign({ id: S.zoneSeq, kind, a: x, b: y, done: {} }, extra || {})]); setZones(); return S.zoneSeq;
@@ -941,6 +943,8 @@
         if (o.depotMoved) o.depotMoved(a.k, m.q);
         if (a.mode === 'plan') { a.wait = Math.max(m.wait || 0, S.t); a.legs = [planLeg(a.k, a.si)]; } else { a.legs = []; a.depotQ = m.q; }
         return false; }
+      if (m.kind === 'brentaIn') return brentaIn(a, m);
+      if (m.kind === 'brentaPark') { a.mode = 'static'; a.status = 'parked'; a.v = 0; a.inside = null; a.inTail = 'brenta'; a.brenta = null; delete S.rt.routes[a.k]; a.legs = []; S.log.push({ t: S.t, k: a.k, brenta: true }); return false; }
       if (m.kind === 'pcfwait') return pcfWait(a);
       if (m.kind === 'assign') { assign(a); return a.legs.length > 0; }
       if (m.kind === 'retry') { a.legs.unshift(...nextShuttleLegs(a)); const ok = a.legs[0] && a.legs[0].kind !== 'retry'; a.why = ok ? null : 'tronchetto'; return ok; }
@@ -1328,7 +1332,15 @@
     // starts its new day (its plan was rewritten by the page: a run out of the depot, then the runs of a tabella) from its place
     function regola(e) {
       const a = S.agents[e.k]; if (!a) return false;
-      if (e.what === 'home') { if (a.mode !== 'plan') return false; a.wdWant = !goHome(a, true); return true; }
+      // (during a closure, or after it, a train of the service of the open parts: off at its next station and in, to the
+      // depot or a tail of Comasina; the regolatore calls it back later: Giovanni 20 Nov 2026)
+      if (e.what === 'home') { if (a.mode === 'shuttle' || a.mode === 'timetable') return goHome(a); if (a.mode !== 'plan') return false; a.wdWant = !goHome(a, true); return true; }
+      // called back into the line, during or after a closure: out of its place in the depot to San Donato (legs from the
+      // page), or out of its tail, then into the service of the part it is in (as after a reopening)
+      if (e.what === 'recall') { if (a.mode !== 'static' || a.hidden || a.broken || a.v > 0.05) return false;
+        if (a.inTail === 'brenta') { if (S.cl) return false; const L0 = brentaOut(a); if (!L0) return false; e = Object.assign({}, e, { legs: L0 }); a.inTail = null; }
+        a.legs = (e.legs || []).map(l => Object.assign({}, l)).concat([{ kind: 'assign' }]); a.mode = 'shuttle'; a.status = 'empty'; a.wait = 0; a.kept = false; a.depotQ = null; a.at = null;
+        S.log.push({ t: S.t, k: a.k, recall: true }); return true; }
       if (e.what === 'keep') { if (a.hidden || a.mode !== 'plan' || a.legs.some(l => !l.kind && l.status === 'service')) return false; a.mode = 'static'; a.status = 'parked'; a.v = 0; a.kept = true; return true; }
       if (e.what === 'insert') { a.pid = e.pid; a.d = e.d; a.v = 0; a.mode = 'plan'; a.si = -1; a.legs = []; a.wait = 0; a.hidden = false; a.status = 'parked'; delete S.rt.routes[a.k]; return true; }
       return false;
@@ -1517,6 +1529,57 @@
       S.log.push({ t: S.t, k: a.k, pcf: it.id });
       return true;
     }
+    // ---------- the tail of Brenta during a closure (Giovanni 20 Nov 2026) ----------
+    // A train inside the closed stretch going towards San Donato, north of Lodi T.I.B.B.: to Lodi, everybody off, then by
+    // BRE-2 (#A277 → the tail) into the tail of Brenta, where it stays switched off. After the reopening the DCT calls it
+    // back (regolatore): by BRE-1 to the platform of Brenta, binario 1, and on towards San Donato in service.
+    const BRE_IN = 'BRE-2', BRE_OUT = 'BRE-1';
+    // the track pieces of an itinerary's way after the end of path pid at its signal sgD: the path's pieces up to there,
+    // then the way's; null when the way does not go on from there
+    function spliceWay(pid, sgD, W) {
+      const pe = pathEdges[pid]; if (!pe) return null;
+      const i = pe.e.findIndex(([, , x0, x1]) => sgD >= x0 - 0.01 && sgD <= x1 + 0.01); if (i < 0) return null;
+      const j = pe.e[i][0] === W[0] ? i : i + 1 < pe.e.length && pe.e[i + 1][0] === W[0] ? i + 1 : -1;
+      const e = pe.e.slice(0, (j >= 0 ? j : i) + 1).map(x => x.slice());
+      for (let q = j >= 0 ? 1 : 0; q < W.length; q++) { const L_ = e[e.length - 1], X = nodeEnd(L_), E = netEdges[W[q]]; if (!E || (E.a !== X && E.b !== X)) return null;
+        e.push([W[q], E.a === X ? 1 : -1, L_[3], L_[3] + (E.len || 1)]); }
+      return e;
+    }
+    // the pieces of a way on its own (from its first piece, the way it goes on to the second)
+    function wayAlone(W) {
+      if (!W || W.length < 2) return null; const E0 = netEdges[W[0]], E1 = netEdges[W[1]]; if (!E0 || !E1) return null;
+      const X1 = E0.b === E1.a || E0.b === E1.b ? E0.b : E0.a; const e = [[W[0], X1 === E0.b ? 1 : -1, 0, E0.len || 1]];
+      for (let q = 1; q < W.length; q++) { const L_ = e[e.length - 1], X = nodeEnd(L_), E = netEdges[W[q]]; if (!E || (E.a !== X && E.b !== X)) return null;
+        e.push([W[q], E.a === X ? 1 : -1, L_[3], L_[3] + (E.len || 1)]); }
+      return e;
+    }
+    function brentaPlan(a) {
+      const I = a.inside, it = ITS[BRE_IN], X = G.names.findIndex(n => /^LODI/.test(n)); if (!I || I.dir !== 'S' || !it || X < 0) return null;
+      const q = I.stops.findIndex(z => z.st === X); if (q < I.q) return null;
+      const d0 = I.pid === a.pid ? a.d : mapTo(a.pid, a.d, I.pid); if (d0 == null) return null;
+      const sg = (o.sigall[I.pid] || []).find(x => x[1] === it.start && x[0] > I.stops[q].d); if (!sg) return null;
+      const e = spliceWay(I.pid, sg[0], it.ways[0]); if (!e) return null;
+      const legs = [];
+      if (q > I.q || Math.abs(I.stops[q].d - d0) > 5) legs.push({ pid: I.pid, status: 'empty', stops: [], end: I.stops[q].d, start: d0, rev: a.pid !== I.pid });
+      legs.push({ kind: 'unload' }, { kind: 'brentaIn', sgD: sg[0], n: it.start });
+      return { legs, after: () => { a.brenta = { ph: 'in' }; } };
+    }
+    function brentaIn(a, m) {
+      const it = ITS[BRE_IN], e = spliceWay(a.pid, m.sgD, it.ways[0]); if (!e) { a.legs.unshift({ kind: 'stopped' }); return false; }
+      const np = makePath(e), sm = it.end != null ? (o.sigall[np] || []).find(x => x[1] === it.end && x[0] > m.sgD + 5) : null;
+      const end = sm ? sm[0] - half - 3 : e[e.length - 1][3] - half - 5;
+      a.pid = np; a.status = 'empty'; RT.authorize(S.rt, 'id:' + BRE_IN); if (RT.isPcSignal(m.n)) RT.authorize(S.rt, 'n:' + m.n);      // (the DCT's order)
+      a.legs = [{ pid: np, status: 'empty', stops: [], start: a.d, end, pcf: { n: m.n, id: BRE_IN } }, { kind: 'brentaPark' }];
+      return true;
+    }
+    function brentaOut(a) {
+      const it = ITS[BRE_OUT]; if (!it) return null;
+      const e = wayAlone(it.ways[0]); if (!e) return null;
+      const np = makePath(e), d0 = mapTo(a.pid, a.d, np); if (d0 == null) return null;
+      const sm = (o.sigall[np] || []).find(x => x[1] === it.end && x[0] > d0); if (!sm) return null;
+      RT.authorize(S.rt, 'id:' + BRE_OUT); if (RT.isPcSignal(it.start)) RT.authorize(S.rt, 'n:' + it.start);
+      return [{ pid: np, status: 'empty', stops: [], start: d0, end: sm[0] - half - 3, rev: true, pcf: { n: it.start, id: BRE_OUT } }];
+    }
     // past the end signal of an itinerary there is only plain line (no switch: no itinerary starts there, as #A322 at
     // Centrale FS on binario 2 the wrong way): the train goes on along its track, its signals open for it (the illegal
     // ones too, Giovanni 18 Nov 2026), up to the next signal an itinerary starts from (there it waits for the PC), or up to
@@ -1605,6 +1668,9 @@
         if (mapTo(I.pid, Y.d, rev) == null) break;
         out.push({ key: 'b' + i, st: Y.st, open: !!P, back: true, label: 'Indietro contromano fino a ' + G.names[Y.st] + (P ? ', poi in servizio' : '') }); if (P) break; }
       if (dir === 'S' && I.end != null) out.push({ key: 'dep', label: 'Avanti fino a San Donato e in deposito' });
+      // (Giovanni 20 Nov 2026: "può ordinare ad un treno di andare nel tronchetto di Brenta fino a riapertura ... deve far
+      // scendere tutti a Lodi TIBB"; at the reopening it waits for the order to go on towards San Donato)
+      if (dir === 'S' && brentaPlan(a)) out.push({ key: 'BRE', label: 'Scende tutti a Lodi T.I.B.B. e va nel tronchetto di Brenta fino alla riapertura' });
       if (dir === 'N' && I.stops[I.stops.length - 1].st === last && !out.some(x => !x.back && x.open)) out.push({ key: 'tail', label: 'Avanti fino a Comasina e in tronchetto' });
       // the trains in the way now (the train would wait behind them, or face them)
       for (const x of out) { const p = instrPlan(a, x.key), l = p && p.legs[0]; x.blocked = l ? trainsOn(l.pid, l.start, l.end, k) : []; }
@@ -1633,6 +1699,7 @@
       }
       if (key === 'dep') { const d0 = onto(I.pid); if (d0 == null) return null;
         return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: I.end, start: d0, rev: a.pid !== I.pid }, { kind: 'depot' }], after: () => {} }; }
+      if (key === 'BRE') return brentaPlan(a);
       if (key === 'tail') { const d0 = onto(I.pid), Y = I.stops[I.stops.length - 1]; if (d0 == null) return null;
         return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: Y.d, start: d0, rev: a.pid !== I.pid }, { kind: 'tailpark' }], after: () => {} }; }
       return null;
