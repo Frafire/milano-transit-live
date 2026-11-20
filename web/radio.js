@@ -285,7 +285,9 @@
       h += radioSec('stsit', 'Situazione', `<div class="row"><button data-st="sit">Chiedi la situazione</button></div>`, '', true);
       h += radioSec('stann', 'Annuncio ai passeggeri', `<div class="row">${Object.keys(ANN).map(k => `<button data-ann="${k}">${k}</button>`).join('')}</div>`);
       const scrOpts = F.ag.S.cl && F.ag.S.reopened == null ? [...SCR_TXT, SCR_CL] : SCR_TXT;
-      h += radioSec('stscr', 'Schermi di banchina', (st.msg ? `<div class="lbl">Ora: ${st.msg.replace(/ \/ /g, ' ')}</div>` : '') + `<div class="row">${scrOpts.map(k => `<button data-scr="${k}" aria-pressed="${st.msg === k}">${scrLbl(k)}</button>`).join('')}${st.msg ? '<button data-scr="">Togli il messaggio</button>' : ''}</div>`, st.msg ? 'messaggio' : '');
+      // (a stretch closed: the real destination of the trains on the screens, TRENI PER ROGOREDO; Giovanni 20 Nov 2026)
+      const clNow = F.ag.S.cl && F.ag.S.reopened == null, destBtn = clNow ? `<div class="row"><button data-scrdest="${st.dest ? 0 : 1}" aria-pressed="${!!st.dest}">${st.dest ? 'Destinazione reale: sì (togli)' : 'Destinazione reale dei treni'}</button></div>` : '';
+      h += radioSec('stscr', 'Schermi di banchina', (st.msg ? `<div class="lbl">Ora: ${st.msg.replace(/ \/ /g, ' ')}</div>` : '') + `<div class="row">${scrOpts.map(k => `<button data-scr="${k}" aria-pressed="${st.msg === k}">${scrLbl(k)}</button>`).join('')}${st.msg ? '<button data-scr="">Togli il messaggio</button>' : ''}</div>` + destBtn, st.msg ? 'messaggio' : st.dest ? 'destinazione reale' : '');
       h += radioSec('stchk', 'Verifica in banchina', `<div class="row">${Object.keys(CHECK).map(k => `<button data-chk="${k}">${k}</button>`).join('')}</div>`);
       const held = here.filter(a => a.pcHold), asg = pend.filter(p => p.kind === 'assist');
       h += radioSec('stass', 'Assistenza a un treno', here.length ? here.map(a => {
@@ -314,6 +316,12 @@
         sayPhone('DCT', k ? tx('stazione.schermi.messaggio', { stazione: name, messaggio: k.replace(/ \/ /g, ' ') }) : tx('stazione.schermi.normali', { stazione: name }), 'pc');
         stationSays(tx('stazione.schermi.risposta'), 1200); phoneCmdHtml = ''; drawPhoneCmds();       // (the OS: every change of the screens, Giovanni 3 Nov 2026)
       });
+      phoneCmds.querySelectorAll('[data-scrdest]').forEach(b => b.onclick = () => {
+        const on = b.dataset.scrdest === '1'; F.ag.event({ kind: 'station', st: X, what: 'dest', on });
+        const parts = F.ag.S.parts || [], P = parts.find(p => X >= p[0] && X <= p[1]), last = G.names.length - 1;
+        const dd = P ? [P[0] > 0 ? G.names[P[0]] : null, P[1] < last ? G.names[P[1]] : null].filter(Boolean).map(cap).join(' e ') : '';
+        sayPhone('DCT', on ? tx('stazione.schermi.destinazione', { stazione: name, destinazione: dd || 'la loro destinazione' }) : tx('stazione.schermi.normali', { stazione: name }), 'pc');
+        stationSays(tx('stazione.schermi.risposta'), 1200); phoneCmdHtml = ''; drawPhoneCmds(); });
       phoneCmds.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => {
         const k = b.dataset.chk; sayPhone('DCT', tx('stazione.verifica.ordine', { stazione: name, cosa: k.toLowerCase() }), 'pc');
         const em = emergencyAt(F, X); if (em) { stationSays(tx(em.kind === 'incendio' ? 'stazione.emergenza.verifica_incendio' : 'stazione.emergenza.verifica_investimento')); return; }
@@ -544,7 +552,7 @@
         if (tr.p2 && !before) closeAfter(F, tr, tr.p2.dep);
         if (tr.p2 && !before) driverSays(tx('treno.sandonato_binario2.risposta'));
         // (the page's reason is in English: the pieces it has are said in Italian, the rest as it is)
-        else driverSays(tx('treno.sandonato_binario2.negativo', { motivo: env.p2Msg.replace(/^Order refused: /, '').replace('platform 2 is not free', () => tx('pezzo.binario2.non_libero')).replace('is standing there', () => tx('pezzo.binario2.fermo_li')) || tx('pezzo.binario2.non_posso_eseguire') }));
+        else driverSays(tx('treno.sandonato_binario2.negativo', { motivo: env.p2Msg.replace(/^Ordine rifiutato: /, '') || tx('pezzo.binario2.non_posso_eseguire') }));
       };
     }
     // replace segments i..i+n-1 of a train's plan, keeping its other choices (platform, platform 2, tail) in step

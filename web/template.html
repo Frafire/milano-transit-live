@@ -802,7 +802,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
   </div>
   <div class="keep">
     <div class="clock" id="clock">03:30<span class="s">:00</span></div>
-    <div class="days" role="group" aria-label="Day of the week">
+    <div class="days" role="group" aria-label="Giorno della settimana">
       <button class="dayb" data-d="1">Lun</button><button class="dayb" data-d="2">Mar</button><button class="dayb" data-d="3">Mer</button>
       <button class="dayb" data-d="4">Gio</button><button class="dayb" data-d="5">Ven</button>
       <button class="dayb" data-d="6" disabled title="Saturday timetable coming soon">Sab</button><button class="dayb" data-d="7" disabled title="Sunday timetable coming soon">Dom</button>
@@ -819,7 +819,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
     <button class="spd" data-s="60" aria-pressed="true">×60</button>
     <button class="spd admin-only" data-s="300" title="Solo admin">×300</button>
   </div>
-  <input type="range" class="keep admin-only" id="slider" min="10800" max="97140" step="60" value="12600" aria-label="Time of day, service day 03:00 to 02:59">
+  <input type="range" class="keep admin-only" id="slider" min="10800" max="97140" step="60" value="12600" aria-label="Ora del giorno, giornata di servizio dalle 03:00 alle 02:59">
 
   <section class="player-only m3panel" data-cap="tronchetti" aria-label="M3 control panel">
     <div class="label">Pannello di controllo M3</div>
@@ -872,7 +872,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
   </section>
 
   <div class="admin-only">
-    <div class="label" style="margin-bottom:6px">In service now</div>
+    <div class="label" style="margin-bottom:6px">In servizio ora</div>
     <div class="modes">
       <button class="mode" data-m="1" aria-pressed="true"><span class="n" id="c1">0</span><span class="k"><i class="dot" style="background:#fff"></i>Metro</span></button>
       <button class="mode" data-m="0" aria-pressed="true"><span class="n" id="c0">0</span><span class="k"><i class="dot" style="background:var(--tram)"></i>Tram</span></button>
@@ -881,13 +881,13 @@ body.player .console, body.pc-console-off .console { display: none !important; }
   </div>
 
   <div class="admin-only">
-    <div class="label" style="margin-bottom:6px">Metro lines</div>
+    <div class="label" style="margin-bottom:6px">Linee metro</div>
     <div class="metros" id="metros"></div>
   </div>
 
   <div class="admin-only">
-    <label class="label" for="lineSel" style="display:block;margin-bottom:6px">Show one line</label>
-    <select id="lineSel"><option value="">All lines</option></select>
+    <label class="label" for="lineSel" style="display:block;margin-bottom:6px">Mostra una linea</label>
+    <select id="lineSel"><option value="">Tutte le linee</option></select>
   </div>
 
   <div>
@@ -902,7 +902,7 @@ body.player .console, body.pc-console-off .console { display: none !important; }
     <p class="note" id="mapNote" hidden></p>
   </div>
   <div class="admin-only" data-cap="segnali_itinerari">
-    <div class="label" style="margin-bottom:6px">M3 trains</div>
+    <div class="label" style="margin-bottom:6px">Treni M3</div>
     <div class="row"><button id="engineBtn" aria-pressed="true">Live engine</button><button id="platBtn" aria-pressed="false">Platforms</button><button id="sigsBtn" aria-pressed="false">Segnali</button><button id="illBtn" aria-pressed="false" title="Segnali sul senso illegale (di solito rossi, via libera per un treno sul binario illegale)">Segnali illegali</button></div>
     <div class="row"><button id="sigDelBtn" aria-pressed="false" title="Clic su un semaforo per toglierlo (finisce nell'export MTL-EDIT)">Togli semafori</button><button id="sigUndoBtn" title="Rimette tutti i semafori tolti">Rimetti tutti</button></div>
     <p class="note" id="sigDelNote" hidden></p>
@@ -1542,8 +1542,8 @@ window.MTL_CAPS = __CAPS__;
   })();
   syncPlat();
   const STATUS = {
-    service: 'In service', turnback: 'Turning back, not in service', from_depot: 'Leaving the depot',
-    to_depot: 'Returning to the depot', empty: 'Empty run, not in service', training: 'Driver training on the test loop (anello di prova)',
+    service: 'In servizio', turnback: 'In manovra, fuori servizio', from_depot: 'Esce dal deposito',
+    to_depot: 'Rientra in deposito', empty: 'Corsa a vuoto, senza passeggeri', training: 'Prova sull\'anello di prova',
     stopped: 'Fermo in linea: tratta chiusa', held: 'Trattenuto a San Donato: tratta chiusa'
   };
   // a path of the game (web/agents.js: a train on an itinerary prepared by the PC): its line on the map from its track pieces
@@ -1634,8 +1634,8 @@ window.MTL_CAPS = __CAPS__;
     const next = SG[lo + 1];
     let status = 'hold', label;
     if (!next || s[1] === 'to_depot' || (s[1] === 'empty' && next[1] === 'from_depot')) { status = 'parked'; label = !next ? parkedLabel(F, s[5] !== undefined ? 'depot' : tr.where[1]) : parkedLabel(F, 'depot'); }
-    else if (s[1] === 'service') label = F.bus ? 'Waiting at the terminus' : 'At the terminus, passengers getting off';
-    else label = 'Reversing in the tail track';
+    else if (s[1] === 'service') label = F.bus ? 'In attesa al capolinea' : 'Al capolinea, scendono i passeggeri';
+    else label = 'In inversione nel tronchetto';
     return { pos: trackAt(F, s[0], ds[ds.length - 1]), pid: s[0], d: ds[ds.length - 1], status, label, trip: -1, seg: lo, store: s[5] };
   }
 
@@ -1930,7 +1930,7 @@ window.MTL_CAPS = __CAPS__;
     }
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${r.color};color:${r.id === 'M3' ? '#111' : '#fff'}">${r.n}</span>
       <div><h2>→ <span class="cap">${tr.h}</span></h2><div class="sub">${kind} · ${r.l}</div></div></div>
-      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="cardClose">Close</button></div>
+      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Segui</button><button id="cardClose">Chiudi</button></div>
       <ol class="stops">${rows}</ol>`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
@@ -2036,7 +2036,7 @@ window.MTL_CAPS = __CAPS__;
     body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
       <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + (st.trip >= 0 ? st.label : 'Not in passenger service')}</div></div></div>
-      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="cardClose">Close</button></div>${body}`;
+      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Segui</button><button id="cardClose">Chiudi</button></div>${body}`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
     document.getElementById('cardClose').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
@@ -2721,9 +2721,9 @@ window.MTL_CAPS = __CAPS__;
     }
     const logo = F.line === 'M3' && M3LOGO.startsWith('data:') ? `<img class="lnlogo" src="${M3LOGO}" alt="M3">` : `<span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>`;
     card.innerHTML = `<div class="hd">${logo}<div class="hdtx"><h2>${title}</h2>${what ? `<div class="what">${what}</div>` : ''}
-        <div class="sub"><span>${no}</span>${stTxt}${F.bus ? '' : '<span class="pill" id="delayTile" hidden></span>'}</div></div></div>
+        <div class="sub"><span>${no}</span> ${stTxt}${F.bus ? '' : '<span class="pill" id="delayTile" hidden></span>'}</div></div></div>
       ${info}${cab}${velBox(F, tr)}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${trial && F.dm && tr.agentK != null && (F.dm.loopInfo(tr.agentK) || {}).onLoop ? '' : testLoopBox(F, tr, st)}${moveBox(F, tr)}${washBox(F, tr)}
-      <div class="foot"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="cardClose">Chiudi</button></div>`;
+      <div class="foot"><button id="followBtn" aria-pressed="${state.follow}">Segui</button><button id="cardClose">Chiudi</button></div>`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
     document.getElementById('cardClose').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
@@ -3025,7 +3025,7 @@ window.MTL_CAPS = __CAPS__;
     const notice = { lines: own.length ? own[Math.floor(Date.now() / 20000) % own.length] : SCR_NOTICES[slot === 1 ? 0 : 1] };
     if (stn && stn.closed) return scrPage('notice', t, { lines: stn.why === 'fire' ? ['ABBANDONARE', 'LA STAZIONE'] : ['STAZIONE CHIUSA', 'I TRENI', 'NON FERMANO'] });
     if (info) return scrPage('notice', t, own.length ? notice : { lines: SCR_NOTICES[Math.floor(Date.now() / 10000) % 2] });
-    if (ctx && ctx.inside) return scrPage('end', t, { dest });
+    if (ctx && (ctx.inside || ctx.treniPer)) return scrPage('end', t, { dest });
     const next = items.filter(x => x.here || x.t >= t - 5);
     if (!next.length || !next[0].here && next[0].t - t > 30 * 60) return scrPage('end', t, { dest });      // no train in the next half hour
     const first = next[0];
@@ -3052,16 +3052,18 @@ window.MTL_CAPS = __CAPS__;
     // binario dispari "Treno per Porta Romana"); inside it "Treni per" as at night
     const S_ = F.ag && F.ag.S, parts = S_ && S_.cl && S_.reopened == null ? S_.parts || [] : null, last = G ? G.names.length - 1 : 0;
     const P = parts && X >= 0 ? parts.find(p => X >= p[0] && X <= p[1]) : null, nmOf = i => G.names[i].replace(/\s+M\d$/i, '').toUpperCase();
-    const toCO = P && P[1] < last ? nmOf(P[1]) : 'COMASINA', toSD = P && P[0] > 0 ? nmOf(P[0]) : 'SAN DONATO';
-    const ctx = { inside: !!parts && !P, pages: prefPages(F) };
+    // (the real destination only after the DCT has asked the station for it, by phone: TRENI PER ROGOREDO; Giovanni 20 Nov 2026)
+    const real = !!(stn && stn.dest), cutCO = real && P && P[1] < last, cutSD = real && P && P[0] > 0;
+    const toCO = cutCO ? nmOf(P[1]) : 'COMASINA', toSD = cutSD ? nmOf(P[0]) : 'SAN DONATO';
+    const ctx0 = { inside: !!parts && !P, pages: prefPages(F) }, ctxCO = Object.assign({}, ctx0, { treniPer: cutCO }), ctxSD = Object.assign({}, ctx0, { treniPer: cutSD }), ctx = ctx0;
     if (/^SAN DONATO$/.test(name)) {
       const it = items(dCO || 'COMASINA');
-      return ['2', '3'].map(pl => box('Binario ' + pl, platformScreen(t, it.filter(x => sdPlatOf(F, x.pid) === pl), toCO, false, stn, ctx))).join('');
+      return ['2', '3'].map(pl => box('Binario ' + pl, platformScreen(t, it.filter(x => sdPlatOf(F, x.pid) === pl), toCO, false, stn, ctxCO))).join('');
     }
     // binario pari (2) on top, dispari (1) below: as the tracks lie (Giovanni, 2 Nov 2026)
     if (/^COMASINA$/.test(name))
-      return box('Binario pari (2) · arrivi', platformScreen(t, [], '', true, stn, ctx)) + box('Binario dispari (1) · partenze', platformScreen(t, items(dSD || 'SAN DONATO'), toSD, false, stn, ctx));
-    return box('Binario pari (2)', platformScreen(t, items(dCO), toCO, false, stn, ctx)) + box('Binario dispari (1)', platformScreen(t, items(dSD), toSD, false, stn, ctx));
+      return box('Binario pari (2) · arrivi', platformScreen(t, [], '', true, stn, ctx)) + box('Binario dispari (1) · partenze', platformScreen(t, items(dSD || 'SAN DONATO'), toSD, false, stn, ctxSD));
+    return box('Binario pari (2)', platformScreen(t, items(dCO), toCO, false, stn, ctxCO)) + box('Binario dispari (1)', platformScreen(t, items(dSD), toSD, false, stn, ctxSD));
   }
   // the closure asked by the Prefettura, on the screens of every station from when it is announced: two pages,
   // "[STAZIONE] CHIUSA" and "SU RICHIESTA DELLA / PREFETTURA / DALLE .. ALLE .." (its own hours)
@@ -3291,7 +3293,7 @@ window.MTL_CAPS = __CAPS__;
     }
     return null;
   }
-  const trName = (F, o, t) => { const rt = realTrain(F, o, t); return 'Treno ' + (rt && !rt.missing ? rt.n : o.n); };
+  const trName = (F, o, t) => { const rt = realTrain(F, o, t); return 'Treno ' + (rt && !rt.missing ? rt.n : o.n); }, trLow = (F, o, t) => trName(F, o, t).replace('Treno', 'treno');
   // who else is planned on platform p between a and b
   function platUsers(F, p, a, b, except) {
     const who = [];
@@ -3317,16 +3319,16 @@ window.MTL_CAPS = __CAPS__;
   const altOpen = (F, tr, a) => !!a && !a.done && state.t >= a.open && (state.t <= a.close || (altRun(F, tr, a) && altReach(F, tr, a.segs)));
   function orderP2(F, tr, k) {
     const a = tr.arr2[k], t = state.t;
-    if (!altOpen(F, tr, a)) { p2Msg = 'Too late: the train is already at the station throat.'; return; }
+    if (!altOpen(F, tr, a)) { p2Msg = 'Troppo tardi: il treno è già all\'ingresso della stazione.'; return; }
     const there = trainOnPlatform(F, P2WAY, t, tr);
-    if (there) { p2Msg = `Order refused: platform 2 is not free (${trName(F, there, t)} is standing there).`; return; }
+    if (there) { p2Msg = `Ordine rifiutato: ${tx('pezzo.binario2.non_libero')} (il ${trLow(F, there, t)} ${tx('pezzo.binario2.fermo_li')}).`; return; }
     const ag_ = F.ag ? F.ag.agents()[F.trains.indexOf(tr)] : null, users = platUsers(F, 2, a.from, a.dep, tr), moved = [], late = altRun(F, tr, a) && (t > a.close || !!(ag_ && ag_.v < 0.1));
     // (a train late, held at the station, sent there by the DCT: the platform free now is enough, the trains planned there
     // that cannot go to platform 3 wait for it to leave; Giovanni 18 Nov 2026)
     const keep = [];
     for (const u of users) {
-      if (u.p2) { if (late) { keep.push(u); continue; } p2Msg = `Order refused: platform 2 is already promised to ${trName(F, u.o, t)}.`; return; }
-      if (platUsers(F, 1, u.alt.from, u.alt.dep, u.o).length || !u.alt.opts['1']) { if (late) { keep.push(u); continue; } p2Msg = `Order refused: ${trName(F, u.o, t)} needs platform 2 at ${fmt(u.alt.from)} and platform 3 is busy too.`; return; }
+      if (u.p2) { if (late) { keep.push(u); continue; } p2Msg = `Ordine rifiutato: il binario 2 è già dato al ${trLow(F, u.o, t)}.`; return; }
+      if (platUsers(F, 1, u.alt.from, u.alt.dep, u.o).length || !u.alt.opts['1']) { if (late) { keep.push(u); continue; } p2Msg = `Ordine rifiutato: il ${trLow(F, u.o, t)} ha bisogno del binario 2 alle ${fmt(u.alt.from)} e anche il binario 3 è occupato.`; return; }
     }
     users.filter(u => !keep.includes(u)).forEach(u => { setPlat(u.o, u.alt, 1); moved.push(trName(F, u.o, t) + ' (departs ' + fmt(u.alt.dep) + ')'); });
     const end = a.i + a.n, delta = a.segs.length - a.n;
@@ -3336,20 +3338,20 @@ window.MTL_CAPS = __CAPS__;
     tr.alts = tr.alts.filter(x => x.i < a.i || x.i >= end); tr.alts.forEach(x => { if (x.i >= end) x.i += delta; });
     tr.arr2.forEach(x => { if (x !== a && x.i >= end) x.i += delta; if (x !== a && x.i >= a.i && x.i < end) x.done = true; });
     a.done = true; tr.p2 = { from: a.from, dep: a.dep };
-    p2Msg = `Ordered: arrives on platform 2 at ${fmt(a.arr)}, the driver changes cab there and it leaves for ${F.far} at ${fmt(a.dep)}.` +
-      (moved.length ? ' Moved to platform 3: ' + moved.join(', ') + '.' : '');
+    p2Msg = `Ordinato: arriva al binario 2 alle ${fmt(a.arr)}, il macchinista cambia banco lì e riparte per ${F.far} alle ${fmt(a.dep)}.` +
+      (moved.length ? ' Spostati al binario 3: ' + moved.join(', ') + '.' : '');
   }
   function arr2Box(F, tr, st) {
     if (!isPlayer || F.line !== 'M3' || !tr.arr2) return '';
     const t = state.t;
-    if (tr.p2 && t <= tr.p2.dep) return `<div class="picker"><div class="label">Platform 2 order</div><p class="note">${p2Msg || 'Arrives on platform 2 and reverses there; leaves at ' + fmt(tr.p2.dep) + '.'}</p></div>`;
+    if (tr.p2 && t <= tr.p2.dep) return `<div class="picker"><div class="label">Ordine binario 2</div><p class="note">${p2Msg || 'Arriva al binario 2 e inverte lì; riparte alle ' + fmt(tr.p2.dep) + '.'}</p></div>`;
     const k = tr.arr2.findIndex(a => altOpen(F, tr, a));
     if (k < 0) return '';
     const busy = trainOnPlatform(F, P2WAY, t, tr);
-    return `<div class="picker"><div class="label">San Donato arrival</div>
-      <p class="note">Normally into platform 1, then the tail. You can order it into platform 2 to reverse in place (only if platform 2 is free now).</p>
-      <div class="row"><button data-arr2="${k}" ${busy ? 'disabled' : ''}>Arrive on platform 2 and reverse</button></div>
-      ${busy ? `<div class="warn">Platform 2 is occupied by ${trName(F, busy, t)}.</div>` : ''}${p2Msg ? `<p class="note">${p2Msg}</p>` : ''}</div>`;
+    return `<div class="picker"><div class="label">Arrivo a San Donato</div>
+      <p class="note">Di solito arriva al binario 1, poi va in tronchetto. Puoi farlo entrare al binario 2 per invertire lì (solo se il binario 2 è libero adesso).</p>
+      <div class="row"><button data-arr2="${k}" ${busy ? 'disabled' : ''}>Arrivo al binario 2 e inversione</button></div>
+      ${busy ? `<div class="warn">Il binario 2 è occupato dal ${trLow(F, busy, t)}.</div>` : ''}${p2Msg ? `<p class="note">${p2Msg}</p>` : ''}</div>`;
   }
   // ---- test loop (anello di prova): the logic is in DepotM3.js; here only the card ----
   function testLoopBox(F, tr, st) {
@@ -5647,7 +5649,7 @@ window.MTL_CAPS = __CAPS__;
   closeBtn.onclick = closeStretch; reopenBtn.onclick = reopenStretch; normalBtn.onclick = backToTimetable;
   setTimeout(fillClosures, 0);
   const AGLABEL = { service: 'In servizio', stopped: 'Fermo in stazione: tratta interrotta', held: 'Trattenuto: tratta chiusa', turnback: 'In manovra (cambio banco)', empty: 'Vuoto, senza passeggeri', depot: 'Rientrato in deposito', parked: 'In deposito' };
-  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal DCT', pc: ' · trattenuto dal DCT', anello: ' · attende al #A94 (anello di prova)', guasto: ' · guasto', soccorso: ' · agganciato al treno guasto', tensione: ' · senza tensione', rosso: ' · pulsante rosso', fermo: ' · fermato dal DCT' };
+  const WHY = { segnale: ' · fermo al segnale', intervallo: ' · attende l\'intervallo', orario: ' · attende l\'orario', sosta: ' · sosta ordinata dal DCT', pc: ' · trattenuto dal DCT', anello: ' · attende al #A94 (anello di prova)', guasto: ' · guasto', soccorso: ' · agganciato al treno guasto', tensione: ' · senza tensione', rosso: ' · pulsante rosso', fermo: ' · fermato dal DCT', incrocio: ' · attende il treno sull\'altro binario per invertire', tronchetto: ' · attende un tronchetto libero', porte: ' · chiude le porte' };
   // the line under the train name: the agents' service (shuttles carry passengers: reduced service)
   function cardSub(st) {
     const a = st.agent;
@@ -6045,7 +6047,7 @@ window.MTL_CAPS = __CAPS__;
       if (along(a.pid, a.d)) return null;
       const tr = F.trains[a.k]; if (!tr) continue; const no = trainNo(F, tr), fits = segs => (segs || []).some(x => { if (!x || x[0] == null) return false; const d0 = F.ag.mapTo(a.pid, a.d, x[0]); return d0 != null && along(x[0], d0); });
       const k2 = (tr.arr2 || []).findIndex(x => altOpen(F, tr, x) && fits(x.segs));
-      if (k2 >= 0) { p2Msg = ''; orderP2(F, tr, k2); return sinMsg(tr.p2 ? `Treno ${no}: entra al binario 2 e inverte lì, per seguire l'itinerario ${it.id}.` : `Treno ${no}: non può seguire l'itinerario ${it.id} (${p2Msg.replace(/^Order refused: /, '')}).`); }
+      if (k2 >= 0) { p2Msg = ''; orderP2(F, tr, k2); return sinMsg(tr.p2 ? `Treno ${no}: entra al binario 2 e inverte lì, per seguire l'itinerario ${it.id}.` : `Treno ${no}: non può seguire l'itinerario ${it.id} (${p2Msg.replace(/^Ordine rifiutato: /, '')}).`); }
       const k1 = (tr.carr1 || []).findIndex(x => altOpen(F, tr, x) && fits(x.segs));
       if (k1 >= 0) { const x = tr.carr1[k1]; (tr.calts || []).forEach(c => { if (c.i === x.i) c.done = true; }); applyAlt(tr, x.i, x.n, x.segs); x.done = true; tr.c1 = { arr: x.arr, dep: x.dep }; if (tr.env) tr.env.extra = {};
         return sinMsg(`Treno ${no}: entra al binario 1 di ${cap(F.far)} e cambia banco lì, per seguire l'itinerario ${it.id}.`); }
@@ -6546,7 +6548,7 @@ window.MTL_CAPS = __CAPS__;
       rows.push({ order, html: `<li data-k="${i}"><span class="tn" style="background:${DELAYCOL[cls] || '#f5c400'};color:${cls === 'ok' ? '#111' : '#fff'}">${name}</span><span class="where">${where}</span><span class="dl">${m === 0 ? 'in orario' : (m > 0 ? '+' : '') + m + ' min'}</span></li>` });
     });
     rows.sort((a, b) => a.order - b.order);
-    m3list.innerHTML = rows.map(r => r.html).join('') || '<li class="note">No M3 trains running now</li>';
+    m3list.innerHTML = rows.map(r => r.html).join('') || '<li class="note">Nessun treno M3 in servizio ora</li>';
     m3list.querySelectorAll('li[data-k]').forEach(li => li.onclick = () => { state.sel = 'f' + fi + ':' + li.dataset.k; state.follow = false; renderCard(); });
   }
   setRole(isPlayer);
@@ -6707,12 +6709,13 @@ window.MTL_CAPS = __CAPS__;
       'Tutti i treni': [['Fermatevi', 'Tutti i treni si fermino alla prossima stazione e attendano istruzioni.'], ['Ripartite', 'Riprendete la marcia secondo orario.'], ['Evacuate', 'Evacuate i treni: accompagnate i passeggeri alla stazione più vicina.', 'evac'], ['Attendete', 'Restate fermi: attendete la fine dell’operazione.']],
       'Treni per San Donato': [['Fermatevi', 'Treni per San Donato: fermatevi alla prossima stazione e attendete istruzioni.'], ['Ripartite', 'Treni per San Donato: riprendete la marcia.'], ['Evacuate', 'Treni per San Donato: evacuate i treni.', 'evac'], ['Attendete', 'Treni per San Donato: attendete la fine dell’operazione.']],
       'Treni per Comasina': [['Fermatevi', 'Treni per Comasina: fermatevi alla prossima stazione e attendete istruzioni.'], ['Ripartite', 'Treni per Comasina: riprendete la marcia.'], ['Evacuate', 'Treni per Comasina: evacuate i treni.', 'evac'], ['Attendete', 'Treni per Comasina: attendete la fine dell’operazione.']],
-      'Tutte le stazioni': [['Avviso', 'A tutte le stazioni: servizio regolare.'], ['Servizio limitato', 'A tutte le stazioni: annunciate il servizio limitato.'], ['Chiudete gli accessi', 'A tutte le stazioni: chiudete gli accessi.']] };
+      'Tutte le stazioni': [['Avviso', 'A tutte le stazioni: servizio regolare.'], ['Servizio limitato', 'A tutte le stazioni: annunciate il servizio limitato.'], ['Chiudete gli accessi', 'A tutte le stazioni: chiudete gli accessi.'], ['Destinazione reale', 'A tutte le stazioni: sugli schermi di banchina mettete la destinazione reale dei treni.', 'dest']] };
     const dirOf = (F, k) => { const st = trainState(F, F.trains[k], state.t); const h = st.trip >= 0 && trips[st.trip] ? trips[st.trip].h : ''; return /donato/i.test(h) ? 'S' : /comasina/i.test(h) ? 'C' : ''; };
     const inLine = F => F.ag.agents().filter(a => !a.hidden && a.status !== 'parked' && a.status !== 'depot' && a.mode !== 'static');
     function groupSay(g, text, who = 'DCT', kind) {
       GLOG[g].push([clockTxt(), who, String(text).replace(/^DCT:\s*/, '')]);
       const F = F3();
+      if (kind === 'dest' && F && F.ag.S.cl) F.engine.G.names.forEach((_, X) => F.ag.event({ kind: 'station', st: X, what: 'dest' }));
       if (kind === 'evac' && F) { const want = g === 'Treni per San Donato' ? 'S' : g === 'Treni per Comasina' ? 'C' : null;
         inLine(F).filter(a => !want || dirOf(F, a.k) === want).forEach(a => { if (!EVAC.has(a.k)) EVAC.set(a.k, F.ag.S.t); }); }
       if (!$('w-radio').hidden) drawRadio(true);

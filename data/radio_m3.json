@@ -2702,6 +2702,13 @@
     "Ricevuto DCT, marcia illegale in manuale a {kmh} km/h. Passo."
    ]
   },
+  "stazione.schermi.destinazione": {
+   "chi": "DCT",
+   "quando": "Chiusura di tratta: il DCT chiede all'operatore di stazione di mettere sugli schermi la destinazione reale dei treni (destinazione: dove i treni si fermano)",
+   "testi": [
+    "Stazione {stazione}: sugli schermi di banchina mettete la destinazione reale, treni per {destinazione}."
+   ]
+  },
   "chiamata.dct.pronto": {
    "chi": "macchinista",
    "quando": "Il macchinista tira su la cornetta e risponde: dice la sua tabella",

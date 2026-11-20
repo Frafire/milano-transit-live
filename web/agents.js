@@ -943,7 +943,7 @@
         return false; }
       if (m.kind === 'pcfwait') return pcfWait(a);
       if (m.kind === 'assign') { assign(a); return a.legs.length > 0; }
-      if (m.kind === 'retry') { a.legs.unshift(...nextShuttleLegs(a)); return a.legs[0] && a.legs[0].kind !== 'retry'; }
+      if (m.kind === 'retry') { a.legs.unshift(...nextShuttleLegs(a)); const ok = a.legs[0] && a.legs[0].kind !== 'retry'; a.why = ok ? null : 'tronchetto'; return ok; }
       if (m.kind === 'navback') {
         // behind the navetta on its track: the PC has it change cab and go back on that track to the open side
         const nv = NAV[m.nav], info = S.navInfo && S.navInfo[m.nav]; if (!nv || !info) { a.status = 'stopped'; a.stoppedSince = S.t; return false; }
@@ -985,7 +985,8 @@
     }
     // ---------- reopening: back to the timetable ----------
     function reopen(t) {
-      S.reopened = t; S.cl = null; S.parts = [[0, last]]; S.turnOv = {}; S.nav = []; S.navWant = {}; S.agents.forEach(a => { a.navOut = false; });
+      S.reopened = t; S.cl = null; S.parts = [[0, last]];
+      for (const [X, x] of Object.entries(S.stn || {})) if (x.dest) { const y = S.stn[X] = Object.assign({}, x); delete y.dest; if (!Object.keys(y).length) delete S.stn[X]; } S.turnOv = {}; S.nav = []; S.navWant = {}; S.agents.forEach(a => { a.navOut = false; });
       SLOW = CLOSED ? { set: new Set(CLOSED), until: t + 1200, kmh: 40 } : null;
       NAVHOLD = CLOSED && CLOSED0 && CLOSED !== CLOSED0 && S.agents.some(x => x.mode === 'navetta' || x.navBack) ? new Set([...CLOSED].filter(e => !CLOSED0.has(e))) : null;
       CLOSED = null; CLOSED0 = null; usedRuns.clear();
@@ -1082,7 +1083,9 @@
       return false;
     }
     function whereNow(a) {
-      if (a.inside) return { st: a.inside.stops[a.inside.q].st, dir: a.inside.dir };
+      // (at a terminus: the way it goes from there, as for any train there; a train held at San Donato in San Donato –
+      // Centrale FS was sent back 'inside' when it reopened)
+      if (a.inside) { const st = a.inside.stops[a.inside.q].st; if (st !== 0 && st !== last) return { st, dir: a.inside.dir }; a.at = st; }
       if (a.at == null) { const p = placeOf(a); if (p) { a.at = p.st; if (p.dir) a.arr = opp(p.dir); } }
       if (a.at != null) {
         const end = a.at === 0 || a.at === last;
@@ -1159,7 +1162,10 @@
         const au = authority(test, { status: 'turnback', stops: [], end: leg.start + 300 });
         if (au.lim < leg.start + 5 && au.why && au.why.train != null) {
           a.cWait = a.cWait || S.t;
-          if (S.t - a.cWait < 60 || (S.cl && S.navInfo && Object.values(S.navInfo).some(x => x.open === a.at))) return;
+          // (reopened meanwhile: no closed stretch to wait in, it waits here for the train to pass; it stood for ever, 'inside'
+          // at San Donato, after San Donato – Centrale FS was reopened)
+          a.why = 'incrocio';
+          if (S.t - a.cWait < 60 || !S.cl || (S.cl && S.navInfo && Object.values(S.navInfo).some(x => x.open === a.at))) return;
           a.cWait = null; goInside(a); return;
         }
         a.cWait = null;
@@ -1308,6 +1314,7 @@
       else if (e.kind === 'station') {                                           // the PC and a station
         const x = S.stn[e.st] = Object.assign({}, S.stn[e.st]);
         if (e.what === 'close') x.closed = true; else if (e.what === 'open') delete x.closed; else if (e.what === 'msg') { if (e.text) x.msg = e.text; else delete x.msg; }
+        else if (e.what === 'dest') { if (e.on === false) delete x.dest; else x.dest = true; }      // (the screens: the real destination during a closure)
         if (!Object.keys(x).length) delete S.stn[e.st];
         lastResult = true;
       }
