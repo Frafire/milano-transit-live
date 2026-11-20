@@ -765,7 +765,7 @@
 
     return { say, sayPhone, osIncoming, phonePending, phoneConv: X => CONV.get(X), closeConv,
              phoneList: () => [...CONV.values()].filter(c => c.open).map(c => ({ X: c.X, name: c.name, pending: !!c.pending, line: !!c.line })), drawPhoneCmds, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
-             radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain };
+             radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain, nextStop };
   }
   const api = { create };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.MTLRadio = api;

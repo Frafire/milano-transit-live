@@ -377,7 +377,23 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan svg.edit g.dk, #depotPlan svg.edit g.dk * { pointer-events: auto; cursor: move; } #depotPlan svg.edit g.dk:hover { outline: 1px dashed #b3121a; }
 #depotPlan .swn { font: 600 8px var(--display); fill: #3a382f; } #depotPlan .secn { font: 600 7.5px var(--display); fill: #4a483f; pointer-events: none; } #depotPlan .binn { font: 700 9.5px var(--display); fill: #22211c; }
 #depotPlan .swl { fill: #3d3c35; stroke: #121212; stroke-width: .8; } #depotPlan .swl.on { fill: #fff6d0; } #depotPlan .swb { stroke: #121212; stroke-width: 1.4; }
-#depotPlan .binf rect { fill: #d9d6c8; stroke: #3a382f; stroke-width: 1; } #depotPlan text.labs { font: 700 9.5px var(--display); fill: #22211c; letter-spacing: .05em; } #depotPlan text.sgname { font-size: 10px; font-weight: 600; fill: #2b2a25; } #depotPlan .darr { fill: #1b1b1b; stroke: var(--sin-bg); stroke-width: 1.2; } #depotPlan .darr.lit { fill: #f4f4ee; } #depotPlan .darr.occ { fill: #e5383b; } #depotPlan rect.shed { fill: #a6c7e0; stroke: none; } #depotPlan g.sgi.orig { animation: dpKey .8s steps(2, start) infinite; } #depotPlan g.sgi.orig path, #depotPlan g.sgi.orig rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.prep path, #depotPlan g.sgi.prep rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.auth path, #depotPlan g.sgi.auth rect.sgc { stroke: #ffffff; stroke-width: 1.6; } @keyframes dpKey { 50% { opacity: .3; } } #depotPlan .dp-acei { display: block; flex-basis: 100%; color: #ffd166; font-weight: 600; min-height: 1.2em; } #depotPlan circle.swl { fill: #3a382f; stroke: none; } #depotPlan circle.swl.mv { fill: #ffd166; animation: dpKey .5s steps(2, start) infinite; } #depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
+#depotPlan .binf rect { fill: #d9d6c8; stroke: #3a382f; stroke-width: 1; } #depotPlan text.labs { font: 700 9.5px var(--display); fill: #22211c; letter-spacing: .05em; } #depotPlan text.sgname { font-size: 10px; font-weight: 600; fill: #2b2a25; } #depotPlan .darr { fill: #1b1b1b; stroke: var(--sin-bg); stroke-width: 1.2; } #depotPlan .darr.lit { fill: #f4f4ee; } #depotPlan .darr.occ { fill: #e5383b; } #depotPlan rect.shed { fill: #a6c7e0; stroke: none; } #depotPlan g.sgi.orig { animation: dpKey .8s steps(2, start) infinite; } #depotPlan g.sgi.orig path, #depotPlan g.sgi.orig rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.prep path, #depotPlan g.sgi.prep rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.auth path, #depotPlan g.sgi.auth rect.sgc { stroke: #ffffff; stroke-width: 1.6; } @keyframes dpKey { 50% { opacity: .3; } } #depotPlan .dp-acei { display: block; flex-basis: 100%; color: #ffd166; font-weight: 600; min-height: 1.2em; } .card.scada { background: #dfe4ea; color: #1d2733; border-radius: 4px; font: 13px "Segoe UI", system-ui, sans-serif; width: min(560px, 92vw); padding: 10px 12px; }
+.card.scada .sct { color: #3d5a80; font-size: 12px; margin-bottom: 6px; }
+.card.scada fieldset { border: 1px solid #aeb8c4; border-radius: 3px; margin: 0 0 8px; padding: 6px 8px 8px; }
+.card.scada legend { font-weight: 600; padding: 0 4px; }
+.card.scada .scg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 10px; align-items: end; }
+.card.scada .scg label { font-size: 12px; color: #33414f; display: flex; flex-direction: column; gap: 2px; }
+.card.scada .scv { background: #f4f6f8; border: 1px solid #aeb8c4; padding: 3px 6px; text-align: center; min-height: 1.4em; font-size: 12.5px; }
+.card.scada button { background: #eef1f4; color: #1d2733; border: 1px solid #8d99a6; border-radius: 2px; padding: 4px 8px; font: inherit; font-size: 12.5px; cursor: pointer; }
+.card.scada button:disabled { color: #8d99a6; cursor: default; }
+.card.scada .scb { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
+.card.scada select { font: inherit; font-size: 12.5px; background: #f4f6f8; color: #1d2733; border: 1px solid #8d99a6; border-radius: 2px; padding: 3px 4px; }
+.card.scada .scdlg { border-top: 1px solid #aeb8c4; margin-top: 4px; padding-top: 6px; font-size: 12.5px; }
+.card.scada .scdlg label { color: #6a7684; }
+#depotPlan g.tp rect { fill: #ffd166; stroke: #3a382f; stroke-width: .6; } #depotPlan g.tp text { font: 700 6.5px var(--display); fill: #1b1b1b; text-anchor: middle; } #depotPlan g.tp { cursor: pointer; }
+#tpPop { position: absolute; z-index: 40; background: #e9edf3; color: #1d2733; border: 1px solid #8d99a6; box-shadow: 0 4px 16px rgba(0,0,0,.35); font: 14px "Segoe UI", system-ui, sans-serif; width: 300px; }
+#tpPop .h { background: #cfd8e3; padding: 4px 8px; font-size: 12.5px; color: #3d5a80; } #tpPop p { margin: 12px 14px; text-align: center; } #tpPop .b { display: flex; justify-content: space-around; margin: 0 0 12px; } #tpPop button { min-width: 70px; padding: 5px; background: #eef1f4; color: #1d2733; border: 1px solid #8d99a6; border-radius: 2px; font: inherit; cursor: pointer; }
+#depotPlan circle.swl { fill: #3a382f; stroke: none; } #depotPlan circle.swl.mv { fill: #ffd166; animation: dpKey .5s steps(2, start) infinite; } #depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
 #depotPlan .trn rect, #depotPlan .trn.late rect, #depotPlan .trn.early rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; }
 #depotPlan .trn text, #depotPlan .disp .trn text { fill: #ffffff; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
 #depotPlan .trn.bare text { fill: #111; font-size: 10px; } #depotPlan .trn.bare.early text { fill: #137a2e; } #depotPlan .trn.bare.late text { fill: #c41d1d; }
@@ -2603,8 +2619,48 @@ window.MTL_CAPS = __CAPS__;
       return s.late != null ? s.late : s.status === 'service' ? 0 : null; }
     return F.engine ? delayOf(F, tr, t) : null;
   }
+  // the train card of the line's board, as on the ATM screens (Giovanni's photos, 20 Nov 2026): Stato del treno selezionato
+  let SC_DUR = 60, SC_DLG = false;
+  function renderScada(F, fi, i) {
+    const tr = F.trains[i], st = trainState(F, tr, state.t), a = F.ag.agents()[i], G = F.engine.G, no = trainNo(F, tr);
+    const ns = MR.nextStop ? MR.nextStop(F, tr) : null, ex = ns && tr.env && tr.env.extra ? tr.env.extra[ns.key] || 0 : 0;
+    const hold = sinHolds(F).find(h => h.k === i), lg = a ? a.legs.find(l => l && l.dir) || {} : {};
+    const tipo = !a ? 0 : a.why === 'guasto' || a.why === 'soccorso' ? 6 : (st.trip >= 0 || a.status === 'service') ? 1 : a.status === 'parked' ? 0 : 4;
+    const corsa = st.seg >= 0 ? tr.segs.slice(0, st.seg + 1).filter(x => x[1] === 'service').length : 0;
+    const tp = st.trip >= 0 ? trips[st.trip] : null, orig = tp ? D.stops[tp.st.find(x => x >= 0)][0] : '', dest = tp ? tp.h : (a && a.to != null ? G.names[a.to] : '');
+    const doors = !!(a && a.stopAt != null && state.t < (a.dwellUntil || 0) && !hold), guida = a && (a.vlim || a.why === 'tensione') ? 'MA' : 'ATO';
+    const em = a && (a.why === 'rosso' || a.why === 'guasto') ? 'Frenatura di emergenza' : 'Nessuna frenatura di emergenza';
+    const pross = ns ? String(ns.name).toUpperCase() + '_' + (lg.dir === 'N' ? 'Pari' : 'Dispari') : '—';
+    const v = x => `<div class="scv">${x}</div>`, id = tipo + String(tr.n).padStart(2, '0') + String(corsa).padStart(2, '0');
+    const SERV = ['Disponibile all\'associazione', 'Associato ad una corsa dell\'orario', 'Associato ad una corsa del s.n./s.p', 'Treno ad orario libero', 'Treno in manovra', 'Treno scuola', 'Treno guasto', 'Non disponibile all\'associazione'];
+    const dlg = SC_DLG ? `<div class="scdlg"><div class="sct">Cambia dati treno ${id}</div><div class="scb"><label><input type="radio" disabled> Cambia Tabella</label><label><input type="radio" disabled> Cambia Corsa</label></div>
+      <div class="sct">Cambia identificativo servizio</div>${SERV.map((t, j) => `<div><label><input type="radio" name="scsv" disabled ${j === tipo ? 'checked' : ''}> ${j} - ${t}</label></div>`).join('')}
+      <div class="sct">Nel gioco per ora solo da leggere: tabelle e corse si cambiano dal pannello Turni.</div><div class="scb"><button id="scDlgX">Chiudi</button></div></div>` : '';
+    card.classList.add('scada');
+    card.innerHTML = `<div class="sct">Stato del treno selezionato ${id}</div>
+      <fieldset><legend>Identificazione treno</legend><div class="scg"><label>Tipo servizio${v(tipo)}</label><label>Tabella${v(no)}</label><label>Corsa${v(corsa || '—')}</label></div>
+        <div class="scb"><button id="scDati">Cambia dati treno</button><button id="scCall">Chiamata</button></div>${dlg}</fieldset>
+      <fieldset><legend>Movimento del treno</legend><div class="scg"><label>Origine${v(String(orig).toUpperCase() || '—')}</label><label>Destinazione${v(String(dest).toUpperCase() || '—')}</label><label></label></div>
+        <div class="scb"><button disabled title="Non ancora nel gioco">Treno ad orario libero</button><button disabled title="Non ancora nel gioco">Treno in manovra</button></div></fieldset>
+      <fieldset><legend>Altre informazioni</legend><div class="scg"><label>Modalità di guida${v(guida)}</label><label>Porte treno${v(doors ? 'Porte aperte' : 'Porte chiuse')}</label><label>Frenatura d'emergenza${v(em)}</label></div></fieldset>
+      <fieldset><legend>Regolazione treno</legend><div class="scg"><label>Pross. fermata${v(pross)}</label><label>Tratt. alla pross. fermata${v(ex > 0 && !hold ? 'Richiesto ' + ex + ' s' : 'Non richiesto')}</label><label>Stato trattenimento${v(hold ? (hold.until ? 'Trattenuto fino alle ' + fmt(hold.until, true).join('') : 'Trattenuto') : 'Non trattenuto')}</label></div>
+        <div class="scb"><button id="scHold" ${ns ? '' : 'disabled'}>Trattieni il treno</button><select id="scDur" aria-label="Durata">${[30, 60, 90, 120, 180].map(x => `<option value="${x}" ${x === SC_DUR ? 'selected' : ''}>${x < 60 ? x + ' s' : x / 60 + ' min'}</option>`).join('')}</select>
+          ${hold ? '<button id="scRel">Rilascia</button>' : ''}<button id="scSkip" ${ns && !ns.here ? '' : 'disabled'}>Salto fermata</button><span style="flex:1"></span><button id="scClose">Chiudi</button></div></fieldset>`;
+    card.hidden = false;
+    const on = (idd, f) => { const b = document.getElementById(idd); if (b) b.onclick = f; };
+    on('scClose', () => { state.sel = null; card.classList.remove('scada'); card.hidden = true; });
+    on('scDati', () => { SC_DLG = !SC_DLG; renderCard(); }); on('scDlgX', () => { SC_DLG = false; renderCard(); });
+    on('scCall', () => MR.openRadio(F, tr));
+    const sd = document.getElementById('scDur'); if (sd) sd.onchange = () => { SC_DUR = +sd.value; };
+    on('scHold', () => { sinHoldTrain(F, tr, SC_DUR); renderCard(); sinRefresh(); });
+    on('scRel', () => { const h = sinHolds(F).find(x => x.k === i); if (h) sinHoldRelease(F, h); renderCard(); sinRefresh(); });
+    on('scSkip', () => { const r = F.ag.event({ kind: 'order', k: i, what: 'skip1' }); if (r) MR.say('DCT', `Treno ${no}, salta la fermata di ${cap(String(r))}.`, 'pc');
+      sinMsg(r ? `Treno ${no}: salta la fermata di ${cap(String(r))}.` : `Treno ${no}: nessuna fermata da saltare (non l'ultima della corsa).`); renderCard(); });
+  }
   function renderTrainCard() {
     const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F.trains[i], st = trainState(F, tr, state.t);
+    if (F.engine && F.line === 'M3' && SIN_WHICH === 'line' && !planEl.hidden && F.ag) return renderScada(F, fi, i);
+    card.classList.remove('scada');
     const rt = realTrain(F, tr, state.t), a = st.agent, inServ = st.trip >= 0 || !!(a && a.status === 'service');
     const trial = !!(rt && rt.trial && !admitted(rt.units));
     // on top: what the train does
@@ -4584,7 +4640,7 @@ window.MTL_CAPS = __CAPS__;
     SIN_DEG = {}; for (const [n, l] of Object.entries(at)) SIN_DEG[n] = l.length;
     planEl.classList.toggle('line', SIN_WHICH === 'line');
     // the switches: the position (two pieces) from the route interlocking, or from a train on it, or the last one seen
-    const rt = F.ag.rt(), pos = {};
+    const rt = F.ag.rt(), pos = {}, HOLDS = SIN_WHICH === 'line' ? sinHolds(F) : [];
     for (const [n, list] of Object.entries(at)) { if (list.length < 3) continue;
       const sw = rt.sw && rt.sw[n]; let pair = sw ? String(sw).split('-').map(Number) : null;
       const o = list.filter(ei => live.occ.has(ei)); if (!pair && o.length >= 2) pair = o.slice(0, 2);
@@ -4842,6 +4898,8 @@ window.MTL_CAPS = __CAPS__;
       const level = /^S01[AB]$/.test(SGNM(sg) || '') && Math.abs(tx) < 0.5;
       if (level) { const sx = nx >= 0 ? 1 : -1; O = [m[0] + sx * 17 * K, m[1] - ty * 7 * K]; ang = sx > 0 ? 0 : 180; }
       const lit = a === 'go' || a === 'sgo';
+      // (TP: the train held at the platform behind this signal; a click asks whether to release it)
+      if (SIN_WHICH === 'line' && HOLDS.some(h => h.n === sg.n)) marks += `<g class="tp" data-n="${sg.n}" transform="translate(${P1([O[0] + nx * 14 * K, O[1] + ny * 14 * K])})"><title>Treno trattenuto in banchina</title><rect x="-8" y="-5" width="16" height="10" rx="1"/><text y="2.4">TP</text></g>`;
       marks += `<g class="sgi${sqr ? ' ill' : ''}${lit ? ' go' : ''}${keyCls(sg.n)}" data-tag="${tag}" transform="translate(${P1(O)}) rotate(${Math.round(ang)}) scale(${K})"><title>${SGNM(sg) ? SGNM(sg) + ' = ' : ''}${tag}${sqr ? ' (illegale, B)' : ' (legale, A)'} · ${lit ? 'via libera' : 'rosso'}</title>` +
         `<path class="sgb" d="M-14,-3.2V3.2M-14,0H-7"/><rect class="sgc" x="-7" y="-3.7" width="14" height="7.4" rx="${sqr ? 0.8 : 3.7}"/>` +
         (sqr ? `<rect x="-5.5" y="-2.2" width="4.4" height="4.4" fill="${lit || SIN_TEST ? '#ffffff' : '#4a4943'}"/><rect x="1.1" y="-2.2" width="4.4" height="4.4" fill="#ff2a2a"/><circle class="sg" data-n="${sg.n}" cx="3.3" cy="0" r="0"/></g>`
@@ -4923,7 +4981,15 @@ window.MTL_CAPS = __CAPS__;
     base = SHEDS + grid + base;                                   // (the sheds under the grid: its lines stay)
     body.innerHTML = `<svg viewBox="${vb.join(' ')}" xmlns="http://www.w3.org/2000/svg" style="width:${wcss}"${SCH_EDIT.on ? ` class="edit${SIN_Z[SIN_WHICH] >= 2.4 ? ' zhi' : ''}"` : ''}><g>${base}</g><g>${over}</g>${marks}</svg>`;
     body.scrollLeft = sx; body.scrollTop = sy;
-    body.querySelectorAll('g.trn').forEach(g => g.onclick = () => { setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
+    // (on the line's board the train card of the board, over it; on the depot's, the map and the usual card)
+    body.querySelectorAll('g.trn').forEach(g => g.onclick = () => { if (SIN_WHICH !== 'line') setView('map'); state.sel = 'f' + fi + ':' + g.dataset.k; state.follow = false; renderCard(); });
+    body.querySelectorAll('g.tp').forEach(g => g.onclick = ev => { ev.stopPropagation(); const h = sinHolds(F).find(x => x.n === +g.dataset.n); if (!h) return;
+      let pop = document.getElementById('tpPop'); if (!pop) { pop = document.createElement('div'); pop.id = 'tpPop'; planEl.appendChild(pop); }
+      const r = g.getBoundingClientRect(), pr = planEl.getBoundingClientRect();
+      pop.style.left = Math.max(8, Math.min(pr.width - 310, r.left - pr.left - 140)) + 'px'; pop.style.top = (r.bottom - pr.top + 8) + 'px';
+      pop.innerHTML = `<div class="h">Banchina di ${h.banchina}</div><p>Si desidera rilasciare il comando di trattenimento treno in banchina?</p><div class="b"><button id="tpSi">Sì</button><button id="tpNo">No</button></div>`;
+      pop.hidden = false; document.getElementById('tpNo').onclick = () => { pop.hidden = true; };
+      document.getElementById('tpSi').onclick = () => { pop.hidden = true; const h2 = sinHolds(F).find(x => x.n === h.n); if (h2) sinHoldRelease(F, h2); sinRefresh(); }; });
     // a signal: its card, on the map (Giovanni 16 Nov 2026: "i semafori devono essere cliccabili")
     // the keys of the board (ACEI): a press lights the key, the next one forms the itinerary (or lets the key go);
     // the right button opens the signal's card on the map, as the click did before
@@ -5939,6 +6005,36 @@ window.MTL_CAPS = __CAPS__;
     }
     return null;
   }
+  // the trains held at a platform by the DCT (Trattieni il treno on the board's train card, or the radio's longer stop):
+  // standing there; the signal it leaves by stays red while it is held (Giovanni 20 Nov 2026: "senza segnale rosso sarebbe a
+  // discrezione del macchinista"), the release is automatic when the time is up, earlier from the board's pop-up
+  function sinHolds(F) {
+    const out = []; let mr = null; try { mr = MR; } catch (e) { return out; } if (!F || !F.ag || !mr || !mr.nextStop) return out; const SA = F.engine.net.sigall || {}, half = F.engine.half, G = F.engine.G;
+    F.trains.forEach((tr, k) => { const a = F.ag.agents()[k]; if (!a || a.hidden || a.stopAt == null) return;
+      const ns = MR.nextStop(F, tr), ex = ns && ns.here && tr.env && tr.env.extra ? tr.env.extra[ns.key] || 0 : 0;
+      if (!(ex > 0 && a.why === 'sosta') && !a.pcHold) return;
+      const sx = (SA[a.pid] || []).find(x => x[0] >= a.d + half - 1), lg = a.legs.find(l => l && l.dir) || {};
+      out.push({ k, tr, a, key: ns && ns.key, n: sx ? sx[1] : null, until: a.pcHold ? null : a.dwellUntil, pc: !!a.pcHold,
+        banchina: String(G.names[a.stopAt] || '').toUpperCase() + '_' + (lg.dir === 'N' ? 'Pari' : 'Dispari') }); });
+    return out;
+  }
+  function sinHoldRelease(F, h) {
+    const no = trainNo(F, h.tr);
+    if (h.pc) F.ag.event({ kind: 'order', k: h.k, what: 'release' });
+    else if (h.key && h.tr.env && h.tr.env.extra) { const a = h.a; h.tr.env.extra[h.key] = Math.max(0, Math.ceil(state.t - ((a.arriveT != null ? a.arriveT : state.t) + (a.dwBase || 0)))); }
+    MR.say('DCT', tx('treno.sosta.annulla', { treno: no }), 'pc');
+    sinMsg(`Treno ${no}: trattenimento in banchina rilasciato (${h.banchina}).`);
+  }
+  // Trattieni il treno: a hold of secs at its next stop (or here, standing at one), told to the driver by radio
+  function sinHoldTrain(F, tr, secs) {
+    const ns = MR.nextStop(F, tr), no = trainNo(F, tr); if (!ns) { sinMsg(`Treno ${no}: nessuna fermata davanti, non è in servizio.`); return false; }
+    tr.env = tr.env || {}; tr.env.extra = tr.env.extra || {}; const before = tr.env.extra[ns.key] || 0;
+    tr.env.extra[ns.key] = before + secs; relive(tr);
+    const dur = secs % 60 ? secs + ' secondi' : secs === 60 ? 'un minuto' : (secs / 60) + ' minuti';
+    MR.say('DCT', tx('treno.sosta.ordine', { treno: no, durata: dur, stazione: cap(ns.name), motivo: '', aggiunta: '' }), 'pc');
+    sinMsg(`Treno ${no}: trattenuto ${dur} a ${cap(ns.name)}; rilascio automatico, prima dal tasto TP sul quadro.`);
+    return true;
+  }
   // a train coming to line signal n, showing via libera: its front within 300 m before it and moving
   function sinTrainComing(F, n) {
     const S = SIGS && SIGS.find(x => x.tag === '#A' + String(n).padStart(2, '0')); if (!S || (S.asp !== 'go' && S.asp !== 'sgo')) return false;
@@ -6129,6 +6225,7 @@ window.MTL_CAPS = __CAPS__;
     // (types a, b, c, d on the legal side) also when the stretch behind them is free
     let green = null;
     if (F.ag) { const fr = {}; F.ag.agents().forEach(a => { fr[a.k] = { pid: a.pid, nose: a.d + half }; }); green = F.ag.RT.green(F.ag.rt(), fr); }
+    const HELDN = new Set(sinHolds(F).map(h => h.n).filter(n => n != null));
     SIGS.forEach(sg => {
       let busy = true;
       if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
@@ -6139,6 +6236,7 @@ window.MTL_CAPS = __CAPS__;
         const rt_ = F.ag.rt(), pr = rt_.pcRoutes && rt_.pcRoutes[n], P_ = SIN_PREP[n];
         const pcGo = !!(pr && P_ && P_.auth && P_.line === pr.id && (pr.ready == null || pr.ready <= (rt_.t || 0)) && pr.pieces.every(([ei, m0, m1]) => !(F.ag.occ(ei) || []).some(([, a0, a1]) => a1 > m0 && a0 < m1)));
         if (F.ag.rt().redFix && F.ag.rt().redFix[n]) busy = true;
+        else if (HELDN.has(n) && !green.has(n)) busy = true;
         else if (green.has(n) || pcGo) busy = false;
         else if (sg.illegal || !/^[abcd]$/.test(sg.stype || 'a') || (F.engine.net.route_rules && (F.engine.net.route_rules.redNormal || []).includes(n))) busy = true;
         else { const at = sg.pid != null ? [sg.pid, sg.d] : (sg.refs && sg.refs[0]);

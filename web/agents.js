@@ -1206,7 +1206,9 @@
       }
       // a station closed to the public: the trains in service go through without stopping
       while (leg.status === 'service' && leg.stops.length > 1 && a.stopAt == null && S.stn[leg.stops[0].st] && S.stn[leg.stops[0].st].closed && leg.stops[0].d > a.d + 1) leg.stops.shift();
-      const target = leg.stops.length ? leg.stops[0].d : leg.end;
+      // (a stop to be skipped (Salto fermata, the DCT): passed without stopping, the next one is the target)
+      while (leg.skipSet && leg.stops.length > 1 && leg.skipSet.has(leg.stops[0].st) && a.stopAt == null && leg.stops[0].d > a.d + half + 1) { if (leg.stops[0].d - a.d < 400) leg.stops.shift(); else break; }
+      const target = leg.stops.length && !(leg.skipSet && leg.stops.length > 1 && leg.skipSet.has(leg.stops[0].st)) ? leg.stops[0].d : leg.stops.length > 1 ? leg.stops[1].d : leg.stops.length ? leg.stops[0].d : leg.end;
       const au = authority(a, leg), goal = Math.min(target, au.lim);
       const B = a.brk || brk, vmax = Math.min(speedLimit(a, leg), Math.sqrt(2 * B * Math.max(0, goal - a.d)));
       if (a.v < vmax) a.v = Math.min(vmax, a.v + (a.accCap || acc) * DT); else a.v = Math.max(vmax, a.v - B * 1.5 * DT);
@@ -1499,6 +1501,12 @@
         else { a.mode = 'inside'; a.legs.push({ kind: 'stopped' }); }
         a.status = 'empty'; return true;
       }
+      // Salto fermata (the board's train card, Giovanni 20 Nov 2026): the next stop of its run, not the last, passed without
+      // stopping; the train stays on its run
+      if (kind === 'skip1') { const lg = a.legs.find(l => !l.kind && l.stops && l.status === 'service' && l.stops.length); if (!lg) return false;
+        const nx = lg.stops[a.stopAt != null ? 1 : 0]; if (!nx || nx === lg.stops[lg.stops.length - 1]) return false;
+        lg.skipSet = lg.skipSet || new Set(); lg.skipSet.add(nx.st); return G.names[nx.st] || true; }
+      if (kind === 'unskip1') { const lg = a.legs.find(l => !l.kind && l.stops && l.skipSet); if (!lg) return false; lg.skipSet.clear(); return true; }
       if (kind !== 'hold') a.pcHold = false;
       // a train standing at a station: the PC holds it there, or lets it go
       if (kind === 'hold') { if (a.stopAt == null && a.status !== 'stopped') return false; a.pcHold = true; return G.names[a.stopAt != null ? a.stopAt : a.at] || true; }
