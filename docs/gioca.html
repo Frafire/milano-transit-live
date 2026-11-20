@@ -1080,6 +1080,12 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 .trcard .next .nh::before { content: '▲ '; color: var(--signal); }
 .trcard .next p { margin: 5px 0 0; font-size: 13.5px; }
 .trcard .foot { position: sticky; bottom: -15px; margin: 12px -15px -15px; padding: 10px 15px 12px; background: var(--panel-solid); border-top: 1px solid var(--line); display: flex; justify-content: space-between; }
+.cab .tfront[role="button"] { cursor: pointer; }
+.fedit { margin-top: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: rgba(0,0,0,.25); display: grid; gap: 7px; font-size: 13px; }
+.fedit .nh { font: 600 12px var(--display); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.fedit label { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 8px; }
+.fedit input, .fedit select { min-width: 0; font: inherit; padding: 5px 7px; background: #07090b; color: var(--fg); border: 1px solid var(--line); border-radius: 4px; }
+.fedit .row { display: flex; gap: 6px; flex-wrap: wrap; }
 .cab .tfront { width: 189px; min-width: 0; flex: 0 1 auto; height: auto; image-rendering: pixelated; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
 .cab .tfront[data-k^="meneghino"], .cab .tfront[data-k^="hitachi"] { image-rendering: auto; width: 203px; }   /* (35% bigger: the signs' letters stay small, Giovanni 17 Nov 2026) */
 .cab .tacho { width: 96px; height: 96px; flex: 0 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
@@ -7459,6 +7465,10 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
   // train in the officina or in maintenance can show any sign, SCUOLA GUIDA and TRENO SPECIALE too; by units, until the
   // page is loaded again or the train leaves maintenance
   const VELTEST = {}, VEL_EXTRA = ['FUORI SERVIZIO', 'SCUOLA GUIDA', 'TRENO SPECIALE'];
+  // the front set by hand (Giovanni 20 Nov 2026: a press on the front, then the number, the destination and the lights):
+  // per train (its units), only what differs from the automatic sign; kept in this page only
+  const FRONTSET = {}, frontKey = (F, tr, rt) => F.line + '|' + (rt && rt.units ? rt.units : 'n' + tr.n);
+  const escA = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const inMaintNow = (F, tr, rt) => !!(rt && !rt.none && !rt.missing && (rt.officina || inMaint(rt.units)
     || (F.ag && F.ag.S && F.ag.S.faults && tr.agentK != null && F.ag.S.faults.list.some(f => f.k === tr.agentK && f.maint))));
   function velBox(F, tr) {
@@ -7467,7 +7477,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     return `<div class="next"><div class="nh">Prova veletta</div><p class="sub">Il treno è in manutenzione: puoi provare tutte le scritte della veletta.</p>
       <div class="row"><select id="velTest" aria-label="Scritta della veletta"><option value="">come in servizio</option>${VEL_EXTRA.concat(names).map(n => `<option${n === cur ? ' selected' : ''}>${n}</option>`).join('')}</select></div></div>`;
   }
-  function frontOf(F, tr, st) {
+  function frontOf(F, tr, st, auto) {      // auto: the sign as the game sets it, without what was set by hand
     const rt = realTrain(F, tr, state.t), kind = frontKind(rt); if (!kind) return null;
     let dest = '';
     if (st.trip >= 0) dest = trips[st.trip].h;
@@ -7485,8 +7495,11 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     const lights = offPl && still && !atSignal ? 'off' : red ? 'red' : 'white';
     // the car at the front: the first number of the units (8103-8104 + ...: 8103)
     const car = rt && rt.units ? (String(rt.units).match(/\d{3,4}/) || [''])[0] : '';      // (3 digits: the Meneghino, 941-942)
-    if (rt && VELTEST[rt.units] && inMaintNow(F, tr, rt)) return { kind, dest: VELTEST[rt.units], lights, no: '', car };
-    return { kind, dest: oos ? 'FUORI SERVIZIO' : dest, lights, no: rt && rt.tab == null ? '' : rt && rt.n != null ? String(rt.n) : String(tr.n || ''), car };      // the tabella's number, also out of service (Giovanni)
+    let f = { kind, dest: oos ? 'FUORI SERVIZIO' : dest, lights, no: rt && rt.tab == null ? '' : rt && rt.n != null ? String(rt.n) : String(tr.n || ''), car };      // the tabella's number, also out of service (Giovanni)
+    if (rt && VELTEST[rt.units] && inMaintNow(F, tr, rt)) f = { kind, dest: VELTEST[rt.units], lights, no: '', car };
+    const set = auto ? null : FRONTSET[frontKey(F, tr, rt)];
+    if (set) for (const k of ['no', 'dest', 'lights']) if (set[k] != null) f[k] = set[k];
+    return f;
   }
   const TACHO = { target: -135, cur: null, run: false, last: 0 };
   function tachoAnim(ts) {
@@ -7562,7 +7575,14 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
       : F.bus ? `<p class="info">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
     // front and speedometer side by side, the doors right across, the radio
     const fr = F.bus ? null : frontOf(F, tr, st);
-    const cab = F.bus ? '' : `<div class="cab">${fr ? `<img class="tfront" id="trainFront" alt="Frontale del treno" src="${trainFront(fr.kind, fr.dest, fr.lights, fr.no, fr.car)}" data-k="${fr.kind + fr.dest + fr.lights + fr.no}">` : ''}${tachoSVG()}</div>
+    const fkey = frontKey(F, tr, rt), fset = FRONTSET[fkey] || {}, fopen = fr && state.frontEdit === fkey;
+    const fdests = fopen ? [...new Set([...trips.map(t => String(t.h || '').toUpperCase().replace(/\s+M\d$/, '').trim()), ...VEL_EXTRA].filter(Boolean))].sort() : [];
+    const fedit = !fopen ? '' : `<div class="fedit" id="frontEdit"><div class="nh">Veletta e luci${Object.keys(fset).length ? ' · impostate a mano' : ''}</div>
+      <label>Numero <input id="feNo" inputmode="numeric" maxlength="2" value="${escA(fr.no)}"></label>
+      <label>Destinazione <input id="feDest" list="feDests" value="${escA(fr.dest)}"></label><datalist id="feDests">${fdests.map(d => `<option value="${escA(d)}">`).join('')}</datalist>
+      <label>Luci <select id="feLights">${[['', 'automatiche'], ['white', 'bianche'], ['red', 'rosse'], ['off', 'spente']].map(([v, t]) => `<option value="${v}"${(fset.lights || '') === v ? ' selected' : ''}>${t}</option>`).join('')}</select></label>
+      <div class="row"><button id="feOk">Applica</button><button id="feAuto">Tutto automatico</button><button id="feClose">Chiudi</button></div></div>`;
+    const cab = F.bus ? '' : `<div class="cab">${fr ? `<img class="tfront" id="trainFront" alt="Frontale del treno, premi per cambiare veletta e luci" title="Premi per cambiare numero, destinazione e luci" role="button" tabindex="0" src="${trainFront(fr.kind, fr.dest, fr.lights, fr.no, fr.car)}" data-k="${fr.kind + fr.dest + fr.lights + fr.no}">` : ''}${tachoSVG()}</div>${fedit}
       <div class="tile door wide" id="doorTile">PORTE CHIUSE</div>`;
     const radio = F.engine && F.line === 'M3' ? `<button class="radiobtn bar" id="radioOpen">📻 RADIO AL TRENO</button>` : '';
     // the next service: the stops of the run it is on, or what it does next
@@ -7589,6 +7609,18 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     document.getElementById('cardClose').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
     const ttBtn = document.getElementById('ttBtn'); if (ttBtn) ttBtn.onclick = () => { state.fullTT = !state.fullTT; renderCard(); };
     const rOpen = document.getElementById('radioOpen'); if (rOpen) rOpen.onclick = () => openRadio(F, tr);
+    const tf = document.getElementById('trainFront');
+    if (tf) { const tog = () => { state.frontEdit = state.frontEdit === fkey ? null : fkey; renderCard(); };
+      tf.onclick = tog; tf.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog(); } }; }
+    const feOk = document.getElementById('feOk');
+    if (feOk) { const v = id => document.getElementById(id).value;
+      feOk.onclick = () => { const no = v('feNo').replace(/[^0-9]/g, '').slice(0, 2), dest = v('feDest').trim(), li = v('feLights'), o = {};
+        // only what differs from the automatic sign is kept as set by hand
+        const auto = frontOf(F, tr, trainState(F, tr, state.t), true) || {};
+        if (no !== auto.no) o.no = no; if (dest && dest.toUpperCase() !== String(auto.dest).toUpperCase()) o.dest = dest; if (li) o.lights = li;
+        if (Object.keys(o).length) FRONTSET[fkey] = o; else delete FRONTSET[fkey]; state.frontEdit = null; renderCard(); };
+      document.getElementById('feAuto').onclick = () => { delete FRONTSET[fkey]; state.frontEdit = null; renderCard(); };
+      document.getElementById('feClose').onclick = () => { state.frontEdit = null; renderCard(); }; }
     const vt = document.getElementById('velTest'); if (vt) vt.onchange = () => { const r_ = realTrain(F, tr, state.t); if (r_) { if (vt.value) VELTEST[r_.units] = vt.value; else delete VELTEST[r_.units]; } renderCard(); };
     updateTiles();
     card.querySelectorAll('[data-fxid]').forEach(b => b.onclick = () => { fxAnswer(F, +b.dataset.fxid, b.dataset.fxa); renderCard(); });
@@ -11316,7 +11348,7 @@ window.MTL_CAPS = {"M3": ["radio_telefono", "segnali_itinerari", "chiusure", "gu
     draw();
     if (now - lastPanel > 1000) { lastPanel = now; renumberTick(); osTick(); comInvioTick(); if ((state.t >= 24 * 3600) !== syncDay.after) { syncDay.after = state.t >= 24 * 3600; syncDay(); } renderPanel(); renderAlarms(); pcHook('tick'); radioTick(); dcoTick(); closingTick(); updateSignals(); syncClosureUI(); }
     updateTiles();
-    if (now - lastCard > (typeof state.sel === 'string' && (state.sel[0] === 'b' || state.sel[0] === 'q') ? 500 : 1000)) { lastCard = now; const ae = document.activeElement; if (state.sel != null && !(ae && ae.tagName === 'SELECT' && card.contains(ae))) renderCard(); }     // (not while the player is choosing in a menu of the card)
+    if (now - lastCard > (typeof state.sel === 'string' && (state.sel[0] === 'b' || state.sel[0] === 'q') ? 500 : 1000)) { lastCard = now; const ae = document.activeElement; if (state.sel != null && !(ae && (ae.tagName === 'SELECT' || ae.tagName === 'INPUT') && card.contains(ae)) && !state.frontEdit) renderCard(); }     // (not while the player is choosing in a menu of the card, nor with the front's editor open)
     requestAnimationFrame(frame);
   }
   // ---- the radio and the telephone can be moved: drag them by their bar (double click: back to their place); the place
