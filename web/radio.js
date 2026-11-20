@@ -12,7 +12,7 @@
     const radioTx = document.getElementById('radioTx'), radioWho = document.getElementById('radioWho');
     let radioTrain = null; const radioMsgs = [], radioWatch = [];
     const durTxt = s => { const m = Math.floor(s / 60), r = s % 60; return (m ? (m === 1 ? '1 minuto' : m + ' minuti') : '') + (r ? (m ? ' e ' : '') + r + ' secondi' : ''); };
-    const cap = x => x.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, y => y.toUpperCase());
+    const cap = x => x.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, y => y.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase());
     function trainNo(F, tr) { const rt = realTrain(F, tr, state.t); return rt && !rt.missing && !rt.none ? rt.n : tr.n; }
     function stationAt(F, pid, d) {
       const st = F.engine.stations; if (!st) return null;

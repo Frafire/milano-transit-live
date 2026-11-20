@@ -1462,7 +1462,7 @@ window.MTL_CAPS = __CAPS__;
     const busStops = (F.stops || []).map((st, si) => {
       let a = 0; const ts = (st.t || []).map(x => (a += x)).map(x => x < 10800 ? x + 86400 : x);
       const ord = ts.map((_, k) => k).sort((p, q) => ts[p] - ts[q]);
-      const s2 = { ...st, n: st.n.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()), ts: ord.map(k => ts[k]), hs: ord.map(k => (st.h || [])[k]) };
+      const s2 = { ...st, n: st.n.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase()), ts: ord.map(k => ts[k]), hs: ord.map(k => (st.h || [])[k]) };
       if (!draw) return s2;
       const m = L.marker([st.la, st.lo], { keyboard: false, bubblingMouseEvents: false,
         icon: L.divIcon({ className: '', html: '<div class="hstop' + (F.display ? ' live' : '') + '">H</div>', iconSize: [0, 0] }) })
@@ -3134,10 +3134,10 @@ window.MTL_CAPS = __CAPS__;
         if (!next.length) lines = '<li><span class="nonserv">Servizio terminato</span></li>';
         next.forEach((x, k) => {
           const diff = x.t - t, min = Math.max(1, Math.round(diff / 60));
-          const txt = x.here ? `<strong class="arrivo">Treno per ${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</strong>` : diff <= soon ? '<strong class="arrivo">in arrivo</strong>' : min + (min === 1 ? ' minuto' : ' minuti');
+          const txt = x.here ? `<strong class="arrivo">Treno per ${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase())}</strong>` : diff <= soon ? '<strong class="arrivo">in arrivo</strong>' : min + (min === 1 ? ' minuto' : ' minuti');
           lines += `<li><span>${k + 1}° treno</span><span>${txt}</span></li>`;
         });
-        return `<div class="dir"><div class="dname">${binOf(d)}${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</div><ul>${lines}</ul></div>`;
+        return `<div class="dir"><div class="dname">${binOf(d)}${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase())}</div><ul>${lines}</ul></div>`;
       }
       let i = ts.findIndex(x => x >= t), lines = '';
       for (let k = 0; k < 2; k++, i++) {
@@ -3147,7 +3147,7 @@ window.MTL_CAPS = __CAPS__;
         const txt = diff <= soon ? '<strong class="arrivo">in arrivo</strong>' : min + (min === 1 ? ' minuto' : ' minuti');
         lines += `<li><span>${k + 1}° treno</span><span>${txt}</span></li>`;
       }
-      return `<div class="dir"><div class="dname">${binOf(d)}${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</div><ul>${lines}</ul></div>`;
+      return `<div class="dir"><div class="dname">${binOf(d)}${d.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase())}</div><ul>${lines}</ul></div>`;
     }).join('');
     // M3: the name as on the station walls (white lit letters on the yellow band, light panels each side), the
     // platform screens, and the station clock at the bottom
@@ -3234,7 +3234,7 @@ window.MTL_CAPS = __CAPS__;
         const near = Math.hypot((st.pos[1] - pm.stop[1]) * kx, (st.pos[0] - pm.stop[0]) * ky) < 130;
         if (near && dist(st.pos, tk.pts) < 2.5) {
           const rt = realTrain(F, tr, t), name = 'Treno ' + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n);
-          const what = st.trip >= 0 ? '→ ' + trips[st.trip].h.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()) + (st.label.startsWith('Boarding') ? ' · ' + st.label.replace('Boarding, departs', 'parte') : '') : (st.status === 'hold' ? 'arrivato' : 'in manovra');
+          const what = st.trip >= 0 ? '→ ' + trips[st.trip].h.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase()) + (st.label.startsWith('Boarding') ? ' · ' + st.label.replace('Boarding, departs', 'parte') : '') : (st.status === 'hold' ? 'arrivato' : 'in manovra');
           who = `<span class="ptrain">${name}</span> <span class="pwhat">${what}</span>`;
         }
       });
@@ -3264,7 +3264,7 @@ window.MTL_CAPS = __CAPS__;
       const hours = {}; xs.forEach(x => { const hh = Math.floor(x / 3600); (hours[hh] = hours[hh] || []).push(x); });
       const rows = Object.keys(hours).map(Number).sort((a, b) => a - b).map(hh => `<tr><td>${String(hh % 24).padStart(2, '0')}</td><td>${hours[hh].map(x =>
         `<span class="${x < t - 30 ? 'past' : x === s.ts[i] ? 'nx' : ''}">${String(Math.floor(x / 60) % 60).padStart(2, '0')}</span>`).join('')}</td></tr>`).join('');
-      return `<h3>Direzione ${h.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase())}</h3><table>${rows}</table>`;
+      return `<h3>Direzione ${h.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase())}</h3><table>${rows}</table>`;
     }).join('');
     card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
       <div><h2>${s.n}</h2><div class="sub">Fermata bus · tempo di attesa</div></div></div>
@@ -3899,7 +3899,7 @@ window.MTL_CAPS = __CAPS__;
     const out = { N: [], S: [] };
     for (const tr of F.trains) for (let si = 0; si < tr.segs.length; si++) {
       const sg = tr.segs[si]; if (sg[1] !== 'service' || sg[2] < 0) continue;
-      const tp = trips[sg[2]], names = tp.st.filter(x => x >= 0).map(x => D.stops[x][0].toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()));
+      const tp = trips[sg[2]], names = tp.st.filter(x => x >= 0).map(x => D.stops[x][0].toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase()));
       const dir = names[0].toUpperCase().startsWith('SAN DONATO') ? 'N' : 'S'; if (out[dir].length) continue;
       const ds = sg[4], ts = sg[3], stops = [];
       for (let i = 0; i < ds.length; i++) { if (i === 0 || ds[i] !== ds[i - 1]) stops.push({ d: ds[i], arr: ts[i], dep: ts[i] }); else stops[stops.length - 1].dep = ts[i]; }
@@ -4925,7 +4925,9 @@ window.MTL_CAPS = __CAPS__;
     const sgLabel = sg => { const nm = SGNM(sg); return nm && SIN_NUM && String(nm) !== String(sg.n) ? `${nm} (#A${String(sg.n).padStart(2, '0')})` : nm || sg.n; };
     const drawSig = sg => { const full = FULL[sg.e]; if (!full) return; const [p0, p1] = sinPart(SCH, sg.e); if (sg.f < p0 - 0.001 || sg.f > p1 + 0.001) return;
       const S_ = sigOf(sg), a = S_ && S_.asp || 'stop', tag = S_ ? S_.tag : '#A' + String(sg.n).padStart(2, '0'), ill = !!(S_ && S_.illegal);
-      if (ill && !SIN_ILL && a !== 'go') return;          // (hidden unless asked for, or at via libera: a train on the illegal)
+      // (hidden unless asked for, or at via libera: a train on the illegal; or the end of an itinerary from the key pressed
+      // now: the player must be able to press it, CEN-5 ends at #A322)
+      if (ill && !SIN_ILL && a !== 'go' && !(SIN_ORIG && (SIN_ORIG.dests || []).includes(sg.n))) return;
       const q0 = fd(sg.e, p0), q1 = fd(sg.e, p1), P_ = p0 > 0 || p1 < 1 ? subPts(full, q0, q1) : full, g = x => (fd(sg.e, x) - q0) / ((q1 - q0) || 1);
       const m = T(alongPts(P_, g(sg.f)));
       if (sg.d !== 1 && sg.d !== -1) { marks += `<circle class="sg" data-n="${sg.n}" data-tag="${tag}" cx="${m[0]}" cy="${m[1] - 4.5}" r="2.8" fill="${ASP[a] || '#e5383b'}"><title>${tag}</title></circle>${SIN_NUM ? `<text class="sgn" x="${m[0] + 4}" y="${m[1] - 7}">${sg.n}</text>` : ''}`; return; }
@@ -5625,7 +5627,7 @@ window.MTL_CAPS = __CAPS__;
     // Giovanni's rules (closure_one_track, keyed by the track that can NOT be used): another turn, a navetta, the same
     // as with both tracks, or not possible (no key)
     const OT = F.engine.net.closure_one_track || {};
-    const pn = i => G.names[i].toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase()).replace(/\b(Fn|Fs)\b/g, w => w.toUpperCase());
+    const pn = i => G.names[i].toLowerCase().replace(/\b\w/g, ch => ch.toUpperCase()).replace(/\b(Fn|Fs)\b/g, w => w.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase());
     const opt = (x, u) => {
       const r = (OT[x + ':' + (x === c.a ? 'N' : 'S')] || {})[u === 1 ? '2' : '1'], v = u === 1 ? '2' : '1';
       if (!r) return `<option value="${v}" disabled>solo binario ${u}: non possibile, chiudere più lontano</option>`;
@@ -5843,7 +5845,7 @@ window.MTL_CAPS = __CAPS__;
     if (P && !SIN_ORIG) { sinPrepPress(F, n, P); drawDepotPlan(); return; }
     if (SIN_ORIG && SIN_ORIG.n === n) { SIN_ORIG = null; sinMsg(`${sigName(n)}: tasto rilasciato.`); drawDepotPlan(); return; }
     if (SIN_ORIG) { const o = SIN_ORIG; SIN_ORIG = null; sinRoute(F, o, { n, si }); drawDepotPlan(); return; }
-    SIN_ORIG = { n, si }; const dep = F.ag.IL && si >= 0 && F.ag.IL.isManual(si), d = dep ? [] : sinDests(F, n, si);
+    SIN_ORIG = { n, si }; const dep = F.ag.IL && si >= 0 && F.ag.IL.isManual(si), d = dep ? [] : sinDests(F, n, si); SIN_ORIG.dests = d;
     if (dep && SIN_WHICH !== 'dep') { SIN_ORIG = null; sinMsg(`${sigName(n)}: gli itinerari del deposito si formano sul sinottico del deposito.`); drawDepotPlan(); return; }
     sinMsg(dep ? `${sigName(n)}: tasto premuto. Premi il segnale, il binario o la freccia del blocco di arrivo, o di nuovo ${sigName(n)} per rilasciarlo.`
       : `${sigName(n)}: tasto premuto. Premi il segnale di arrivo${d.length ? ' (' + d.map(x => sigName(x)).join(', ') + ')' : ''} per l'itinerario, o di nuovo ${sigName(n)} per rilasciarlo.`);
@@ -6587,7 +6589,7 @@ window.MTL_CAPS = __CAPS__;
       if (st.trip >= 0) {
         const tp = trips[st.trip]; let k = 0; while (k < tp.ts.length && tp.ts[k] < t) k++;
         const nxt = tp.st[Math.min(k, tp.st.length - 1)], stopName = D.stops[nxt >= 0 ? nxt : tp.st[k - 1]][0];
-        where = '→ ' + tp.h.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()) + ' · ' + stopName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase());
+        where = '→ ' + tp.h.replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase()) + ' · ' + stopName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Fn|Fs)\b/g, x => x.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase());
         order = tp.start;
       }
       const d = delayOf(F, tr, t), cls = delayClass(d), m = Math.round(d / 60);

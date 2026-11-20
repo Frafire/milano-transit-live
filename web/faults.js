@@ -87,7 +87,7 @@
     // the radio phrases (data/radio_m3.json): tx('code', { values }); a variant chosen with the seeded random numbers
     const FR = (typeof module !== 'undefined' && module.exports ? require('./frasi.js') : root.MTLFrasi).create(c.radio || {}, rnd);
     const tx = (code, v) => FR.t(code, v);
-    const name = st => st != null && G ? G.names[st].replace(/\s+M\d$/, '').toLowerCase().replace(/\b\w/g, x => x.toUpperCase()).replace(/\b(Fs|Fn)\b/g, x => x.toUpperCase()) : '';
+    const name = st => st != null && G ? G.names[st].replace(/\s+M\d$/, '').toLowerCase().replace(/\b\w/g, x => x.toUpperCase()).replace(/\b(Fs|Fn)\b/g, x => x.toUpperCase()).replace(/ (Di|Del|Della|Degli) /g, w_ => w_.toLowerCase()) : '';
     // what is said on the radio: who (dr: the driver of train k, pc, ag: the agent of station st, man: line maintenance)
     // the Badoni (Tempi sheet; the values not there yet are proposals): out of ROD, to the train at its top speed, the last
     // metres at the coupling speed, the coupling, back to San Donato towing the train
