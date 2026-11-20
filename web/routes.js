@@ -227,7 +227,9 @@
       if (dry) { st.dryNo = why; return !why; }
       if (why) {
         st.lastNo = why;
-        if (it && why.yield == null) { const w0 = st.wants[k]; st.wants[k] = { pieces: pieces.map(x => x.slice(0, 3)), nodes: nodes.map(x => x[0]), prio, t: st.t || 0, since: w0 && w0.id === it.id ? w0.since : st.t || 0, id: it.id, by: why.train != null ? why.train : why.route }; }
+        // (not a movement into a closed stretch: it cannot be set until the reopening, the others do not wait for it)
+        if (why.closed != null) delete st.wants[k];
+        else if (it && why.yield == null) { const w0 = st.wants[k]; st.wants[k] = { pieces: pieces.map(x => x.slice(0, 3)), nodes: nodes.map(x => x[0]), prio, t: st.t || 0, since: w0 && w0.id === it.id ? w0.since : st.t || 0, id: it.id, by: why.train != null ? why.train : why.route }; }
         else if (why.yield != null) st.yields = (st.yields || 0) + 1;
         return false;
       }

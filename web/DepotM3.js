@@ -120,6 +120,7 @@
       F.ag.agents().forEach((a, k) => {
         const tr = F.trains[k], si = Math.min(a.si, tr.segs.length - 1), s = tr.segs[si]; if (!s || a.hidden || a.mode !== 'plan' && a.mode !== 'static') return;
         if (a.officina != null) { F.depot.at[k] = String(a.officina); delete F.depot.target[k]; return; }      // in the officina for a fault
+        if (a.depotQ != null && a.mode === 'static') { F.depot.at[k] = String(a.depotQ); delete F.depot.target[k]; return; }   // sent in off its plan: its place
         let at = F.depot.at[k];
         if (at != null && !(placeOf(s) === at && standsAt(a, s, tr, si))) { delete F.depot.at[k]; at = null; }     // it has left its place
         if (at == null && F.depot.target[k] == null && standsAt(a, s, tr, si) && !taken().has(placeOf(s))) { at = F.depot.at[k] = placeOf(s); }
@@ -403,6 +404,73 @@
       return { q, pid: o.pid, d: o.start, waiting: !OFF.includes(name(q)) };
     }
 
+    // a train that goes into the depot off its plan (sent in by the DCT during a closure, marcia illegale, the end of its
+    // run on an itinerary of the PC): a free place in the rimessa, where it stands (two trains went in that way and stood
+    // one on top of the other at the end of the way in, Giovanni 20 Nov 2026)
+    function rimessaPark(k) {
+      if (!F.depotPaths) return null; if (!F.depot) init();
+      if (F.depot.at[k] != null) { const P0 = F.depotPaths[F.depot.at[k]], o0 = P0 && Object.values(P0.out)[0]; if (o0) return { q: F.depot.at[k], pid: o0.pid, d: o0.start }; }
+      const tk = taken(), q = F.depot.target[k] != null && !tk.has(String(F.depot.target[k])) ? String(F.depot.target[k]) : pickAny();
+      const P = q != null && F.depotPaths[q], o = P && Object.values(P.out)[0]; if (!o) return null;
+      F.depot.at[k] = q; delete F.depot.target[k];
+      return { q, pid: o.pid, d: o.start, plain: true };
+    }
+
+    // ---------- cambio posto in deposito (Giovanni 20 Nov 2026: "Scheda treno + radio") ----------
+    // A train standing in its place (waiting for its next run, or switched off) is sent by the DCT to another free place:
+    // out of its place on its way out, past the point where the way into the new place joins it (its tail 25 m past the
+    // switch), a change of cab, and in along that way (or straight on, when the new place is ahead on the same track).
+    // The depot's signals as for any move (in manual: from the board). Its next run out leaves from the new place.
+    function moveWay(k, q) {
+      const a = F.ag.agents()[k], p = F.depot && F.depot.at[k]; if (!a || p == null) return null;
+      const P = F.depotPaths[p], Q = F.depotPaths[q], PE = F.engine.pathEdges, half = F.engine.half; if (!P || !Q) return null;
+      // (not a way with another train standing on it: out from the back when the front half is taken, and so on)
+      const clear = c => !F.ag.trainsOn || c.legs.every(([pid, x0, x1]) => !F.ag.trainsOn(pid, Math.min(x0, x1) - 2 * half, Math.max(x0, x1), k).length);
+      let best = null; const cand = c => { if (clear(c) && (!best || c.len < best.len)) best = c; };
+      for (const o of Object.values(P.out)) {
+        const d0 = F.ag.mapTo(a.pid, a.d, o.pid); if (d0 == null || !PE[o.pid]) continue;
+        const oe = PE[o.pid].e, L = oe[oe.length - 1][3];
+        for (const oq of Object.values(Q.out)) { const dq = F.ag.mapTo(oq.pid, oq.start, o.pid); if (dq != null && dq > d0 + 5) cand({ legs: [[o.pid, d0, dq, false]], len: dq - d0, end: [o.pid, dq] }); }
+        for (const w of [{ pid: +Q.in, in_end: +Q.in_end }, ...(Q.ins || [])]) {
+          if (!PE[w.pid]) continue; const inSet = new Set(PE[w.pid].e.map(x => x[0]));
+          let M = null; for (const [ei, , x0, x1] of oe) { if (x1 <= d0 + half) continue; if (inSet.has(ei)) { M = Math.max(x0, d0 + half); break; } }
+          if (M == null) continue;
+          const X = M + half + 25; if (X > L - 1) continue;
+          const d2 = F.ag.mapTo(o.pid, X, w.pid), d2b = F.ag.mapTo(o.pid, X + 10, w.pid);
+          if (d2 == null || d2b == null || d2b > d2 || d2 >= w.in_end - 5) continue;           // (the way in goes the other way there)
+          cand({ legs: [[o.pid, d0, X, false], [w.pid, d2, w.in_end, true]], len: X - d0 + w.in_end - d2, end: [w.pid, w.in_end] });
+        }
+      }
+      return best;
+    }
+    function moveInfo(k) {
+      const a = F.ag && F.ag.agents()[k]; if (!F.depotPaths || !a || a.hidden || a.v > 0.05 || !F.depot || F.depot.at[k] == null) return null;
+      if (a.mode === 'move') return { on: true, note: 'Sta andando al ' + name(F.depot.at[k]) + '.' };
+      const tr = F.trains[k], s = tr.segs[a.si], waiting = a.mode === 'plan' && F.ag.S.t < a.wait && s && (s[1] === 'from_depot' || s[1] === 'empty') && placeOf(s) != null;
+      if (!(a.mode === 'static' && a.status === 'parked') && !waiting) return null;
+      if (loopAhead(k) || washAhead(k)) return null;
+      const tk = taken(), p = String(F.depot.at[k]);
+      const places = Object.keys(F.depotPaths).filter(q => q !== p && !tk.has(q) && moveWay(k, q)).sort((x, y) => name(x).localeCompare(name(y), undefined, { numeric: true })).map(q => [q, name(q)]);
+      return { can: places.length > 0, at: name(p), places };
+    }
+    function moveTo(k, q) {
+      const I = moveInfo(k); if (!I || !I.can || !I.places.some(x => x[0] === String(q))) return false;
+      const w = moveWay(k, q); if (!w) return false;
+      const legs = w.legs.map(([pid, d0, d1, rev]) => ({ pid, status: 'empty', stops: [], start: d0, end: d1, rev, man: true }));
+      const r = F.ag.event({ kind: 'order', k, what: 'depmove', arg: { legs, q: String(q) } }); if (!r) return false;
+      F.depot.at[k] = String(q); delete F.depot.target[k];
+      env.say('DCT', env.tx('treno.posto.ordine', { treno: no(k), posto: name(q) }), 'pc');
+      env.say('T' + no(k), env.tx('treno.posto.risposta', { posto: name(q) }), 'dr');
+      return true;
+    }
+    // arrived in the new place (agents.js, marker depotmove): its next run out leaves from it
+    function moved_(k, q) {
+      if (!F.depot) init(); const tr = F.trains[k], a = F.ag.agents()[k]; F.depot.at[k] = String(q); delete F.depot.target[k];
+      const P = F.depotPaths[q], o = P && Object.values(P.out)[0];
+      if (a && a.mode === 'plan' && o) followPlace(tr, a.si - 1, String(q), o.pid, o.start);
+      if (env.relive) env.relive(tr);
+    }
+
     // ---------- the wash (Giovanni 9 Nov 2026) ----------
     // The DCT sends a train standing in its place in the rimessa through the wash and back to its place (or another one
     // he gives), at any time of the day or night; one train at a time: the driver of a second one says no until the
@@ -456,7 +524,7 @@
       }
     }
 
-    Object.assign(D, { outSide, pairOf, halfOf, officinaPark, OFF, washInfo, sendToWash, washRole, nextAuto, init, tick, newDay, assign, pick, pastEntrance, rewriteOut, taken, name, placeOf, loopRole, loopInfo, sendToLoop, holdAt, standsAt, isOut });
+    Object.assign(D, { outSide, pairOf, halfOf, officinaPark, rimessaPark, moveInfo, moveTo, moved: moved_, OFF, washInfo, sendToWash, washRole, nextAuto, init, tick, newDay, assign, pick, pastEntrance, rewriteOut, taken, name, placeOf, loopRole, loopInfo, sendToLoop, holdAt, standsAt, isOut });
     return D;
   }
 

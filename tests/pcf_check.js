@@ -27,7 +27,10 @@ function chain(ids, T0) {
   }
   return { ag, k, vmaxIll, stops, back, tDiv, formed };
 }
-for (const [ids, T0, wantStop] of [[['SON-4', 'ZS-5'], 6 * 3600 + 1200, 14], [['SON-3', 'CEN-7'], 6 * 3600 + 1200, 13]]) {
+// (COS-4: into Comasina on binario 1, the departure platform, the wrong way: at the terminus it takes its own next run
+// from there, after the change of cab)
+const LAST = M.degraded.names.length - 1;
+for (const [ids, T0, wantStop] of [[['SON-4', 'ZS-5'], 6 * 3600 + 1200, 14], [['SON-3', 'CEN-7'], 6 * 3600 + 1200, 13], [['COS-4'], 9 * 3600, LAST]]) {
   const r = chain(ids, T0), rt = r.ag.rt(), plan = r.k != null ? M.trains[r.k] : null;
   ok(r.formed.length === ids.length, `${ids.join(' → ')}: formed ${r.formed.join(', ')}`);
   ok(r.k != null, `${ids[0]}: taken by train ${r.k} at ${r.tDiv != null ? Math.round(r.tDiv - T0) + ' s' : '—'}`);

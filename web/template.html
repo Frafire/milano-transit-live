@@ -301,6 +301,7 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .stops li { display: grid; grid-template-columns: 46px 1fr; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line); text-transform: capitalize; }
 .stops li.past { color: var(--muted); opacity: .55; }
 .stops li.next { color: var(--signal); font-weight: 600; }
+.stops small.late { color: #ff6b5e; font-weight: 600; }
 .stops li.gap { color: var(--muted); font-style: italic; text-transform: none; }
 .stops li.dest { font-weight: 600; }
 .tiles { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; margin-top: 10px; }
@@ -1602,7 +1603,7 @@ window.MTL_CAPS = __CAPS__;
     if (ag && ag.mode !== 'plan' && tr.tab && F.ag.agents().some(x => x !== ag && x.mode !== 'plan' && x.tabM === tr.agentK)) return { ...F.stock[u], n: mat, tab: null, u, renum: true };
     return { ...F.stock[u], n: tr.tab ? tr.n : mat, tab: tr.tab ? tr.n : null, u };
   }
-  const parkedLabel = (F, where) => where && where !== 'depot' ? 'Parked overnight in a ' + where + ' tail track' : 'Parked in the ' + F.home + ' depot';
+  const parkedLabel = (F, where) => where && where !== 'depot' ? 'In sosta in un tronchetto di ' + where : F.line === 'M3' ? 'In deposito a Rogoredo (ROD)' : 'In deposito';
   // live engine: drive this train from its (possibly changed) plan
   // the day of the trains without the others (a train whose plan changed by radio: the agents drive the real thing;
   // this only keeps its timetable view up to date). Without the day driven at build time: every train like that.
@@ -1937,22 +1938,37 @@ window.MTL_CAPS = __CAPS__;
     const nx = card.querySelector('li.next');
     if (nx && !card.matches(':hover')) nx.scrollIntoView({ block: 'nearest' });
   }
-  function stopList(tr, t) {
-    let rows = '', nextMarked = false;
+  // where the train is along its run (the agents: the station it stands at, or its next stop), not the clock: a train held
+  // at Porto di Mare keeps Porto di Mare as its stop (Giovanni 20 Nov 2026); times of the stops ahead with its lateness
+  const nameKey = x => String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  function trainAt(F, tr) {
+    const a = F && F.ag && tr && tr.agentK != null ? F.ag.agents()[tr.agentK] : null; if (!a || a.hidden || !F.engine || !F.engine.G) return null;
+    const leg = a.legs && a.legs[0] && !a.legs[0].kind ? a.legs[0] : null;
+    const st = a.stopAt != null ? a.stopAt : leg && leg.stops && leg.stops.length ? leg.stops[0].st : null; if (st == null) return null;
+    // (standing past its departure time: late by that much already)
+    const z = leg && leg.stops && leg.stops[0], now = F.ag.S.t, held = a.stopAt != null && z && z.dep && leg.timed ? now - z.dep : null;
+    return { key: nameKey(F.engine.G.names[st]), here: a.stopAt != null, late: held != null && held > (a.late || 0) ? held : a.late };
+  }
+  function posIndex(tr, t, pos) {
+    if (pos) for (let i = 0; i < tr.st.length; i++) if (tr.st[i] >= 0 && nameKey(D.stops[tr.st[i]][0]) === pos.key) return i;
+    for (let i = 0; i < tr.st.length; i++) if (tr.st[i] >= 0 && tr.ts[i] >= t - 5) return i;
+    return tr.st.length;
+  }
+  const lateTxt = (pos, i, k) => pos && i >= k && pos.late != null && pos.late >= 60 ? ` <small class="late">+${Math.round(pos.late / 60)}'</small>` : '';
+  function stopList(tr, t, pos) {
+    let rows = ''; const k = posIndex(tr, t, pos);
     for (let i = 0; i < tr.st.length; i++) {
       if (tr.st[i] < 0) continue;
-      const past = tr.ts[i] < t - 5;
-      let cls = past ? 'past' : '';
-      if (!past && !nextMarked) { cls = 'next'; nextMarked = true; }
-      rows += `<li class="${cls}"><time>${fmt(tr.ts[i])}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
+      const cls = i < k ? 'past' : i === k ? 'next' : '';
+      rows += `<li class="${cls}"><time>${fmt(tr.ts[i])}${lateTxt(pos, i, k)}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
     }
     return rows;
   }
   // short timetable: last stop, next two, destination; the button shows every stop
-  function stopListShort(tr, t) {
+  function stopListShort(tr, t, pos) {
     const idx = []; for (let i = 0; i < tr.st.length; i++) if (tr.st[i] >= 0) idx.push(i);
-    let k = idx.findIndex(i => tr.ts[i] >= t - 5); if (k < 0) k = idx.length;
-    const row = (i, cls) => `<li class="${cls}"><time>${fmt(tr.ts[i])}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
+    const p0 = posIndex(tr, t, pos); let k = idx.findIndex(i => i >= p0); if (k < 0) k = idx.length;
+    const row = (i, cls) => `<li class="${cls}"><time>${fmt(tr.ts[i])}${lateTxt(pos, i, p0)}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
     let rows = '';
     if (k > 0) rows += row(idx[k - 1], 'past');
     for (let j = k; j < Math.min(k + 2, idx.length); j++) rows += row(idx[j], j === k ? 'next' : '');
@@ -2002,7 +2018,7 @@ window.MTL_CAPS = __CAPS__;
     const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F.trains[i], st = trainState(F, tr, state.t);
     let body = '', title = st.label;
     if (st.trip >= 0) { const tp = trips[st.trip]; title = '→ <span class="cap">' + tp.h + '</span>';
-      body = `<ol class="stops">${state.fullTT ? stopList(tp, state.t) : stopListShort(tp, state.t)}</ol>
+      body = `<ol class="stops">${state.fullTT ? stopList(tp, state.t, trainAt(F, tr)) : stopListShort(tp, state.t, trainAt(F, tr))}</ol>
         <div class="row"><button id="ttBtn" aria-pressed="${!!state.fullTT}">${state.fullTT ? 'Orario ridotto' : 'Orario completo'}</button></div>`; }
     // next activity for trains not in service
     if (st.agent && st.agent.mode !== 'plan') body = st.agent.status === 'service' && st.agent.to != null ? `<p class="sub" style="margin-top:10px">Servizio passeggeri ridotto: ferma in tutte le stazioni fino a <span class="cap">${cap(F.engine.G.names[st.agent.to])}</span>.</p>` : '';
@@ -2029,26 +2045,17 @@ window.MTL_CAPS = __CAPS__;
     updateTiles();
     card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
     card.querySelectorAll('[data-wash]').forEach(b => b.onclick = () => { const sel = card.querySelector('#washTo'); if (F.dm && tr.agentK != null) F.dm.sendToWash(tr.agentK, sel ? sel.value : null); renderCard(); });
+    card.querySelectorAll('[data-move]').forEach(b => b.onclick = () => { const sel = card.querySelector('#moveTo'); if (F.dm && tr.agentK != null && sel) { if (!F.dm.moveTo(tr.agentK, sel.value)) flashNote('Cambio posto non possibile ora'); } renderCard(); });
     card.querySelectorAll('[data-arr2]').forEach(b => b.onclick = () => { orderP2(F, tr, +b.dataset.arr2); renderCard(); });
     const nx = card.querySelector('li.next');
     if (nx && !card.matches(':hover')) nx.scrollIntoView({ block: 'nearest' });
   }
-  function stopList(tr, t) {
-    let rows = '', nextMarked = false;
-    for (let i = 0; i < tr.st.length; i++) {
-      if (tr.st[i] < 0) continue;
-      const past = tr.ts[i] < t - 5;
-      let cls = past ? 'past' : '';
-      if (!past && !nextMarked) { cls = 'next'; nextMarked = true; }
-      rows += `<li class="${cls}"><time>${fmt(tr.ts[i])}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
-    }
-    return rows;
-  }
+
   // short timetable: last stop, next two, destination; the button shows every stop
-  function stopListShort(tr, t) {
+  function stopListShort(tr, t, pos) {
     const idx = []; for (let i = 0; i < tr.st.length; i++) if (tr.st[i] >= 0) idx.push(i);
-    let k = idx.findIndex(i => tr.ts[i] >= t - 5); if (k < 0) k = idx.length;
-    const row = (i, cls) => `<li class="${cls}"><time>${fmt(tr.ts[i])}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
+    const p0 = posIndex(tr, t, pos); let k = idx.findIndex(i => i >= p0); if (k < 0) k = idx.length;
+    const row = (i, cls) => `<li class="${cls}"><time>${fmt(tr.ts[i])}${lateTxt(pos, i, p0)}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
     let rows = '';
     if (k > 0) rows += row(idx[k - 1], 'past');
     for (let j = k; j < Math.min(k + 2, idx.length); j++) rows += row(idx[j], j === k ? 'next' : '');
@@ -2643,6 +2650,9 @@ window.MTL_CAPS = __CAPS__;
     const tp = st.trip >= 0 ? trips[st.trip] : null, orig = tp ? D.stops[tp.st.find(x => x >= 0)][0] : '', dest = tp ? tp.h : (a && a.to != null ? G.names[a.to] : '');
     const doors = !!(a && a.stopAt != null && state.t < (a.dwellUntil || 0) && !hold), guida = a && (a.vlim || a.why === 'tensione' || (a.legs && a.legs[0] && a.legs[0].man)) ? 'MA' : 'ATO';
     const em = a && (a.why === 'rosso' || a.why === 'guasto') ? 'Frenatura di emergenza' : 'Nessuna frenatura di emergenza';
+    // (Assente: a traction fault not yet cleared, or no power; Giovanni 20 Nov 2026)
+    const ftr = F.ag.S.faults && (F.ag.S.faults.list || []).some(f => f.k === i && !f.done && (f.kind === 'trazione' || f.kind === 'udt' || f.kind === 'soccorso'));
+    const trazione = a && (a.why === 'tensione' || ftr) ? 'Assente' : 'Normale';
     const pross = ns ? String(ns.name).toUpperCase() + '_' + (lg.dir === 'N' ? 'Pari' : 'Dispari') : '—';
     const v = x => `<div class="scv">${x}</div>`, id = tipo + String(tr.n).padStart(2, '0') + String(corsa).padStart(2, '0');
     const SERV = ['Disponibile all\'associazione', 'Associato ad una corsa dell\'orario', 'Associato ad una corsa del s.n./s.p', 'Treno ad orario libero', 'Treno in manovra', 'Treno scuola', 'Treno guasto', 'Non disponibile all\'associazione'];
@@ -2656,7 +2666,7 @@ window.MTL_CAPS = __CAPS__;
       <fieldset><legend>Movimento del treno</legend><div class="scg"><label>Origine${v(String(orig).toUpperCase() || '—')}</label><label>Destinazione${v(String(dest).toUpperCase() || '—')}</label><label></label></div>
         <div class="scb"><button disabled title="Non ancora nel gioco">Treno ad orario libero</button><button disabled title="Non ancora nel gioco">Treno in manovra</button></div></fieldset>
       <fieldset><legend>Altre informazioni</legend><div class="scg"><label>Modalità di guida${v(guida)}</label><label>Porte treno${v(doors ? 'Porte aperte' : 'Porte chiuse')}</label><label>Frenatura d'emergenza${v(em)}</label></div></fieldset>
-      <fieldset><legend>Regolazione treno</legend><div class="scg"><label>Pross. fermata${v(pross)}</label><label>Tratt. alla pross. fermata${v(hold ? (hold.until ? 'Trattenuto fino alle ' + fmt(hold.until, true).join('') : 'Trattenuto') : ex > 0 ? 'Richiesto ' + ex + ' s' : ex < 0 ? 'Anticipo ' + (-ex) + ' s' : 'Non richiesto')}</label><label>Stato trazione${v('Normale')}</label></div>
+      <fieldset><legend>Regolazione treno</legend><div class="scg"><label>Pross. fermata${v(pross)}</label><label>Tratt. alla pross. fermata${v(hold ? (hold.until ? 'Trattenuto fino alle ' + fmt(hold.until, true).join('') : 'Trattenuto') : ex > 0 ? 'Richiesto ' + ex + ' s' : ex < 0 ? 'Anticipo ' + (-ex) + ' s' : 'Non richiesto')}</label><label>Stato trazione${v(trazione)}</label></div>
         <div class="scb"><button id="scHold" ${ns ? '' : 'disabled'}>Trattieni il treno</button><select id="scDur" aria-label="Durata">${[30, 60, 90, 120, 180].map(x => `<option value="${x}" ${x === SC_DUR ? 'selected' : ''}>${x < 60 ? x + ' s' : x / 60 + ' min'}</option>`).join('')}</select>
           ${hold ? '<button id="scRel">Rilascia</button>' : ''}<button id="scEarly" ${ns ? '' : 'disabled'} title="Parte prima del suo orario, del tempo scelto">Partenza anticipata</button><button id="scSkip" ${ns && !ns.here ? '' : 'disabled'}>Salto fermata</button><span style="flex:1"></span><button id="scClose">Chiudi</button></div></fieldset>`;
     card.hidden = false;
@@ -2698,7 +2708,7 @@ window.MTL_CAPS = __CAPS__;
     // the next service: the stops of the run it is on, or what it does next
     let next = '';
     if (st.trip >= 0) { const tp = trips[st.trip];
-      next = `<div class="next"><div class="nh">Fermate</div><ol class="stops">${state.fullTT ? stopList(tp, state.t) : stopListShort(tp, state.t)}</ol>
+      next = `<div class="next"><div class="nh">Fermate</div><ol class="stops">${state.fullTT ? stopList(tp, state.t, trainAt(F, tr)) : stopListShort(tp, state.t, trainAt(F, tr))}</ol>
         <div class="row"><button id="ttBtn" aria-pressed="${!!state.fullTT}">${state.fullTT ? 'Orario ridotto' : 'Orario completo'}</button></div></div>`; }
     else if (a && a.mode !== 'plan') next = a.status === 'service' && a.to != null ? `<div class="next"><div class="nh">Servizio</div><p>Servizio passeggeri ridotto: ferma in tutte le stazioni fino a <span class="cap">${cap(F.engine.G.names[a.to])}</span>.</p></div>` : '';
     else if (trial) {
@@ -2712,7 +2722,7 @@ window.MTL_CAPS = __CAPS__;
     const logo = F.line === 'M3' && M3LOGO.startsWith('data:') ? `<img class="lnlogo" src="${M3LOGO}" alt="M3">` : `<span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>`;
     card.innerHTML = `<div class="hd">${logo}<div class="hdtx"><h2>${title}</h2>${what ? `<div class="what">${what}</div>` : ''}
         <div class="sub"><span>${no}</span>${stTxt}${F.bus ? '' : '<span class="pill" id="delayTile" hidden></span>'}</div></div></div>
-      ${info}${cab}${velBox(F, tr)}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${trial && F.dm && tr.agentK != null && (F.dm.loopInfo(tr.agentK) || {}).onLoop ? '' : testLoopBox(F, tr, st)}${washBox(F, tr)}
+      ${info}${cab}${velBox(F, tr)}${faultBox(F, i)}${radio}${next}${arr2Box(F, tr, st)}${trial && F.dm && tr.agentK != null && (F.dm.loopInfo(tr.agentK) || {}).onLoop ? '' : testLoopBox(F, tr, st)}${moveBox(F, tr)}${washBox(F, tr)}
       <div class="foot"><button id="followBtn" aria-pressed="${state.follow}">Follow</button><button id="cardClose">Chiudi</button></div>`;
     card.hidden = false;
     document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
@@ -2724,6 +2734,7 @@ window.MTL_CAPS = __CAPS__;
     card.querySelectorAll('[data-fxid]').forEach(b => b.onclick = () => { fxAnswer(F, +b.dataset.fxid, b.dataset.fxa); renderCard(); });
     card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
     card.querySelectorAll('[data-wash]').forEach(b => b.onclick = () => { const sel = card.querySelector('#washTo'); if (F.dm && tr.agentK != null) F.dm.sendToWash(tr.agentK, sel ? sel.value : null); renderCard(); });
+    card.querySelectorAll('[data-move]').forEach(b => b.onclick = () => { const sel = card.querySelector('#moveTo'); if (F.dm && tr.agentK != null && sel) { if (!F.dm.moveTo(tr.agentK, sel.value)) flashNote('Cambio posto non possibile ora'); } renderCard(); });
     card.querySelectorAll('[data-arr2]').forEach(b => b.onclick = () => { orderP2(F, tr, +b.dataset.arr2); renderCard(); });
     card.querySelectorAll('[data-plat]').forEach(b => b.onclick = () => {
       const alt = tr.alts[+b.dataset.alt], p = +b.dataset.plat;
@@ -3351,6 +3362,15 @@ window.MTL_CAPS = __CAPS__;
   }
   function sendToTestLoop(F, tr, how) { if (F.dm && tr.agentK != null) F.dm.sendToLoop(tr.agentK, how); }
   // ---- the wash (Giovanni 9 Nov 2026): the DCT sends a train of the rimessa through the wash, back to its place or another ----
+  // cambio posto in deposito (Giovanni 20 Nov 2026): a train standing in its place, to another free place, with the radio
+  function moveBox(F, tr) {
+    const I = F.dm && F.dm.moveInfo && tr.agentK != null ? F.dm.moveInfo(tr.agentK) : null; if (!I) return '';
+    if (I.on) return `<div class="picker"><div class="label">Cambio posto</div><p class="note">${I.note}</p></div>`;
+    if (!I.can) return `<div class="picker"><div class="label">Cambio posto</div><p class="note">Al ${I.at}: nessun altro posto libero raggiungibile.</p></div>`;
+    return `<div class="picker"><div class="label">Cambio posto</div>
+      <div class="row"><select id="moveTo" aria-label="Nuovo posto">${I.places.map(([q, n]) => `<option value="${q}">${n}</option>`).join('')}</select><button data-move="1">Cambia posto</button></div>
+      <p class="note">Ora al ${I.at}. Il DCT lo avvisa per radio; esce dal suo posto, cambia banco se serve ed entra nel nuovo. La prossima uscita parte da lì.</p></div>`;
+  }
   function washBox(F, tr) {
     const I = F.dm && F.dm.washInfo && tr.agentK != null ? F.dm.washInfo(tr.agentK) : null; if (!I) return '';
     if (I.on || !I.can) return `<div class="picker"><div class="label">Lavaggio</div><p class="note">${I.note}</p></div>`;
@@ -4369,9 +4389,10 @@ window.MTL_CAPS = __CAPS__;
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); tr.carr10 = tr.carr1 && JSON.parse(JSON.stringify(tr.carr1)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, depotPark: k => (F.dm && F.ag && F.ag.S.faults && F.ag.S.faults.list.some(f => f.k === k && f.maint)) ? F.dm.officinaPark(k) : null, tempi: (E_.net.rules || {}).tempi, sdTails: E_.net.sd_tail_edges, depotIn: Object.values(F.depotPaths || {}).map(P => [P.in, P.in_stop]), sdTailSig: Object.fromEntries(((E_.net.schema_depot || {}).signals || []).filter(x => (E_.net.sd_tail_edges || []).includes(x.e)).map(x => [x.e, x.n])), badoni: F.test && F.test.badoni, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, unitOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t); return d && d[2] >= 0 ? stock[d[2]] : null; })(F.trains.map(tr => tr.duties), F.stock || []), hasSocimi: (F.stock || []).some(u => /socimi/i.test(u.type || '')), kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      planOf: k => F.trains[k].segs, count: F.trains.length, depotPark: k => !F.dm ? null : (F.ag && F.ag.S.faults && F.ag.S.faults.list.some(f => f.k === k && f.maint)) ? F.dm.officinaPark(k) : F.dm.rimessaPark(k), tempi: (E_.net.rules || {}).tempi, sdTails: E_.net.sd_tail_edges, depotIn: Object.values(F.depotPaths || {}).map(P => [P.in, P.in_stop]), sdTailSig: Object.fromEntries(((E_.net.schema_depot || {}).signals || []).filter(x => (E_.net.sd_tail_edges || []).includes(x.e)).map(x => [x.e, x.n])), badoni: F.test && F.test.badoni, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, unitOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t); return d && d[2] >= 0 ? stock[d[2]] : null; })(F.trains.map(tr => tr.duties), F.stock || []), hasSocimi: (F.stock || []).some(u => /socimi/i.test(u.type || '')), kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino|hitachi/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
+      depotMoved: (k, q) => { if (F.dm) F.dm.moved(k, q); },
       makeProf: pe => MTLEngine.buildProfiles([pe], E_.net.edges, E_.fileSpeeds, E_.ops, E_.fileCuts)[0], onPath: pid => { if (F.paths[pid] && F.paths[pid].game) delete F.paths[pid]; },
       initAt: t => bookedPositions(F, t), cyclic: F.test && F.test.cyclic ? { [F.test.cycle]: F.test.lap } : null, holdAt: (k, si) => !!(F.dm && F.dm.holdAt(k, si)) });
     F.ag.start(state.t, bookedPositions(F, state.t)); F.ag.snapshot();
@@ -5223,6 +5244,7 @@ window.MTL_CAPS = __CAPS__;
     if (!F.depotPaths || !F.ag) return null;
     if (!F.dm) F.dm = MTLDepotM3.create(F, { say, tx: (...a) => tx(...a), fmt: t => fmt(t), trainNo: tr => trainNo(F, tr),
       trial: k => { const r = realTrain(F, F.trains[k], F.ag.S.t); return !!(r && r.trial && !admitted(r.units)); },
+      relive: tr => relive(tr),
       call: (tr, text) => { if (radioEl.hidden) openRadio(F, tr); radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000); say('T' + trainNo(F, tr), text, 'call'); } });
     return F.dm;
   }

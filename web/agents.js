@@ -547,7 +547,9 @@
     function parkOff(a) {
       const r = o.depotPark ? o.depotPark(a.k) : null; if (!r) return false;
       a.hidden = false; a.mode = 'static'; a.status = 'parked'; a.pid = r.pid; a.d = r.d; a.v = 0; a.legs = []; a.stopAt = null; a.vlim = null;
-      a.attached = null; a.broken = true; a.officina = r.q; a.illMove = false; delete S.rt.routes[a.k]; return true;
+      a.attached = null; a.illMove = false; a.pcf = null; delete S.rt.routes[a.k];
+      if (r.plain) { a.depotQ = r.q; return true; }            // (a place of the rimessa: not broken)
+      a.broken = true; a.officina = r.q; return true;
     }
     function follow(a) {                     // coupled to another train (rescue): it goes where that one goes, right behind it
       const f = S.agents[a.attached];
@@ -807,7 +809,9 @@
           // between a station of the closed stretch and the first open one: it goes on to that station (the signals
           // let it out of the closed stretch), then on with the others
           const prevSt = !waiting && q > 0 && Math.abs(sts[q].d - a.d) > 1 ? sts[q - 1].st : null;
-          a.exitClosed = P && prevSt != null && prevSt > cl.a && prevSt < cl.b;
+          // (from the station at an end of it too: San Donato – Rogoredo FS, a train between them going to Rogoredo, Giovanni
+          // 20 Nov 2026: it stood at #A290 for ever, and the trains turning at Rogoredo waited for it)
+          a.exitClosed = P && prevSt != null && prevSt >= cl.a && prevSt <= cl.b;
           if (P) { a.mode = 'shuttle'; a.part = P; const fromD = waiting ? null : a.d; a.legs = legsFromPlan(a.k, p_si, P, fromD); if (a.stopAt != null && !(a.legs[0] && a.legs[0].stops && a.legs[0].stops.length && Math.abs(a.legs[0].stops[0].d - a.d) < 1)) a.stopAt = null; continue; }
           // between two closed stations: on to the next station, then wait for the PC
           const leg = legOfSeg(s, a.d); leg.stops = leg.stops.slice(0, 1); leg.end = leg.stops.length ? leg.stops[0].d : a.d;
@@ -932,6 +936,11 @@
         if (!f) { a.rescuing = null; a.legs = [{ kind: 'home', dir: m.dir || 'S' }]; return true; }
         a.attached = m.f; a.rescuing = null; f.rescue.stage = 'towed'; f.vlim = 15 / 3.6; goHome(f, false); return false;
       }
+      if (m.kind === 'depotmove') {
+        a.mode = m.mode; a.status = 'parked'; a.v = 0; delete S.rt.routes[a.k];
+        if (o.depotMoved) o.depotMoved(a.k, m.q);
+        if (a.mode === 'plan') { a.wait = Math.max(m.wait || 0, S.t); a.legs = [planLeg(a.k, a.si)]; } else { a.legs = []; a.depotQ = m.q; }
+        return false; }
       if (m.kind === 'pcfwait') return pcfWait(a);
       if (m.kind === 'assign') { assign(a); return a.legs.length > 0; }
       if (m.kind === 'retry') { a.legs.unshift(...nextShuttleLegs(a)); return a.legs[0] && a.legs[0].kind !== 'retry'; }
@@ -1220,7 +1229,7 @@
       const B = a.brk || brk, vmax = Math.min(speedLimit(a, leg), Math.sqrt(2 * B * Math.max(0, goal - a.d)));
       if (a.v < vmax) a.v = Math.min(vmax, a.v + (a.accCap || acc) * DT); else a.v = Math.max(vmax, a.v - B * 1.5 * DT);
       if (goal - a.d > 0.4 && a.v < 0.3) a.v = 0.3;
-      a.d = Math.min(goal, a.d + a.v * DT);
+      a.d = Math.max(a.d, Math.min(goal, a.d + a.v * DT));          // (never backwards: a limit behind the train only holds it)
       if (goal - a.d < 0.4 && a.v <= 0.8) {
         a.v = 0;
         if (target - a.d < 6) {                        // at the stop (a few metres short counts: the platform is long)
@@ -1447,8 +1456,10 @@
       // the platforms on it (the mains' platform zones, the same track)
       if (o.zones) { const z = [];
         for (const P of [G.N, G.S, ...((G.pairs || []).flatMap(x => [x.N, x.S]))]) for (const [z0, z1, v, st] of o.zones[P.pid] || []) {
-          const a0 = mapTo(P.pid, z0, np), a1 = mapTo(P.pid, z1, np); if (a0 == null || a1 == null) continue;
-          if (!z.some(y => y[3] === st && Math.abs(y[0] - Math.min(a0, a1)) < 5)) z.push([Math.min(a0, a1), Math.max(a0, a1), v, st]); }
+          // (the part of the platform on the path: it may end at the end signal, half way along it)
+          const xs = []; for (let x = z0; x <= z1 + 0.1; x += Math.max(1, (z1 - z0) / 24)) { const y = mapTo(P.pid, Math.min(x, z1), np); if (y != null) xs.push(y); }
+          if (xs.length < 2) continue; const a0 = Math.min(...xs), a1 = Math.max(...xs);
+          if (!z.some(y => y[3] === st && Math.abs(y[0] - a0) < 5)) z.push([a0, a1, v, st]); }
         o.zones[np] = z.sort((p, q) => p[0] - q[0]); }
       S.rtp = (S.rtp || []).filter(x => x.pid !== np); S.rtp.push({ pid: np, e });
       if (o.onPath) o.onPath(np);
@@ -1524,6 +1535,26 @@
       a.legs = [{ pid: np, status: svc ? 'service' : 'empty', trip: a.trip, stops, end: endD, start: a.d, dir: dirOn(np, a.d), pcf: { n: null }, ill: !!pf.contra, man: pf.contra || undefined }, { kind: 'pcfwait' }];
       return true;
     }
+    // at a terminus on itineraries of the PC, off its run (Giovanni 20 Nov 2026: "se la sua tabella sarebbe finita torna in
+    // deposito, sennò rientra o con la prima corsa disponibile o riprende la sua"): its day has no more runs with passengers:
+    // home (San Donato: the depot; Comasina: a tail); else its own next run, from the first move of its day that starts
+    // where it stands (the platform it is at, after the change of cab). Else it waits for the PC (the first run free from
+    // there, another tabella's: not yet)
+    function pcfTerminus(a) {
+      if (a.at !== 0 && a.at !== last) return false;
+      const z = (o.zones && o.zones[a.pid] || []).find(x => x[3] === a.at && a.d >= x[0] - 5 && a.d <= x[1] + 5); if (!z) return false;
+      const plan = planOf(a.k) || [];
+      if (!plan.slice(a.si + 1).some(s => s[1] === 'service')) {
+        a.pcf = null; a.legs = [{ kind: 'unload' }, { kind: 'home', dir: a.at === 0 ? 'S' : 'N' }]; a.mode = 'home'; S.log.push({ t: S.t, k: a.k, pcfHome: a.at }); return true; }
+      // (from the run after the one it was on: that one it left for the itinerary)
+      for (let si = plan[a.si] && plan[a.si][1] === 'service' ? a.si + 1 : a.si; si < plan.length; si++) { const s = plan[si];
+        const d2 = mapTo(a.pid, a.d, s[0]); if (d2 == null || Math.abs(d2 - s[4][0]) > 60) { if (s[1] === 'service') break; continue; }
+        // (the same place, facing the other way: a change of cab)
+        const f2 = mapTo(a.pid, a.d + 20, s[0]), rev = f2 != null && f2 < d2;
+        a.pcf = null; a.si = si; a.legs = [planLeg(a.k, si)]; a.legs[0].rev = rev; a.wait = Math.max(s[3][0], S.t + (rev ? reverse : 0)); a.status = 'turnback';
+        S.log.push({ t: S.t, k: a.k, pcfTerm: si }); return true; }
+      return false;
+    }
     // at the end of an itinerary of the PC: the next one prepared from the end signal, or back on the run's own track
     function pcfWait(a) {
       a.v = 0; a.why = 'segnale';
@@ -1539,6 +1570,7 @@
           { const L0 = a.legs[0]; if (L0.stops.length > 1 && L0.stops[0].st === a.at && Math.abs(L0.stops[0].d - d2) < 80) L0.stops.shift(); } a.pcf = null; a.why = null; a.status = a.legs[0].status;
           S.log.push({ t: S.t, k: a.k, pcfBack: si }); return true; }
       }
+      if (a.mode === 'plan' && pcfTerminus(a)) return true;
       if ((a.mode === 'shuttle' || a.mode === 'timetable') && !pf.contra) { a.pcf = null; a.at = null; assign(a); if (a.legs.length) return true; a.pcf = pf; }
       // the next itinerary prepared by the PC from the signal it stands at
       if (pf.end != null && S.rt.pcRoutes && S.rt.pcRoutes[pf.end] && pcFollow(a, pf.end)) return true;
@@ -1634,6 +1666,10 @@
         takeRun(r, c); r.hard = true; if (S.reopened) { a.tabM = c.m; a.tabJ = c.j; } return c.tx;
       }
       if (kind === 'instr') return instruct(a, arg && arg.key);
+      // cambio posto in deposito (web/DepotM3.js gives the moves): it goes, then back to what it was doing
+      if (kind === 'depmove') { if (!arg || !arg.legs || a.hidden || a.v > 0.05) return false;
+        a.legs = arg.legs.map(l => Object.assign({}, l)).concat([{ kind: 'depotmove', q: arg.q, mode: a.mode, wait: a.wait }]);
+        a.mode = 'move'; a.wait = 0; a.status = 'empty'; a.stopAt = null; S.log.push({ t: S.t, k: a.k, depmove: arg.q }); return true; }
       if (a.mode === 'inside' && a.status === 'stopped') {
         const I = a.inside, q = I.q;
         if (kind === 'depot') {                     // empty to the end of its path (San Donato) and into the depot
@@ -1721,7 +1757,7 @@
       if (c.clLast && c.clLast.cl) { close(c.clLast.cl); S.clLast = Object.assign({}, c.clLast, { t0: S.t }); }
       snapshot();
     }
-    return { S, TL, IL, RT, FX, restore, carryOut, carryIn, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, closureBlocked, agents: () => S.agents, occ: ei => edgeMap.get(ei),
+    return { S, TL, IL, RT, FX, restore, carryOut, carryIn, zones: () => S.zones || [], zonesOf: a => ZONES.filter(Z => footprint(a).some(f => inZ(Z, f[0], f[1], f[2]) != null)).map(Z => Z.z.kind), departuresFor, instrOptions, instrPreview, trainsOn, il: () => S.il, rt: () => S.rt, start, step, seek, event, order, replan, state, snapshot, mapTo, nextOf, close, reopen, closed: () => CLOSED, closed0: () => CLOSED0, closureBlocked, agents: () => S.agents, occ: ei => edgeMap.get(ei),
       // the regolatore (fase E): a train out of the service at the end of its run, one kept in the depot, the runs taken in the hybrid timetable
       runs: () => [...usedRuns] };
   }
