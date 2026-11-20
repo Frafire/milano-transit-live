@@ -419,11 +419,11 @@
   {
    "line": "M3",
    "w": 87,
-   "lat": 45.529811,
-   "lon": 9.162866,
+   "lat": 45.529836,
+   "lon": 9.162856,
    "on_track": [
-    45.529814,
-    9.162877
+    45.529839,
+    9.162867
    ],
    "offset_m": 0.9,
    "side": "right",
@@ -432,16 +432,17 @@
    "type": "entry",
    "name": "",
    "kind": "atp",
-   "n": 9
+   "n": 9,
+   "note": "Giovanni 20/11/2026: nei tronchetti di Comasina i segnali sono a 110 m uno dall'altro (posizioni di 110 m): spostato a 330 m dal paraurti."
   },
   {
    "line": "M3",
    "w": 88,
-   "lat": 45.529909,
-   "lon": 9.162882,
+   "lat": 45.529847,
+   "lon": 9.162908,
    "on_track": [
-    45.529908,
-    9.162882
+    45.529846,
+    9.162908
    ],
    "offset_m": 0.1,
    "side": "left",
@@ -450,7 +451,8 @@
    "type": "entry",
    "name": "",
    "kind": "atp",
-   "n": 10
+   "n": 10,
+   "note": "Giovanni 20/11/2026: nei tronchetti di Comasina i segnali sono a 110 m uno dall'altro (posizioni di 110 m): spostato a 330 m dal paraurti."
   },
   {
    "line": "M3",
