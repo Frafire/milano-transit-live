@@ -44,12 +44,12 @@ const ORARI = LINEE.orari || {};
   // the line card (Giovanni 10 Nov 2026): the "i" opens it and does not start the game; Esc and Chiudi close it; the bar
   // takes you to each section and lights it while you scroll; the tables of the trains
   { const before = p.url();
-    await p.click('#metro .tilewrap .info');
+    await p.click('#metro .tilewrap .info[aria-label="Scheda linea M3"]');
     check(await shown(p, '#ls') && p.url() === before && await p.isVisible('#metro'), 'the "i" on M3 opens the line card, the game does not start');
     await p.keyboard.press('Escape'); check(await p.isHidden('#ls'), 'Esc closes the card');
-    await p.focus('#metro .tilewrap .info'); await p.keyboard.press('Enter'); check(await shown(p, '#ls'), 'Enter on the "i" opens it');
+    await p.focus('#metro .tilewrap .info[aria-label="Scheda linea M3"]'); await p.keyboard.press('Enter'); check(await shown(p, '#ls'), 'Enter on the "i" opens it');
     await p.click('#lsClose'); check(await p.isHidden('#ls'), 'Chiudi closes it');
-    await p.click('#metro .tilewrap .info');
+    await p.click('#metro .tilewrap .info[aria-label="Scheda linea M3"]');
     const ids = await p.$$eval('#lsnav a', as => as.map(a => a.getAttribute('href').slice(1)));
     for (const id of ids) {
       // (a smooth scroll: the longer the section before, the longer it takes; up to 3 s)
@@ -70,6 +70,15 @@ const ORARI = LINEE.orari || {};
     check(g(/2° lotto/).rows.length >= 1 && g(/Meneghino/).rows.length >= 1 && g(/Galileo/).rows.length >= 1, 'tables of the 2° lotto, Meneghino and Galileo');
     check(T.every(f => sorted(f.rows)), 'every table in the order of the numbers');
     await p.click('#lsClose'); }
+  // the M2 card (Giovanni 20 Nov 2026): the Tradizionali of his list, the Meneghino and Leonardo with the game's fronts,
+  // the three depots
+  { await p.click('#metro .tilewrap .info[aria-label="Scheda linea M2"]');
+    const M = await p.evaluate(() => ({ fam: [...document.querySelectorAll('#ls article.fam')].map(f => ({ t: f.querySelector('h4').textContent, n: f.querySelectorAll('tbody tr').length, img: !!f.querySelector('img.front') })),
+      dep: [...document.querySelectorAll('#s-depositi h3')].length, st: document.querySelectorAll('#s-stazioni tbody tr').length }));
+    const trad = M.fam.filter(f => /Tradizionale/.test(f.t)), men = M.fam.find(f => /Meneghino/.test(f.t)) || {}, leo = M.fam.find(f => /Leonardo/.test(f.t)) || {};
+    check(trad.reduce((n, f) => n + f.n, 0) === 88 && men.n > 0 && leo.n > 0 && men.img && leo.img, `M2 card: 88 Tradizionali, Meneghino and Leonardo with their fronts (${JSON.stringify(M.fam.map(f => f.n))})`);
+    check(M.dep === 3 && M.st === 35, `M2 card: 3 depots, 35 stations (${M.dep}, ${M.st})`);
+    await p.click('#lsClose'); }
   // the choice of the timetable: the M3 tile opens it; a historical one in arrivo opens nothing, a giocabile one opens the
   // game with ?orario= (data/linee.json "orari"; Milano Cortina giocabile since 10 Nov 2026, Giovanni)
   { await p.click('#metro .tile[data-k="M3"]'); check(await shown(p, '#pick'), 'the M3 tile opens the choice of the timetable');
@@ -82,7 +91,7 @@ const ORARI = LINEE.orari || {};
     await p.keyboard.press('Escape'); check(await p.isHidden('#pick'), 'Esc closes the choice'); }
   for (const what of ['card', 'pick']) {      // nothing wider than a phone
     const q = await b.newPage({ viewport: { width: 400, height: 860 } }); await q.goto(HOME + '#metro');
-    if (what === 'card') await q.click('#metro .tilewrap .info'); else await q.click('#metro .tile[data-k="M3"]');
+    if (what === 'card') await q.click('#metro .tilewrap .info[aria-label="Scheda linea M3"]'); else await q.click('#metro .tile[data-k="M3"]');
     await q.waitForTimeout(300);
     check(await q.evaluate(id => { const e = document.getElementById(id); return e.scrollWidth <= e.clientWidth && document.documentElement.scrollWidth <= innerWidth; }, what === 'card' ? 'ls' : 'pick'), `phone width, ${what === 'card' ? 'line card' : 'choice of the timetable'}: no sideways scroll`);
     await q.close(); }

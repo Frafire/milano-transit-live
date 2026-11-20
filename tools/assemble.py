@@ -144,6 +144,7 @@ schede = {}
 for f in sorted(glob.glob(os.path.join(ROOT, 'data', 'schede', '*.json'))):
     ln = os.path.splitext(os.path.basename(f))[0].upper()
     if os.path.exists('%s.json' % ln.lower()): schede[ln] = scheda(ln)
+    elif ln == 'M2' and assemble_m2.scheda(): schede[ln] = assemble_m2.scheda()      # (the M2 from its own build, tools/assemble_m2.py)
 assets['__SCHEDE__'] = json.dumps(schede, ensure_ascii=False, separators=(',', ':'))
 assets['__ORARI__'] = json.dumps(orari, ensure_ascii=False)
 bg = os.path.join(img, 'home', 'sfondo.jpg')      # the blurred photo behind the menu; without it, a plain dark blue

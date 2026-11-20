@@ -181,6 +181,7 @@ header { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
 .fam > * { min-width: 0; }
 .fam .side { display: grid; gap: 8px; align-content: start; }
 .fam .ph { min-height: 120px; display: grid; place-items: center; background: rgba(0,0,0,.25); border: 1px dashed rgba(255,255,255,.25); color: var(--muted); font: 600 12.5px var(--body); text-align: center; padding: 6px; }
+.fam .front { width: 100%; height: auto; display: block; background: rgba(0,0,0,.25); border-radius: 6px; padding: 6px; box-sizing: border-box; }
 .fam dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0 0 8px; font-size: 14px; }
 .fam dt { color: var(--muted); } .fam dd { margin: 0; }
 .media { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -406,9 +407,9 @@ function cardHtml(k) {
     else if (s.id === 'storia') { h += `${s.avviso ? `<div class="warn">${s.avviso}</div>` : ''}${s.paragrafi.map(p => p.startsWith('## ') ? `<h3>${esc(p.slice(3))}</h3>` : `<p>${p}</p>`).join('')}${tappe(s.tappe)}`;
       if (s.crescita) h += `<h3>Come è cresciuta</h3><div class="lmap"><svg id="lmap" height="170" role="img" aria-label="Le stazioni per anno di apertura"></svg></div><div class="leg" id="leg"></div>`;
       h += src(s); }
-    else if (s.id === 'treni') { h += `<p>${s.intro}</p><h3>${esc(s.tradizionali.titolo)}</h3>${s.tradizionali.paragrafi.map((p, i, a) => `<p>${p}${i === a.length - 1 ? ` <span class="badge">${esc(s.tradizionali.foto)}</span>` : ''}</p>`).join('')}`;
+    else if (s.id === 'treni') { h += `<p>${s.intro}</p><h3>${esc(s.tradizionali.titolo)}</h3>${s.tradizionali.paragrafi.map((p, i, a) => `<p>${p}${i === a.length - 1 && s.tradizionali.foto ? ` <span class="badge">${esc(s.tradizionali.foto)}</span>` : ''}</p>`).join('')}`;
       for (const g of s.gruppi) { const cols = g.colonne || ['Matricole', 'Costruttore', 'Anno', 'Indicatori', 'Note'], key = { Matricole: 'matricole', Costruttore: 'costruttore', Anno: 'anno', Indicatori: 'indicatori', Note: 'note' };
-        h += `<article class="fam"><div class="side"><div class="ph">Frontale e fianco<br>disegno nostro</div><div class="media"><span>Vista 3D · presto</span><span>Suoni · presto</span></div></div><div><h4>${esc(g.titolo)}${g.badge ? ` <span class="badge">${esc(g.badge)}</span>` : ''}</h4>` +
+        h += `<article class="fam"><div class="side">${g.frontale ? `<img class="front" src="${g.frontale}" alt="Frontale ${esc(g.titolo)}">` : '<div class="ph">Frontale e fianco<br>disegno nostro</div>'}<div class="media"><span>Vista 3D · presto</span><span>Suoni · presto</span></div></div><div><h4>${esc(g.titolo)}${g.badge ? ` <span class="badge">${esc(g.badge)}</span>` : ''}</h4>` +
           `<dl>${g.dati.map(([a, b]) => `<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl><div class="mat"><table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>` +
           (g.righe || []).map(r => `<tr${r.storico ? ' class="old"' : ''}>${cols.map(c => `<td>${esc(r[key[c]] || '—')}</td>`).join('')}</tr>`).join('') + `</tbody></table></div></div></article>`; }
       h += src(s); }
@@ -416,6 +417,8 @@ function cardHtml(k) {
         if (b.aspetti) h += `<div class="sigs">${b.aspetti.map(a => `<div class="sig2"><img src="${document.querySelector(a.sprite === 'go' ? 'img.sig.on' : 'img.sig.off').src}" alt="Segnale ${esc(a.nome.toLowerCase())}"><div><b>${esc(a.nome)}</b><span>${esc(a.testo)}</span></div></div>`).join('')}</div>`;
         if (b.vela) h += `<div class="sigs">${b.vela.map(v => `<div class="sig2">${vela(v.tipo === 'legale')}<div><b>${esc(v.nome)}</b><span>${esc(v.testo)}</span></div></div>`).join('')}</div>${b.da_completare ? `<div class="ask">${esc(b.da_completare)}</div>` : ''}`; }
       h += src(s); }
+    // more than one depot (M2): each its name, its paragraphs, its numbers
+    else if (s.id === 'depositi' && s.lista) h += s.lista.map(d => `<h3>${esc(d.nome)}</h3>${paras(d.paragrafi || [])}${d.numeri ? `<div class="stats">${d.numeri.map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div>` : ''}`).join('') + src(s);
     else if (s.id === 'depositi') { const d = s.deposito; h += `<h3>${esc(d.nome)}</h3><p>${d.paragrafi[0]}</p><p>${d.paragrafi[1]}</p><div class="stats">${d.numeri.map(([n, t]) => `<div class="stat"><b>${esc(n)}</b><span>${esc(t)}</span></div>`).join('')}</div>` +
         `<p style="margin-top:12px">${d.paragrafi[2]}</p><div class="fam" style="grid-template-columns:1fr"><div class="ph" style="min-height:180px">Schema del deposito · dal sinottico del gioco</div></div>` + paras(d.quadro || []) + src(s); }
     else if (s.id === 'curiosita') h += tappe(s.voci) + src(s);

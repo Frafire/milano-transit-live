@@ -1,0 +1,1493 @@
+{
+ "_about": "Scheda della linea M2 nel menu (Giovanni 20/11/2026: \"creami la pagina informazioni come su M3\"). Stessa forma della scheda M3 (data/schede/m3.json). provvisorio: true = testo da Wikipedia, da sostituire con i testi di Giovanni. Le righe dei Meneghino e dei Leonardo le mette tools/assemble_m2.py dalla flotta del gioco (data/flotta_m2.json); qui l'elenco storico dei Tradizionali (elenco di Giovanni aggiornato al 27/09/2025) e i musi (data/schede/fronti_m2.json, disegnati dal gioco).",
+ "linea": "M2",
+ "titolo": "Linea M2",
+ "sottotitolo": "Gessate e Cologno Nord – Abbiategrasso e Assago · la linea verde",
+ "colore": "#5e9732",
+ "sezioni": [
+  {
+   "id": "breve",
+   "titolo": "In breve",
+   "provvisorio": true,
+   "apertura": {
+    "anno": "1969",
+    "testo": "prima tratta aperta, Caiazzo – Cascina Gobba"
+   },
+   "depositi": 3,
+   "lunghezza": [
+    "circa 40 km",
+    "la linea più lunga di Milano e d'Italia"
+   ],
+   "paragrafi": [
+    "La M2 è la linea verde: si chiama così per il colore delle mappe, delle stazioni e dei treni.",
+    "Ha quattro capolinea. A nord-est Gessate e Cologno Nord, a sud-ovest Abbiategrasso e Assago Milanofiori Forum. I treni per Gessate e per Cologno si dividono a Cascina Gobba; quelli per Abbiategrasso e per Assago a Famagosta.",
+    "È in superficie da Cimiano ai due capolinea di Gessate e Cologno Nord, e sulla diramazione da Famagosta ad Assago Milanofiori Forum. Tra Cascina Gobba e Cologno Nord corre su un viadotto, l'unico tratto sopraelevato della metropolitana di Milano.",
+    "Incrocia la M1 a Loreto e a Cadorna, la M3 a Centrale, la M4 a Sant'Ambrogio e la M5 a Garibaldi. Tocca le stazioni ferroviarie di Centrale, Lambrate, Garibaldi e Porta Genova, le Ferrovie Nord a Cadorna e le linee S a Romolo."
+   ],
+   "fonti": [
+    "Wikipedia, voce \"Linea M2 (metropolitana di Milano)\" (CC BY-SA 4.0), provvisoria.",
+    "Stazioni: dall'orario del gioco; treni: dalla flotta del gioco (calcolati nella build)."
+   ]
+  },
+  {
+   "id": "storia",
+   "titolo": "Storia",
+   "provvisorio": true,
+   "paragrafi": [
+    "La linea è nata a pezzi, in più di quarant'anni: prima il tratto in città verso est, poi le linee celeri dell'Adda verso Gorgonzola, poi il centro e il sud-ovest.",
+    "## La tensione",
+    "All'inizio la linea aerea era a 750 V, poi a 1200 V dall'8 novembre 1971, infine a 1500 V dal 1972. Oggi è a 1500 V in corrente continua su tutta la linea."
+   ],
+   "tappe": [
+    {
+     "data": "27/09/1969",
+     "titolo": "Caiazzo – Cascina Gobba",
+     "testo": "La prima tratta: Caiazzo, Loreto, Piola, Lambrate, Udine, Cimiano, Crescenzago e Cascina Gobba."
+    },
+    {
+     "data": "27/04/1970",
+     "titolo": "Fino a Centrale",
+     "testo": "Prolungamento da Caiazzo a Centrale FS."
+    },
+    {
+     "data": "12/07/1971",
+     "titolo": "Fino a Garibaldi",
+     "testo": "Prolungamento a Gioia e Garibaldi FS."
+    },
+    {
+     "data": "04/12/1972",
+     "titolo": "Cascina Gobba – Gorgonzola",
+     "testo": "La metropolitana prende il posto delle linee celeri dell'Adda fino a Gorgonzola."
+    },
+    {
+     "data": "03/03/1978",
+     "titolo": "Garibaldi – Cadorna",
+     "testo": "Circa 2,2 km, con Moscova e Lanza."
+    },
+    {
+     "data": "07/06/1981",
+     "titolo": "Ramo di Cologno",
+     "testo": "Da Cascina Gobba a Cologno Nord, 3,36 km, in gran parte su viadotto."
+    },
+    {
+     "data": "30/10/1983",
+     "titolo": "Cadorna – Porta Genova",
+     "testo": "Quasi 2 km sotto terra, con Sant'Ambrogio e Sant'Agostino."
+    },
+    {
+     "data": "13/04/1985",
+     "titolo": "Gessate e Romolo",
+     "testo": "In superficie da Gorgonzola a Gessate, con Cascina Antonietta; nello stesso anno da Porta Genova a Romolo."
+    },
+    {
+     "data": "01/11/1994",
+     "titolo": "Romolo – Famagosta",
+     "testo": "Prolungamento a Famagosta."
+    },
+    {
+     "data": "2005",
+     "titolo": "Famagosta – Abbiategrasso",
+     "testo": "Prolungamento a Piazza Abbiategrasso. Wikipedia dà due date diverse: 17 marzo e 17 aprile."
+    },
+    {
+     "data": "20/02/2011",
+     "titolo": "Ramo di Assago",
+     "testo": "Da Famagosta ad Assago Milanofiori Forum, con Assago Milanofiori Nord."
+    }
+   ],
+   "fonti": [
+    "Wikipedia, voce \"Linea M2 (metropolitana di Milano)\" (CC BY-SA 4.0), provvisoria."
+   ]
+  },
+  {
+   "id": "treni",
+   "titolo": "Materiale rotabile",
+   "provvisorio": true,
+   "intro": "Tutti i treni della M2, gruppo per gruppo, con le matricole: i Tradizionali, tutti accantonati, i Meneghino e i Leonardo. I musi sono gli stessi disegni del gioco.",
+   "tradizionali": {
+    "titolo": "I Tradizionali",
+    "paragrafi": [
+     "Hanno fatto servizio sulla M2 dal 1971 al 2020, in sei lotti più i treni con inverter del 5° lotto. Ogni unità è bloccata, motrice + rimorchiata + motrice. Le ultime sono state accantonate nel 2020.",
+     "Molte unità sono state revisionate o rifatte (revamping), con le velette a LED al posto di quelle a palette; il 6° lotto, del 1991, aveva le velette a matrice di punti. La motrice 353 è conservata per i Vigili del Fuoco."
+    ]
+   },
+   "gruppi": [
+    {
+     "titolo": "Tradizionale 1° lotto",
+     "badge": "accantonati",
+     "dati": [
+      [
+       "Anni",
+       "1970–1971"
+      ],
+      [
+       "Unità",
+       "20, motrice + rimorchiata + motrice"
+      ],
+      [
+       "Motrici",
+       "301–320, 401–420"
+      ],
+      [
+       "Rimorchiate",
+       "2101–2110, 2501–2510"
+      ],
+      [
+       "Porte",
+       "18 (6 per vettura); eccezioni nella tabella"
+      ],
+      [
+       "Versioni",
+       "Tradizionale (19), Revisionato (1)"
+      ],
+      [
+       "Velette",
+       "a palette (19), a LED (1)"
+      ],
+      [
+       "Accantonate",
+       "2 nel 2017, 18 nel 2018"
+      ]
+     ],
+     "flotta": null,
+     "storico_gruppo": "M2 lotto 1",
+     "colonne": [
+      "Matricole",
+      "Anno",
+      "Indicatori",
+      "Note"
+     ]
+    },
+    {
+     "titolo": "Tradizionale 2° lotto",
+     "badge": "accantonati",
+     "dati": [
+      [
+       "Anno",
+       "1971"
+      ],
+      [
+       "Unità",
+       "7, motrice + rimorchiata + motrice"
+      ],
+      [
+       "Motrici",
+       "321–327, 421–427"
+      ],
+      [
+       "Rimorchiate",
+       "2111–2113, 2511–2514"
+      ],
+      [
+       "Porte",
+       "18 (6 per vettura)"
+      ],
+      [
+       "Versioni",
+       "Tradizionale (7)"
+      ],
+      [
+       "Velette",
+       "a palette (7)"
+      ],
+      [
+       "Accantonate",
+       "7 nel 2018"
+      ]
+     ],
+     "flotta": null,
+     "storico_gruppo": "M2 lotto 2",
+     "colonne": [
+      "Matricole",
+      "Anno",
+      "Indicatori",
+      "Note"
+     ]
+    },
+    {
+     "titolo": "Tradizionale 3° lotto",
+     "badge": "accantonati",
+     "dati": [
+      [
+       "Anno",
+       "1975"
+      ],
+      [
+       "Unità",
+       "17, motrice + rimorchiata + motrice"
+      ],
+      [
+       "Motrici",
+       "428–461"
+      ],
+      [
+       "Rimorchiate",
+       "2515–2531"
+      ],
+      [
+       "Porte",
+       "18 (6 per vettura)"
+      ],
+      [
+       "Versioni",
+       "Tradizionale (10), Revisionato (7)"
+      ],
+      [
+       "Velette",
+       "a palette (10), a LED (7)"
+      ],
+      [
+       "Accantonate",
+       "10 nel 2018, 7 nel 2019"
+      ]
+     ],
+     "flotta": null,
+     "storico_gruppo": "M2 lotto 3",
+     "colonne": [
+      "Matricole",
+      "Anno",
+      "Indicatori",
+      "Note"
+     ]
+    },
+    {
+     "titolo": "Tradizionale 4° lotto",
+     "badge": "accantonati",
+     "dati": [
+      [
+       "Anno",
+       "1981"
+      ],
+      [
+       "Unità",
+       "4, motrice + rimorchiata + motrice"
+      ],
+      [
+       "Motrici",
+       "462–469"
+      ],
+      [
+       "Rimorchiate",
+       "2532–2535"
+      ],
+      [
+       "Porte",
+       "18 (6 per vettura)"
+      ],
+      [
+       "Versioni",
+       "Revamping (4)"
+      ],
+      [
+       "Velette",
+       "a LED (4)"
+      ],
+      [
+       "Accantonate",
+       "4 nel 2019"
+      ]
+     ],
+     "flotta": null,
+     "storico_gruppo": "M2 lotto 4",
+     "colonne": [
+      "Matricole",
+      "Anno",
+      "Indicatori",
+      "Note"
+     ]
+    },
+    {
+     "titolo": "Tradizionale 5° lotto",
+     "badge": "accantonati",
+     "dati": [
+      [
+       "Anno",
+       "1985"
+      ],
+      [
+       "Unità",
+       "14, motrice + rimorchiata + motrice"
+      ],
+      [
+       "Motrici",
+       "328–355"
+      ],
+      [
+       "Rimorchiate",
+       "2114–2127"
+      ],
+      [
+       "Porte",
+       "24 (8 per vettura)"
+      ],
+      [
+       "Versioni",
+       "Revisionato (14)"
+      ],
+      [
+       "Velette",
+       "a LED (14)"
+      ],
+      [
+       "Accantonate",
+       "14 nel 2020"
+      ]
+     ],
+     "flotta": null,
+     "storico_gruppo": "M2 lotto 5",
+     "colonne": [
+      "Matricole",
+      "Anno",
+      "Indicatori",
+      "Note"
+     ]
+    },
+    {
+     "titolo": "Tradizionale 5° lotto · inverter",
+     "badge": "accantonati",
+     "dati": [
+      [
+       "Anno",
+       "1987"
+      ],
+      [
+       "Unità",
+       "6, motrice + rimorchiata + motrice"
+      ],
+      [
+       "Motrici",
+       "501–512"
+      ],
+      [
+       "Rimorchiate",
+       "3001–3006"
+      ],
+      [
+       "Porte",
+       "24 (8 per vettura)"
+      ],
+      [
+       "Versioni",
+       "Revamping (6)"
+      ],
+      [
+       "Velette",
+       "a LED (6)"
+      ],
+      [
+       "Accantonate",
+       "6 nel 2019"
+      ]
+     ],
+     "flotta": null,
+     "storico_gruppo": "M2 lotto 5i",
+     "colonne": [
+      "Matricole",
+      "Anno",
+      "Indicatori",
+      "Note"
+     ]
+    },
+    {
+     "titolo": "Tradizionale 6° lotto",
+     "badge": "accantonati",
+     "dati": [
+      [
+       "Anno",
+       "1991"
+      ],
+      [
+       "Unità",
+       "20, motrice + rimorchiata + motrice"
+      ],
+      [
+       "Motrici",
+       "356–395"
+      ],
+      [
+       "Rimorchiate",
+       "2128–2147"
+      ],
+      [
+       "Porte",
+       "24 (8 per vettura)"
+      ],
+      [
+       "Versioni",
+       "Tradizionale (20)"
+      ],
+      [
+       "Velette",
+       "a matrice di punti (20)"
+      ],
+      [
+       "Accantonate",
+       "2 nel 2017, 18 nel 2018"
+      ]
+     ],
+     "flotta": null,
+     "storico_gruppo": "M2 lotto 6",
+     "colonne": [
+      "Matricole",
+      "Anno",
+      "Indicatori",
+      "Note"
+     ]
+    },
+    {
+     "titolo": "Meneghino",
+     "flotta": "Meneghino",
+     "dati": [
+      [
+       "Anni",
+       "2008–2014"
+      ],
+      [
+       "Costruttori",
+       "AnsaldoBreda e Firema"
+      ],
+      [
+       "Composizione",
+       "6 casse, 24 porte per lato"
+      ],
+      [
+       "Alimentazione",
+       "bitensione, 750 V (M1) e 1500 V (M2 e M3)"
+      ],
+      [
+       "Velocità massima",
+       "90 km/h"
+      ],
+      [
+       "Profili",
+       "verdi; gialli sulla 949-950"
+      ]
+     ],
+     "colonne": [
+      "Matricole",
+      "Costruttore",
+      "Anno",
+      "Note"
+     ]
+    },
+    {
+     "titolo": "Leonardo",
+     "flotta": "Leonardo",
+     "dati": [
+      [
+       "Anni",
+       "2015–2020"
+      ],
+      [
+       "Costruttore",
+       "AnsaldoBreda, dal 2015 Hitachi Rail Italy"
+      ],
+      [
+       "Composizione",
+       "due unità di trazione uguali da 3 casse, 6 casse in tutto"
+      ],
+      [
+       "Velocità massima",
+       "90 km/h"
+      ],
+      [
+       "Livree",
+       "nera con profili verdi, verde con profili bianchi, Fineco sulla 5067-5068"
+      ]
+     ],
+     "colonne": [
+      "Matricole",
+      "Costruttore",
+      "Anno",
+      "Note"
+     ]
+    }
+   ],
+   "storico": [
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "301-302",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 301 · 2101 · 302. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2017."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "303-304",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 303 · 2102 · 304. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2017."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "305-306",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 305 · 2103 · 306. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "307-308",
+     "anno": "1970",
+     "indicatori": "a LED",
+     "note": "Casse 307 · 2104 · 308. Revisionato. Porte: 18 (6 per vettura). Accantonata nel 2018. Vettura 2104 deragliata a Cimiano il 06/10/2017."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "309-310",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 309 · 2105 · 310. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "311-312",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 311 · 2106 · 312. Tradizionale. Porte: 20 (vetture 2106 e 312 con 6 porte, vettura 311 con 8 porte). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "313-314",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 313 · 2107 · 314. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "315-316",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 315 · 2108 · 316. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "317-318",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 317 · 2109 · 318. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "319-320",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 319 · 2110 · 320. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 2",
+     "matricole": "321-322",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 321 · 2111 · 322. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 2",
+     "matricole": "323-324",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 323 · 2112 · 324. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 2",
+     "matricole": "325-326",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 325 · 2113 · 326. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 2",
+     "matricole": "327-427",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 327 · 2514 · 427. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "328-329",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 328 · 2114 · 329. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "330-331",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 330 · 2115 · 331. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "332-333",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 332 · 2116 · 333. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "334-335",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 334 · 2117 · 335. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "336-337",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 336 · 2118 · 337. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "338-339",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 338 · 2119 · 339. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "340-341",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 340 · 2120 · 341. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "342-343",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 342 · 2121 · 343. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "344-345",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 344 · 2122 · 345. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "346-347",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 346 · 2123 · 347. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "348-349",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 348 · 2124 · 349. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "350-351",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 350 · 2125 · 351. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "352-353",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 352 · 2126 · 353. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020. Motrice 353 conservata per i Vigili del Fuoco."
+    },
+    {
+     "gruppo": "M2 lotto 5",
+     "matricole": "354-355",
+     "anno": "1985",
+     "indicatori": "a LED",
+     "note": "Casse 354 · 2127 · 355. Revisionato. Porte: 24 (8 per vettura). Accantonata nel 2020."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "356-357",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 356 · 2128 · 357. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "358-359",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 358 · 2129 · 359. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "360-361",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 360 · 2130 · 361. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "362-363",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 362 · 2131 · 363. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "364-365",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 364 · 2132 · 365. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "366-367",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 366 · 2133 · 367. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "368-369",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 368 · 2134 · 369. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "370-371",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 370 · 2135 · 371. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "372-373",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 372 · 2136 · 373. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "374-375",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 374 · 2137 · 375. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "376-377",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 376 · 2138 · 377. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2017."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "378-379",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 378 · 2139 · 379. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2017."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "380-381",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 380 · 2140 · 381. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "382-383",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 382 · 2141 · 383. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "384-385",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 384 · 2142 · 385. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "386-387",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 386 · 2143 · 387. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "388-389",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 388 · 2144 · 389. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "390-391",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 390 · 2145 · 391. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "392-393",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 392 · 2146 · 393. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 6",
+     "matricole": "394-395",
+     "anno": "1991",
+     "indicatori": "a matrice di punti",
+     "note": "Casse 394 · 2147 · 395. Tradizionale. Porte: 24 (8 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "401-402",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 401 · 2501 · 402. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "403-404",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 403 · 2502 · 404. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "405-406",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 405 · 2503 · 406. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "407-408",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 407 · 2504 · 408. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "409-410",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 409 · 2505 · 410. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "411-412",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 411 · 2506 · 412. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "413-414",
+     "anno": "1970",
+     "indicatori": "a palette",
+     "note": "Casse 413 · 2507 · 414. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "415-416",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 415 · 2508 · 416. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "417-418",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 417 · 2509 · 418. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 1",
+     "matricole": "419-420",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 419 · 2510 · 420. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 2",
+     "matricole": "421-422",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 421 · 2511 · 422. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018. Vettura 422 con 1 coppia di porte elettriche."
+    },
+    {
+     "gruppo": "M2 lotto 2",
+     "matricole": "423-424",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 423 · 2512 · 424. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 2",
+     "matricole": "425-426",
+     "anno": "1971",
+     "indicatori": "a palette",
+     "note": "Casse 425 · 2513 · 426. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "428-429",
+     "anno": "1975",
+     "indicatori": "a palette",
+     "note": "Casse 428 · 2515 · 429. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "430-431",
+     "anno": "1975",
+     "indicatori": "a palette",
+     "note": "Casse 430 · 2516 · 431. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "432-433",
+     "anno": "1975",
+     "indicatori": "a palette",
+     "note": "Casse 432 · 2517 · 433. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "434-435",
+     "anno": "1975",
+     "indicatori": "a LED",
+     "note": "Casse 434 · 2518 · 435. Revisionato. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "436-437",
+     "anno": "1975",
+     "indicatori": "a LED",
+     "note": "Casse 436 · 2519 · 437. Revisionato. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "438-439",
+     "anno": "1975",
+     "indicatori": "a LED",
+     "note": "Casse 438 · 2520 · 439. Revisionato. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "440-441",
+     "anno": "1975",
+     "indicatori": "a LED",
+     "note": "Casse 440 · 2521 · 441. Revisionato. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "442-443",
+     "anno": "1975",
+     "indicatori": "a palette",
+     "note": "Casse 442 · 2522 · 443. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "444-445",
+     "anno": "1975",
+     "indicatori": "a palette",
+     "note": "Casse 444 · 2523 · 445. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "446-447",
+     "anno": "1975",
+     "indicatori": "a LED",
+     "note": "Casse 446 · 2524 · 447. Revisionato. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "448-449",
+     "anno": "1975",
+     "indicatori": "a LED",
+     "note": "Casse 448 · 2525 · 449. Revisionato. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "450-451",
+     "anno": "1975",
+     "indicatori": "a palette",
+     "note": "Casse 450 · 2526 · 451. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "452-453",
+     "anno": "1975",
+     "indicatori": "a palette",
+     "note": "Casse 452 · 2527 · 453. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "454-455",
+     "anno": "1975",
+     "indicatori": "a palette",
+     "note": "Casse 454 · 2528 · 455. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "456-457",
+     "anno": "1975",
+     "indicatori": "a palette",
+     "note": "Casse 456 · 2529 · 457. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "458-459",
+     "anno": "1975",
+     "indicatori": "a LED",
+     "note": "Casse 458 · 2530 · 459. Revisionato. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 3",
+     "matricole": "460-461",
+     "anno": "1975",
+     "indicatori": "a palette",
+     "note": "Casse 460 · 2531 · 461. Tradizionale. Porte: 18 (6 per vettura). Accantonata nel 2018."
+    },
+    {
+     "gruppo": "M2 lotto 4",
+     "matricole": "462-463",
+     "anno": "1981",
+     "indicatori": "a LED",
+     "note": "Casse 462 · 2532 · 463. Revamping. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 4",
+     "matricole": "464-465",
+     "anno": "1981",
+     "indicatori": "a LED",
+     "note": "Casse 464 · 2533 · 465. Revamping. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 4",
+     "matricole": "466-467",
+     "anno": "1981",
+     "indicatori": "a LED",
+     "note": "Casse 466 · 2534 · 467. Revamping. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 4",
+     "matricole": "468-469",
+     "anno": "1981",
+     "indicatori": "a LED",
+     "note": "Casse 468 · 2535 · 469. Revamping. Porte: 18 (6 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 5i",
+     "matricole": "501-502",
+     "anno": "1987",
+     "indicatori": "a LED",
+     "note": "Casse 501 · 3001 · 502. Revamping. Porte: 24 (8 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 5i",
+     "matricole": "503-504",
+     "anno": "1987",
+     "indicatori": "a LED",
+     "note": "Casse 503 · 3002 · 504. Revamping. Porte: 24 (8 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 5i",
+     "matricole": "505-506",
+     "anno": "1987",
+     "indicatori": "a LED",
+     "note": "Casse 505 · 3003 · 506. Revamping. Porte: 24 (8 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 5i",
+     "matricole": "507-508",
+     "anno": "1987",
+     "indicatori": "a LED",
+     "note": "Casse 507 · 3004 · 508. Revamping. Porte: 24 (8 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 5i",
+     "matricole": "509-510",
+     "anno": "1987",
+     "indicatori": "a LED",
+     "note": "Casse 509 · 3005 · 510. Revamping. Porte: 24 (8 per vettura). Accantonata nel 2019."
+    },
+    {
+     "gruppo": "M2 lotto 5i",
+     "matricole": "511-512",
+     "anno": "1987",
+     "indicatori": "a LED",
+     "note": "Casse 511 · 3006 · 512. Revamping. Porte: 24 (8 per vettura). Accantonata nel 2019."
+    }
+   ],
+   "fonti": [
+    "Tradizionali: elenco di Giovanni, aggiornato al 27/09/2025. Meneghino e Leonardo: flotta del gioco (data/flotta_m2.json, dagli elenchi di Giovanni). Dati tecnici: Hitachi Rail (schede Meneghino e Leonardo), Railway Gazette, Railway Journal, ferrovie.it; da verificare."
+   ]
+  },
+  {
+   "id": "sistemi",
+   "titolo": "Sistemi e segnalamento",
+   "provvisorio": true,
+   "blocchi": [
+    {
+     "titolo": "Blocco e codici",
+     "paragrafi": [
+      "La M2 ha il segnalamento tradizionale a blocco fisso: ogni segnale protegge una sezione di blocco, una stazione o un punto di partenza. Fino al 2011 era lo stesso della M1; da allora la M1 è passata al blocco mobile e la M2 è rimasta l'unica con il sistema tradizionale.",
+      "In ogni sezione il binario trasmette al treno un codice di velocità: una corrente alternata a 75 Hz interrotta 120, 180 o 270 volte al minuto. Più interruzioni, più velocità: 120 vale 25 km/h, 180 vale 45 km/h, 270 vale 70 km/h. Senza codice si va al massimo a 15 km/h; i binari dei depositi non sono codificati.",
+      "In superficie i segnali somigliano a quelli delle ferrovie italiane."
+     ]
+    },
+    {
+     "titolo": "Il rosso con la P",
+     "paragrafi": [
+      "Il rosso è via impedita imperativa: fermarsi. Il rosso con la P luminosa accesa è via impedita permissiva: fermarsi, aspettare 10 secondi e ripartire in marcia a vista. Con la P spenta il segnale è imperativo: è il primo dietro un treno."
+     ]
+    },
+    {
+     "titolo": "Segnali legali e illegali",
+     "paragrafi": [
+      "Si circola a destra. I segnali a destra, per il senso normale di marcia, hanno la vela tonda: sono i legali, con la lettera a. Quelli a sinistra hanno la vela quadra: sono gli illegali, con la lettera b."
+     ],
+     "vela": [
+      {
+       "tipo": "legale",
+       "nome": "Legale",
+       "testo": "Vela tonda, a destra."
+      },
+      {
+       "tipo": "illegale",
+       "nome": "Illegale",
+       "testo": "Vela quadra, a sinistra."
+      }
+     ]
+    },
+    {
+     "titolo": "Manovre e depositi",
+     "paragrafi": [
+      "I segnali di manovra sono bassi, con due luci: rosso, manovra impedita; rosso e giallo, manovra permessa con prudenza. In manovra si capta di solito il codice 120, cioè 25 km/h, che sparisce vicino al segnale di via impedita successivo.",
+      "Dentro l'area di parcheggio dei depositi i treni vanno in manovra manuale, al massimo a 5 km/h, in marcia a vista."
+     ]
+    }
+   ],
+   "fonti": [
+    "Wikipedia, voce \"Segnalamento ferroviario della metropolitana di Milano\" (CC BY-SA 4.0), provvisoria. Codici e P: dati di Giovanni e del collega macchinista della M2 (data/codici_m2.json). Depositi: data/depositi_m2.json."
+   ]
+  },
+  {
+   "id": "depositi",
+   "titolo": "Depositi",
+   "provvisorio": true,
+   "lista": [
+    {
+     "nome": "Deposito Gorgonzola",
+     "paragrafi": [
+      "Dal 1972, all'arrivo della metropolitana a Gorgonzola."
+     ]
+    },
+    {
+     "nome": "Deposito Cologno Nord",
+     "paragrafi": [
+      "Dal 1981, con il ramo di Cologno. Un'area di 21.404 m², di cui 6.945 coperti, per 54 vetture, con 2.035 m di binari."
+     ]
+    },
+    {
+     "nome": "Deposito Famagosta",
+     "paragrafi": [
+      "Dal 1999."
+     ]
+    }
+   ],
+   "fonti": [
+    "Wikipedia, voce \"Linea M2 (metropolitana di Milano)\" (CC BY-SA 4.0), provvisoria. Binari: data/depositi_m2.json (Giovanni e il collega macchinista)."
+   ]
+  },
+  {
+   "id": "velette",
+   "titolo": "Velette",
+   "paragrafi": [
+    "Le velette dei treni della M2 vengono da tre elenchi: il TWC, il vecchio sistema a codici numerici, in dismissione; il monitor da banco, con le abbreviazioni per il macchinista; il PIS, che comanda anche i monitor e le velette interne.",
+    "Dal 2022 la veletta esterna prende la scritta dal PIS, tranne P.ZA ABBIATEGRASSO, che resta ABBIATEGRASSO. I Leonardo 5051-5052 e 5065-5066 la prendono sempre dall'elenco del monitor. Dove l'elenco non ha una scritta per quella destinazione, la veletta dice FUORI SERVIZIO; per il Deposito Gorgonzola dice NONGESTITO.",
+    "Sul Meneghino la veletta è un solo display stretto: il numero del treno in verde, la destinazione in arancio. I nomi lunghi, da CASCINA BURRONA in su, scorrono."
+   ],
+   "fonti": [
+    "Giovanni e il collega macchinista della M2, 9/11/2026 (data/velette_m2.json)."
+   ]
+  },
+  {
+   "id": "curiosita",
+   "titolo": "Curiosità",
+   "provvisorio": true,
+   "voci": [
+    {
+     "titolo": "Il viadotto",
+     "testo": "Tra Cascina Gobba e Cologno Nord la M2 corre su un viadotto: è l'unico tratto sopraelevato della metropolitana di Milano."
+    },
+    {
+     "titolo": "Due piani a Sant'Agostino",
+     "testo": "Tra Sant'Ambrogio e Porta Genova i binari sono uno sopra l'altro, e Sant'Agostino è su due livelli."
+    },
+    {
+     "titolo": "Lanza",
+     "testo": "È l'unica stazione con un accesso dentro un palazzo."
+    },
+    {
+     "titolo": "Moscova",
+     "testo": "È la prima stazione di Milano scavata a foro cieco, tranne il mezzanino."
+    },
+    {
+     "titolo": "La luce per la nebbia",
+     "testo": "Tutti i treni hanno dietro una luce lampeggiante, per farsi vedere in superficie con la nebbia."
+    },
+    {
+     "titolo": "Il tunnel tra le linee",
+     "testo": "Tra Centrale e Loreto un tunnel di raccordo collega la M2 alla M1 e alla M3, per trasferire i treni."
+    },
+    {
+     "titolo": "Deragliata a Cimiano",
+     "testo": "La vettura 2104, una rimorchiata del 1° lotto, è deragliata a Cimiano il 6 ottobre 2017."
+    }
+   ],
+   "fonti": [
+    "Wikipedia, voce \"Linea M2 (metropolitana di Milano)\" (CC BY-SA 4.0), provvisoria. Vettura 2104: elenco di Giovanni."
+   ]
+  },
+  {
+   "id": "stazioni",
+   "titolo": "Stazioni",
+   "provvisorio": true,
+   "paragrafi": [
+    "Le 35 stazioni, ramo per ramo, con l'anno di apertura e gli interscambi. L'anno viene dalle date di apertura delle tratte."
+   ],
+   "tabella": {
+    "colonne": [
+     "Stazione",
+     "Ramo",
+     "Aperta",
+     "Interscambio"
+    ],
+    "righe": [
+     [
+      "Gessate",
+      "Gessate",
+      "1985",
+      "capolinea"
+     ],
+     [
+      "Cascina Antonietta",
+      "Gessate",
+      "1985",
+      "—"
+     ],
+     [
+      "Gorgonzola",
+      "Gessate",
+      "1972",
+      "—"
+     ],
+     [
+      "Villa Pompea",
+      "Gessate",
+      "1972",
+      "—"
+     ],
+     [
+      "Bussero",
+      "Gessate",
+      "1972",
+      "—"
+     ],
+     [
+      "Cassina de' Pecchi",
+      "Gessate",
+      "1972",
+      "—"
+     ],
+     [
+      "Villa Fiorita",
+      "Gessate",
+      "1972",
+      "—"
+     ],
+     [
+      "Cernusco sul Naviglio",
+      "Gessate",
+      "1972",
+      "—"
+     ],
+     [
+      "Cascina Burrona",
+      "Gessate",
+      "1972",
+      "—"
+     ],
+     [
+      "Vimodrone",
+      "Gessate",
+      "1972",
+      "—"
+     ],
+     [
+      "Cologno Nord",
+      "Cologno",
+      "1981",
+      "capolinea"
+     ],
+     [
+      "Cologno Centro",
+      "Cologno",
+      "1981",
+      "—"
+     ],
+     [
+      "Cologno Sud",
+      "Cologno",
+      "1981",
+      "—"
+     ],
+     [
+      "Cascina Gobba",
+      "tronco comune",
+      "1969",
+      "—"
+     ],
+     [
+      "Crescenzago",
+      "tronco comune",
+      "1969",
+      "—"
+     ],
+     [
+      "Cimiano",
+      "tronco comune",
+      "1969",
+      "—"
+     ],
+     [
+      "Udine",
+      "tronco comune",
+      "1969",
+      "—"
+     ],
+     [
+      "Lambrate FS",
+      "tronco comune",
+      "1969",
+      "stazione ferroviaria"
+     ],
+     [
+      "Piola",
+      "tronco comune",
+      "1969",
+      "—"
+     ],
+     [
+      "Loreto",
+      "tronco comune",
+      "1969",
+      "M1"
+     ],
+     [
+      "Caiazzo",
+      "tronco comune",
+      "1969",
+      "—"
+     ],
+     [
+      "Centrale FS",
+      "tronco comune",
+      "1970",
+      "M3, stazione ferroviaria"
+     ],
+     [
+      "Gioia",
+      "tronco comune",
+      "1971",
+      "—"
+     ],
+     [
+      "Garibaldi FS",
+      "tronco comune",
+      "1971",
+      "M5, stazione ferroviaria"
+     ],
+     [
+      "Moscova",
+      "tronco comune",
+      "1978",
+      "—"
+     ],
+     [
+      "Lanza",
+      "tronco comune",
+      "1978",
+      "—"
+     ],
+     [
+      "Cadorna FN",
+      "tronco comune",
+      "1978",
+      "M1, Ferrovie Nord"
+     ],
+     [
+      "Sant'Ambrogio",
+      "tronco comune",
+      "1983",
+      "M4"
+     ],
+     [
+      "Sant'Agostino",
+      "tronco comune",
+      "1983",
+      "—"
+     ],
+     [
+      "Porta Genova FS",
+      "tronco comune",
+      "1983",
+      "stazione ferroviaria"
+     ],
+     [
+      "Romolo",
+      "tronco comune",
+      "1985",
+      "linee S"
+     ],
+     [
+      "Famagosta",
+      "tronco comune",
+      "1994",
+      "—"
+     ],
+     [
+      "Abbiategrasso",
+      "Abbiategrasso",
+      "2005",
+      "capolinea"
+     ],
+     [
+      "Assago Milanofiori Nord",
+      "Assago",
+      "2011",
+      "—"
+     ],
+     [
+      "Assago Milanofiori Forum",
+      "Assago",
+      "2011",
+      "capolinea"
+     ]
+    ]
+   },
+   "fonti": [
+    "Wikipedia, voce \"Linea M2 (metropolitana di Milano)\" (CC BY-SA 4.0), provvisoria. Lato porte e annunci: in arrivo."
+   ]
+  },
+  {
+   "id": "annunci",
+   "titolo": "Annunci a bordo",
+   "presto": true,
+   "testo": "In arrivo: gli annunci della M2, come quelli registrati sulla M3."
+  }
+ ]
+}

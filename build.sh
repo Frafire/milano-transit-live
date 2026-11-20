@@ -109,5 +109,6 @@ echo "== the panels of each line (data/capacita.json)"
 if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/caps_check.js"; else echo "(skipped: Playwright not installed)"; fi
 echo "== the M2 signals on the map and in the editor (track choice, sizes by zoom)"
 if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/m2_editor_check.js"; else echo "(skipped: Playwright not installed)"; fi
-if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/m2_fronts_check.js"; else echo "(skipped: Playwright not installed)"; fi
+python3 "$ROOT/tests/m2_scheda_check.py"
+if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/m2_fronts_check.js" && node "$ROOT/tools/fronti_m2.js" --check; else echo "(skipped: Playwright not installed)"; fi
 if node -e "require('playwright')" 2>/dev/null; then node "$ROOT/tests/velette_m3_check.js"; else echo "(skipped: Playwright not installed)"; fi

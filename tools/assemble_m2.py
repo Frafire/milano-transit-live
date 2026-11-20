@@ -45,3 +45,45 @@ def write(dati):
         packs.setdefault('M2', []).append(sfx)
         print('  dati/%s  %.1f MB' % (name, len(js) / 1e6))
     return packs
+
+
+# the M2's line card (data/schede/m2.json, Giovanni 20 Nov 2026: "creami la pagina informazioni come su M3"): the texts as
+# they are, plus what the build knows: the stations of the timetable, the Meneghino and Leonardo of the game's fleet
+# (data/flotta_m2.json, one row a train of two units), the depots' tracks (data/depositi_m2.json), the fronts the game
+# draws (data/schede/fronti/m2.json, tools/fronti_m2.js). The rows of the Tradizionali: the card's own list ("storico")
+def scheda():
+    sp = os.path.join(ROOT, 'data', 'schede', 'm2.json')
+    if not os.path.exists(sp): return None
+    sc = json.load(open(sp)); sec = {s['id']: s for s in sc['sezioni']}
+    dp = os.path.join(BUILD, '1', 'data.json')
+    nst = len(json.load(open(dp))['stops']) if os.path.exists(dp) else len(sec['stazioni']['tabella']['righe'])
+    fl = json.load(open(os.path.join(ROOT, 'data', 'flotta_m2.json')))['treni']
+    fp = os.path.join(ROOT, 'data', 'schede', 'fronti', 'm2.json'); fronti = json.load(open(fp)) if os.path.exists(fp) else {}
+    LIV = {'black': 'nera, profili verdi', 'green': 'verde, profili bianchi', 'fineco': 'Fineco'}
+    rows = {'Meneghino': [], 'Leonardo': []}
+    for g in fl:
+        for a in range(g['da'], g['a'] + 1, 2):
+            note = [LIV.get(g.get('livrea'), '') if g['tipo'] == 'Leonardo' else ('profili gialli' if g.get('profili') == 'yellow' else '')]
+            if g.get('lotto'): note.insert(0, g['lotto'] + ' lotto')
+            if g.get('velette') == 'monitor': note.append('velette dall\'elenco del monitor')
+            if g.get('nota') and g['tipo'] == 'Meneghino' and 'dalla M1' in g['nota']: note.append(g['nota'])
+            rows[g['tipo']].append({'matricole': '%d-%d' % (a, a + 1), 'costruttore': 'AnsaldoBreda e Firema' if g['tipo'] == 'Meneghino' else ('AnsaldoBreda' if g.get('anno', 0) <= 2015 else 'Hitachi Rail Italy'),
+                                    'anno': str(g.get('anno', '')), 'note': '; '.join(x for x in note if x)})
+    tr = sec['treni']; num = lambda r: int(''.join(ch for ch in r['matricole'].split('-')[0] if ch.isdigit()) or 0)
+    for g in tr['gruppi']:
+        if g.get('flotta'):
+            g['righe'] = sorted(rows[g['flotta']], key=num); g['nel_gioco'] = len(g['righe'])
+            g['dati'] = g['dati'] + [['Nel gioco', '%d treni' % len(g['righe'])]]
+        else:
+            g['righe'] = sorted([dict(r, storico=True) for r in tr.get('storico', []) if r['gruppo'] == g.get('storico_gruppo')], key=num)
+        if fronti.get(g.get('flotta') or ''): g['frontale'] = fronti[g['flotta']]
+    tr.pop('storico', None)
+    # the depots: the tracks of the game (Giovanni and his colleague)
+    D = json.load(open(os.path.join(ROOT, 'data', 'depositi_m2.json')))['depositi']
+    for d in sec['depositi']['lista']:
+        k = d['nome'].replace('Deposito ', ''); b = D.get(k) or []
+        if b: d['numeri'] = [[str(len(b)), 'binari nel gioco'], [str(sum(t.get('treni', 1) for t in b)), 'posti per un treno']]
+    nt = sum(len(v) for v in rows.values())
+    sec['breve']['numeri'] = [[str(nst), 'stazioni'], sec['breve']['lunghezza'], [sec['breve']['apertura']['anno'], sec['breve']['apertura']['testo']],
+                              [str(sec['breve'].get('depositi', 3)), 'depositi'], [str(nt), 'treni nella flotta del gioco']]
+    return sc
