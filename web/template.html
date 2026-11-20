@@ -377,7 +377,7 @@ body.schedit .drawer { z-index: 3100; } body.schedit #depotPlan { right: 350px; 
 #depotPlan svg.edit g.dk, #depotPlan svg.edit g.dk * { pointer-events: auto; cursor: move; } #depotPlan svg.edit g.dk:hover { outline: 1px dashed #b3121a; }
 #depotPlan .swn { font: 600 8px var(--display); fill: #3a382f; } #depotPlan .secn { font: 600 7.5px var(--display); fill: #4a483f; pointer-events: none; } #depotPlan .binn { font: 700 9.5px var(--display); fill: #22211c; }
 #depotPlan .swl { fill: #3d3c35; stroke: #121212; stroke-width: .8; } #depotPlan .swl.on { fill: #fff6d0; } #depotPlan .swb { stroke: #121212; stroke-width: 1.4; }
-#depotPlan .binf rect { fill: #d9d6c8; stroke: #3a382f; stroke-width: 1; } #depotPlan text.labs { font: 700 9.5px var(--display); fill: #22211c; letter-spacing: .05em; } #depotPlan text.sgname { font-size: 10px; font-weight: 600; fill: #2b2a25; } #depotPlan .darr { fill: #1b1b1b; stroke: var(--sin-bg); stroke-width: 1.2; } #depotPlan .darr.lit { fill: #f4f4ee; } #depotPlan .darr.occ { fill: #e5383b; } #depotPlan rect.shed { fill: #a6c7e0; stroke: none; } #depotPlan g.sgi.orig { animation: dpKey .8s steps(2, start) infinite; } #depotPlan g.sgi.orig path, #depotPlan g.sgi.orig rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.prep path, #depotPlan g.sgi.prep rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.auth path, #depotPlan g.sgi.auth rect.sgc { stroke: #ffffff; stroke-width: 1.6; } @keyframes dpKey { 50% { opacity: .3; } } #depotPlan .dp-acei { display: block; flex-basis: 100%; color: #ffd166; font-weight: 600; min-height: 1.2em; } #depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
+#depotPlan .binf rect { fill: #d9d6c8; stroke: #3a382f; stroke-width: 1; } #depotPlan text.labs { font: 700 9.5px var(--display); fill: #22211c; letter-spacing: .05em; } #depotPlan text.sgname { font-size: 10px; font-weight: 600; fill: #2b2a25; } #depotPlan .darr { fill: #1b1b1b; stroke: var(--sin-bg); stroke-width: 1.2; } #depotPlan .darr.lit { fill: #f4f4ee; } #depotPlan .darr.occ { fill: #e5383b; } #depotPlan rect.shed { fill: #a6c7e0; stroke: none; } #depotPlan g.sgi.orig { animation: dpKey .8s steps(2, start) infinite; } #depotPlan g.sgi.orig path, #depotPlan g.sgi.orig rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.prep path, #depotPlan g.sgi.prep rect.sgc { stroke: #ffd166; stroke-width: 1.6; } #depotPlan g.sgi.auth path, #depotPlan g.sgi.auth rect.sgc { stroke: #ffffff; stroke-width: 1.6; } @keyframes dpKey { 50% { opacity: .3; } } #depotPlan .dp-acei { display: block; flex-basis: 100%; color: #ffd166; font-weight: 600; min-height: 1.2em; } #depotPlan circle.swl { fill: #3a382f; stroke: none; } #depotPlan circle.swl.mv { fill: #ffd166; animation: dpKey .5s steps(2, start) infinite; } #depotPlan .disp rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; } #depotPlan .disp text { fill: #e9ecef; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; }
 #depotPlan .trn rect, #depotPlan .trn.late rect, #depotPlan .trn.early rect { fill: #0a0a0a; stroke: #e8e5d8; stroke-width: 1.2; }
 #depotPlan .trn text, #depotPlan .disp .trn text { fill: #ffffff; font: 700 9.5px ui-monospace, "SFMono-Regular", Menlo, monospace; } #depotPlan .trn.early text { fill: #39e66a; } #depotPlan .trn.late text { fill: #ff4a3d; }
 #depotPlan .trn.bare text { fill: #111; font-size: 10px; } #depotPlan .trn.bare.early text { fill: #137a2e; } #depotPlan .trn.bare.late text { fill: #c41d1d; }
@@ -4792,6 +4792,10 @@ window.MTL_CAPS = __CAPS__;
       `<text class="binno" x="${(pf.x0 + pf.x1) / 2}" y="${pf.y - 7.5}">${({ 1: 'I', 2: 'II' })[pf0.bin] || pf0.bin}</text>`); grow([pf.x0, pf.y - 12]); grow([pf.x1, pf.y + 6]); }
     // where the track leaves the line for another (the M2 link): that line's logo
     // the tails (Giovanni 16 Nov 2026): grey, their name small above, at Comasina their positions
+    // (a small lamp under each switch of the line: blinking while it moves, off when it is still; Giovanni 20 Nov 2026,
+    // "per curiosità mia", not on the real board)
+    if (SIN_WHICH === 'line') for (const [n, list] of Object.entries(at)) { if (list.length < 3 || !N[n]) continue; const [x, y] = T(N[n]);
+      const mv = rt.swMov && rt.swMov[n] > (rt.t || 0); marks += `<circle class="swl${mv ? ' mv' : ''}" cx="${x.toFixed(1)}" cy="${(y + 9).toFixed(1)}" r="2.6"/>`; }
     for (const tl of SCH.tails || []) { const [x, y] = T([tl.x, tl.y]); marks += DK('tail:' + tl.text + ':' + Math.round(tl.x), `<text class="tailn" x="${x}" y="${y}"${tl.anchor ? ` style="text-anchor:${tl.anchor}"` : ''}>${tl.text}</text>`); grow([x + (tl.anchor === 'start' ? 80 : tl.anchor === 'end' ? -80 : 0), y]);
       for (const ps of tl.pos || []) { const [px, py] = T([ps.x, ps.y + 21]); marks += DK('pos:' + tl.text + ':' + ps.text, `<text class="posn" x="${px}" y="${py}">${ps.text}</text>`); } }
     // the names of the tracks, big, with the number of the piece (to talk about them: "nomi dei binari")
@@ -5935,6 +5939,12 @@ window.MTL_CAPS = __CAPS__;
     }
     return null;
   }
+  // a train coming to line signal n, showing via libera: its front within 300 m before it and moving
+  function sinTrainComing(F, n) {
+    const S = SIGS && SIGS.find(x => x.tag === '#A' + String(n).padStart(2, '0')); if (!S || (S.asp !== 'go' && S.asp !== 'sgo')) return false;
+    const SA = F.engine.net.sigall || {}, half = F.engine.half;
+    return F.ag.agents().some(a => a && !a.hidden && a.v > 0.5 && (SA[a.pid] || []).some(x => x[1] === n && x[0] >= a.d + half - 1 && x[0] - (a.d + half) < 300));
+  }
   // a press on the start of a prepared itinerary: the via libera, then (once more) the itinerary taken back
   function sinPrepPress(F, n, P) {
     const nm = sigName(n), tag = '#A' + String(n).padStart(2, '0'), il = F.ag.il(), st = F.ag.rt();
@@ -5947,6 +5957,9 @@ window.MTL_CAPS = __CAPS__;
       P.auth = true; sinMsg(`${nm}: via libera al prossimo treno per ${sigName(P.to)}${P.line ? '' : ' (deposito in manuale)'}. Premi di nuovo ${nm} per annullare l'itinerario.`);
       if (P.line) sinLineFollow(F, n, (F.engine.net.itineraries || []).find(x => x.id === P.line));
     } else {
+      // (not once it shows via libera with a train coming to it: on the real line the change turns it red under the train and
+      // the ATP brakes it hard; the itinerary is formed before the train gets there. Giovanni 20 Nov 2026)
+      if (P.line && sinTrainComing(F, n)) { sinMsg(`${nm}: è già a via libera e un treno sta arrivando, l'itinerario non si cambia più.`); return; }
       if (P.line) { F.ag.event({ kind: 'pccmd', what: 'cancel', n }); F.ag.event({ kind: 'pccmd', what: 'red', n, on: false }); say('', tx('dct.itinerario_annullato', { segnale: tag }), 'pc'); }
       else F.ag.event({ kind: 'il', what: 'unclear', si: P.si });
       delete SIN_PREP[n]; sinMsg(`${nm}: itinerario annullato.`);
@@ -6120,8 +6133,13 @@ window.MTL_CAPS = __CAPS__;
       let busy = true;
       if (sg.ahead) busy = occ.some(o => onParts(F, o, sg.ahead));
       if (green && !sg.shunt) { const n = parseInt(String(sg.tag || '').slice(2), 10);
+        // (an itinerary formed by the PC from here and given via libera on the board: via libera (bianco-rosso, the same for an
+        // illegal, no other aspect for the deviata on the M3) as soon as the switches are in place, red while they move, and
+        // while its stretch is free; it stays so with no train until it is taken back. Giovanni 19-20 Nov 2026)
+        const rt_ = F.ag.rt(), pr = rt_.pcRoutes && rt_.pcRoutes[n], P_ = SIN_PREP[n];
+        const pcGo = !!(pr && P_ && P_.auth && P_.line === pr.id && (pr.ready == null || pr.ready <= (rt_.t || 0)) && pr.pieces.every(([ei, m0, m1]) => !(F.ag.occ(ei) || []).some(([, a0, a1]) => a1 > m0 && a0 < m1)));
         if (F.ag.rt().redFix && F.ag.rt().redFix[n]) busy = true;
-        else if (green.has(n)) busy = false;
+        else if (green.has(n) || pcGo) busy = false;
         else if (sg.illegal || !/^[abcd]$/.test(sg.stype || 'a') || (F.engine.net.route_rules && (F.engine.net.route_rules.redNormal || []).includes(n))) busy = true;
         else { const at = sg.pid != null ? [sg.pid, sg.d] : (sg.refs && sg.refs[0]);
           busy = at ? !F.ag.RT.clearAhead(F.ag.rt(), at[0], at[1], F.ag.occ) : busy; } }

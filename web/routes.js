@@ -99,6 +99,12 @@
     const isSwitch = nd => nodeEdges(nd).length >= 3;
     // a switch of the depot (all its track pieces in the depot): the depot moves are not in the table (depot rules)
     const depotSwitch = nd => nodeEdges(nd).every(ei => NE[ei].cat === 'yard');
+    // the switch's own position, straight on: its two pieces of running line (Giovanni 20 Nov 2026: after a train in
+    // deviata, once its tail has cleared the switch, the switch goes back to its place and the straight section is free)
+    const straightPos = nd => { const m = nodeEdges(nd).filter(ei => NE[ei].cat === 'main'); return m.length === 2 ? Math.min(m[0], m[1]) + '-' + Math.max(m[0], m[1]) : null; };
+    const swHeld = (st, nd, but) => Object.entries(st.routes).some(([k2, rs]) => rs.some(r => r !== but && r.nodes.some(x => x[0] === nd))) || Object.values(st.pcRoutes || {}).some(r => r.nodes.includes(nd));
+    // a switch moving: its blade until then (the board shows a small lamp blinking)
+    const swMove = (st, nd) => { st.swMov = st.swMov || {}; st.swMov[nd] = (st.t || 0) + BLADE; };
     // the tail positions (Comasina: 3 of 110 m, 1 the outermost, next to the switch): the movements of the table into
     // and out of a tail differ only by the position, so it is read from the metres on the dead-end piece
     const EXITZ = o.exitZones && Object.keys(o.exitZones).length ? o.exitZones : null;
@@ -233,7 +239,7 @@
       for (let i = 0; i + 1 < pieces.length && i < nodes.length; i++) {
         const nd = nodes[i][0]; if (!isSwitch(nd) || (st.swFail && st.swFail[nd] != null)) continue;      // (worked by hand: it stays)
         const pos = Math.min(pieces[i][0], pieces[i + 1][0]) + '-' + Math.max(pieces[i][0], pieces[i + 1][0]);
-        if (st.sw[nd] != null && st.sw[nd] !== pos) moved = true;
+        if (st.sw[nd] != null && st.sw[nd] !== pos) { moved = true; swMove(st, nd); }
         st.sw[nd] = pos;
       }
       const r = { pid, d0: d, d1, n, pieces, nodes, ready: (st.t || 0) + (moved ? BLADE : 0) + SIGNAL };
@@ -257,7 +263,11 @@
         if (!gone && next != null && r.pid === next && r.pid !== pid) { keep.push(r); continue; }
         if (gone || r.pid !== pid) continue;
         r.pieces = r.pieces.filter(x => x[3] > tail - 1);
-        r.nodes = r.nodes.filter(x => x[1] > tail - 1);
+        const left = r.nodes.filter(x => x[1] <= tail - 1); r.nodes = r.nodes.filter(x => x[1] > tail - 1);
+        // (the switches the tail has cleared, set for the deviata: back straight on, unless another route holds them, the
+        // DCT locked them or they failed)
+        for (const [nd] of left) { const sp = straightPos(nd);
+          if (sp && isSwitch(nd) && !depotSwitch(nd) && st.sw[nd] != null && st.sw[nd] !== sp && !(st.swLock && st.swLock[nd] != null) && !(st.swFail && st.swFail[nd] != null) && !swHeld(st, nd, r)) { st.sw[nd] = sp; swMove(st, nd); } }
         if (r.pieces.length) keep.push(r);
       }
       if (keep.length) st.routes[k] = keep; else delete st.routes[k];
@@ -318,8 +328,11 @@
       for (let i = 0; i + 1 < W.length; i++) { const nd = nodeOf(W[i], W[i + 1]); if (nd == null || !isSwitch(nd)) continue;
         const pos = Math.min(W[i], W[i + 1]) + '-' + Math.max(W[i], W[i + 1]); if (st.swLock && st.swLock[nd] != null && st.swLock[nd] !== pos) return { swLock: nd };
         if (st.swFail && st.swFail[nd] != null && st.swFail[nd] !== pos) return { swFail: nd }; }
-      for (let i = 0; i + 1 < W.length; i++) { const nd = nodeOf(W[i], W[i + 1]); if (nd != null && isSwitch(nd)) st.sw[nd] = Math.min(W[i], W[i + 1]) + '-' + Math.max(W[i], W[i + 1]); }
-      st.pcRoutes = st.pcRoutes || {}; st.pcRoutes[it.start] = { id, pieces: pieces.map(x => x.slice(0, 3)), nodes: nodes.map(x => x[0]), t: st.t || 0 };
+      let moved = false;
+      for (let i = 0; i + 1 < W.length; i++) { const nd = nodeOf(W[i], W[i + 1]); if (nd == null || !isSwitch(nd)) continue; const pos = Math.min(W[i], W[i + 1]) + '-' + Math.max(W[i], W[i + 1]);
+        if (st.sw[nd] != null && st.sw[nd] !== pos) { moved = true; swMove(st, nd); } st.sw[nd] = pos; }
+      // (ready: the switches in place, then the signal; until then the signal stays red, Giovanni 20 Nov 2026)
+      st.pcRoutes = st.pcRoutes || {}; st.pcRoutes[it.start] = { id, pieces: pieces.map(x => x.slice(0, 3)), nodes: nodes.map(x => x[0]), t: st.t || 0, ready: (st.t || 0) + (moved ? BLADE : 0) + SIGNAL };
       return null;
     }
     // a switch moved by hand (only free: no route over it, no train on it) and locked or unlocked in a position
