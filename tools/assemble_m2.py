@@ -49,8 +49,9 @@ def write(dati):
 
 # the M2's line card (data/schede/m2.json, Giovanni 20 Nov 2026: "creami la pagina informazioni come su M3"): the texts as
 # they are, plus what the build knows: the stations of the timetable, the Meneghino and Leonardo of the game's fleet
-# (data/flotta_m2.json, one row a train of two units), the depots' tracks (data/depositi_m2.json), the fronts the game
-# draws (data/schede/fronti/m2.json, tools/fronti_m2.js). The rows of the Tradizionali: the card's own list ("storico")
+# (data/flotta_m2.json, one row a train of two units), the depots' tracks (data/depositi_m2.json), the fronts (drawn in
+# the menu by the game's own code, the player changes number, destination and lights; the destinations: the PIS texts of
+# data/velette_m2.json). The rows of the Tradizionali: the card's own list ("storico")
 def scheda():
     sp = os.path.join(ROOT, 'data', 'schede', 'm2.json')
     if not os.path.exists(sp): return None
@@ -58,7 +59,11 @@ def scheda():
     dp = os.path.join(BUILD, '1', 'data.json')
     nst = len(json.load(open(dp))['stops']) if os.path.exists(dp) else len(sec['stazioni']['tabella']['righe'])
     fl = json.load(open(os.path.join(ROOT, 'data', 'flotta_m2.json')))['treni']
-    fp = os.path.join(ROOT, 'data', 'schede', 'fronti', 'm2.json'); fronti = json.load(open(fp)) if os.path.exists(fp) else {}
+    V = json.load(open(os.path.join(ROOT, 'data', 'velette_m2.json'))); ecc = V['regole'].get('eccezioni_pis', {})
+    MUSO = {'Meneghino': {'tipo': 'meneghinoM2', 'dest': 'GESSATE', 'no': '', 'luci': 'white', 'livrea': 'green', 'reale': True,
+                          'livree': [['green', 'profili verdi'], ['yellow', 'profili gialli (949-950)']]},
+            'Leonardo': {'tipo': 'leonardo', 'dest': 'ABBIATEGRASSO', 'no': '', 'luci': 'white', 'livrea': 'black',
+                         'livree': [['black', 'nera, profili verdi'], ['green', 'verde, profili bianchi'], ['fineco', 'Fineco (5067-5068)']]}}
     LIV = {'black': 'nera, profili verdi', 'green': 'verde, profili bianchi', 'fineco': 'Fineco'}
     rows = {'Meneghino': [], 'Leonardo': []}
     for g in fl:
@@ -76,8 +81,9 @@ def scheda():
             g['dati'] = g['dati'] + [['Nel gioco', '%d treni' % len(g['righe'])]]
         else:
             g['righe'] = sorted([dict(r, storico=True) for r in tr.get('storico', []) if r['gruppo'] == g.get('storico_gruppo')], key=num)
-        if fronti.get(g.get('flotta') or ''): g['frontale'] = fronti[g['flotta']]
+        if g.get('flotta') in MUSO: g['muso'] = MUSO[g['flotta']]
     tr.pop('storico', None)
+    tr['destinazioni'] = list(dict.fromkeys([ecc.get(st['pis'], st['pis']) for st in V['stazioni'] if st.get('pis')] + V['speciali']))
     # the depots: the tracks of the game (Giovanni and his colleague)
     D = json.load(open(os.path.join(ROOT, 'data', 'depositi_m2.json')))['depositi']
     for d in sec['depositi']['lista']:

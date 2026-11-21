@@ -147,6 +147,11 @@ for f in sorted(glob.glob(os.path.join(ROOT, 'data', 'schede', '*.json'))):
     elif ln == 'M2' and assemble_m2.scheda(): schede[ln] = assemble_m2.scheda()      # (the M2 from its own build, tools/assemble_m2.py)
 assets['__SCHEDE__'] = json.dumps(schede, ensure_ascii=False, separators=(',', ':'))
 assets['__ORARI__'] = json.dumps(orari, ensure_ascii=False)
+# the train fronts of the game (web/template.html, between the <fronti> marks): the line cards draw them too, and the
+# player changes number, destination and lights on them (Giovanni 20 Nov 2026)
+import re as _re
+assets['__FRONTI__'] = '\n'.join(m.group(1) for m in _re.finditer(r'// <fronti>[^\n]*\n(.*?)\n  // </fronti>', open(os.path.join(web, 'template.html')).read(), _re.S))
+assert 'function meneghinoSVG' in assets['__FRONTI__'] and 'function leonardoSVG' in assets['__FRONTI__']
 bg = os.path.join(img, 'home', 'sfondo.jpg')      # the blurred photo behind the menu; without it, a plain dark blue
 assets['__SFONDO__'] = "url('%s')" % uri(bg) if os.path.exists(bg) else 'none'
 for k, v in assets.items():
