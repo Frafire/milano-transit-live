@@ -183,10 +183,12 @@ for name, sts in station_tracks.items():
         s0, s1 = along - PLAT_LEN / 2, along + PLAT_LEN / 2
         if name in PLAT_EDITS.get('allunga', {}):          # longer, up to a point (the M2: Assago Forum, to its signals)
             _, a_to, _, _ = closest_on_edge(ei, *xy(*PLAT_EDITS['allunga'][name])); s0, s1 = min(s0, a_to), max(s1, a_to)
-        if name in PLAT_EDITS.get('allinea', {}):          # one end exactly at a point, longer or shorter (the M2: Abbiategrasso, at its signal)
-            _, a_to, _, _ = closest_on_edge(ei, *xy(*PLAT_EDITS['allinea'][name]))
-            if abs(a_to - s0) < abs(a_to - s1): s0 = a_to
-            else: s1 = a_to
+        if name in PLAT_EDITS.get('allinea', {}):          # one end exactly at a point, longer or shorter (the M2: Abbiategrasso, at its signal);
+            al = PLAT_EDITS['allinea'][name]                # with "lunghezza", the other end that many metres behind it
+            al = al if isinstance(al, dict) else {'punto': al}
+            _, a_to, _, _ = closest_on_edge(ei, *xy(*al['punto']))
+            if abs(a_to - s0) < abs(a_to - s1): s0 = a_to; s1 = s0 + al['lunghezza'] if al.get('lunghezza') else s1
+            else: s1 = a_to; s0 = s1 - al['lunghezza'] if al.get('lunghezza') else s0
         for k in range(12):
             s = s0 + (s1 - s0) * k / 11
             x, y, tx, ty = at(s); nx, ny = ty * side, -tx * side
