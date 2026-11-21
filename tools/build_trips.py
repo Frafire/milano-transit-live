@@ -183,6 +183,10 @@ for name, sts in station_tracks.items():
         s0, s1 = along - PLAT_LEN / 2, along + PLAT_LEN / 2
         if name in PLAT_EDITS.get('allunga', {}):          # longer, up to a point (the M2: Assago Forum, to its signals)
             _, a_to, _, _ = closest_on_edge(ei, *xy(*PLAT_EDITS['allunga'][name])); s0, s1 = min(s0, a_to), max(s1, a_to)
+        if name in PLAT_EDITS.get('allinea', {}):          # one end exactly at a point, longer or shorter (the M2: Abbiategrasso, at its signal)
+            _, a_to, _, _ = closest_on_edge(ei, *xy(*PLAT_EDITS['allinea'][name]))
+            if abs(a_to - s0) < abs(a_to - s1): s0 = a_to
+            else: s1 = a_to
         for k in range(12):
             s = s0 + (s1 - s0) * k / 11
             x, y, tx, ty = at(s); nx, ny = ty * side, -tx * side
