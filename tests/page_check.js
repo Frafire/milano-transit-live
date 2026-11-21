@@ -35,6 +35,8 @@
 // - incendio: a fire at Corvetto: the OS has the station evacuated by himself and does not answer; 5 minutes later the
 //   station is clear, the firemen there; when they finish (no damage) the DCT reopens
 // - prefetturanotte: the Prefettura closes Duomo at 3 at night: the OS is not there, no call
+// - sciopero: a strike day 40%, lower frequency, the DCT lets each driver go back: at 15:00 they come out of the depot and work,
+//   no jam at the depot or at Comasina (no red longer than 45 minutes), no train taken for broken
 // - emergenzastazione: the stations' openings said also played at 300x; investimento at Corvetto: the OS asks for news,
 //   answers a check "negativo", a closing "già chiusa", an opening "impossibile, ti richiamo"; the DCT's closure from the
 //   menu goes to all the trains by radio and is the investimento's
@@ -1117,6 +1119,25 @@ const SCENARIOS = {
       const log = (document.getElementById('radioLog') || {}).innerText || '';
       return { ok: homeMode !== 'plan' && sc > 0 && out >= 8 * 3600 && a.status === 'service' && rK.n === tab && rM.tab == null && dup === 0,
         tabella: tab, out: uM, reserve: uK, leaves: out, dep, status: a.status, shown: rK.n, outShown: rM.n, dup, sc };
+    });
+  },
+  async sciopero(p) {   // a strike day in the page (Giovanni 21 Nov 2026, "prova a giocare uno sciopero"): 40%, lower frequency; the
+    // DCT answers each driver who asks to go back. At 8:45 they go in (depot places, tails of Comasina); at 15:00 they come
+    // out of the depot places and work; at 18:00 in again. Nobody waits at a red more than 45 minutes; no train broken
+    return p.evaluate(async () => {
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+      const M = window.mtl, st = M.state, F = M.fleets.find(f => f.line === 'M3' && f.ag);
+      st.playing = false; st.t = 5.9 * 3600; await sleep(2500);
+      const id = F.ag.event({ kind: 'fault', what: 'new', fault: 'sciopero', target: 40 }); F.ag.event({ kind: 'fault', what: 'answer', id, answer: 'freq' });
+      const K = F.ag.FX.list().find(x => x.id === id).strikers.slice(), done = new Set(); let worst = 0, back = 0, broken = 0;
+      st.speed = 300; st.playing = true; const t0 = Date.now();
+      while (Date.now() - t0 < 300000 && st.t < 19 * 3600) { await sleep(1000);
+        for (const f of F.ag.FX.list()) if (f.kind === 'rientro' && f.call && !done.has(f.id)) { done.add(f.id); F.ag.event({ kind: 'fault', what: 'answer', id: f.id, answer: 'homeEnd' }); }
+        const A = F.ag.agents(); A.forEach(a => { if (a && !a.hidden && a.red) worst = Math.max(worst, (st.t - a.red.since) / 60); });
+        if (st.t > 16.5 * 3600 && st.t < 17.5 * 3600) back = Math.max(back, K.filter(k => A[k] && !A[k].hidden && A[k].status === 'service').length);
+        broken = Math.max(broken, K.filter(k => A[k] && A[k].broken).length); }
+      st.playing = false;
+      return { ok: st.t >= 19 * 3600 && worst < 45 && back >= Math.ceil(K.length / 2) && broken === 0, strikers: K.length, asked: done.size, backAt1630: back, worstRedMin: Math.round(worst), broken };
     });
   },
   async settimana(p) {  // fase E: a whole week of changes of day without leaving the page. Every day every tabella has a

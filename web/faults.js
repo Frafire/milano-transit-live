@@ -423,7 +423,9 @@
         else { f.ph = 'rescue'; f.until = S.t + between(1800, 3600); say(f, 'pc', tx('soccorso.badoni.nessun_treno')); }
       }
       else if (what === 'home' || what === 'homeEnd') {
-        f.maint = f.ph === 'udt' ? 3 : 2;
+        // (a driver on strike going back is no fault: the train is fine, into a place of the rimessa, out again at 15:00; with
+        // maint it went into the officina as broken and never came back for the guaranteed band, Giovanni 21 Nov 2026)
+        f.maint = f.kind === 'rientro' ? 0 : f.ph === 'udt' ? 3 : 2;
         if (!L.home) return { no: true };
         if (!L.home(f.k, what === 'homeEnd', f.turnX)) { if (what === 'homeEnd') { f.ph = 'homeWait'; say(f, 'pc', tx('guasto.rientro.fine_prossima_corsa')); say(f, 'dr', tx('guasto.ricevuto_passo')); return null; } return { no: true }; }
         f.ph = 'homing'; say(f, 'pc', what === 'homeEnd' ? tx('guasto.rientro.fine_corsa') : tx('guasto.rientro.prossima_stazione'));

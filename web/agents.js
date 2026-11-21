@@ -484,7 +484,9 @@
       if (turnX != null && a.stopAt === turnX && dir === 'N') { a.legs = [{ kind: 'unload' }, { kind: 'turnhome', X: turnX }]; a.stopAt = null; a.mode = 'home'; a.pcHold = false; return true; }
       if (endOfRun && leg.stops.length > 1) { a.legs = [leg, { kind: 'unload' }, { kind: 'home', dir }]; a.mode = 'home'; a.pcHold = false; return true; }     // the whole run first
       if (a.v === 0 && (a.at === 0 || a.at === last) && (a.stopAt != null || S.t < a.wait || !leg || a.status !== 'service')) {
-        a.legs = [{ kind: 'unload' }, a.at === 0 ? { kind: 'depot' } : { kind: 'tailpark' }]; a.stopAt = null;
+        // (at Comasina, no closure: the usual turn and empty to ROD; parked in a tail it took the place the service turns in,
+        // the strike's 18:00, Giovanni 21 Nov 2026)
+        a.legs = [{ kind: 'unload' }, a.at === 0 ? { kind: 'depot' } : S.cl ? { kind: 'tailpark' } : { kind: 'turnempty' }]; a.stopAt = null;
       } else if (leg && leg.stops && leg.stops.length && a.stopAt == null) {
         if (!endOfRun) { leg.stops = leg.stops.slice(0, 1); leg.end = leg.stops[0].d; }
         a.legs = [leg, { kind: 'unload' }, { kind: 'home', dir }];
@@ -882,7 +884,7 @@
       if (m.kind === 'home') {
         const main = m.dir === 'N' ? G.N : G.S, d = mapTo(a.pid, a.d, main.pid);
         if (d == null && a.at === 0) { a.legs.unshift({ kind: 'depot' }); return true; }
-        if (d == null && a.at === last) { a.legs.unshift({ kind: 'tailpark' }); return true; }
+        if (d == null && a.at === last) { a.legs.unshift({ kind: S.cl ? 'tailpark' : 'turnempty' }); return true; }
         if (d == null) { a.status = 'stopped'; a.stoppedSince = S.t; return false; }
         // northbound: to Comasina, the usual turn there (its tails stay free for the service), then empty to ROD
         if (m.dir === 'N') a.legs.unshift({ pid: main.pid, status: 'empty', stops: [], start: d, end: main.stops[main.stops.length - 1], rev: !!m.rev }, { kind: 'turnempty' });
@@ -891,7 +893,10 @@
       }
       if (m.kind === 'turnempty') {
         a.at = last; a.arr = 'N'; a.part = [0, last]; const L2 = nextShuttleLegs_(a), i = L2.findIndex(l => !l.kind && l.status === 'service');
-        if (i < 0) { a.legs.unshift({ kind: 'tailpark' }); return true; }
+        // (no tail free to turn in yet: it waits on the platform and tries again, as the trains in service do; parked in
+        // the tail instead it took the place the others turn in, and Comasina jammed: the strike's 18:00, 21 Nov 2026)
+        if (L2.length && L2.every(l => l.kind === 'retry')) { a.legs.unshift({ kind: 'turnempty', noTail: m.noTail }); a.wait = S.t + 20; a.why = 'tronchetto'; return false; }
+        if (i < 0) { a.legs.unshift({ kind: 'tailpark', noTurn: !!m.noTail }); return true; }
         const r = L2[i]; if (r.runKey) usedRuns.delete(r.runKey); const pe = pathEdges[r.pid].e;
         a.legs.unshift(...L2.slice(0, i), { pid: r.pid, status: 'empty', stops: [], start: r.start, end: pe[pe.length - 1][3] - half - 5, rev: r.rev, cTurn: r.cTurn }, { kind: 'depot' }); return true;
       }
@@ -945,6 +950,8 @@
         if (a.mode === 'plan') { a.wait = Math.max(m.wait || 0, S.t); a.legs = [planLeg(a.k, a.si)]; } else { a.legs = []; a.depotQ = m.q; }
         return false; }
       if (m.kind === 'brentaIn') return brentaIn(a, m);
+      if (m.kind === 'cen2In') return cen2In(a, m);
+      if (m.kind === 'cen2Park') { a.mode = 'static'; a.status = 'parked'; a.v = 0; a.inside = null; a.inTail = 'cen2'; delete S.rt.routes[a.k]; a.legs = []; S.log.push({ t: S.t, k: a.k, cen2: true }); return false; }
       if (m.kind === 'brentaPark') { a.mode = 'static'; a.status = 'parked'; a.v = 0; a.inside = null; a.inTail = 'brenta'; a.brenta = null; delete S.rt.routes[a.k]; a.legs = []; S.log.push({ t: S.t, k: a.k, brenta: true }); return false; }
       if (m.kind === 'pcfwait') return pcfWait(a);
       if (m.kind === 'assign') { assign(a); return a.legs.length > 0; }
@@ -979,7 +986,11 @@
       if (m.kind === 'tailpark') {
         // at Comasina: into a free tail and switched off there
         const cands = (G.pairs && G.pairs.length ? G.pairs : [{ N: G.N, S: G.S }]).filter(p => mapTo(a.pid, a.d, p.N.pid) != null);
-        const Pp = cands.find(p => tailFree(a, p.N)) || cands[0]; if (!Pp) { a.status = 'stopped'; return false; }
+        // (both tails taken: the usual turn and empty to ROD; it waited for ever on the arrival platform and the line jammed
+        // behind it, the strike's 18:00, Giovanni 21 Nov 2026)
+        const free = cands.find(p => tailFree(a, p.N));
+        if (!free && !m.noTurn && !S.cl) { a.legs.unshift({ kind: 'turnempty', noTail: true }); return true; }
+        const Pp = free || cands[0]; if (!Pp) { a.status = 'stopped'; return false; }
         a.legs.unshift({ pid: Pp.N.pid, status: 'turnback', stops: [], end: Pp.N.tail[1], start: mapTo(a.pid, a.d, Pp.N.pid), tailOf: Pp.N.pid }, { kind: 'park' });
         return true;
       }
@@ -1054,6 +1065,11 @@
     function wake(a) {
       if (!a || a.attached != null) return false;
       if (a.mode === 'static' && a.status === 'parked' && a.strikeDepot) { a.strikeDepot = false; resumeDay(a, S.t); return true; }     // (in the depot by its plan)
+      // (sent in off its plan, standing in a place of the rimessa, web/DepotM3.js rimessaPark: out of the depot to San Donato as
+      // the regolatore's recall; it was taken for a train in a tail of Comasina and stayed there, the strike's 15:00)
+      if (a.mode === 'static' && a.status === 'parked' && !a.hidden && a.depotQ != null) { const r = o.depotOut ? o.depotOut(a.depotQ) : null; if (!r) return false;
+        a.mode = 'shuttle'; a.status = 'empty'; a.part = [0, last]; a.v = 0; a.wait = S.t + 60; a.inside = null; a.at = null; a.depotQ = null; a.kept = false;
+        a.legs = [{ pid: r.pid, status: 'from_depot', stops: [], start: r.start, end: r.end }, { kind: 'assign' }]; return true; }
       if (a.hidden) { if (!wakeFree()) return false; a.pid = G.S.pid; a.d = wakeD(); a.hidden = false; a.at = 0; a.arr = 'S'; }
       else if (a.status === 'parked') { a.at = last; a.arr = 'N'; }
       else return false;
@@ -1074,6 +1090,15 @@
       const z = (o.zones && o.zones[a.pid]) || [];
       const at = z.find(x => a.d >= x[0] - 3 && a.d <= x[1] + 3);
       if (at) return { st: at[3], dir: at[3] === 0 ? 'N' : at[3] === last ? 'S' : null };
+      // (a path of its own with no platforms on it, as the way out of the depot to San Donato: the platform of a main path
+      // through the same point; else a train called back from the depot stood at San Donato with nothing to do, holding its
+      // routes, and the depot jammed behind it: the strike's 15:00, Giovanni 21 Nov 2026)
+      if (!z.length && o.zones) for (const P of (G.pairs && G.pairs.length ? G.pairs : [{ N: G.N, S: G.S }])) for (const dir of ['N', 'S']) {
+        const mp = P[dir].pid, x = mapTo(a.pid, a.d, mp); if (x == null) continue;
+        const y = (o.zones[mp] || []).find(q => x >= q[0] - 3 && x <= q[1] + 3);
+        if (y) return { st: y[3], dir: y[3] === 0 ? 'N' : y[3] === last ? 'S' : null };
+        // (San Donato binario 3 has no zone on its path: its stops)
+        const ss = P[dir].stops || []; for (let j = 0; j < ss.length; j++) if (Math.abs(x - ss[j]) < 40) { const st = dir === 'N' ? j : last - j; return { st, dir: st === 0 ? 'N' : st === last ? 'S' : null }; } }
       return null;
     }
     function outOfTail(a) {
@@ -1344,7 +1369,10 @@
       // page), or out of its tail, then into the service of the part it is in (as after a reopening)
       if (e.what === 'recall') { if (a.mode !== 'static' || a.hidden || a.broken || a.v > 0.05) return false;
         if (a.inTail === 'brenta') { if (S.cl) return false; const L0 = brentaOut(a); if (!L0) return false; e = Object.assign({}, e, { legs: L0 }); a.inTail = null; }
-        a.legs = (e.legs || []).map(l => Object.assign({}, l)).concat([{ kind: 'assign' }]); a.mode = 'shuttle'; a.status = 'empty'; a.wait = 0; a.kept = false; a.depotQ = null; a.at = null;
+        // (Bin rimessa Centrale 2: out to Repubblica binario 2, with Repubblica open; there it turns and joins the service)
+        let tailJoin = false;
+        if (a.inTail === 'cen2') { if (S.cl && !partOf(REPX)) return false; const L0 = cen2Out(a); if (!L0) return false; e = Object.assign({}, e, { legs: L0 }); a.inTail = null; tailJoin = true; }
+        a.legs = (e.legs || []).map(l => Object.assign({}, l)).concat(tailJoin ? [] : [{ kind: 'assign' }]); a.mode = 'shuttle'; a.status = 'empty'; a.wait = 0; a.kept = false; a.depotQ = null; a.at = null;
         S.log.push({ t: S.t, k: a.k, recall: true }); return true; }
       if (e.what === 'keep') { if (a.hidden || a.mode !== 'plan' || a.legs.some(l => !l.kind && l.status === 'service')) return false; a.mode = 'static'; a.status = 'parked'; a.v = 0; a.kept = true; return true; }
       if (e.what === 'insert') { a.pid = e.pid; a.d = e.d; a.v = 0; a.mode = 'plan'; a.si = -1; a.legs = []; a.wait = 0; a.hidden = false; a.status = 'parked'; delete S.rt.routes[a.k]; return true; }
@@ -1585,6 +1613,46 @@
       RT.authorize(S.rt, 'id:' + BRE_OUT); if (RT.isPcSignal(it.start)) RT.authorize(S.rt, 'n:' + it.start);
       return [{ pid: np, status: 'empty', stops: [], start: d0, end: sm[0] - half - 3, rev: true, pcf: { n: it.start, id: BRE_OUT } }];
     }
+    // ---------- Bin rimessa Centrale 2 (Giovanni 21 Nov 2026) ----------
+    // The tunnel towards the M2 off binario 2 is a rimessa: a train inside the closed stretch going towards Comasina, with
+    // Repubblica ahead: everybody off at Repubblica, then by REP-3 (#A226 → the tunnel) in, the whole train past #A138
+    // (its change of cab there, beyond the signal that then clears its way out). Called back by the regolatore: it can go
+    // out only one way, towards Repubblica, by REP-10 on the illegal (#A138 → #A321) to Repubblica binario 2; there the
+    // passengers get on with the doors open, it changes cab and goes on towards Comasina in service.
+    const CEN2_IN = 'REP-3', CEN2_OUT = 'REP-10', REPX = G.names.findIndex(n => /^REPUBBLICA/.test(n));
+    // where #A138 is on a path going into the tunnel (from the way out, where it faces the train)
+    function cen2Sig(np) {
+      const it = ITS[CEN2_OUT]; if (!it) return null; const eo = wayAlone(it.ways[0]); if (!eo) return null;
+      const po = makePath(eo), s = (o.sigall[po] || []).find(x => x[1] === it.start); return s ? mapTo(po, s[0], np) : null;
+    }
+    function cen2Plan(a) {
+      const I = a.inside, it = ITS[CEN2_IN]; if (!I || I.dir !== 'N' || !it || REPX < 0 || !ITS[CEN2_OUT]) return null;
+      const q = I.stops.findIndex(z => z.st === REPX); if (q < 0 || q < I.q) return null;
+      const d0 = I.pid === a.pid ? a.d : mapTo(a.pid, a.d, I.pid); if (d0 == null) return null;
+      const sg = (o.sigall[I.pid] || []).find(x => x[1] === it.start && x[0] > I.stops[q].d); if (!sg) return null;
+      const e = spliceWay(I.pid, sg[0], it.ways[0]); if (!e) return null;
+      const legs = [];
+      if (q > I.q || Math.abs(I.stops[q].d - d0) > 5) legs.push({ pid: I.pid, status: 'empty', stops: [], end: I.stops[q].d, start: d0, rev: a.pid !== I.pid });
+      legs.push({ kind: 'unload' }, { kind: 'cen2In', sgD: sg[0], n: it.start });
+      return { legs, after: () => {} };
+    }
+    function cen2In(a, m) {
+      const it = ITS[CEN2_IN], e = spliceWay(a.pid, m.sgD, it.ways[0]); if (!e) { a.legs.unshift({ kind: 'stopped' }); return false; }
+      const np = makePath(e), s138 = cen2Sig(np), L = e[e.length - 1][3];
+      // (the rear 5 m past #A138; never past the end of the drawn tunnel)
+      const end = Math.min(L - half - 5, s138 != null ? s138 + half + 5 : L - half - 5);
+      a.pid = np; a.status = 'empty'; RT.authorize(S.rt, 'id:' + CEN2_IN); if (RT.isPcSignal(m.n)) RT.authorize(S.rt, 'n:' + m.n);
+      a.legs = [{ pid: np, status: 'empty', stops: [], start: a.d, end, pcf: { n: m.n, id: CEN2_IN } }, { kind: 'cen2Park' }];
+      return true;
+    }
+    function cen2Out(a) {
+      const it = ITS[CEN2_OUT]; if (!it || REPX < 0) return null;
+      const e = wayAlone(it.ways[0]); if (!e) return null;
+      const np = makePath(e), d0 = mapTo(a.pid, a.d, np); if (d0 == null) return null;
+      const sm = (o.sigall[np] || []).find(x => x[1] === it.end && x[0] > d0); if (!sm) return null;
+      RT.authorize(S.rt, 'id:' + CEN2_OUT); if (RT.isPcSignal(it.start)) RT.authorize(S.rt, 'n:' + it.start);
+      return [{ pid: np, status: 'empty', stops: [], start: d0, end: sm[0] - half - 3, rev: true, pcf: { n: it.start, id: CEN2_OUT } }, { kind: 'join', st: REPX, dir: 'N' }];
+    }
     // past the end signal of an itinerary there is only plain line (no switch: no itinerary starts there, as #A322 at
     // Centrale FS on binario 2 the wrong way): the train goes on along its track, its signals open for it (the illegal
     // ones too, Giovanni 18 Nov 2026), up to the next signal an itinerary starts from (there it waits for the PC), or up to
@@ -1677,6 +1745,7 @@
       // scendere tutti a Lodi TIBB"; at the reopening it waits for the order to go on towards San Donato)
       if (dir === 'S' && brentaPlan(a)) out.push({ key: 'BRE', label: 'Scende tutti a Lodi T.I.B.B. e va nel tronchetto di Brenta fino alla riapertura' });
       if (dir === 'N' && I.stops[I.stops.length - 1].st === last && !out.some(x => !x.back && x.open)) out.push({ key: 'tail', label: 'Avanti fino a Comasina e in tronchetto' });
+      if (dir === 'N' && cen2Plan(a)) out.push({ key: 'CEN2', label: 'Scende tutti a Repubblica e va nel Bin rimessa Centrale 2 fino al richiamo' });
       // the trains in the way now (the train would wait behind them, or face them)
       for (const x of out) { const p = instrPlan(a, x.key), l = p && p.legs[0]; x.blocked = l ? trainsOn(l.pid, l.start, l.end, k) : []; }
       return out;
@@ -1705,6 +1774,7 @@
       if (key === 'dep') { const d0 = onto(I.pid); if (d0 == null) return null;
         return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: I.end, start: d0, rev: a.pid !== I.pid }, { kind: 'depot' }], after: () => {} }; }
       if (key === 'BRE') return brentaPlan(a);
+      if (key === 'CEN2') return cen2Plan(a);
       if (key === 'tail') { const d0 = onto(I.pid), Y = I.stops[I.stops.length - 1]; if (d0 == null) return null;
         return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: Y.d, start: d0, rev: a.pid !== I.pid }, { kind: 'tailpark' }], after: () => {} }; }
       return null;

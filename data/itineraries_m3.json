@@ -3345,7 +3345,7 @@
    "id": "REP-1",
    "group": "REP",
    "sense": "legale",
-   "frm": "Repubblica binario di rimessa",
+   "frm": "Bin rimessa Centrale 1",
    "to": "banchina Repubblica binario 1",
    "start_signal": 137,
    "end_signal": 262,
@@ -3423,7 +3423,7 @@
    "group": "REP",
    "sense": "legale",
    "frm": "banchina Repubblica binario 2",
-   "to": "raccordo verso la M2",
+   "to": "Bin rimessa Centrale 2",
    "start_signal": 226,
    "end_signal": null,
    "limit_kmh": 15,
@@ -3499,7 +3499,7 @@
    "id": "REP-5",
    "group": "REP",
    "sense": "legale",
-   "frm": "raccordo verso la M2",
+   "frm": "Bin rimessa Centrale 2",
    "to": "banchina Repubblica binario 1",
    "start_signal": 138,
    "end_signal": 262,
@@ -3561,7 +3561,7 @@
    "group": "REP",
    "sense": "contromano",
    "frm": "banchina Repubblica binario 1",
-   "to": "Repubblica binario di rimessa",
+   "to": "Bin rimessa Centrale 1",
    "start_signal": 337,
    "end_signal": null,
    "limit_kmh": 15,
@@ -3638,7 +3638,7 @@
    "group": "REP",
    "sense": "contromano",
    "frm": "banchina Repubblica binario 1",
-   "to": "raccordo verso la M2",
+   "to": "Bin rimessa Centrale 2",
    "start_signal": 337,
    "end_signal": null,
    "limit_kmh": 15,
@@ -3729,7 +3729,7 @@
    "id": "REP-10",
    "group": "REP",
    "sense": "contromano",
-   "frm": "raccordo verso la M2",
+   "frm": "Bin rimessa Centrale 2",
    "to": "banchina Repubblica binario 2",
    "start_signal": 138,
    "end_signal": 321,
@@ -6698,6 +6698,2514 @@
      193
     ]
    ]
+  },
+  {
+   "id": "DR-7",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "San Donato tronchetto 2",
+   "to": "binario di servizio 242",
+   "start_signal": 7,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     110,
+     116,
+     117
+    ],
+    [
+     111,
+     117,
+     118
+    ],
+    [
+     112,
+     118,
+     119
+    ],
+    [
+     242,
+     119,
+     201
+    ]
+   ],
+   "alt": [],
+   "switches": [
+    [
+     117,
+     110,
+     111
+    ],
+    [
+     118,
+     111,
+     112
+    ],
+    [
+     119,
+     112,
+     242
+    ]
+   ]
+  },
+  {
+   "id": "DR-19",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "Brenta tronchetto",
+   "to": "binario di servizio 238",
+   "start_signal": 19,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     239,
+     197,
+     199
+    ],
+    [
+     238,
+     199,
+     198
+    ]
+   ],
+   "alt": [],
+   "switches": [
+    [
+     199,
+     239,
+     238
+    ]
+   ]
+  },
+  {
+   "id": "DR-20",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "Brenta tronchetto",
+   "to": "binario di servizio 240",
+   "start_signal": 20,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     239,
+     199,
+     197
+    ],
+    [
+     240,
+     197,
+     200
+    ]
+   ],
+   "alt": [],
+   "switches": [
+    [
+     197,
+     239,
+     240
+    ]
+   ]
+  },
+  {
+   "id": "DR-106",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "Comasina tronchetto 1",
+   "to": "Comasina tronchetto 1",
+   "start_signal": 106,
+   "end_signal": 110,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     190,
+     180,
+     179
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-107",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "Comasina tronchetto 2",
+   "to": "Comasina tronchetto 2",
+   "start_signal": 107,
+   "end_signal": 111,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     193,
+     182,
+     183
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-108",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "Comasina tronchetto 2",
+   "to": "Comasina tronchetto 2",
+   "start_signal": 108,
+   "end_signal": 10,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     193,
+     183,
+     182
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-109",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "Comasina tronchetto 1",
+   "to": "Comasina tronchetto 1",
+   "start_signal": 109,
+   "end_signal": 105,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     190,
+     179,
+     180
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-110",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "Comasina tronchetto 1",
+   "to": "Comasina tronchetto 1",
+   "start_signal": 110,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     190,
+     180,
+     179
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-111",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "Comasina tronchetto 2",
+   "to": "Comasina tronchetto 2",
+   "start_signal": 111,
+   "end_signal": null,
+   "limit_kmh": null,
+   "stops_end": true,
+   "edges": [
+    [
+     193,
+     182,
+     183
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-112",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "Comasina tronchetto 2",
+   "to": "Comasina tronchetto 2",
+   "start_signal": 112,
+   "end_signal": 108,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     193,
+     183,
+     182
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-204",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Brenta",
+   "to": "banchina Rogoredo FS binario 2",
+   "start_signal": 204,
+   "end_signal": 205,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     137,
+     166
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-205",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Brenta",
+   "to": "banchina Rogoredo FS binario 2",
+   "start_signal": 205,
+   "end_signal": 206,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     137,
+     166
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-206",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Brenta",
+   "to": "banchina Rogoredo FS binario 2",
+   "start_signal": 206,
+   "end_signal": 207,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     137,
+     166
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-207",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Brenta",
+   "to": "banchina Rogoredo FS binario 2",
+   "start_signal": 207,
+   "end_signal": 208,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     137,
+     166
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-208",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Brenta",
+   "to": "banchina Rogoredo FS binario 2",
+   "start_signal": 208,
+   "end_signal": 209,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     137,
+     166
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-209",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Brenta",
+   "to": "banchina Rogoredo FS binario 2",
+   "start_signal": 209,
+   "end_signal": 210,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     137,
+     166
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-210",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Brenta",
+   "to": "banchina Rogoredo FS binario 2",
+   "start_signal": 210,
+   "end_signal": 211,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     137,
+     166
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-212",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Lodi T.I.B.B.",
+   "to": "banchina Lodi T.I.B.B. binario 2",
+   "start_signal": 212,
+   "end_signal": 213,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     177,
+     166,
+     167
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-215",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Missori",
+   "to": "binario 2 (verso Comasina) lato Crocetta",
+   "start_signal": 215,
+   "end_signal": 216,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     180,
+     169,
+     170
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-216",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Missori",
+   "to": "binario 2 (verso Comasina) lato Crocetta",
+   "start_signal": 216,
+   "end_signal": 217,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     180,
+     169,
+     170
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-217",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Missori",
+   "to": "binario 2 (verso Comasina) lato Crocetta",
+   "start_signal": 217,
+   "end_signal": 218,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     180,
+     169,
+     170
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-218",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Missori",
+   "to": "binario 2 (verso Comasina) lato Crocetta",
+   "start_signal": 218,
+   "end_signal": 219,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     180,
+     169,
+     170
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-219",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Missori",
+   "to": "banchina Duomo M3 binario 2",
+   "start_signal": 219,
+   "end_signal": 220,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     180,
+     169,
+     170
+    ],
+    [
+     212,
+     170,
+     194
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-220",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Duomo M3 binario 2",
+   "to": "binario 2 (verso Comasina) lato Montenapoleone",
+   "start_signal": 220,
+   "end_signal": 221,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     212,
+     170,
+     194
+    ],
+    [
+     213,
+     194,
+     121
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-221",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Repubblica binario 2",
+   "to": "binario 2 (verso Comasina) lato Montenapoleone",
+   "start_signal": 221,
+   "end_signal": 222,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     194,
+     121
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-222",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Repubblica binario 2",
+   "to": "binario 2 (verso Comasina) lato Montenapoleone",
+   "start_signal": 222,
+   "end_signal": 223,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     194,
+     121
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-223",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Repubblica binario 2",
+   "to": "binario 2 (verso Comasina) lato Montenapoleone",
+   "start_signal": 223,
+   "end_signal": 224,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     194,
+     121
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-224",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Repubblica binario 2",
+   "to": "binario 2 (verso Comasina) lato Montenapoleone",
+   "start_signal": 224,
+   "end_signal": 225,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     194,
+     121
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-225",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Repubblica binario 2",
+   "to": "binario 2 (verso Comasina) lato Montenapoleone",
+   "start_signal": 225,
+   "end_signal": 226,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     194,
+     121
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-228",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Centrale FS binario 2",
+   "to": "binario 2 (verso Comasina) lato Centrale FS",
+   "start_signal": 228,
+   "end_signal": 229,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     214,
+     121,
+     174
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-233",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Zara",
+   "to": "binario 2 (verso Comasina) lato Zara",
+   "start_signal": 233,
+   "end_signal": 234,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     220,
+     178,
+     189
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-234",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Zara",
+   "to": "binario 2 (verso Comasina) lato Zara",
+   "start_signal": 234,
+   "end_signal": 235,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     220,
+     178,
+     189
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-237",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Affori FN",
+   "to": "binario 2 (verso Comasina) lato Dergano",
+   "start_signal": 237,
+   "end_signal": 238,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     188,
+     195
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-238",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Affori FN",
+   "to": "binario 2 (verso Comasina) lato Dergano",
+   "start_signal": 238,
+   "end_signal": 239,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     188,
+     195
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-239",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Affori FN",
+   "to": "binario 2 (verso Comasina) lato Dergano",
+   "start_signal": 239,
+   "end_signal": 240,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     188,
+     195
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-240",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Affori FN",
+   "to": "binario 2 (verso Comasina) lato Dergano",
+   "start_signal": 240,
+   "end_signal": 241,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     188,
+     195
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-241",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Affori FN",
+   "to": "binario 2 (verso Comasina) lato Dergano",
+   "start_signal": 241,
+   "end_signal": 242,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     188,
+     195
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-242",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 2 (verso Comasina) lato Affori FN",
+   "to": "binario 2 (verso Comasina) lato Dergano",
+   "start_signal": 242,
+   "end_signal": 122,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     188,
+     195
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-245",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Dergano",
+   "to": "binario 1 (verso San Donato) lato Affori FN",
+   "start_signal": 245,
+   "end_signal": 246,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     125,
+     126
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-246",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Dergano",
+   "to": "binario 1 (verso San Donato) lato Affori FN",
+   "start_signal": 246,
+   "end_signal": 247,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     125,
+     126
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-247",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Dergano",
+   "to": "binario 1 (verso San Donato) lato Affori FN",
+   "start_signal": 247,
+   "end_signal": 248,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     125,
+     126
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-248",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Dergano",
+   "to": "binario 1 (verso San Donato) lato Affori FN",
+   "start_signal": 248,
+   "end_signal": 249,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     125,
+     126
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-249",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Dergano",
+   "to": "binario 1 (verso San Donato) lato Affori FN",
+   "start_signal": 249,
+   "end_signal": 250,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     125,
+     126
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-250",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Dergano",
+   "to": "binario 1 (verso San Donato) lato Affori FN",
+   "start_signal": 250,
+   "end_signal": 251,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     125,
+     126
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-253",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Zara",
+   "to": "binario 1 (verso San Donato) lato Zara",
+   "start_signal": 253,
+   "end_signal": 254,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     120,
+     128,
+     129
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-254",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Zara",
+   "to": "binario 1 (verso San Donato) lato Zara",
+   "start_signal": 254,
+   "end_signal": 256,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     120,
+     128,
+     129
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-260",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Centrale FS",
+   "to": "banchina Centrale FS binario 1",
+   "start_signal": 260,
+   "end_signal": 261,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     125,
+     133,
+     134
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-262",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Repubblica",
+   "to": "banchina Turati binario 1",
+   "start_signal": 262,
+   "end_signal": 401,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     126,
+     134,
+     135
+    ],
+    [
+     230,
+     135,
+     193
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-275",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Lodi T.I.B.B. binario 1",
+   "to": "binario 1 (verso San Donato) lato Lodi T.I.B.B.",
+   "start_signal": 275,
+   "end_signal": 276,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     138,
+     149,
+     150
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-279",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Rogoredo FS binario 1",
+   "to": "banchina Brenta binario 1",
+   "start_signal": 279,
+   "end_signal": 280,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     152,
+     136
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-280",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Rogoredo FS binario 1",
+   "to": "banchina Brenta binario 1",
+   "start_signal": 280,
+   "end_signal": 281,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     152,
+     136
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-281",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Rogoredo FS binario 1",
+   "to": "banchina Brenta binario 1",
+   "start_signal": 281,
+   "end_signal": 282,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     152,
+     136
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-282",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Rogoredo FS binario 1",
+   "to": "banchina Brenta binario 1",
+   "start_signal": 282,
+   "end_signal": 283,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     152,
+     136
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-283",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Rogoredo FS binario 1",
+   "to": "banchina Brenta binario 1",
+   "start_signal": 283,
+   "end_signal": 284,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     152,
+     136
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-284",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Rogoredo FS binario 1",
+   "to": "banchina Brenta binario 1",
+   "start_signal": 284,
+   "end_signal": 285,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     152,
+     136
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-302",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Rogoredo FS binario 2",
+   "to": "binario 2 (verso Comasina) lato Brenta",
+   "start_signal": 302,
+   "end_signal": 310,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     166,
+     137
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-303",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Brenta binario 1",
+   "to": "banchina Rogoredo FS binario 1",
+   "start_signal": 303,
+   "end_signal": 347,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     136,
+     152
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-304",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Rogoredo FS binario 2",
+   "to": "binario 2 (verso Comasina) lato Brenta",
+   "start_signal": 304,
+   "end_signal": 311,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     166,
+     137
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-305",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Brenta binario 1",
+   "to": "banchina Rogoredo FS binario 1",
+   "start_signal": 305,
+   "end_signal": 346,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     136,
+     152
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-306",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Rogoredo FS binario 2",
+   "to": "binario 2 (verso Comasina) lato Brenta",
+   "start_signal": 306,
+   "end_signal": 312,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     166,
+     137
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-307",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Brenta binario 1",
+   "to": "banchina Rogoredo FS binario 1",
+   "start_signal": 307,
+   "end_signal": 345,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     136,
+     152
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-309",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Rogoredo FS binario 2",
+   "to": "binario 2 (verso Comasina) lato Brenta",
+   "start_signal": 309,
+   "end_signal": 313,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     166,
+     137
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-311",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Rogoredo FS binario 2",
+   "to": "binario 2 (verso Comasina) lato Brenta",
+   "start_signal": 311,
+   "end_signal": 302,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     166,
+     137
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-312",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Rogoredo FS binario 2",
+   "to": "binario 2 (verso Comasina) lato Brenta",
+   "start_signal": 312,
+   "end_signal": 304,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     166,
+     137
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-313",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Rogoredo FS binario 2",
+   "to": "binario 2 (verso Comasina) lato Brenta",
+   "start_signal": 313,
+   "end_signal": 306,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     176,
+     166,
+     137
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-316",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Crocetta",
+   "to": "binario 2 (verso Comasina) lato Missori",
+   "start_signal": 316,
+   "end_signal": 368,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     180,
+     170,
+     169
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-317",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Crocetta",
+   "to": "binario 2 (verso Comasina) lato Missori",
+   "start_signal": 317,
+   "end_signal": 375,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     180,
+     170,
+     169
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-318",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Duomo M3 binario 2",
+   "to": "binario 2 (verso Comasina) lato Missori",
+   "start_signal": 318,
+   "end_signal": 376,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     212,
+     194,
+     170
+    ],
+    [
+     180,
+     170,
+     169
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-319",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Montenapoleone",
+   "to": "banchina Duomo M3 binario 2",
+   "start_signal": 319,
+   "end_signal": 377,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     121,
+     194
+    ],
+    [
+     212,
+     194,
+     170
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-320",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Montenapoleone",
+   "to": "banchina Repubblica binario 2",
+   "start_signal": 320,
+   "end_signal": 378,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     121,
+     194
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-321",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Montenapoleone",
+   "to": "banchina Repubblica binario 2",
+   "start_signal": 321,
+   "end_signal": 320,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     121,
+     194
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-322",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Centrale FS",
+   "to": "banchina Centrale FS binario 2",
+   "start_signal": 322,
+   "end_signal": 364,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     214,
+     174,
+     121
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-324",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Zara",
+   "to": "binario 2 (verso Comasina) lato Zara",
+   "start_signal": 324,
+   "end_signal": 360,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     220,
+     189,
+     178
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-326",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Dergano",
+   "to": "binario 2 (verso Comasina) lato Affori FN",
+   "start_signal": 326,
+   "end_signal": 356,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     195,
+     188
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-327",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Dergano",
+   "to": "binario 2 (verso Comasina) lato Affori FN",
+   "start_signal": 327,
+   "end_signal": 354,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     195,
+     188
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-328",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Dergano",
+   "to": "binario 2 (verso Comasina) lato Affori FN",
+   "start_signal": 328,
+   "end_signal": 352,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     195,
+     188
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-330",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Affori FN",
+   "to": "binario 1 (verso San Donato) lato Dergano",
+   "start_signal": 330,
+   "end_signal": 351,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     126,
+     125
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-331",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Affori FN",
+   "to": "binario 1 (verso San Donato) lato Dergano",
+   "start_signal": 331,
+   "end_signal": 353,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     126,
+     125
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-332",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Affori FN",
+   "to": "binario 1 (verso San Donato) lato Dergano",
+   "start_signal": 332,
+   "end_signal": 355,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     126,
+     125
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-334",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Zara",
+   "to": "binario 1 (verso San Donato) lato Zara",
+   "start_signal": 334,
+   "end_signal": 359,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     120,
+     129,
+     128
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-344",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Lodi T.I.B.B.",
+   "to": "banchina Lodi T.I.B.B. binario 1",
+   "start_signal": 344,
+   "end_signal": 371,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     138,
+     150,
+     149
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-346",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Brenta binario 1",
+   "to": "banchina Rogoredo FS binario 1",
+   "start_signal": 346,
+   "end_signal": 307,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     136,
+     152
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-347",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Brenta binario 1",
+   "to": "banchina Rogoredo FS binario 1",
+   "start_signal": 347,
+   "end_signal": 305,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     136,
+     152
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-348",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Brenta binario 1",
+   "to": "banchina Rogoredo FS binario 1",
+   "start_signal": 348,
+   "end_signal": 303,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     141,
+     136,
+     152
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-350",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Dergano",
+   "to": "binario 2 (verso Comasina) lato Affori FN",
+   "start_signal": 350,
+   "end_signal": 328,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     195,
+     188
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-352",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Dergano",
+   "to": "binario 2 (verso Comasina) lato Affori FN",
+   "start_signal": 352,
+   "end_signal": 327,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     195,
+     188
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-353",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Affori FN",
+   "to": "binario 1 (verso San Donato) lato Dergano",
+   "start_signal": 353,
+   "end_signal": 330,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     126,
+     125
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-354",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Dergano",
+   "to": "binario 2 (verso Comasina) lato Affori FN",
+   "start_signal": 354,
+   "end_signal": 326,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     223,
+     195,
+     188
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-355",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Affori FN",
+   "to": "binario 1 (verso San Donato) lato Dergano",
+   "start_signal": 355,
+   "end_signal": 331,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     126,
+     125
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-357",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Affori FN",
+   "to": "binario 1 (verso San Donato) lato Dergano",
+   "start_signal": 357,
+   "end_signal": 332,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     117,
+     126,
+     125
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-358",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Zara",
+   "to": "binario 2 (verso Comasina) lato Zara",
+   "start_signal": 358,
+   "end_signal": 324,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     220,
+     189,
+     178
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-361",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Zara",
+   "to": "binario 1 (verso San Donato) lato Zara",
+   "start_signal": 361,
+   "end_signal": 334,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     120,
+     129,
+     128
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-365",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Centrale FS binario 1",
+   "to": "binario 1 (verso San Donato) lato Centrale FS",
+   "start_signal": 365,
+   "end_signal": 336,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     125,
+     134,
+     133
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-366",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Turati binario 1",
+   "to": "binario 1 (verso San Donato) lato Repubblica",
+   "start_signal": 366,
+   "end_signal": 367,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     230,
+     193,
+     135
+    ],
+    [
+     126,
+     135,
+     134
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-367",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Repubblica binario 1",
+   "to": "binario 1 (verso San Donato) lato Repubblica",
+   "start_signal": 367,
+   "end_signal": 337,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     126,
+     135,
+     134
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-369",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Missori",
+   "to": "banchina Crocetta binario 1",
+   "start_signal": 369,
+   "end_signal": 505,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     210,
+     146,
+     192
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-370",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Lodi T.I.B.B. binario 2",
+   "to": "binario 2 (verso Comasina) lato Lodi T.I.B.B.",
+   "start_signal": 370,
+   "end_signal": 314,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     177,
+     167,
+     166
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-375",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Crocetta",
+   "to": "binario 2 (verso Comasina) lato Missori",
+   "start_signal": 375,
+   "end_signal": 316,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     180,
+     170,
+     169
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-376",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Crocetta",
+   "to": "binario 2 (verso Comasina) lato Missori",
+   "start_signal": 376,
+   "end_signal": 317,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     180,
+     170,
+     169
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-377",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Duomo M3 binario 2",
+   "to": "banchina Duomo M3 binario 2",
+   "start_signal": 377,
+   "end_signal": 318,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     212,
+     194,
+     170
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-378",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 2 (verso Comasina) lato Montenapoleone",
+   "to": "banchina Repubblica binario 2",
+   "start_signal": 378,
+   "end_signal": 319,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     213,
+     121,
+     194
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-401",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Montenapoleone",
+   "to": "banchina Turati binario 1",
+   "start_signal": 401,
+   "end_signal": 402,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     230,
+     135,
+     193
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-402",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Montenapoleone",
+   "to": "banchina Turati binario 1",
+   "start_signal": 402,
+   "end_signal": 403,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     230,
+     135,
+     193
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-403",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Montenapoleone",
+   "to": "banchina Turati binario 1",
+   "start_signal": 403,
+   "end_signal": 404,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     230,
+     135,
+     193
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-404",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "binario 1 (verso San Donato) lato Montenapoleone",
+   "to": "banchina Duomo M3 binario 1",
+   "start_signal": 404,
+   "end_signal": 405,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     230,
+     135,
+     193
+    ],
+    [
+     211,
+     193,
+     192
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-405",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Duomo M3 binario 1",
+   "to": "banchina Duomo M3 binario 1",
+   "start_signal": 405,
+   "end_signal": 406,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     211,
+     193,
+     192
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-406",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Duomo M3 binario 1",
+   "to": "binario 1 (verso San Donato) lato Missori",
+   "start_signal": 406,
+   "end_signal": 407,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     211,
+     193,
+     192
+    ],
+    [
+     210,
+     192,
+     146
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-407",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Crocetta binario 1",
+   "to": "binario 1 (verso San Donato) lato Missori",
+   "start_signal": 407,
+   "end_signal": 408,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     210,
+     192,
+     146
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-408",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Crocetta binario 1",
+   "to": "binario 1 (verso San Donato) lato Missori",
+   "start_signal": 408,
+   "end_signal": 409,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     210,
+     192,
+     146
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-409",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Crocetta binario 1",
+   "to": "binario 1 (verso San Donato) lato Missori",
+   "start_signal": 409,
+   "end_signal": 410,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     210,
+     192,
+     146
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-410",
+   "group": "DR",
+   "sense": "legale",
+   "frm": "banchina Crocetta binario 1",
+   "to": "binario 1 (verso San Donato)",
+   "start_signal": 410,
+   "end_signal": 273,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     210,
+     192,
+     146
+    ],
+    [
+     135,
+     146,
+     147
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-501",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Turati binario 1",
+   "to": "binario 1 (verso San Donato) lato Montenapoleone",
+   "start_signal": 501,
+   "end_signal": 366,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     230,
+     193,
+     135
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-502",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Turati binario 1",
+   "to": "binario 1 (verso San Donato) lato Montenapoleone",
+   "start_signal": 502,
+   "end_signal": 506,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     230,
+     193,
+     135
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-503",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Duomo M3 binario 1",
+   "to": "binario 1 (verso San Donato) lato Montenapoleone",
+   "start_signal": 503,
+   "end_signal": 507,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     211,
+     192,
+     193
+    ],
+    [
+     230,
+     193,
+     135
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-504",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Missori",
+   "to": "banchina Crocetta binario 1",
+   "start_signal": 504,
+   "end_signal": 508,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     210,
+     146,
+     192
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-505",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Missori",
+   "to": "banchina Crocetta binario 1",
+   "start_signal": 505,
+   "end_signal": 509,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     210,
+     146,
+     192
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-506",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Turati binario 1",
+   "to": "binario 1 (verso San Donato) lato Montenapoleone",
+   "start_signal": 506,
+   "end_signal": 501,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     230,
+     193,
+     135
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-507",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "banchina Turati binario 1",
+   "to": "binario 1 (verso San Donato) lato Montenapoleone",
+   "start_signal": 507,
+   "end_signal": 502,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     230,
+     193,
+     135
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-508",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Missori",
+   "to": "banchina Duomo M3 binario 1",
+   "start_signal": 508,
+   "end_signal": 503,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     210,
+     146,
+     192
+    ],
+    [
+     211,
+     192,
+     193
+    ]
+   ],
+   "alt": [],
+   "switches": []
+  },
+  {
+   "id": "DR-509",
+   "group": "DR",
+   "sense": "contromano",
+   "frm": "binario 1 (verso San Donato) lato Missori",
+   "to": "banchina Crocetta binario 1",
+   "start_signal": 509,
+   "end_signal": 504,
+   "limit_kmh": null,
+   "stops_end": false,
+   "edges": [
+    [
+     210,
+     146,
+     192
+    ]
+   ],
+   "alt": [],
+   "switches": []
   }
  ]
 }

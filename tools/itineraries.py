@@ -134,7 +134,9 @@ def plat_near(i, node, within=260):
 
 
 EDGE_LABEL = {224: 'banchina Comasina binario 2 (arrivi)', 116: 'banchina Comasina binario 1 (partenze)', 166: 'deposito Rogoredo (ingresso)', 239: 'Brenta tronchetto',
-              184: 'Centrale tronchino di ricovero (A33)', 183: 'raccordo verso la M2', 129: 'Repubblica binario di rimessa'}
+              184: 'Centrale tronchino di ricovero (A33)', 183: 'Bin rimessa Centrale 2', 129: 'Bin rimessa Centrale 1'}
+# (the two tunnels towards the M2 are both rimessa, Giovanni 21 Nov 2026: "scrivi Bin rimessa Centrale 1 e 2"; the 2 the
+# one of binario 2, towards Comasina)
 EXTRA_START = {('SD', 'deposito Rogoredo (ingresso)', 'San Donato binario 1 (arrivi)'): ('A02', 'deposito Rogoredo (da A02)')}
 # Comasina tails: three positions of 110 m each, position 1 the outermost (next to the switch), 3 the deepest
 # movements Giovanni classes differently from the geometry: (group, start signal, end signal) -> sense
@@ -144,7 +146,8 @@ TAIL_POS = {190: (180, 'Comasina tronchetto 1'), 193: (182, 'Comasina tronchetto
 SLOT = 110.0
 # where the train ends up: the depot is one place, whichever track the train goes in by
 ID_ORDER = {'uscita deposito Rogoredo': 'San Donato uscita deposito', 'deposito Rogoredo': 'deposito San Donato',
-            'deposito Rogoredo (ingresso)': 'deposito San Donato (ingresso)', 'deposito Rogoredo (da A02)': 'deposito San Donato (da A02)'}
+            'deposito Rogoredo (ingresso)': 'deposito San Donato (ingresso)', 'deposito Rogoredo (da A02)': 'deposito San Donato (da A02)',
+            'Bin rimessa Centrale 2': 'raccordo verso la M2', 'Bin rimessa Centrale 1': 'Repubblica binario di rimessa'}
 SAME_PLACE = {'deposito Rogoredo (ingresso)': 'deposito Rogoredo', 'uscita deposito Rogoredo': 'deposito Rogoredo'}
 
 
@@ -390,6 +393,43 @@ def run():
     return res
 
 
+def straight_moves(R):
+    """the straight itineraries (Giovanni 21 Nov 2026: "itinerari dritti devono esistere sempre nel caso creali tutti"):
+    from every signal of the line, legal or illegal, to the next one facing the same way, going straight on through the
+    switches (or to the end of a tail); the ones the groups already have (same start and end) left out. Not the depot's
+    (its own board) nor the test track. ID: DR-<number of the start signal>, so that it never moves"""
+    have = {((m['start'] or [None])[0], (m['end'] or [None])[0]) for g in R.values() for m in g['moves']}
+    out, seen = [], set()
+    for k0, lst in SIGS.items():
+        if E[k0]['cat'] in ('yard', 'test'): continue
+        for off, f, lab, st, lg in lst:
+            if lab in seen: continue
+            x, y = (E[k0]['a'], E[k0]['b']) if f > 0 else (E[k0]['b'], E[k0]['a'])
+            o0 = off if f > 0 else E[k0]['len'] - off
+            cur = (k0, x, y); steps = [cur]; end = None; ok = True; dist = E[k0]['len'] - o0
+            c = [s for s in _facing(k0, x, y) if s[0] > o0 + 1]
+            while True:
+                if c: end = list(c[0][1:]); break
+                k, a, b = cur
+                if len(_ADJ[b]) == 1: break                     # the end of a tail: it stops there
+                nk = _straight_on(k, b)
+                if nk is None or E[nk]['cat'] in ('yard', 'test') or dist > 4000: ok = False; break
+                cur = (nk, b, other(nk, b)); steps.append(cur); dist += E[nk]['len']
+                c = _facing(*cur)
+            if not ok: continue
+            seen.add(lab)
+            if (lab, end[0] if end else None) in have: continue
+            l0, l1 = legal_of(steps[0]), legal_of(steps[-1])
+            a_ = l0 if l0 is not None else l1; b_ = l1 if l1 is not None else l0
+            sense = 'legale' if a_ is not False and b_ is not False else 'contromano' if a_ is False and b_ is False else 'rientra sul legale' if a_ is False else 'va contromano'
+            sw = [(b, k, steps[n + 1][0]) for n, (k, a, b) in enumerate(steps[:-1]) if len(_ADJ[b]) >= 3]
+            out.append(dict(sense=sense, steps=steps, legal_start=l0, legal_end=l1, start=[lab, st, lg], end=end, deviata=False, stops_end=end is None,
+                            switches=sw, frm=edge_name(steps[0][0], steps[0][2]), to=edge_name(steps[-1][0], steps[-1][1]), len=round(dist, 1), alt=[]))
+    out.sort(key=lambda m: int(m['start'][0][1:]))
+    for m in out: m['id'] = 'DR-%d' % int(m['start'][0][1:])
+    return out
+
+
 def fmt_sig(s):
     if not s: return '—'
     lab, st, lg = s
@@ -398,6 +438,7 @@ def fmt_sig(s):
 
 if __name__ == '__main__':
     R = run()
+    R['DR'] = dict(title='Itinerari dritti: da ogni segnale al successivo, dritto sugli scambi', moves=straight_moves(R), matrix={})
     for key, g in R.items():
         print('\n== %s (%d)' % (g['title'], len(g['moves'])))
         for m in g['moves']:

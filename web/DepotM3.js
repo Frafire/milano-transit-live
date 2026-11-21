@@ -118,6 +118,8 @@
       if (!F.depotPaths || !F.ag) return;
       if (!F.depot) init();
       F.ag.agents().forEach((a, k) => {
+        // (out of its place in a mode of its own, called back or back to work after a strike: the place is free again)
+        if (!a.hidden && a.mode !== 'plan' && a.mode !== 'static' && a.depotQ == null && a.officina == null && F.depot.at[k] != null && a.v > 0.5) { delete F.depot.at[k]; return; }
         const tr = F.trains[k], si = Math.min(a.si, tr.segs.length - 1), s = tr.segs[si]; if (!s || a.hidden || a.mode !== 'plan' && a.mode !== 'static') return;
         if (a.officina != null) { F.depot.at[k] = String(a.officina); delete F.depot.target[k]; return; }      // in the officina for a fault
         if (a.depotQ != null && a.mode === 'static') { F.depot.at[k] = String(a.depotQ); delete F.depot.target[k]; return; }   // sent in off its plan: its place
@@ -409,8 +411,15 @@
     // one on top of the other at the end of the way in, Giovanni 20 Nov 2026)
     function rimessaPark(k) {
       if (!F.depotPaths) return null; if (!F.depot) init();
-      if (F.depot.at[k] != null) { const P0 = F.depotPaths[F.depot.at[k]], o0 = P0 && Object.values(P0.out)[0]; if (o0) return { q: F.depot.at[k], pid: o0.pid, d: o0.start }; }
-      const tk = taken(), q = F.depot.target[k] != null && !tk.has(String(F.depot.target[k])) ? String(F.depot.target[k]) : pickAny();
+      // (its place already: still a place of the rimessa, plain; without it the engine took it for a train broken, into the
+      // officina, and at the end of a strike it could not come out)
+      if (F.depot.at[k] != null) { const P0 = F.depotPaths[F.depot.at[k]], o0 = P0 && Object.values(P0.out)[0]; if (o0) return { q: F.depot.at[k], pid: o0.pid, d: o0.start, plain: true }; }
+      // (an east place only with its west one really taken, a train standing there: given to a train still on its way
+      // only, the way in to it went through this train, and the two waited for each other; the strike, 21 Nov 2026)
+      const tk = taken(), here = new Set(Object.values(F.depot.at).map(String));
+      const ok = q => { const h = halfOf(q), p = pairOf(q); if (!h) return true; if (h === 'W') return !tk.has(String(p)); return here.has(String(p)) && !leavingSoon(p, F.ag.S.t); };
+      const free = Object.keys(F.depotPaths).filter(q => !tk.has(q) && ok(q)), tg = F.depot.target[k] != null ? String(F.depot.target[k]) : null;
+      const q = tg && free.includes(tg) ? tg : free.find(x => !low(x)) || free[0] || pickAny();
       const P = q != null && F.depotPaths[q], o = P && Object.values(P.out)[0]; if (!o) return null;
       F.depot.at[k] = q; delete F.depot.target[k];
       return { q, pid: o.pid, d: o.start, plain: true };

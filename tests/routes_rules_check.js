@@ -20,7 +20,8 @@ function onPath(id) {
 }
 const none = () => [];
 // 1) single track / breakdown movements: only with the PC
-const odd = M.net.itineraries.find(i => i.start != null && !['servizio normale', 'mattina', 'sera', 'ritardo'].includes(i.when) && onPath(i.id));
+// (with a rule in the Excel: the straight itineraries DR-n have none, Giovanni 21 Nov 2026)
+const odd = M.net.itineraries.find(i => i.start != null && i.when && !['servizio normale', 'mattina', 'sera', 'ritardo'].includes(i.when) && onPath(i.id));
 { const st = RT.fresh(), p = onPath(odd.id);
   const a = RT.request(st, 1, p.pid, p.d, odd.start, none);
   ok(!a && st.lastNo && st.lastNo.pc === 'id:' + odd.id, `${odd.id} (${odd.when}) refused without the PC: ${JSON.stringify(st.lastNo)}`);
