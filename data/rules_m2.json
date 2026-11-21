@@ -16,13 +16,13 @@
    "heading": 22,
    "dir": 1,
    "type": "main",
-   "name": "B01a",
+   "name": "S60a",
    "env": "superficie",
    "vele": 1,
    "p": "luminosa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026 (era POSTO 800a)"
+   "name_from": "Giovanni 21/11/2026, elenco del collega: partenza da Assago Forum (pari) (era B01a)"
   },
   {
    "id": "M2-s007",
@@ -39,13 +39,13 @@
    "heading": 22,
    "dir": -1,
    "type": "main",
-   "name": "B02b",
+   "name": "S60b",
    "env": "superficie",
    "vele": 1,
    "p": "nessuna",
    "legal": false,
    "vela": "quadra",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 21/11/2026, elenco del collega: partenza illegale da Assago Forum (pari) (era B02b)"
   },
   {
    "id": "M2-s008",
@@ -62,13 +62,13 @@
    "heading": 202,
    "dir": 1,
    "type": "main",
-   "name": "B03a",
+   "name": "S51",
    "env": "superficie",
    "vele": 2,
    "p": "luminosa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026 (era POSTO 8001a)"
+   "name_from": "Giovanni 21/11/2026, elenco del collega: protezione di Assago Forum (dispari) (era B03a)"
   },
   {
    "id": "M2-s009",
@@ -85,13 +85,13 @@
    "heading": 22,
    "dir": 1,
    "type": "main",
-   "name": "B04a",
+   "name": "S62",
    "env": "superficie",
    "vele": 2,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026 (era POSTO 800011a)"
+   "name_from": "Giovanni 21/11/2026, elenco del collega (era B04a)"
   },
   {
    "id": "M2-s010",
@@ -108,13 +108,13 @@
    "heading": 202,
    "dir": 1,
    "type": "main",
-   "name": "B05a",
+   "name": "S53",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 21/11/2026, elenco del collega (era B05a)"
   },
   {
    "id": "M2-s011",
@@ -131,13 +131,13 @@
    "heading": 22,
    "dir": 1,
    "type": "main",
-   "name": "B06a",
+   "name": "S64",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 21/11/2026, elenco del collega (era B06a)"
   },
   {
    "id": "M2-s012",
@@ -154,13 +154,13 @@
    "heading": 202,
    "dir": 1,
    "type": "main",
-   "name": "B07a",
+   "name": "S55",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 21/11/2026, elenco del collega (era B07a)"
   },
   {
    "id": "M2-s014",
@@ -177,13 +177,13 @@
    "heading": 202,
    "dir": 1,
    "type": "main",
-   "name": "B08a",
+   "name": "S57",
    "env": "superficie",
    "vele": 1,
    "p": "luminosa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 21/11/2026, elenco del collega: partenza da Assago Nord (dispari) (era B08a)"
   },
   {
    "id": "M2-s016",
@@ -775,12 +775,13 @@
    "heading": 22,
    "dir": 1,
    "type": "main",
-   "name": "POSTO 126a",
+   "name": "S66",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
-   "vela": "tonda"
+   "vela": "tonda",
+   "name_from": "Giovanni 21/11/2026, elenco del collega: protezione di Assago Nord (pari) (era POSTO 126a)"
   },
   {
    "id": "M2-s047",

@@ -13,7 +13,9 @@ R = json.load(open(os.path.join(ROOT, 'data', 'rules_m2.json')))['signals']
 txt = open(os.path.join(F, 'm2_export_2026-11-06.txt')).read()
 EXP = json.loads(txt[txt.index('{'):])['signals']
 OLD = json.load(open(os.path.join(F, 'm2_signals_42.json')))
-CHANGED = {}          # id -> the fields Giovanni changed afterwards in the first 42 (none yet)
+# id -> the fields Giovanni changed afterwards in the first 42: the names of Assago Forum - Assago Nord from the
+# colleague's list (21 Nov)
+CHANGED = {'M2-s006': {'name': 'S60a', 'name_from': 'Giovanni 21/11/2026, elenco del collega: partenza da Assago Forum (pari) (era B01a)'}, 'M2-s007': {'name': 'S60b', 'name_from': 'Giovanni 21/11/2026, elenco del collega: partenza illegale da Assago Forum (pari) (era B02b)'}, 'M2-s008': {'name': 'S51', 'name_from': 'Giovanni 21/11/2026, elenco del collega: protezione di Assago Forum (dispari) (era B03a)'}, 'M2-s009': {'name': 'S62', 'name_from': 'Giovanni 21/11/2026, elenco del collega (era B04a)'}, 'M2-s010': {'name': 'S53', 'name_from': 'Giovanni 21/11/2026, elenco del collega (era B05a)'}, 'M2-s011': {'name': 'S64', 'name_from': 'Giovanni 21/11/2026, elenco del collega (era B06a)'}, 'M2-s012': {'name': 'S55', 'name_from': 'Giovanni 21/11/2026, elenco del collega (era B07a)'}, 'M2-s013': {'name': 'S66', 'name_from': 'Giovanni 21/11/2026, elenco del collega: protezione di Assago Nord (pari) (era POSTO 126a)'}, 'M2-s014': {'name': 'S57', 'name_from': 'Giovanni 21/11/2026, elenco del collega: partenza da Assago Nord (dispari) (era B08a)'}}
 DELETED = {'M2-s040': 'B32a, Giovanni 6 Nov: drifted far from its track, deleted'}   # of the first 42
 # signals of the export Giovanni changed afterwards (not compared): id -> what he asked
 CHANGED_EXPORT = {'M2-mw46zpmvnp': 'a marmotta (photo of 6 Nov), same place, track and way'}
