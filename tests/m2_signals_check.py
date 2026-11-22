@@ -8,7 +8,7 @@
   legale signal and b for an illegale one; a low shunting signal (manovra, only round) S + number (S 5);
 - an indicatore di velocità (speedind: a pixel screen on its own) and a rallentamento (rall: yellow board) the speed they
   show, km/h, or null while not known;
-- a description (desc) not empty when given; a marmotta (marm, the depots' low signal) a name S + number;
+- a description (desc) not empty when given; a marmotta (marm, the depots' low signal) a name S + number, or Sb + 2 digits (Famagosta, Giovanni 22 Nov);
 - its own code (id, M2-...), unique; the support (mount) when not the usual one, one its type can have; the marmotta,
   the low signal at the foot of a semaforo (marmotta: true, marmotta_name S + number), only on a semaforo; the "vela +
   manovra" of the old editor (manovra: true: the low shunting signal under the semaforo), only on a semaforo, never with
@@ -34,11 +34,13 @@ bad, warn = [], []
 ids = [sg.get('id') for sg in R.get('signals', [])]
 if not all(isinstance(i, str) and re.match(r'^M2-\w+$', i) for i in ids): bad.append('a signal without its code (id M2-...)')
 if len(set(ids)) != len(ids): bad.append('two signals with the same code (id)')
+# the depot tracks the build draws after OpenStreetMap's (tools/depositi_m2.py, "nuovo": Famagosta 16) come after its ways
+NEW = sum(1 for bs in json.load(open(os.path.join(ROOT, 'data', 'depositi_m2.json')))['depositi'].values() for b in bs if b.get('nuovo'))
 for k, sg in enumerate(R.get('signals', [])):
     who = '%s #%d (%s, %.6f %.6f)' % (sg.get('name') or 'senza nome', k, sg.get('type'), sg.get('lat', 0), sg.get('lon', 0))
     if sg.get('line') != 'M2': bad.append(who + ': line is not M2')
     if sg.get('type') not in TYPES: bad.append(who + ': type missing or unknown')
-    if not (isinstance(sg.get('w'), int) and 0 <= sg['w'] < len(W)): bad.append(who + ': not on an M2 track')
+    if not (isinstance(sg.get('w'), int) and 0 <= sg['w'] < len(W) + NEW): bad.append(who + ': not on an M2 track')
     if sg.get('dir') not in (1, -1) or not isinstance(sg.get('heading'), (int, float)): bad.append(who + ': the way it faces is missing')
     if sg.get('type') == 'main':
         if sg.get('env') not in ('galleria', 'superficie'): bad.append(who + ': galleria / superficie missing')
@@ -60,7 +62,7 @@ for k, sg in enumerate(R.get('signals', [])):
         if sg.get('kmh') is None: warn.append(who + ': speed shown not given yet')
     nm = sg.get('name') or ''
     if nm:
-        form = r'^S \d+$' if sg.get('type') in ('shunt', 'marm') else r'^(S\d+|POSTO \d+|B\d+)[ab]?$'    # no a / b: a semaforo with none beside it (Giovanni 6 Nov)     # at Assago the surface signals are S49a, S57 too; B: provisional
+        form = (r'^(S \d+|Sb\d{2})$' if sg.get('type') == 'marm' else r'^S \d+$') if sg.get('type') in ('shunt', 'marm') else r'^(S\d+|POSTO \d+|B\d+)[ab]?$'    # no a / b: a semaforo with none beside it (Giovanni 6 Nov)     # at Assago the surface signals are S49a, S57 too; B: provisional
         if re.match(r'^B\d+[ab]$', nm): warn.append(who + ': provisional name (B), to be changed')
         if not re.match(form, nm): bad.append(who + ': name not in the M2 form (S123a or POSTO 12a, b for illegale; manovra S 5)')
         elif sg.get('type') == 'main' and sg.get('legal') is not None and nm[-1] in 'ab' and nm[-1] != ('a' if sg['legal'] else 'b'): bad.append(who + ': name ends with %s but the signal is %s' % (nm[-1], 'legale' if sg['legal'] else 'illegale'))

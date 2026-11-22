@@ -4293,6 +4293,348 @@
    "legal": true,
    "vela": "tonda",
    "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta, l'ultimo prima di Famagosta (piazzato il 22/11)"
+  },
+  {
+   "id": "M2-mws4gqxxvo",
+   "line": "M2",
+   "w": 7,
+   "lat": 45.428147,
+   "lon": 9.164832,
+   "on_track": [
+    45.42814,
+    9.164849
+   ],
+   "offset_m": 1.5,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb01",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 1 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4gmgtep",
+   "line": "M2",
+   "w": 11,
+   "lat": 45.428181,
+   "lon": 9.164735,
+   "on_track": [
+    45.428172,
+    9.164759
+   ],
+   "offset_m": 2.1,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb02",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 2 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4gho4hq",
+   "line": "M2",
+   "w": 8,
+   "lat": 45.428203,
+   "lon": 9.164674,
+   "on_track": [
+    45.428196,
+    9.164693
+   ],
+   "offset_m": 1.7,
+   "side": "left",
+   "heading": 29,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb03",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 3 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4gb48bk",
+   "line": "M2",
+   "w": 6,
+   "lat": 45.428226,
+   "lon": 9.164601,
+   "on_track": [
+    45.428217,
+    9.164624
+   ],
+   "offset_m": 2.0,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb04",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 4 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4g6ndkx",
+   "line": "M2",
+   "w": 4,
+   "lat": 45.428245,
+   "lon": 9.164556,
+   "on_track": [
+    45.428239,
+    9.16457
+   ],
+   "offset_m": 1.2,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb05",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 5 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4g209lg",
+   "line": "M2",
+   "w": 9,
+   "lat": 45.428265,
+   "lon": 9.164489,
+   "on_track": [
+    45.428258,
+    9.164507
+   ],
+   "offset_m": 1.7,
+   "side": "left",
+   "heading": 30,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb06",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 6 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4fr9ogk",
+   "line": "M2",
+   "w": 10,
+   "lat": 45.428286,
+   "lon": 9.164438,
+   "on_track": [
+    45.428281,
+    9.164449
+   ],
+   "offset_m": 1,
+   "side": "left",
+   "heading": 29,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb07",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 7 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4fmq0ya",
+   "line": "M2",
+   "w": 5,
+   "lat": 45.428314,
+   "lon": 9.164379,
+   "on_track": [
+    45.428307,
+    9.164399
+   ],
+   "offset_m": 1.7,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb08",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 8 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4fa2xy1",
+   "line": "M2",
+   "w": 13,
+   "lat": 45.428335,
+   "lon": 9.164328,
+   "on_track": [
+    45.428326,
+    9.164351
+   ],
+   "offset_m": 2,
+   "side": "right",
+   "heading": 28,
+   "dir": -1,
+   "type": "marm",
+   "name": "Sb09",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 9 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4f4o18e",
+   "line": "M2",
+   "w": 24,
+   "lat": 45.428348,
+   "lon": 9.164261,
+   "on_track": [
+    45.428342,
+    9.164278
+   ],
+   "offset_m": 1.5,
+   "side": "left",
+   "heading": 27,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb10",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 10 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4exvchp",
+   "line": "M2",
+   "w": 19,
+   "lat": 45.428374,
+   "lon": 9.16421,
+   "on_track": [
+    45.428366,
+    9.164231
+   ],
+   "offset_m": 1.9,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb11",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 11 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4et7rvi",
+   "line": "M2",
+   "w": 14,
+   "lat": 45.428399,
+   "lon": 9.164161,
+   "on_track": [
+    45.428391,
+    9.164183
+   ],
+   "offset_m": 1.9,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb12",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 12 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4elgter",
+   "line": "M2",
+   "w": 16,
+   "lat": 45.428423,
+   "lon": 9.164092,
+   "on_track": [
+    45.428414,
+    9.164116
+   ],
+   "offset_m": 2.1,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb13",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 13 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4effoup",
+   "line": "M2",
+   "w": 22,
+   "lat": 45.42844,
+   "lon": 9.164038,
+   "on_track": [
+    45.428431,
+    9.164061
+   ],
+   "offset_m": 2.1,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb14",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 14 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4e8sjog",
+   "line": "M2",
+   "w": 18,
+   "lat": 45.428461,
+   "lon": 9.163998,
+   "on_track": [
+    45.428455,
+    9.164012
+   ],
+   "offset_m": 1.3,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb15",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 15 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4e3josb",
+   "line": "M2",
+   "w": 402,
+   "lat": 45.42848,
+   "lon": 9.163928,
+   "on_track": [
+    45.42847,
+    9.163951
+   ],
+   "offset_m": 2.1,
+   "side": "right",
+   "heading": 30,
+   "dir": -1,
+   "type": "marm",
+   "name": "Sb16",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 16 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4dl2vk8",
+   "line": "M2",
+   "w": 25,
+   "lat": 45.428506,
+   "lon": 9.16388,
+   "on_track": [
+    45.428499,
+    9.163897
+   ],
+   "offset_m": 1.5,
+   "side": "left",
+   "heading": 30,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb17",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 17 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4dcasra",
+   "line": "M2",
+   "w": 21,
+   "lat": 45.428534,
+   "lon": 9.163815,
+   "on_track": [
+    45.428525,
+    9.163839
+   ],
+   "offset_m": 2.1,
+   "side": "left",
+   "heading": 28,
+   "dir": 1,
+   "type": "marm",
+   "name": "Sb18",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 18 del deposito Famagosta"
+  },
+  {
+   "id": "M2-mws4d1y99h",
+   "line": "M2",
+   "w": 27,
+   "lat": 45.428551,
+   "lon": 9.16374,
+   "on_track": [
+    45.428539,
+    9.163772
+   ],
+   "offset_m": 2.8,
+   "side": "right",
+   "heading": 28,
+   "dir": -1,
+   "type": "marm",
+   "name": "Sb19",
+   "name_from": "Giovanni 22/11/2026: marmotta all'uscita del binario 19 del deposito Famagosta"
   }
  ],
  "marks": [],
