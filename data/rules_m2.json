@@ -731,12 +731,12 @@
    "heading": 6,
    "dir": 1,
    "type": "main",
-   "name": "S100",
+   "name": "B33a",
    "env": "galleria",
    "p": "luminosa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B33a)"
+   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026; non è S100: è sulla linea da Abbiategrasso a Famagosta (Giovanni 22/11/2026)"
   },
   {
    "id": "M2-s042",
@@ -2924,9 +2924,10 @@
    "heading": 46,
    "dir": 1,
    "type": "speedind",
-   "name": "",
+   "name": "S92",
    "kmh": 45,
-   "kmh_from": "Giovanni 5/11/2026: lo schermo prima di Famagosta segna 45"
+   "kmh_from": "Giovanni 5/11/2026: lo schermo prima di Famagosta segna 45",
+   "name_from": "la tavola con il 45, senza numero: contata come S92 (Giovanni 22/11/2026, elenco del collega)"
   },
   {
    "id": "M2-mw4u67gqnr",
@@ -4264,7 +4265,7 @@
    "heading": 26,
    "dir": 1,
    "type": "main",
-   "name": "S92",
+   "name": "S98",
    "env": "galleria",
    "p": "nessuna",
    "legal": true,
@@ -4286,12 +4287,12 @@
    "heading": 6,
    "dir": 1,
    "type": "main",
-   "name": "S98",
+   "name": "S100",
    "env": "galleria",
    "p": "luminosa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (piazzato il 22/11)"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta, l'ultimo prima di Famagosta (piazzato il 22/11)"
   }
  ],
  "marks": [],
