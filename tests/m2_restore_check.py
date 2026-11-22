@@ -19,6 +19,10 @@ CHANGED = {'M2-s006': {'name_from': 'Giovanni 21/11/2026, elenco del collega: pa
 DELETED = {'M2-s040': 'B32a, Giovanni 6 Nov: drifted far from its track, deleted'}   # of the first 42
 # signals of the export Giovanni changed afterwards (not compared): id -> what he asked
 CHANGED_EXPORT = {'M2-mw46zpmvnp': 'a marmotta (photo of 6 Nov), same place, track and way'}
+# signals of the export Giovanni corrected on 22 Nov (where they were): turned or made illegale (S74a, S36b, the one at the
+# depot of Gorgonzola); and the names, all from the colleague's list since then: not compared
+FIXED_22NOV = {(45.542247, 9.424317): 'M2-mw479inkd', (45.521077, 9.332752): 'M2-mw41erak52', (45.540798, 9.418153): 'M2-mw472nm527'}
+NOT_COMPARED = ('name', 'name_from')
 bad = 0
 def check(ok, what):
     global bad
@@ -30,10 +34,13 @@ for e in EXP:
         s = [x for x in R if x.get('id') == e['id']]
         if not (len(s) == 1 and all(s[0].get(k) == e.get(k) for k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir'))): miss.append(e)
         continue
+    if (e['lat'], e['lon']) in FIXED_22NOV:
+        if not any(x.get('id') == FIXED_22NOV[(e['lat'], e['lon'])] for x in R): miss.append(e)
+        continue
     got = [s for s in R if (e.get('id') and s.get('id') == e['id']) or (not e.get('id') and same_place(s, e))]
     if len(got) != 1: miss.append(e); continue
-    s = got[0]; want = {k: v for k, v in e.items() if k != 'moved'}
-    have = {k: v for k, v in s.items() if not (k == 'id' and not e.get('id'))}
+    s = got[0]; want = {k: v for k, v in e.items() if k not in ('moved',) + NOT_COMPARED}
+    have = {k: v for k, v in s.items() if not (k == 'id' and not e.get('id')) and k not in NOT_COMPARED}
     if have != want: diff.append((e.get('id') or (e['lat'], e['lon']), sorted(set(have.items()) ^ set(want.items()), key=str) if all(not isinstance(v, (list, dict)) for v in list(have.values()) + list(want.values())) else 'fields differ'))
 check(not miss, 'export of 6 Nov: %d of %d signals in the file' % (len(EXP) - len(miss), len(EXP)))
 check(not diff, 'export of 6 Nov: every field identical (%d differ%s)' % (len(diff), ': ' + str(diff[:3]) if diff else ''))
