@@ -223,13 +223,13 @@
    "heading": 22,
    "dir": 1,
    "type": "main",
-   "name": "B10a",
+   "name": "S70",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B10a)"
   },
   {
    "id": "M2-s018",
@@ -246,13 +246,13 @@
    "heading": 22,
    "dir": 1,
    "type": "main",
-   "name": "B11a",
+   "name": "S72",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B11a)"
   },
   {
    "id": "M2-s019",
@@ -292,13 +292,13 @@
    "heading": 77,
    "dir": 1,
    "type": "main",
-   "name": "B13a",
+   "name": "S74",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B13a)"
   },
   {
    "id": "M2-s021",
@@ -338,13 +338,13 @@
    "heading": 57,
    "dir": 1,
    "type": "main",
-   "name": "B15a",
+   "name": "S76",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B15a)"
   },
   {
    "id": "M2-s023",
@@ -384,13 +384,13 @@
    "heading": 20,
    "dir": 1,
    "type": "main",
-   "name": "B17a",
+   "name": "S78",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B17a)"
   },
   {
    "id": "M2-s025",
@@ -430,13 +430,13 @@
    "heading": 355,
    "dir": 1,
    "type": "main",
-   "name": "B19a",
+   "name": "S80",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B19a)"
   },
   {
    "id": "M2-s027",
@@ -476,13 +476,13 @@
    "heading": 356,
    "dir": 1,
    "type": "main",
-   "name": "B21a",
+   "name": "S82",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B21a)"
   },
   {
    "id": "M2-s029",
@@ -522,14 +522,14 @@
    "heading": 14,
    "dir": 1,
    "type": "main",
-   "name": "B23a",
+   "name": "S84",
    "env": "superficie",
    "vele": 2,
    "p": "luminosa",
    "dirind": true,
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B23a)"
   },
   {
    "id": "M2-s031",
@@ -592,13 +592,13 @@
    "heading": 20,
    "dir": 1,
    "type": "main",
-   "name": "B26a",
+   "name": "S86",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B26a)"
   },
   {
    "id": "M2-s034",
@@ -638,13 +638,13 @@
    "heading": 27,
    "dir": 1,
    "type": "main",
-   "name": "B28a",
+   "name": "S88",
    "env": "superficie",
    "vele": 1,
    "p": "fissa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B28a)"
   },
   {
    "id": "M2-s036",
@@ -661,13 +661,13 @@
    "heading": 42,
    "dir": 1,
    "type": "main",
-   "name": "B29a",
+   "name": "S90",
    "env": "superficie",
    "vele": 1,
    "p": "luminosa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B29a)"
   },
   {
    "id": "M2-s037",
@@ -731,12 +731,12 @@
    "heading": 6,
    "dir": 1,
    "type": "main",
-   "name": "B33a",
+   "name": "S100",
    "env": "galleria",
    "p": "luminosa",
    "legal": true,
    "vela": "tonda",
-   "name_from": "nome provvisorio (B = da cambiare), Giovanni 5/11/2026"
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B33a)"
   },
   {
    "id": "M2-s042",
@@ -4248,6 +4248,50 @@
    "vela": "tonda",
    "mount": "corto",
    "manovra": true
+  },
+  {
+   "id": "M2-mws2ixu668",
+   "line": "M2",
+   "w": 219,
+   "lat": 45.431563,
+   "lon": 9.167034,
+   "on_track": [
+    45.431554,
+    9.16706
+   ],
+   "offset_m": 2.3,
+   "side": "left",
+   "heading": 26,
+   "dir": 1,
+   "type": "main",
+   "name": "S92",
+   "env": "galleria",
+   "p": "nessuna",
+   "legal": true,
+   "vela": "tonda",
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (piazzato il 22/11)"
+  },
+  {
+   "id": "M2-mws2kh0p9n",
+   "line": "M2",
+   "w": 219,
+   "lat": 45.433903,
+   "lon": 9.167817,
+   "on_track": [
+    45.433905,
+    9.167791
+   ],
+   "offset_m": 2,
+   "side": "right",
+   "heading": 6,
+   "dir": 1,
+   "type": "main",
+   "name": "S98",
+   "env": "galleria",
+   "p": "luminosa",
+   "legal": true,
+   "vela": "tonda",
+   "name_from": "Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (piazzato il 22/11)"
   }
  ],
  "marks": [],
