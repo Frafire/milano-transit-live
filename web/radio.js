@@ -214,7 +214,6 @@
       if (c && c.line) { bindPhoneSecs(); bindStation();
         const rp = document.getElementById('phoneRepeat'); if (rp) rp.onclick = () => { const last = c.lastOS; sayPhone('DCT', tx('stazione.telefono.ripeti'), 'pc'); stationSays(tx('stazione.telefono.ripeto', { testo: last }), 1200); }; }
     }
-    const drawPhoneLog = drawPhone;
     function stationSays(text, delayMs = 1800) {
       const who = radioStation; if (!who) return; phoneTx.classList.add('on');
       setTimeout(() => { sayPhone(osName(who.F, who.X), text, 'dr', who.X); phoneCmdHtml = ''; drawPhone(); }, delayMs);
@@ -279,7 +278,7 @@
       for (const c of CONV.values()) if (c.callback && !emergencyAt(c.F, c.X)) { c.callback = false; osIncoming(c.F, c.X, tx('stazione.emergenza.richiamo', { stazione: c.name }), 'call', true); }
     }
     function stationCmds() {
-      const { F, X } = radioStation, G = F.engine.G, st = F.ag.S.stn[X] || {}, here = trainsHere(F, X), tn = a => trainNo(F, F.trains[a.k]);
+      const { F, X } = radioStation, st = F.ag.S.stn[X] || {}, here = trainsHere(F, X), tn = a => trainNo(F, F.trains[a.k]);
       const pend = stPending.filter(p => p.F === F && p.X === X), H = osHours ? osHours(F)[X] : null;
       let h = stClosed(F, X) ? `<div class="lbl">Stazione chiusa${H && state.t < H.open ? ': apre alle ' + fmt(H.open) : ''}</div>` : '';
       h += radioSec('stsit', 'Situazione', `<div class="row"><button data-st="sit">Chiedi la situazione</button></div>`, '', true);
@@ -637,20 +636,7 @@
     // ---- via impedita: a train stopped in front of a red signal calls the DCO on the radio. No answer for now: the train
     // stays where it is until the signal clears by itself, then says it is moving again. Only when the train should be
     // moving by the timetable, and only after 5 minutes held at the same signal. ----
-    const redStops = new Map(), dcoCalls = [];
-    function sigName(bl) {
-      if (bl.kind === 'throat') return tx('pezzo.segnale.protezione_sezione', { dove: bl.name.trim() });
-      const n = cap(bl.name.slice(2)).replace(' (Blocco)', '').replace(' Arrivo', '');
-      return bl.kind === 'entry' ? tx('pezzo.segnale.protezione', { dove: n }) : bl.kind === 'departure' ? tx('pezzo.segnale.partenza', { dove: n.split(' → ')[0] }) : tx('pezzo.segnale.blocco', { dove: n.replace(' → ', ' – ') });
-    }
-    // does the timetable plan have this train standing still at time t? (then a red ahead is normal, no call)
-    function planStanding(tr, t) {
-      const st = tr.starts; if (!st || t < st[0]) return true;
-      let lo = 0, hi = st.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (st[m] <= t) lo = m; else hi = m - 1; }
-      const ts = tr.segs[lo][3], ds = tr.segs[lo][4]; if (t >= ts[ts.length - 1]) return true;
-      let i = 0; while (i < ts.length - 2 && ts[i + 1] <= t) i++;
-      return ds[i + 1] === ds[i];
-    }
+    const dcoCalls = [];
     // emergency: what the drivers say on their own (stopped by the closure, red signal for 5 minutes, very late)
     const CALLS = {};
     // depot on manual: the next depot signal a train needs (a shunting or depot protection signal still red for it)
@@ -722,42 +708,8 @@
     }
     function dcoTick() {
       const F = m3eng(); if (!F || !state.engine) return;
-      if (F.ag) { emergencyCalls(F); return; }
-      return;
-      const AR = F.engine.throatR || [], BR = AR.filter(r => r.block), BL = F.engine.blocks || [], half = F.engine.half;
-      const occ = F.trains.map(tr => trainState(F, tr, state.t));
-      const inside = (R, k) => occ.some((q, j) => j !== k && q.status !== 'parked' && R.ranges[q.pid] && q.d >= R.ranges[q.pid][0] - half + R.pad && q.d <= R.ranges[q.pid][1] + half);
-      F.trains.forEach((tr, k) => {
-        const o = occ[k]; let red = null;
-        if (o.status !== 'parked' && o.seg >= 0 && o.v === 0 && !planStanding(tr, state.t)) {
-          // the section in front of the nose (a block, or the terminal junction / a tail) is taken by another train
-          // standing at a signal (within 40 m of the start of a section), with the route behind it not free: the section
-          // itself or the junction / tail it leads to (up to 400 m ahead)
-          const gapOf = R => { const r = R.ranges[o.pid]; return r ? r[0] + (R.pad || 0) - (o.d + half) : null; };
-          const atSig = AR.some(R => { const g = gapOf(R); return g != null && g >= -3 && g <= 40; });
-          const ahead = atSig ? AR.filter(R => { const g = gapOf(R); return g != null && g >= -3 && g <= 400; }) : [];
-          if (ahead.some(R => inside(R, k))) {
-            const bi = BR.findIndex(R => { const r = R.ranges[o.pid]; return r && Math.abs(r[0] - (o.d + half)) <= 40; });
-            const th = ahead.find(R => !R.block && inside(R, k));
-            red = bi >= 0 ? BL[bi] : { kind: 'throat', name: '  ' + (th ? th.name : 'sezione') };
-          }
-        }
-        const w = redStops.get(tr);
-        if (!red) { if (w) { if (w.called) say('T' + trainNo(F, tr), tx('chiamata.rosso.via_libera_segnale', { treno: trainNo(F, tr), segnale: w.name }), 'dr'); redStops.delete(tr); } return; }
-        if (!w) {
-          // at a platform = a timetable stop of the planned run, not just near a station
-          const ps = tr.segs[o.seg], pds = ps && ps[0] === o.pid ? ps[4] : [];
-          let plat = false; for (let i = 1; i < pds.length; i++) if (pds[i] === pds[i - 1] && Math.abs(pds[i] - o.d) < 5) plat = true;
-          // Giovanni: no call at once; only after 5 minutes held at the same signal
-          redStops.set(tr, { since: state.t, name: sigName(red), wait: 300, called: false, plat }); return;
-        }
-        if (!w.called && state.t - w.since >= w.wait) {
-          w.called = true; dcoCalls.push({ t: state.t, train: trainNo(F, tr), sig: w.name });
-          if (env.onCall) env.onCall(F, tr); if (radioEl.hidden) openRadio(F, tr);
-          radioEl.classList.add('calling'); setTimeout(() => radioEl.classList.remove('calling'), 4000);
-          say('T' + trainNo(F, tr), tx('chiamata.rosso.cinque_minuti', { treno: trainNo(F, tr), segnale: w.name }), 'call');
-        }
-      });
+      if (F.ag) emergencyCalls(F);
+      // (the DCO before the agents, calls from the timetable's plan, was here: dead since the agents drive every train)
     }
     // the driver reports when the ordered stop starts and ends
     function radioTick() {
@@ -772,7 +724,7 @@
 
 
     return { say, sayPhone, osIncoming, phonePending, phoneConv: X => CONV.get(X), closeConv,
-             phoneList: () => [...CONV.values()].filter(c => c.open).map(c => ({ X: c.X, name: c.name, pending: !!c.pending, line: !!c.line })), drawPhoneCmds, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns, sigName,
+             phoneList: () => [...CONV.values()].filter(c => c.open).map(c => ({ X: c.X, name: c.name, pending: !!c.pending, line: !!c.line })), drawPhoneCmds, cap, trainNo, openRadio, openStationRadio, osCall, osName, radioTick, dcoTick, closingTick, applyAlt, tailChain, tailBusy, dcoCalls, firstRuns, lastRuns,
              radioEl, isOpen: () => !radioEl.hidden, current: () => radioTrain, nextStop };
   }
   const api = { create };

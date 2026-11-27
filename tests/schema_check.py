@@ -1,6 +1,6 @@
 """The sinottico of the depot (data/schema_deposito_m3.json): every node and every signal of the depot is in it, every
 place, every track piece it names exists. Usage (from build/): python3 ../tests/schema_check.py"""
-import json, math, sys
+import json, sys
 d = json.load(open('m3.json')); net = d['net']; E = net['edges']; S = net.get('schema_depot')
 if not S: print('FAIL no schema of the depot (data/schema_deposito_m3.json)'); sys.exit(1)
 BOX = (45.4285, 45.4335, 9.2515, 9.2585)              # the depot (tools/build_line.py depot_box)

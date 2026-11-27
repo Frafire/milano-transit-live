@@ -157,10 +157,11 @@
     }
     const half_ = () => (c.half || 52.5);
     // the track of a person or an object: 'N' (pari, towards Comasina) or 'S' (dispari); null: both
-    const SIDE = [['SAN DONATO', 'PORTO DI MARE'], ['LODI', 'PORTA ROMANA'], ['CENTRALE', 'COMASINA']];
-    const idxOf = w => G.names.findIndex(n => String(n).toUpperCase().startsWith(w));
-    const parallel = X => SIDE.some(([p, q]) => { const i = idxOf(p), j = idxOf(q); return i >= 0 && j >= 0 && X >= Math.min(i, j) && X <= Math.max(i, j); });
-    const oneTrack = X => parallel(X) && rnd() < 0.5 ? null : rnd() < 0.5 ? 'N' : 'S';
+    // (the stretches with the two tracks side by side and how often both are taken there: the Excel's sheet Tratte
+    // parallele, c.parallele; nothing of them is written here)
+    const normSt = x => String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, ''), idxOf = w => { const n = normSt(w); return n ? G.names.findIndex(x => normSt(x).startsWith(n)) : -1; };
+    const SIDE = (c.parallele || []).map(r => { const i = idxOf(r.da), j = idxOf(r.a); return i >= 0 && j >= 0 ? { a: Math.min(i, j), b: Math.max(i, j), p: (r.entrambi == null ? 50 : +r.entrambi) / 100 } : null; }).filter(Boolean);
+    const oneTrack = X => { const P = SIDE.find(z => X >= z.a && X <= z.b); return P && rnd() < P.p ? null : rnd() < 0.5 ? 'N' : 'S'; };
     const trackTxt = t => t === 'N' ? ' pari' : t === 'S' ? ' dispari' : ', entrambi i binari';
     // why a failure cannot start now on that target (null: it can)
     function cannot(kind, target) {

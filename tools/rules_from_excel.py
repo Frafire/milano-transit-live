@@ -82,8 +82,19 @@ situazioni = [r['Situazione'] for r in rows('Situazioni') if r.get('Situazione')
 pannello = [r for r in rows('Pannello PC') if r.get('Comando o informazione')] if 'Pannello PC' in wb.sheetnames else []
 guasti = [r for r in rows('Guasti') if r.get('Guasto') and r.get('N.') is not None] if 'Guasti' in wb.sheetnames else []
 
+# the ricoveri of a closure (sheet Ricoveri: the tail of Brenta, Bin rimessa Centrale 2) and the stretches with the two
+# tracks side by side (sheet Tratte parallele): read by the game as they are, nothing of them is written in the code
+ricoveri = [] if 'Ricoveri' not in wb.sheetnames else [
+    {'id': r['ID'], 'nome': r.get('Ricovero'), 'verso': r.get('Verso del treno'), 'scende_a': r.get('Scende tutti a'), 'entra': r.get('Itinerario di entrata'),
+     'si_ferma': r.get('Dove si ferma'), 'esce': r.get('Itinerario di uscita'), 'esce_quando': r.get('Può uscire quando'), 'rientro': r.get('Come rientra in servizio'),
+     'rientra_a': r.get('Rientra in servizio a'), 'ordine': r.get("Testo dell'ordine al treno"), 'richiamo': r.get('Testo del richiamo (Regolatore)'),
+     'non_esce': r.get('Testo se non può uscire'), 'note': r.get('Note')} for r in rows('Ricoveri') if r.get('ID') and r.get('Itinerario di entrata')]
+parallele = [] if 'Tratte parallele' not in wb.sheetnames else [
+    {'da': r['Da'], 'a': r['A'], 'entrambi': r.get('Persona o oggetto sui binari: entrambi i binari (%)'), 'note': r.get('Note')} for r in rows('Tratte parallele') if r.get('Da') and r.get('A')]
+
 out = {'_about': 'Regole dell\'interlocking M3 scritte da Giovanni in data/Regole_interlocking_M3.xlsx, lette da tools/rules_from_excel.py. Non modificare a mano: si cambia il file Excel e si rilancia lo script.',
-       'tempi': tempi, 'semafori': semafori, 'itinerari': itinerari, 'precedenze': precedenze, 'chiusure': chiusure, 'situazioni': situazioni, 'pannello_pc': pannello, 'guasti': guasti}
+       'tempi': tempi, 'semafori': semafori, 'itinerari': itinerari, 'precedenze': precedenze, 'chiusure': chiusure, 'situazioni': situazioni, 'pannello_pc': pannello, 'guasti': guasti,
+       'ricoveri': ricoveri, 'tratte_parallele': parallele}
 json.dump(out, open(OUT, 'w'), ensure_ascii=False, indent=1, default=str)
 radio()
-print('regole: %d tempi, %d semafori, %d itinerari, %d precedenze, %d chiusure, %d righe del pannello PC -> %s' % (len(tempi), len(semafori), len(itinerari), len(precedenze), len(chiusure), len(pannello), os.path.relpath(OUT, ROOT)))
+print('regole: %d tempi, %d semafori, %d itinerari, %d precedenze, %d chiusure, %d ricoveri, %d tratte parallele, %d righe del pannello PC -> %s' % (len(tempi), len(semafori), len(itinerari), len(precedenze), len(chiusure), len(ricoveri), len(parallele), len(pannello), os.path.relpath(OUT, ROOT)))

@@ -2424,7 +2424,7 @@ NET['itineraries'] = [{'id': m['id'], 'group': m['group'], 'sense': m['sense'], 
                        'cmd': (_rsg.get(str(m['start_signal'])) or {}).get('comando')} for m in _IT]
 _tm = _RG.get('tempi', {})
 _tval = lambda pre, i=1: next((v[i] for k, v in _tm.items() if k.startswith(pre) and v[i] is not None), 0)
-NET['rules'] = {'tempi': _tm}
+NET['rules'] = {'tempi': _tm, 'ricoveri': _RG.get('ricoveri', []), 'tratte_parallele': _RG.get('tratte_parallele', [])}
 NET['sd_plat_names'] = {str(k): str(v) for k, v in SD_PLAT_REAL.items()} if LINE == 'M3' else {}     # (the page: Binario 2 / 3)
 # the San Donato tails: their track pieces, from the dead end to the first switch (closed to the service during an
 # interruption from San Donato: web/agents.js)

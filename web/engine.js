@@ -8,7 +8,6 @@
 // so the map draws live trains with the same code as planned ones.
 (function (root) {
   const DT = 0.5;            // simulation step, seconds
-  const SAMPLE = 4;          // record a position every 4 steps (2 s) while moving
 
   // cruise speed so that a leg of length L is covered in T seconds,
   // starting from a stop (ca = 1/(2a)) and/or ending in a stop (cb = 1/(2b))

@@ -19,7 +19,7 @@ Come (le parti che non sono nel PDF sono PROPOSTE, scritte come tali nelle corse
    l'intervallo si chiude esattamente sulle corse vere ai due lati.
 4. Le corse dopo mezzanotte restano nel giorno di servizio: 24:xx, 25:xx, 26:xx (la giornata del gioco cambia alle 3:00).
 """
-import csv, json, math, os, statistics, sys, collections
+import csv, json, os, statistics, sys, collections
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 G0 = os.path.join(ROOT, 'data', 'gtfs_m3')

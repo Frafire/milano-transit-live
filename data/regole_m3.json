@@ -4436,5 +4436,59 @@
    "Nel programma oggi": "sì (orari storici, flotta 2015)",
    "Note": "Giovanni 10/11/2026: le 6 unità SOCIMI (8069-8080) hanno problemi di trazione più di una volta al giorno, di solito mai gravi; si accoppiano solo tra loro. 4 al giorno su tutta la linea = circa 1,3 per ognuno dei 3 treni SOCIMI: PROPOSTA di Claude."
   }
+ ],
+ "ricoveri": [
+  {
+   "id": "BRE",
+   "nome": "tronchetto di Brenta",
+   "verso": "San Donato",
+   "scende_a": "Lodi T.I.B.B.",
+   "entra": "BRE-2",
+   "si_ferma": "prima del segnale di fine itinerario",
+   "esce": "BRE-1",
+   "esce_quando": "tratta riaperta",
+   "rientro": "prima corsa utile",
+   "rientra_a": "Brenta",
+   "ordine": "Scende tutti a Lodi T.I.B.B. e va nel tronchetto di Brenta fino alla riapertura",
+   "richiamo": "Esce dal tronchetto di Brenta (BRE-1) alla banchina di Brenta, binario 1, e riprende il servizio verso San Donato.",
+   "non_esce": "la tratta è ancora chiusa, dal tronchetto di Brenta riparte dopo la riapertura",
+   "note": "Giovanni 20/11/2026: il treno deve essere vuoto, scende tutti a Lodi T.I.B.B.; alla riapertura aspetta l'ordine per riprendere verso San Donato. I testi sono una PROPOSTA."
+  },
+  {
+   "id": "CEN2",
+   "nome": "Bin rimessa Centrale 2",
+   "verso": "Comasina",
+   "scende_a": "Repubblica",
+   "entra": "REP-3",
+   "si_ferma": "tutto il treno oltre il segnale di uscita",
+   "esce": "REP-10",
+   "esce_quando": "stazione di rientro aperta",
+   "rientro": "cambio banco e servizio",
+   "rientra_a": "Repubblica",
+   "ordine": "Scende tutti a Repubblica e va nel Bin rimessa Centrale 2 fino al richiamo",
+   "richiamo": "Esce dal Bin rimessa Centrale 2 (REP-10) sull'illegale fino a Repubblica, binario 2: salgono i passeggeri a porte aperte, cambia banco e riparte in servizio verso Comasina.",
+   "non_esce": "Repubblica è dentro la tratta chiusa: dal Bin rimessa Centrale 2 si esce solo verso Repubblica",
+   "note": "Giovanni 21/11/2026: esce solo verso Repubblica sull'illegale, a Repubblica fa salire a porte aperte, cambia banco e riparte verso Comasina. I testi sono una PROPOSTA. Bin rimessa Centrale 1: da chiedere."
+  }
+ ],
+ "tratte_parallele": [
+  {
+   "da": "San Donato",
+   "a": "Porto di Mare",
+   "entrambi": 50,
+   "note": "Giovanni 20/11/2026: dove i binari sono paralleli una persona o un oggetto può impegnare tutti e due i binari; altrove uno solo (pari o dispari). Il 50% è una PROPOSTA."
+  },
+  {
+   "da": "Lodi T.I.B.B.",
+   "a": "Porta Romana",
+   "entrambi": 50,
+   "note": "come sopra"
+  },
+  {
+   "da": "Centrale FS",
+   "a": "Comasina",
+   "entrambi": 50,
+   "note": "come sopra"
+  }
  ]
 }

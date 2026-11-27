@@ -31,7 +31,9 @@ python3 "$ROOT/tests/sinottico_check.py"      # (the drawings: nodes and pieces 
 python3 "$ROOT/tests/nome_deposito_check.py"  # (the depot is "Deposito Rogoredo" (ROD), not San Donato: Giovanni 17 Nov 2026)
 python3 "$ROOT/tests/nomi_segnali_deposito_check.py"  # (the depot signals named as on the ACEI board: heads 78-N and N+19, talpe 78+N and 20-N)
 python3 "$ROOT/tests/binari_lisci_check.py"  # (the tracks on the map without corners between the OSM points, at most 0.5 m off them: Giovanni 18 Nov 2026)
+node "$ROOT/tests/lint_check.js"            # (names nothing defines, functions written twice, code after a return; skipped without ESLint)
 node "$ROOT/tests/engine_test.js"
+node "$ROOT/tests/platform_speed_test.js"   # (written on 30 Oct and never run by the build)
 node "$ROOT/tests/day_agents_check.js" 5 24
 node "$ROOT/tests/interlocking_check.js" 5 24
 node "$ROOT/tests/timetable_check.js"
@@ -45,6 +47,7 @@ node "$ROOT/tests/radio_varieta_check.js"    # (the phrases said most in a day w
 python3 "$ROOT/tests/schema_check.py"
 node "$ROOT/tests/pc_check.js"
 node "$ROOT/tests/pcf_check.js"
+node "$ROOT/tests/ricoveri_check.js"         # (the tail of Brenta and Bin rimessa Centrale 2 in a closure, the Excel's sheet Ricoveri)
 node "$ROOT/tests/instr_check.js"
 node "$ROOT/tests/illegal_sd_check.js"
 node "$ROOT/tests/sheds_check.js"

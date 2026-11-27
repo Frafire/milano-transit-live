@@ -24,7 +24,7 @@ via = bends of a piece (px, in order from its node a to its node b); part = a pi
 from node a); signals = the piece each signal is on and how far along (0-1); places = the depot places by node; labels =
 names written in the drawing; platforms, badges, fmap: the line's.
 """
-import json, re, math, os, sys, collections, cmath
+import json, re, math, os, sys, collections
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 KX, KY = 111320 * math.cos(math.radians(45.43)), 111320

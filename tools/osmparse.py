@@ -1,4 +1,3 @@
-import json
 def load(path='osm_m3.txt'):
     ways=[]
     for i,line in enumerate(open(path).read().strip().split('\n')):

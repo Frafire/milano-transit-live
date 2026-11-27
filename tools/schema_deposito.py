@@ -10,7 +10,7 @@ horizontal; the nodes on rows (one row a track, 4 m apart in the real depot); th
 each piece from node to node as a horizontal line then a 45-degree diagonal. The signals of the depot are kept as the
 piece they are on and how far along it (0-1), the depot places as their nodes, so moving a node moves them too.
 """
-import json, math, os, sys, collections
+import json, math, os, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'data', 'schema_deposito_m3.json')

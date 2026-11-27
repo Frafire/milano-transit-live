@@ -1527,7 +1527,6 @@ window.MTL_CAPS = __CAPS__;
   // ---- the panels of a line with the capabilities bivi and aspetti_codici (the M2) ----
   (function () {
     const FD = FLEETDATA ? FLEETDATA.fleets.find(f => f.line === LINE) : null;
-    const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     if (hasCap('aspetti_codici')) {
       const A = (FD && FD.codici && FD.codici.aspetti) || [], v = x => x == null || x === '' ? '—' : esc(x);
       document.getElementById('aspTab').innerHTML = A.length ? `<table><tr><th>Aspetto</th><th>Codice</th><th>Scaglione</th><th>Leonardo</th><th>Meneghino</th></tr>${A.map(a =>
@@ -1965,93 +1964,6 @@ window.MTL_CAPS = __CAPS__;
     }
     return rows;
   }
-  // short timetable: last stop, next two, destination; the button shows every stop
-  function stopListShort(tr, t, pos) {
-    const idx = []; for (let i = 0; i < tr.st.length; i++) if (tr.st[i] >= 0) idx.push(i);
-    const p0 = posIndex(tr, t, pos); let k = idx.findIndex(i => i >= p0); if (k < 0) k = idx.length;
-    const row = (i, cls) => `<li class="${cls}"><time>${fmt(tr.ts[i])}${lateTxt(pos, i, p0)}</time><span>${D.stops[tr.st[i]][0]}</span></li>`;
-    let rows = '';
-    if (k > 0) rows += row(idx[k - 1], 'past');
-    for (let j = k; j < Math.min(k + 2, idx.length); j++) rows += row(idx[j], j === k ? 'next' : '');
-    const last = idx.length - 1;
-    if (last >= k + 2) {
-      const skipped = last - (k + 2);
-      if (skipped > 0) rows += `<li class="gap"><time></time><span>⋯ ${skipped} ${skipped === 1 ? 'fermata' : 'fermate'}</span></li>`;
-      rows += row(idx[last], 'dest');
-    }
-    return rows;
-  }
-  // doors: open while the train stands at a stop in service (a moment after stopping until just before leaving)
-  function doorsOpen(F, tr, t) {
-    const useLive = F.engine && state.engine && tr.live, SG = useLive ? tr.live : tr.segs;
-    for (let k = 0; k < SG.length; k++) {
-      const s = SG[k], ts = s[3], ds = s[4];
-      if (t < ts[0]) {               // between two segments: passengers getting off at the terminus
-        const p = SG[k - 1]; if (!p || p[1] !== 'service') return false;
-        const end = p[3][p[3].length - 1]; return t >= end + 2 && t <= Math.min(ts[0], end + 45) - 5;
-      }
-      if (t > ts[ts.length - 1]) continue;
-      if (s[1] !== 'service') return false;
-      let i = 0; while (i < ts.length - 2 && ts[i + 1] <= t) i++;
-      return ds[i + 1] === ds[i] && t >= ts[i] + 2 && t <= ts[i + 1] - 5;
-    }
-    return false;
-  }
-  function updateTiles() {
-    const sp = document.getElementById('spdTile'); if (!sp || typeof state.sel !== 'string' || state.sel[0] !== 'f') return;
-    const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F && F.trains[i]; if (!tr) return;
-    const st = trainState(F, tr, state.t), kmh = Math.round(Math.abs(st.v || 0) * 3.6), open = doorsOpen(F, tr, state.t);
-    if (sp.textContent !== String(kmh)) sp.textContent = kmh;
-    const dt = document.getElementById('doorTile'), txt = open ? 'PORTE APERTE' : 'PORTE CHIUSE';
-    if (dt.textContent !== txt) { dt.textContent = txt; dt.classList.toggle('open', open); }
-    const dl = document.getElementById('delayTile'); if (!dl) return;
-    const d = trainDelay(F, tr, state.t), mm = s => Math.floor(Math.abs(s) / 60) + ':' + String(Math.round(Math.abs(s)) % 60).padStart(2, '0');
-    const dtx = d == null ? 'FUORI SERVIZIO' : d >= 60 ? 'RITARDO +' + mm(d) : d <= -60 ? 'ANTICIPO −' + mm(d) : 'IN ORARIO';
-    if (dl.textContent !== dtx) { dl.textContent = dtx; dl.classList.toggle('late', d != null && d >= 120); dl.classList.toggle('early', d != null && d <= -180); }
-  }
-  // lateness of a train for its card: the trains of the one engine know it from their last departure
-  function trainDelay(F, tr, t) {
-    if (F.ag && state.engine && tr.agentK != null) { const s = F.ag.state(tr.agentK); if (!s || s.hidden || s.status === 'parked') return null;
-      return s.late != null ? s.late : s.status === 'service' ? 0 : null; }
-    return F.engine ? delayOf(F, tr, t) : null;
-  }
-  function renderTrainCard() {
-    const [fi, i] = state.sel.slice(1).split(':').map(Number), F = fleets[fi], tr = F.trains[i], st = trainState(F, tr, state.t);
-    let body = '', title = st.label;
-    if (st.trip >= 0) { const tp = trips[st.trip]; title = '→ <span class="cap">' + tp.h + '</span>';
-      body = `<ol class="stops">${state.fullTT ? stopList(tp, state.t, trainAt(F, tr)) : stopListShort(tp, state.t, trainAt(F, tr))}</ol>
-        <div class="row"><button id="ttBtn" aria-pressed="${!!state.fullTT}">${state.fullTT ? 'Orario ridotto' : 'Orario completo'}</button></div>`; }
-    // next activity for trains not in service
-    if (st.agent && st.agent.mode !== 'plan') body = st.agent.status === 'service' && st.agent.to != null ? `<p class="sub" style="margin-top:10px">Servizio passeggeri ridotto: ferma in tutte le stazioni fino a <span class="cap">${cap(F.engine.G.names[st.agent.to])}</span>.</p>` : '';
-    else if (st.trip < 0) {
-      const nxt = tr.segs.find(sg => sg[1] === 'service' && sg[3][sg[3].length - 1] > state.t);
-      body = nxt ? `<p class="sub" style="margin-top:10px">Next service: departs ${fmt(nxt[3][1])} towards <span class="cap">${trips[nxt[2]].h}</span></p>`
-                 : `<p class="sub" style="margin-top:10px">No more passenger trips today.</p>`;
-    }
-    const rt = realTrain(F, tr, state.t);
-    const bio = rt ? (rt.missing ? '<p class="warn">No real train left in the fleet for this run: the timetable needs one more train here.</p>' : rt.none ? ''
-      : `<p class="sub" style="margin-top:8px">${(rt.built ? [rt.units, rt.type, rt.built, rt.note] : [rt.units, rt.type, 'costruito ' + rt.year, rt.display, rt.note]).filter(Boolean).join(rt.built ? ' - ' : ' · ')}</p>`) : '';
-    const kindBus = F.bus ? `<p class="sub" style="margin-top:8px">${F.look.cars === 2 ? 'Autosnodato 18 m' : 'Autobus 12 m'}</p>` : '';
-    const tiles = (F.bus ? '' : `<div class="tiles"><div class="tile spd"><b id="spdTile">0</b><span>km/h</span></div><div class="tile door" id="doorTile">PORTE CHIUSE</div><div class="tile delay" id="delayTile">IN ORARIO</div></div>`)
-      + (F.engine && F.line === 'M3' ? `<div class="row"><button class="radiobtn" id="radioOpen">📻 Radio al treno</button></div>` : '');
-    body = tiles + kindBus + bio + arr2Box(F, tr, st) + body + testLoopBox(F, tr, st);
-    card.innerHTML = `<div class="hd"><span class="badge" style="background:${F.look.color};color:${F.look.text}">${F.name}</span>
-      <div><h2>${title}</h2><div class="sub">${F.trips ? 'In service' : (F.bus ? 'Bus ' : 'Treno ') + (rt ? (F.line === 'M4' && !rt.missing ? rt.units : rt.n) : tr.n) + ' · ' + (st.trip >= 0 ? st.label : 'Not in passenger service')}</div></div></div>
-      <div class="row"><button id="followBtn" aria-pressed="${state.follow}">Segui</button><button id="cardClose">Chiudi</button></div>${body}`;
-    card.hidden = false;
-    document.getElementById('followBtn').onclick = () => { state.follow = !state.follow; renderCard(); };
-    document.getElementById('cardClose').onclick = () => { state.sel = null; state.follow = false; renderCard(); };
-    const ttBtn = document.getElementById('ttBtn'); if (ttBtn) ttBtn.onclick = () => { state.fullTT = !state.fullTT; renderCard(); };
-    const rOpen = document.getElementById('radioOpen'); if (rOpen) rOpen.onclick = () => openRadio(F, tr);
-    updateTiles();
-    card.querySelectorAll('[data-loop]').forEach(b => b.onclick = () => { sendToTestLoop(F, tr, b.dataset.loop); renderCard(); });
-    card.querySelectorAll('[data-wash]').forEach(b => b.onclick = () => { const sel = card.querySelector('#washTo'); if (F.dm && tr.agentK != null) F.dm.sendToWash(tr.agentK, sel ? sel.value : null); renderCard(); });
-        card.querySelectorAll('[data-move]').forEach(b => b.onclick = () => { const sel = card.querySelector('#moveTo'); if (F.dm && tr.agentK != null && sel) { if (!F.dm.moveTo(tr.agentK, sel.value)) flashNote('Cambio posto non possibile ora'); } renderCard(); });
-    card.querySelectorAll('[data-arr2]').forEach(b => b.onclick = () => { orderP2(F, tr, +b.dataset.arr2); renderCard(); });
-    const nx = card.querySelector('li.next');
-    if (nx && !card.matches(':hover')) nx.scrollIntoView({ block: 'nearest' });
-  }
-
   // short timetable: last stop, next two, destination; the button shows every stop
   function stopListShort(tr, t, pos) {
     const idx = []; for (let i = 0; i < tr.st.length; i++) if (tr.st[i] >= 0) idx.push(i);
@@ -2949,17 +2861,18 @@ window.MTL_CAPS = __CAPS__;
   const SCR = { W: 136, H: 31, TW: 31, FR: 4, P: 3, cache: new Map() };
   const GAP = { thin: 0 };
   const txtW = (t, size) => [...t].reduce((n, ch) => n + glyph(ch, size || 'small')[0].length + (GAP[size] != null ? GAP[size] : 1), -(GAP[size] != null ? GAP[size] : 1));
+  // a line of text on the dot grid of a platform screen (the M3's and the M2's: one copy)
+  function scrPut(L, grid, W, H) {
+    let x0 = L.right ? L.x - txtW(L.text, L.size) + 1 : L.x;
+    for (const ch of L.text) { const g = glyph(ch, L.size || 'small'), up = L.size === 'big' && g.length > 14 ? g.length - 14 : 0, gap = GAP[L.size] != null ? GAP[L.size] : 1;
+      for (let r = 0; r < g.length; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') {
+        const X = x0 + i, Y = L.y + r - up; if (X >= 0 && X < W && Y >= 0 && Y < H) grid[Y * W + X] = L.color; }
+      x0 += g[0].length + gap; }
+  }
   function scrImage(key, lines, clock) {          // lines: [{ text, x, y, color, size, right }]
     if (SCR.cache.has(key)) return SCR.cache.get(key);
     const dots = new Array(SCR.W * SCR.H).fill(null);
-    const put = (L, grid, W, H) => {
-      let x0 = L.right ? L.x - txtW(L.text, L.size) + 1 : L.x;
-      for (const ch of L.text) { const g = glyph(ch, L.size || 'small'), up = L.size === 'big' && g.length > 14 ? g.length - 14 : 0, gap = GAP[L.size] != null ? GAP[L.size] : 1;
-        for (let r = 0; r < g.length; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') {
-          const X = x0 + i, Y = L.y + r - up; if (X >= 0 && X < W && Y >= 0 && Y < H) grid[Y * W + X] = L.color; }
-        x0 += g[0].length + gap; }
-    };
-    lines.forEach(L => put(L, dots, SCR.W, SCR.H));
+    lines.forEach(L => scrPut(L, dots, SCR.W, SCR.H));
     const P = SCR.P, FR = SCR.FR, TW = SCR.TW, c = document.createElement('canvas');
     c.width = (2 * FR + TW + SCR.W) * P; c.height = (2 * FR + SCR.H) * P; const x = c.getContext('2d');
     // the case: a thick black frame with a lighter edge
@@ -2972,7 +2885,7 @@ window.MTL_CAPS = __CAPS__;
     for (let j = 0; j < SCR.H; j++) for (let i = 0; i < SCR.W; i++) dot(sx + (i + 0.5) * P, sy + (j + 0.5) * P, dots[j * SCR.W + i]);
     if (clock) {
       const cw = txtW(clock, 'small'), cg = new Array(TW * SCR.H).fill(null);
-      put({ text: clock, x: Math.floor((TW - cw) / 2), y: Math.round((SCR.H - 7) / 2), color: SCR_A, size: 'small' }, cg, TW, SCR.H);
+      scrPut({ text: clock, x: Math.floor((TW - cw) / 2), y: Math.round((SCR.H - 7) / 2), color: SCR_A, size: 'small' }, cg, TW, SCR.H);
       for (let j = 0; j < SCR.H; j++) for (let i = 0; i < TW; i++) if (cg[j * TW + i]) dot((FR + i + 0.5) * P, sy + (j + 0.5) * P, cg[j * TW + i]);
     }
     const url = c.toDataURL(); if (SCR.cache.size > 200) SCR.cache.clear(); SCR.cache.set(key, url); return url;
@@ -3066,10 +2979,7 @@ window.MTL_CAPS = __CAPS__;
   function m2ScrImage(key, lines) {     // the M3 screen without its clock
     if (SCR.cache.has(key)) return SCR.cache.get(key);
     const W = SCR.W, H = SCR.H, dots = new Array(W * H).fill(null);
-    lines.forEach(L => { let x0 = L.right ? L.x - txtW(L.text, L.size) + 1 : L.x;
-      for (const ch of L.text) { const g = glyph(ch, L.size || 'small'), up = L.size === 'big' && g.length > 14 ? g.length - 14 : 0, gap = GAP[L.size] != null ? GAP[L.size] : 1;
-        for (let r = 0; r < g.length; r++) for (let i = 0; i < g[r].length; i++) if (g[r][i] === '1') { const X = x0 + i, Y = L.y + r - up; if (X >= 0 && X < W && Y >= 0 && Y < H) dots[Y * W + X] = L.color; }
-        x0 += g[0].length + gap; } });
+    lines.forEach(L => scrPut(L, dots, W, H));
     const P = SCR.P, FR = SCR.FR, c = document.createElement('canvas'); c.width = (2 * FR + W) * P; c.height = (2 * FR + H) * P; const x = c.getContext('2d');
     x.fillStyle = '#2e2e2e'; x.fillRect(0, 0, c.width, c.height); x.fillStyle = '#0a0a0a'; x.fillRect(P * 0.7, P * 0.7, c.width - P * 1.4, c.height - P * 1.4);
     x.fillStyle = '#171716'; x.fillRect(FR * P, FR * P, W * P, H * P);
@@ -3203,13 +3113,18 @@ window.MTL_CAPS = __CAPS__;
     card.querySelectorAll('[data-lock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.lock, pos: b.dataset.pos }, () => tx('dct.scambio_bloccato', { scambio: b.dataset.lock })));
     card.querySelectorAll('[data-unlock]').forEach(b => b.onclick = () => run({ what: 'lock', nd: +b.dataset.unlock, pos: null }, () => tx('dct.scambio_sbloccato', { scambio: b.dataset.unlock })));
   }
+  // text into HTML (one copy: there were three, each in its own function)
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  // metres per degree at Milan, and the distance in metres of a point [lat, lon] from a polyline (one copy: it was written
+  // out in platformDiagram and in trainOnPlatform)
+  const KXm = 111320 * Math.cos(45.46 * Math.PI / 180), KYm = 110540;
+  function distToPoly(p, poly) { const kx = KXm, ky = KYm; let best = 1e9; for (let i = 0; i < poly.length - 1; i++) { const a = poly[i], c = poly[i + 1];
+    const ax = a[1] * kx, ay = a[0] * ky, bx = c[1] * kx, by = c[0] * ky, px = p[1] * kx, py = p[0] * ky, dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+    const u = L2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2)) : 0; best = Math.min(best, Math.hypot(px - ax - u * dx, py - ay - u * dy)); } return best; }
   // schematic of the terminal platforms with the train standing on each
   function platformDiagram(F, b, t) {
     const pm = F.platmap; if (!pm || !pm.plats.length || pm.station.toUpperCase() !== b.n.toUpperCase()) return '';
-    const kx = 111320 * Math.cos(45.46 * Math.PI / 180), ky = 110540;
-    const dist = (p, poly) => { let best = 1e9; for (let i = 0; i < poly.length - 1; i++) { const a = poly[i], c = poly[i + 1];
-      const ax = a[1] * kx, ay = a[0] * ky, bx = c[1] * kx, by = c[0] * ky, px = p[1] * kx, py = p[0] * ky, dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
-      const u = L2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2)) : 0; best = Math.min(best, Math.hypot(px - ax - u * dx, py - ay - u * dy)); } return best; };
+    const kx = KXm, ky = KYm, dist = distToPoly;
     const rows = pm.plats.map(([no, w]) => {
       const tk = ALLTRACKS.find(x => x.line === F.line && x.w === w); let who = '';
       if (tk) F.trains.forEach(tr => {
@@ -3267,10 +3182,7 @@ window.MTL_CAPS = __CAPS__;
   const P2WAY = 103;
   function trainOnPlatform(F, way, t, except) {
     const pm = F.platmap, tk = ALLTRACKS.find(x => x.line === F.line && x.w === way); if (!pm || !tk) return null;
-    const kx = 111320 * Math.cos(45.46 * Math.PI / 180), ky = 110540;
-    const dist = (p, poly) => { let best = 1e9; for (let i = 0; i < poly.length - 1; i++) { const a = poly[i], c = poly[i + 1];
-      const ax = a[1] * kx, ay = a[0] * ky, bx = c[1] * kx, by = c[0] * ky, px = p[1] * kx, py = p[0] * ky, dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
-      const u = L2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L2)) : 0; best = Math.min(best, Math.hypot(px - ax - u * dx, py - ay - u * dy)); } return best; };
+    const kx = KXm, ky = KYm, dist = distToPoly;
     for (const o of F.trains) {
       if (o === except) continue;
       const st = trainState(F, o, t); if (st.status === 'parked') continue;
@@ -3564,7 +3476,7 @@ window.MTL_CAPS = __CAPS__;
   const KITMAX = 64, kitLow = sg => sg.type === 'shunt' || sg.type === 'marm';
   const kitScale = (k, sg) => (Math.min(1, KITMAX / k.h) * (kitLow(sg) ? .7 : 1)).toFixed(3);
   // at 19 and over (where it was placed) 15% bigger than by its track (Giovanni 6 Nov: "un 15% più grandi al massimo"): up to KITMAX_FULL
-  const KITBIG = 1.15, KITMAX_FULL = KITMAX * KITBIG, kitScaleFull = (k, sg) => (kitScale(k, sg) * KITBIG).toFixed(3);
+  const KITBIG = 1.15, kitScaleFull = (k, sg) => (kitScale(k, sg) * KITBIG).toFixed(3);
   // the signal by its track (levels 18 and 15-17): the marker is its point on the track, the drawing --kd pixels to its side
   const kitIcon = (sg, current, movable) => { const k = kitHead(sg), b = kitSide(sg) * Math.PI / 180, ux = Math.sin(b), uy = -Math.cos(b), t = 't-' + sg.type + (sg.legal === false ? ' ill' : '');
     return L.divIcon({ className: '', iconSize: [0, 0], html: `<div class="ksw at-track${kitLow(sg) ? ' low' : ''}${movable ? ' mvw' : ''}${current ? ' cur' : ''}" style="--ux:${ux.toFixed(3)};--uy:${uy.toFixed(3)};--a:${(Math.atan2(uy, ux) * 180 / Math.PI).toFixed(1)}deg;--w:${k.w};--h:${k.h};--s:${kitScale(k, sg)};--r:${sg.heading || 0}deg"><i class="klead"></i><div class="kpos"><i class="ksimp ${t}"></i><div class="kturn"><img alt="" src="${k.u}"></div></div></div>` }); };
@@ -3641,7 +3553,6 @@ window.MTL_CAPS = __CAPS__;
     if (!card.hidden && card.dataset.dep === dep && card.querySelector('.deptab')) return;
     card.dataset.dep = dep;
     const cfg = {}; ((I.depositi || {})[dep] || []).forEach(b => { cfg[b.n] = b; });
-    const esc = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     const posti = T.reduce((a, d) => a + d.posti.length, 0), byUse = {};
     T.forEach(d => { const u = /officina/.test(d.uso) ? 'officina' : /lavaggio/.test(d.uso) ? 'lavaggio' : /^ex /.test(d.uso) ? 'non usati' : 'ricovero'; byUse[u] = (byUse[u] || 0) + d.posti.length; });
     const rows = T.map(d => { const c = cfg[d.n] || {}, nota = c.nota || '';
@@ -3806,7 +3717,6 @@ window.MTL_CAPS = __CAPS__;
   let cutMode = false;
   document.getElementById('cutBtn').onclick = () => { cutMode = !cutMode; document.getElementById('cutBtn').setAttribute('aria-pressed', cutMode);
     spdPick.textContent = cutMode ? 'Cut mode: click where the limit changes' : 'Click a track piece'; };
-  const KXm = 111320 * Math.cos(45.46 * Math.PI / 180), KYm = 110540;
   const segLen = (a, b) => Math.hypot((b[1] - a[1]) * KXm, (b[0] - a[0]) * KYm);
   function slicePoly(P, from, to) {       // part of a polyline between two distances (metres) from its start
     const out = []; let acc = 0;
@@ -4129,7 +4039,6 @@ window.MTL_CAPS = __CAPS__;
   // of the file is copied into this browser's edits with its id; the export (Copy all) carries it, and the deleted ids (sigdel)
   let mvSel = null;
   const mvSigs = () => { ED.signals.forEach(x => { if (SIGKIT[x.line] && !x.id) { x.id = newSigId(x.line); persist(); } }); return lineSigs(LINE).filter(sg => SIGKIT[sg.line]); };
-  const mvFindSig = id => mvSigs().find(sg => (sg.id || '') === id);
   const mvLocal = sg => { let x = ED.signals.find(y => y === sg || (y.id && y.id === sg.id)); if (!x) { x = JSON.parse(JSON.stringify(sg)); ED.signals.push(x); } return x; };
   const mvKit = isKit;
   const mvNameOk = sg => !sg.name || (sg.type === 'shunt' || sg.type === 'marm' ? /^S \d+$/ : /^(S\d+|POSTO \d+|B\d+)[ab]?$/).test(sg.name);
@@ -4376,7 +4285,7 @@ window.MTL_CAPS = __CAPS__;
     F.trains.forEach(tr => { if (!tr.segs0) { tr.segs0 = JSON.parse(JSON.stringify(tr.segs)); tr.alts0 = tr.alts && JSON.parse(JSON.stringify(tr.alts)); tr.arr20 = tr.arr2 && JSON.parse(JSON.stringify(tr.arr2)); tr.calts0 = tr.calts && JSON.parse(JSON.stringify(tr.calts)); tr.carr10 = tr.carr1 && JSON.parse(JSON.stringify(tr.carr1)); } });
     F.trains.forEach((tr, k) => { tr.agentK = k; });
     F.ag = MTLAgents.create({ G, ops: E_.ops, reverse: E_.rev, half: E_.half, prof: E_.prof, pathEdges: E_.pathEdges, netEdges: E_.net.edges,
-      planOf: k => F.trains[k].segs, count: F.trains.length, depotPark: k => !F.dm ? null : (F.ag && F.ag.S.faults && F.ag.S.faults.list.some(f => f.k === k && f.maint)) ? F.dm.officinaPark(k) : F.dm.rimessaPark(k), depotOut: q => { const P = F.depotPaths && F.depotPaths[q], o_ = P && Object.values(P.out)[0]; return o_ ? { pid: o_.pid, start: o_.start, end: o_.plat } : null; }, tempi: (E_.net.rules || {}).tempi, sdTails: E_.net.sd_tail_edges, depotIn: Object.values(F.depotPaths || {}).map(P => [P.in, P.in_stop]), sdTailSig: Object.fromEntries(((E_.net.schema_depot || {}).signals || []).filter(x => (E_.net.sd_tail_edges || []).includes(x.e)).map(x => [x.e, x.n])), badoni: F.test && F.test.badoni, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, unitOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t); return d && d[2] >= 0 ? stock[d[2]] : null; })(F.trains.map(tr => tr.duties), F.stock || []), hasSocimi: (F.stock || []).some(u => /socimi/i.test(u.type || '')), kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
+      planOf: k => F.trains[k].segs, count: F.trains.length, depotPark: k => !F.dm ? null : (F.ag && F.ag.S.faults && F.ag.S.faults.list.some(f => f.k === k && f.maint)) ? F.dm.officinaPark(k) : F.dm.rimessaPark(k), depotOut: q => { const P = F.depotPaths && F.depotPaths[q], o_ = P && Object.values(P.out)[0]; return o_ ? { pid: o_.pid, start: o_.start, end: o_.plat } : null; }, tempi: (E_.net.rules || {}).tempi, ricoveri: (E_.net.rules || {}).ricoveri, parallele: (E_.net.rules || {}).tratte_parallele, sdTails: E_.net.sd_tail_edges, depotIn: Object.values(F.depotPaths || {}).map(P => [P.in, P.in_stop]), sdTailSig: Object.fromEntries(((E_.net.schema_depot || {}).signals || []).filter(x => (E_.net.sd_tail_edges || []).includes(x.e)).map(x => [x.e, x.n])), badoni: F.test && F.test.badoni, stopsOf: stopsOfF(F), zones: MTLEngine.platformZones(G), sigpos: E_.net.sigpos, sigall: E_.net.sigall, itineraries: E_.net.itineraries, variants: E_.net.variants, closureTurns: E_.net.closure_turns, closureOneTrack: E_.net.closure_one_track, navette: E_.net.navette, revPaths: E_.net.rev_paths, faults: E_.net.faults, closures: E_.net.closures, radio: E_.net.radio, weekday: () => dayPick, unitOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t); return d && d[2] >= 0 ? stock[d[2]] : null; })(F.trains.map(tr => tr.duties), F.stock || []), hasSocimi: (F.stock || []).some(u => /socimi/i.test(u.type || '')), kindOf: ((duties, stock) => (k, t) => { const ds = duties[k] || []; const d = ds.find(x => x[0] <= t && t <= x[1]) || ds.filter(x => x[1] < t).pop() || ds.find(x => x[0] > t);
       const u = d && d[2] >= 0 ? stock[d[2]] : null; return u && /meneghino|hitachi/i.test(u.type || '') ? 'meneghino' : 'serie8000'; })(F.trains.map(tr => tr.duties), F.stock || []), routeRules: E_.net.route_rules, interlocking: E_.net.interlocking,
       dwell: F.trains.map(tr => tr.env && tr.env.dwell), extra: (k, key) => (F.trains[k].env && F.trains[k].env.extra && F.trains[k].env.extra[key]) || 0,
       depotMoved: (k, q) => { if (F.dm) F.dm.moved(k, q); },
@@ -4437,7 +4346,7 @@ window.MTL_CAPS = __CAPS__;
   // its own Mappa button goes back)
   const setView = (v, which) => { if (which) SIN_WHICH = which; viewSw.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v))); planEl.hidden = v !== 'sin'; if (v === 'sin') { planEl.innerHTML = ''; drawDepotPlan(); } };
   viewSw.querySelectorAll('button').forEach(b => b.onclick = () => setView(b.dataset.view));
-  function openDepotPlan() { PIANO_PH = false; setView('sin', 'dep'); }
+  function openDepotPlan() { setView('sin', 'dep'); }
   // ---- the two sinottici (Giovanni 9 Nov 2026): the depot (data/schema_deposito_m3.json, from #A04 and #A05 on, his
   // shape with the real bends of the track: tools/sinottico.py deposito) and the line (data/sinottico_linea_m3.json, a
   // first drawing made by tools/sinottico.py linea, to shape here). Our blue behind; the track grey; a route set for a
@@ -4474,7 +4383,6 @@ window.MTL_CAPS = __CAPS__;
   function schEditOff() { if (SCH_EDIT && SCH_EDIT.on) setSchEdit(false); }
   function setSchEdit(on) { SCH_EDIT.on = on; document.body.classList.toggle('schedit', on); const b = document.getElementById('schEdit'); if (b) b.setAttribute('aria-pressed', String(on)); if (on) setView('sin'); else drawDepotPlan(); }
   const SWMEM = {};                       // the last position seen of each depot switch: the pair of track pieces a train went over
-  const octi = (p, q) => { const dx = q[0] - p[0], dy = q[1] - p[1]; return Math.abs(dx) >= Math.abs(dy) ? [p, [q[0] - Math.sign(dx) * Math.abs(dy), p[1]], q] : [p, q]; };
   const alongPts = (pts, f) => { const L = []; let tot = 0; for (let i = 1; i < pts.length; i++) { L.push(Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); tot += L[i - 1]; }
     let x = f * tot; for (let i = 1; i < pts.length; i++) { if (x <= L[i - 1] || i === pts.length - 1) { const u = L[i - 1] ? Math.min(1, x / L[i - 1]) : 0; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * u, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * u]; } x -= L[i - 1]; } return pts[0]; };
   // the part of a polyline from f0 to f1 (0-1 of its length)
@@ -4593,7 +4501,6 @@ window.MTL_CAPS = __CAPS__;
     const stops = (ei, f, dir, ill) => { const k = ei + ':' + Math.round(f * 1000) / 1000; return !!((stopD[k] || new Set()).has(dir) || (ill && (stopI[k] || new Set()).has(dir))); };
     return (SCH.__sec = { n: SCH.edges.length, pieces, byEdge, entry, stops, swJ });
   }
-  var PIANO_PH = false;          // (opened as Piano linea: the Deposito tab shows the placeholder)
   var SIN_GO = null;            // (the signals at via libera now, by number: the sections behind them are white)
   var SIN_ILL = true;           // (the illegal signals: shown, the player may hide them; Giovanni 21 Nov 2026, before hidden unless asked for)
   var SIN_NAMES = false;        // (the names of the tracks and the numbers of the pieces, big: Giovanni 16 Nov 2026)
@@ -5454,10 +5361,12 @@ window.MTL_CAPS = __CAPS__;
   // (no closure today): from the depot, its own tabella from the first departure from San Donato it can make.
   function recallInfo(F, k) {
     const a = F.ag && F.ag.agents()[k]; if (!a || a.mode !== 'static' || a.hidden || a.broken || a.v > 0.05 || a.status !== 'parked') return null;
-    if (a.inTail === 'brenta') return F.ag.S.cl ? { no: 'la tratta è ancora chiusa, dal tronchetto di Brenta riparte dopo la riapertura' } : { from: 'brenta', hyb: true };
-    // (Bin rimessa Centrale 2: out towards Repubblica only, with Repubblica open; Giovanni 21 Nov 2026)
-    if (a.inTail === 'cen2') { const X = F.engine.G.names.findIndex(n => /^REPUBBLICA/.test(n)), P = F.ag.S.parts;
-      return F.ag.S.cl && !(P || []).some(p => X >= p[0] && X <= p[1]) ? { no: 'Repubblica è dentro la tratta chiusa: dal Bin rimessa Centrale 2 si esce solo verso Repubblica' } : { from: 'cen2', hyb: true }; }
+    // (in a ricovero, the Excel's sheet Ricoveri: out after the reopening, or during the closure too when its station is
+    // open, as its row says; the texts are the row's)
+    if (a.inTail != null) { const R = ((F.engine.net.rules || {}).ricoveri || []).find(r => r.id === a.inTail); if (!R) return null;
+      const nm = x => String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, ''), X = F.engine.G.names.findIndex(n => nm(n).startsWith(nm(R.rientra_a))), P = F.ag.S.parts || [];
+      const can = !F.ag.S.cl || (/stazione/i.test(R.esce_quando || '') && X >= 0 && P.some(p => X >= p[0] && X <= p[1]));
+      return can ? { from: 'ricovero', hyb: true, note: R.richiamo || '' } : { no: R.non_esce || 'il ricovero non ha la via d\'uscita aperta' }; }
     const q = F.depot && F.depot.at[k], hyb = !!(F.ag.S.cl || F.ag.S.reopened != null), last = F.engine.G.names.length - 1;
     const parts = F.ag.S.parts || [[0, last]], open = X => parts.some(p => X >= p[0] && X <= p[1]);
     if (q != null && F.depotPaths && F.depotPaths[q]) return hyb && !open(0) ? { no: 'San Donato è dentro la tratta chiusa' } : { from: 'deposito', q, hyb };
@@ -5479,7 +5388,7 @@ window.MTL_CAPS = __CAPS__;
     if (a.mode === 'shuttle' || a.mode === 'timetable') return `<div class="picker"><div class="label">Regolatore</div><div class="row"><button data-rgo="home">Fai rientrare</button></div><p class="note">Scende i passeggeri alla prossima stazione e rientra in deposito (verso San Donato) o in un tronchetto di Comasina. Poi lo richiami da qui.</p></div>`;
     const I = recallInfo(F, k); if (!I) return '';
     if (I.no) return `<div class="picker"><div class="label">Regolatore</div><p class="note">Non si può richiamare ora: ${I.no}.</p></div>`;
-    return `<div class="picker"><div class="label">Regolatore</div><div class="row"><button data-rgo="recall">Richiama in linea</button></div><p class="note">${I.from === 'brenta' ? 'Esce dal tronchetto di Brenta (BRE-1) alla banchina di Brenta, binario 1, e riprende il servizio verso San Donato.' : I.from === 'cen2' ? 'Esce dal Bin rimessa Centrale 2 (REP-10) sull\'illegale fino a Repubblica, binario 2: salgono i passeggeri a porte aperte, cambia banco e riparte in servizio verso Comasina.' : I.hyb ? (I.from === 'deposito' ? 'Esce dal deposito a San Donato e riprende il servizio della sua parte di linea.' : 'Esce dal tronchetto e riprende il servizio della sua parte di linea.') : 'Esce dal deposito per la prima partenza da San Donato della sua tabella.'}</p></div>`;
+    return `<div class="picker"><div class="label">Regolatore</div><div class="row"><button data-rgo="recall">Richiama in linea</button></div><p class="note">${I.from === 'ricovero' ? esc(I.note) : I.hyb ? (I.from === 'deposito' ? 'Esce dal deposito a San Donato e riprende il servizio della sua parte di linea.' : 'Esce dal tronchetto e riprende il servizio della sua parte di linea.') : 'Esce dal deposito per la prima partenza da San Donato della sua tabella.'}</p></div>`;
   }
   // ---- the reserve at Comasina (B-016, Giovanni 4 Nov 2026): Saturday and Sunday it stands in position 3 of a tail. The DCT
   // can send it out for a tabella left without its train, from a departure from Comasina. Then that evening the trains
@@ -5837,7 +5746,7 @@ window.MTL_CAPS = __CAPS__;
   // interlocking notes for a signal's tooltip
   function ilBrief(F, si) { const IL = F.ag && F.ag.IL; return IL && si >= 0 && IL.brief ? IL.brief(si) : ''; }
   function ilNote(F, si) {
-    const IL = F.ag && F.ag.IL, net = F.engine.net; if (!IL || si < 0) return '';
+    const IL = F.ag && F.ag.IL; if (!IL || si < 0) return '';
     return IL.describe(si);
   }
   // ---- the board's keys, ACEI style (Giovanni 17 Nov 2026: "stile ACEI direi proprio"; "anche solo creare itinerari
@@ -5902,7 +5811,6 @@ window.MTL_CAPS = __CAPS__;
   // mid: those signals, midAt: the part each one starts, nodes: the switches it goes over
   function sinFind(F, SCH, SEC, sg, dest, sigOf, pids) {
     const G = sinNet(F, SCH), NE = F.engine.net.edges, SIGL = (SCH.signals || []).filter(x => x.d === 1 || x.d === -1);
-    const pieceAt = (ei, f, dir) => (SEC.byEdge[ei] || []).find(p => dir > 0 ? p[1] <= f + 1e-4 && p[2] > f + 1e-4 : p[2] >= f - 1e-4 && p[1] < f - 1e-4);
     // where the itinerary ends on piece ei entered at f going dir, or null
     const endOn = (ei, dir, f, first) => {
       if (dest.kind === 'sig') { const T = dest.sg; if (T.e === ei && T.d === dir && (dir > 0 ? T.f > f + (first ? 1e-4 : -1e-4) : T.f < f - (first ? 1e-4 : -1e-4))) return T.f; return null; }
@@ -6244,7 +6152,7 @@ window.MTL_CAPS = __CAPS__;
   }
   function buildSignals(F) {
     if (!RT) RT = stretches(F);
-    const half = F.engine.half + 2.5, out = [];
+    const out = [];
     const pidOf = dir => { const xs = RT[dir]; return xs.length ? xs[0].tr.segs[xs[0].si][0] : null; };
     const KXs = Math.cos(45.46 * Math.PI / 180);
     // which side is "outside": away from the nearest point of the other track (+1 right of travel, -1 left)
@@ -6682,7 +6590,6 @@ window.MTL_CAPS = __CAPS__;
     const TC = [];                   // the single conversations of the radio: { k, fresh }
     const EVAC = new Map();          // the evacuations ordered by the DCT: agent k -> game time (Emergenza, point 6)
     const RW = { tab: 'radio', cur: { radio: 'g:Tutti i treni', tel: 'g:Tutte le stazioni' }, adding: null };
-    const esc = x => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const capS = x => cap(String(x || '').toLowerCase());
     const F3 = () => { const F = m3eng(); return F && F.ag ? F : null; };
     const tno = (F, k) => { const r = realTrain(F, F.trains[k], state.t); return r && r.n ? r.n : k + 1; };
@@ -6718,7 +6625,7 @@ window.MTL_CAPS = __CAPS__;
     document.addEventListener('click', e => {
       if (!e.target.closest('.pcgearw')) { $('pcGmenu').hidden = true; $('pcGear').setAttribute('aria-expanded', 'false'); }
       if (!e.target.closest('.pcclock')) { $('pcDays').hidden = true; $('pcDay').setAttribute('aria-expanded', 'false'); } });
-    function setPiano(on) { if (on) { PIANO_PH = true; setView('sin', 'line'); } else setView('map'); railMark('schema', on); $('pcPiano').setAttribute('aria-pressed', String(on)); }
+    function setPiano(on) { if (on) setView('sin', 'line'); else setView('map'); railMark('schema', on); $('pcPiano').setAttribute('aria-pressed', String(on)); }
     $('pcPiano').onclick = () => setPiano(planEl.hidden);
 
     // ---------- the rail and the layout ----------
@@ -7087,7 +6994,7 @@ window.MTL_CAPS = __CAPS__;
     layout(); setTimeout(layout, 300); dayLabel(); status();
     window.mtlPC = { openWin, closeWin, setTools, setPiano, groupLog: GLOG, evac: EVAC, tab: t => { RW.tab = t; drawRadio(true); }, cur: () => RW.cur, waiting, status: () => $('pcStatus').innerHTML };
   })();
-  window.mtl = { map, state, fleets, setView, trainState: (F, tr, t) => trainState(F, tr, t), rego: { comReserves: F => comReserves(F), insertComReserve: (F, k, m) => insertComReserve(F, k, m), withdraw: (F, k) => withdraw(F, k), uncovered: (F, m) => uncovered(F, m), runsOf: (F, m) => runsOf(F, m) }, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), phone: { conv: X => MR.phoneConv(X), pending: () => MR.phonePending() }, osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
+  window.mtl = { map, state, fleets, setView, rego: { comReserves: F => comReserves(F), insertComReserve: (F, k, m) => insertComReserve(F, k, m), withdraw: (F, k) => withdraw(F, k), uncovered: (F, m) => uncovered(F, m), runsOf: (F, m) => runsOf(F, m) }, renderCard, realTrain, openStationRadio: (...a) => MR.openStationRadio(...a), phone: { conv: X => MR.phoneConv(X), pending: () => MR.phonePending() }, osOpen: (...a) => osOpen(...a), osHours: F => osHoursOf(F), scrPage, trainFront, tachoSVG, sigsState: () => SIGS && SIGS.map(x => [x.tag, x.a, x.pid, x.d, x.stype, !!x.illegal]), trainState, trainOnPlatform, relive, reliveFleet, tailBusy, applyAlt, tailChain, dcoTick, dcoCalls, openRadio, lastRuns };
   requestAnimationFrame(frame);
 })();
 </script>

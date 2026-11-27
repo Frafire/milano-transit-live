@@ -137,7 +137,7 @@
     // the switches of the line on a path between two points (not the depot ones): [[d, node]]
     const SW = {};
     function switchesOn(pid, a, b) {
-      if (!SW[pid]) { SW[pid] = []; const pe = PE[pid]; if (pe) for (const [ei, dir, x0, x1] of pe.e) { const nd = dir > 0 ? NE[ei].b : NE[ei].a; if (isSwitch(nd) && !depotSwitch(nd)) SW[pid].push([x1, nd]); } }
+      if (!SW[pid]) { SW[pid] = []; const pe = PE[pid]; if (pe) for (const [ei, dir, , x1] of pe.e) { const nd = dir > 0 ? NE[ei].b : NE[ei].a; if (isSwitch(nd) && !depotSwitch(nd)) SW[pid].push([x1, nd]); } }
       return SW[pid].filter(([x]) => x > a && x <= b);
     }
     // does train k hold a route over this switch? (check for the tests: no train goes over a switch without a route)

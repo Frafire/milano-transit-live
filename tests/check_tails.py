@@ -1,6 +1,6 @@
 import json, math, bisect, sys
 sys.path.insert(0,'.')
-from router import node_pos, node_edges, edges, xy, cum
+from router import node_edges, edges, xy, cum
 M=json.load(open('m3.json'))
 P=[]
 for p in M['paths']:

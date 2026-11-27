@@ -83,7 +83,7 @@
     // text on its platform screens
     const S = { agents: [], t: 0, log: [], lastDep: {}, cl: null, parts: [], reopened: null, stn: {}, faults: null, zones: [] };
     // failures (web/faults.js, foglio Guasti): emergency brake of each kind of train
-    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, tempi: o.tempi, badoni: o.badoni, half, vyard: (ops.depot_speed_kmh || 15) / 3.6, catalog: o.faults || [], unitOf: o.unitOf, hasSocimi: !!o.hasSocimi, emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
+    const FX = FXmod ? FXmod.create({ S, G, DT, loadAt, weekday: o.weekday, radio: o.radio, tempi: o.tempi, parallele: o.parallele, badoni: o.badoni, half, vyard: (ops.depot_speed_kmh || 15) / 3.6, catalog: o.faults || [], unitOf: o.unitOf, hasSocimi: !!o.hasSocimi, emBrake: a => ((PERF[o.kindOf ? o.kindOf(a.k, S.t) : 'meneghino'] || {}).brake_emergency || 1.5),
       line: {
         // the signals and switches of the main tracks (where the line failures happen), the route behind a signal
         sigs: () => [...new Set([G.N.pid, G.S.pid].flatMap(pid => (o.sigall && o.sigall[pid] || []).map(x => x[1])))].filter(n => !RT.isPcSignal(n)).sort((x, y) => x - y),
@@ -690,24 +690,15 @@
         const r = runTo(X, o2, T, tr.pid, tr.off, dP); withTimetable(r, X, o2, true);
         return pushRun(out, r);
       }
-      { const tr = tn_.t, off = tr.d_dep - stopOf(o2, X), r = runTo(X, o2, T, tr.pid, off, tr.d_dep);
-        r.rev = true; r.cTurn = true; withTimetable(r, X, o2, true); return pushRun(out, r); }
-      if (tn.kind === 'A') {   // on beyond the crossover, change cab, over it into the other platform
-        const tr = tn.t, stub = a.d + (tr.stub_d - stopOf(dir, X)), dP = stopOf(o2, X) + tr.off;
-        out.push({ pid: a.pid, status: 'turnback', stops: [], end: stub, start: a.d });
-        out.push({ pid: tr.pid, status: 'turnback', stops: [], end: dP, start: tr.d0, rev: true });
-        const r = runTo(X, o2, T, tr.pid, tr.off, dP); withTimetable(r, X, o2, true);
-        return pushRun(out, r);
-      }
       // C: passengers board here; change cab and leave backwards over the crossover behind the station
-      const tr = tn.t, off = tr.d_dep - stopOf(o2, X), r = runTo(X, o2, T, tr.pid, off, tr.d_dep);
+      const tr = tn_.t, off = tr.d_dep - stopOf(o2, X), r = runTo(X, o2, T, tr.pid, off, tr.d_dep);
       r.rev = true; r.cTurn = true; withTimetable(r, X, o2, true); return pushRun(out, r);
     }
     // a tail is free when nobody stands in its last 200 m and nobody else is on the way in
     function tailFree(a, mp) {
       const pe = pathEdges[mp.pid]; if (!pe) return true;
       for (const b of S.agents) if (b !== a && !b.hidden && b.legs[0] && b.legs[0].tailOf === mp.pid) return false;
-      for (const [ei, , x0, x1] of pe.e) { if (x1 < mp.tail[1] - 200) continue; const l = edgeMap.get(ei); if (l && l.some(z => z[0] !== a.k)) return false; }
+      for (const [ei, , , x1] of pe.e) { if (x1 < mp.tail[1] - 200) continue; const l = edgeMap.get(ei); if (l && l.some(z => z[0] !== a.k)) return false; }
       return true;
     }
     // the run takes the times of a timetable run from that station, that way (it never leaves more than a minute
@@ -949,10 +940,8 @@
         if (o.depotMoved) o.depotMoved(a.k, m.q);
         if (a.mode === 'plan') { a.wait = Math.max(m.wait || 0, S.t); a.legs = [planLeg(a.k, a.si)]; } else { a.legs = []; a.depotQ = m.q; }
         return false; }
-      if (m.kind === 'brentaIn') return brentaIn(a, m);
-      if (m.kind === 'cen2In') return cen2In(a, m);
-      if (m.kind === 'cen2Park') { a.mode = 'static'; a.status = 'parked'; a.v = 0; a.inside = null; a.inTail = 'cen2'; delete S.rt.routes[a.k]; a.legs = []; S.log.push({ t: S.t, k: a.k, cen2: true }); return false; }
-      if (m.kind === 'brentaPark') { a.mode = 'static'; a.status = 'parked'; a.v = 0; a.inside = null; a.inTail = 'brenta'; a.brenta = null; delete S.rt.routes[a.k]; a.legs = []; S.log.push({ t: S.t, k: a.k, brenta: true }); return false; }
+      if (m.kind === 'ricIn') return ricIn(a, m);
+      if (m.kind === 'ricPark') { a.mode = 'static'; a.status = 'parked'; a.v = 0; a.inside = null; a.inTail = m.ric; delete S.rt.routes[a.k]; a.legs = []; S.log.push({ t: S.t, k: a.k, ric: m.ric }); return false; }
       if (m.kind === 'pcfwait') return pcfWait(a);
       if (m.kind === 'assign') { assign(a); return a.legs.length > 0; }
       if (m.kind === 'retry') { a.legs.unshift(...nextShuttleLegs(a)); const ok = a.legs[0] && a.legs[0].kind !== 'retry'; a.why = ok ? null : 'tronchetto'; return ok; }
@@ -1368,10 +1357,11 @@
       // called back into the line, during or after a closure: out of its place in the depot to San Donato (legs from the
       // page), or out of its tail, then into the service of the part it is in (as after a reopening)
       if (e.what === 'recall') { if (a.mode !== 'static' || a.hidden || a.broken || a.v > 0.05) return false;
-        if (a.inTail === 'brenta') { if (S.cl) return false; const L0 = brentaOut(a); if (!L0) return false; e = Object.assign({}, e, { legs: L0 }); a.inTail = null; }
-        // (Bin rimessa Centrale 2: out to Repubblica binario 2, with Repubblica open; there it turns and joins the service)
+        // (in a ricovero: out by its itinerary, after the reopening, or during the closure too when its station is open, as
+        // the sheet says; one that changes cab at its station joins the service there)
         let tailJoin = false;
-        if (a.inTail === 'cen2') { if (S.cl && !partOf(REPX)) return false; const L0 = cen2Out(a); if (!L0) return false; e = Object.assign({}, e, { legs: L0 }); a.inTail = null; tailJoin = true; }
+        if (a.inTail != null) { const R = RIC[a.inTail]; if (!R || (S.cl && !(R.outClosed && partOf(R.back)))) return false;
+          const L0 = ricOut(a, R); if (!L0) return false; e = Object.assign({}, e, { legs: L0 }); a.inTail = null; tailJoin = L0.some(l => l.kind === 'join'); }
         a.legs = (e.legs || []).map(l => Object.assign({}, l)).concat(tailJoin ? [] : [{ kind: 'assign' }]); a.mode = 'shuttle'; a.status = 'empty'; a.wait = 0; a.kept = false; a.depotQ = null; a.at = null;
         S.log.push({ t: S.t, k: a.k, recall: true }); return true; }
       if (e.what === 'keep') { if (a.hidden || a.mode !== 'plan' || a.legs.some(l => !l.kind && l.status === 'service')) return false; a.mode = 'static'; a.status = 'parked'; a.v = 0; a.kept = true; return true; }
@@ -1491,9 +1481,15 @@
     }
     const nodeEnd = ([ei, dir]) => dir > 0 ? netEdges[ei].b : netEdges[ei].a;
     const NDEG = new Map(); netEdges.forEach((e, i) => { for (const nd of [e.a, e.b]) NDEG.set(nd, (NDEG.get(nd) || []).concat([i])); });
-    // a path of the game from its track pieces [[ei, dir, x0, x1]]: signals, speeds, platforms (S.rtp keeps it for the saves)
+    // a path of the game from its track pieces [[ei, dir, x0, x1]]: signals, speeds, platforms (S.rtp keeps it for the saves).
+    // The same pieces from the same point asked again: the path made before (every itinerary followed, every ricovero and
+    // every look for a signal on a way made a new one, and the saves carried them all: they only grew, a week in the page)
+    const RTKEY = new Map(), rtKey = e => e.map(x => x[0] + (x[1] > 0 ? '+' : '-') + Math.round(x[2] * 10)).join(' ');
     function makePath(e, pid) {
-      const np = pid != null ? pid : pathEdges.length;
+      const key = rtKey(e);
+      if (pid == null) { const p0 = RTKEY.get(key); if (p0 != null && pathEdges[p0] && pathEdges[p0].game && rtKey(pathEdges[p0].e) === key) {
+        if (!(S.rtp || []).some(x => x.pid === p0)) (S.rtp = S.rtp || []).push({ pid: p0, e: pathEdges[p0].e }); return p0; } }
+      const np = pid != null ? pid : pathEdges.length; RTKEY.set(key, np);
       // the switches taken in deviata (not their two pieces of running line): the speed of the deviata there
       const div = [];
       for (let i = 0; i + 1 < e.length; i++) { const nd = nodeEnd(e[i]), es = NDEG.get(nd) || []; if (es.length < 3) continue;
@@ -1540,17 +1536,12 @@
     function pcFollow(a, n) {
       const pr = S.rt.pcRoutes && S.rt.pcRoutes[n], it = pr && ITS[pr.id]; if (!it || !it.ways || !it.ways[0]) return false;
       const pe = pathEdges[a.pid], sg = (o.sigall[a.pid] || []).find(x => x[1] === n && x[0] > a.d - 5); if (!pe || !sg) return false;
-      const W = it.ways[0], i = pe.e.findIndex(([, , x0, x1]) => sg[0] >= x0 - 0.01 && sg[0] <= x1 + 0.01); if (i < 0) return false;
-      // (a signal at the very end of a piece: the itinerary may start on that piece or on the next one)
-      const j = pe.e[i][0] === W[0] ? i : i + 1 < pe.e.length && pe.e[i + 1][0] === W[0] ? i + 1 : -1;
-      const e = pe.e.slice(0, (j >= 0 ? j : i) + 1).map(x => x.slice());
-      for (let q = j >= 0 ? 1 : 0; q < W.length; q++) { const last_ = e[e.length - 1], X = nodeEnd(last_), E = netEdges[W[q]]; if (!E) return false;
-        if (E.a !== X && E.b !== X) return false; const dir = E.a === X ? 1 : -1, x0 = last_[3]; e.push([W[q], dir, x0, x0 + (E.len || 1)]); }
+      const e = spliceWay(a.pid, sg[0], it.ways[0]); if (!e) return false;
       const np = makePath(e);
       // the end: the red of the end signal of the itinerary (else the end of its track: a tail)
       const sm = it.end != null ? (o.sigall[np] || []).find(x => x[1] === it.end && x[0] > sg[0] + 5) : null;
       const end = sm ? sm[0] - half - 3 : e[e.length - 1][3] - half - 5;
-      if (end < a.d + 1) { pathEdges[np] = null; S.rtp = S.rtp.filter(x => x.pid !== np); return false; }
+      if (end < a.d + 1) return false;        // (the path stays: another train may be on the same one)
       const contra = /contromano/.test(it.sense || '') && !/rientra/.test(it.sense || '');
       const svc = a.status === 'service' && !(a.legs[0] && a.legs[0].status !== 'service');
       const stops = svc ? stopsOn(np, a.d + half + 5, end + 6).filter(z => !(S.stn[z.st] && S.stn[z.st].closed)) : [];
@@ -1562,16 +1553,22 @@
       S.log.push({ t: S.t, k: a.k, pcf: it.id });
       return true;
     }
-    // ---------- the tail of Brenta during a closure (Giovanni 20 Nov 2026) ----------
-    // A train inside the closed stretch going towards San Donato, north of Lodi T.I.B.B.: to Lodi, everybody off, then by
-    // BRE-2 (#A277 → the tail) into the tail of Brenta, where it stays switched off. After the reopening the DCT calls it
-    // back (regolatore): by BRE-1 to the platform of Brenta, binario 1, and on towards San Donato in service.
-    const BRE_IN = 'BRE-2', BRE_OUT = 'BRE-1';
+    // ---------- the ricoveri of a closure (the Excel's sheet Ricoveri; Giovanni 20 and 21 Nov 2026) ----------
+    // A train inside the closed stretch, going the ricovero's way with its station ahead: to that station, everybody off,
+    // then by the itinerary of the way in into the tail or the rimessa track, where it stays switched off. Called back by
+    // the regolatore when its way out is open: by the itinerary of the way out, and into service again.
+    // - the tail of Brenta (BRE): off at Lodi T.I.B.B., in by BRE-2 up to the end signal; out after the reopening by BRE-1
+    //   to the platform of Brenta, binario 1, and on towards San Donato with the first run
+    // - Bin rimessa Centrale 2 (CEN2), the tunnel towards the M2 off binario 2: off at Repubblica, in by REP-3, the whole
+    //   train past #A138 (its change of cab there, beyond the signal that then clears its way out); out only towards
+    //   Repubblica, by REP-10 on the illegal to binario 2: the passengers get on, change of cab, in service to Comasina
+    // Nothing of a ricovero is written here: the itineraries, the stations and the texts are the sheet's rows.
     // the track pieces of an itinerary's way after the end of path pid at its signal sgD: the path's pieces up to there,
     // then the way's; null when the way does not go on from there
     function spliceWay(pid, sgD, W) {
       const pe = pathEdges[pid]; if (!pe) return null;
       const i = pe.e.findIndex(([, , x0, x1]) => sgD >= x0 - 0.01 && sgD <= x1 + 0.01); if (i < 0) return null;
+      // (a signal at the very end of a piece: the itinerary may start on that piece or on the next one)
       const j = pe.e[i][0] === W[0] ? i : i + 1 < pe.e.length && pe.e[i + 1][0] === W[0] ? i + 1 : -1;
       const e = pe.e.slice(0, (j >= 0 ? j : i) + 1).map(x => x.slice());
       for (let q = j >= 0 ? 1 : 0; q < W.length; q++) { const L_ = e[e.length - 1], X = nodeEnd(L_), E = netEdges[W[q]]; if (!E || (E.a !== X && E.b !== X)) return null;
@@ -1586,72 +1583,48 @@
         e.push([W[q], E.a === X ? 1 : -1, L_[3], L_[3] + (E.len || 1)]); }
       return e;
     }
-    function brentaPlan(a) {
-      const I = a.inside, it = ITS[BRE_IN], X = G.names.findIndex(n => /^LODI/.test(n)); if (!I || I.dir !== 'S' || !it || X < 0) return null;
-      const q = I.stops.findIndex(z => z.st === X); if (q < I.q) return null;
-      const d0 = I.pid === a.pid ? a.d : mapTo(a.pid, a.d, I.pid); if (d0 == null) return null;
-      const sg = (o.sigall[I.pid] || []).find(x => x[1] === it.start && x[0] > I.stops[q].d); if (!sg) return null;
-      const e = spliceWay(I.pid, sg[0], it.ways[0]); if (!e) return null;
-      const legs = [];
-      if (q > I.q || Math.abs(I.stops[q].d - d0) > 5) legs.push({ pid: I.pid, status: 'empty', stops: [], end: I.stops[q].d, start: d0, rev: a.pid !== I.pid });
-      legs.push({ kind: 'unload' }, { kind: 'brentaIn', sgD: sg[0], n: it.start });
-      return { legs, after: () => { a.brenta = { ph: 'in' }; } };
+    const normSt = x => String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, ''), stIdx = name => { const n = normSt(name); return n ? G.names.findIndex(x => normSt(x).startsWith(n)) : -1; };
+    const RIC = {};
+    for (const r of o.ricoveri || []) {
+      if (!r.id || !ITS[r.entra] || !ITS[r.esce]) continue;
+      RIC[r.id] = { id: r.id, IN: r.entra, OUT: r.esce, dir: stIdx(r.verso) === last ? 'N' : 'S', X: stIdx(r.scende_a), back: stIdx(r.rientra_a), label: r.ordine || r.nome || r.id,
+        beyond: /oltre/i.test(r.si_ferma || ''),                  // (the whole train beyond the signal of the way out; else up to the end signal of the way in)
+        outClosed: /stazione/i.test(r.esce_quando || ''),         // (out also during the closure, when its station is open; else after the reopening only)
+        join: /cambio banco/i.test(r.rientro || '') };            // (at its station it changes cab and takes the service; else the first run from where it comes out)
     }
-    function brentaIn(a, m) {
-      const it = ITS[BRE_IN], e = spliceWay(a.pid, m.sgD, it.ways[0]); if (!e) { a.legs.unshift({ kind: 'stopped' }); return false; }
-      const np = makePath(e), sm = it.end != null ? (o.sigall[np] || []).find(x => x[1] === it.end && x[0] > m.sgD + 5) : null;
-      const end = sm ? sm[0] - half - 3 : e[e.length - 1][3] - half - 5;
-      a.pid = np; a.status = 'empty'; RT.authorize(S.rt, 'id:' + BRE_IN); if (RT.isPcSignal(m.n)) RT.authorize(S.rt, 'n:' + m.n);      // (the DCT's order)
-      a.legs = [{ pid: np, status: 'empty', stops: [], start: a.d, end, pcf: { n: m.n, id: BRE_IN } }, { kind: 'brentaPark' }];
-      return true;
-    }
-    function brentaOut(a) {
-      const it = ITS[BRE_OUT]; if (!it) return null;
-      const e = wayAlone(it.ways[0]); if (!e) return null;
-      const np = makePath(e), d0 = mapTo(a.pid, a.d, np); if (d0 == null) return null;
-      const sm = (o.sigall[np] || []).find(x => x[1] === it.end && x[0] > d0); if (!sm) return null;
-      RT.authorize(S.rt, 'id:' + BRE_OUT); if (RT.isPcSignal(it.start)) RT.authorize(S.rt, 'n:' + it.start);
-      return [{ pid: np, status: 'empty', stops: [], start: d0, end: sm[0] - half - 3, rev: true, pcf: { n: it.start, id: BRE_OUT } }];
-    }
-    // ---------- Bin rimessa Centrale 2 (Giovanni 21 Nov 2026) ----------
-    // The tunnel towards the M2 off binario 2 is a rimessa: a train inside the closed stretch going towards Comasina, with
-    // Repubblica ahead: everybody off at Repubblica, then by REP-3 (#A226 → the tunnel) in, the whole train past #A138
-    // (its change of cab there, beyond the signal that then clears its way out). Called back by the regolatore: it can go
-    // out only one way, towards Repubblica, by REP-10 on the illegal (#A138 → #A321) to Repubblica binario 2; there the
-    // passengers get on with the doors open, it changes cab and goes on towards Comasina in service.
-    const CEN2_IN = 'REP-3', CEN2_OUT = 'REP-10', REPX = G.names.findIndex(n => /^REPUBBLICA/.test(n));
-    // where #A138 is on a path going into the tunnel (from the way out, where it faces the train)
-    function cen2Sig(np) {
-      const it = ITS[CEN2_OUT]; if (!it) return null; const eo = wayAlone(it.ways[0]); if (!eo) return null;
+    // where the start signal of the way out is on a path going in (from the way out, where it faces the train)
+    function ricOutSig(R, np) {
+      const it = ITS[R.OUT], eo = wayAlone(it.ways[0]); if (!eo) return null;
       const po = makePath(eo), s = (o.sigall[po] || []).find(x => x[1] === it.start); return s ? mapTo(po, s[0], np) : null;
     }
-    function cen2Plan(a) {
-      const I = a.inside, it = ITS[CEN2_IN]; if (!I || I.dir !== 'N' || !it || REPX < 0 || !ITS[CEN2_OUT]) return null;
-      const q = I.stops.findIndex(z => z.st === REPX); if (q < 0 || q < I.q) return null;
+    function ricPlan(a, R) {
+      const I = a.inside, it = ITS[R.IN]; if (!I || I.dir !== R.dir || R.X < 0) return null;
+      const q = I.stops.findIndex(z => z.st === R.X); if (q < 0 || q < I.q) return null;
       const d0 = I.pid === a.pid ? a.d : mapTo(a.pid, a.d, I.pid); if (d0 == null) return null;
       const sg = (o.sigall[I.pid] || []).find(x => x[1] === it.start && x[0] > I.stops[q].d); if (!sg) return null;
-      const e = spliceWay(I.pid, sg[0], it.ways[0]); if (!e) return null;
+      if (!spliceWay(I.pid, sg[0], it.ways[0])) return null;
       const legs = [];
       if (q > I.q || Math.abs(I.stops[q].d - d0) > 5) legs.push({ pid: I.pid, status: 'empty', stops: [], end: I.stops[q].d, start: d0, rev: a.pid !== I.pid });
-      legs.push({ kind: 'unload' }, { kind: 'cen2In', sgD: sg[0], n: it.start });
+      legs.push({ kind: 'unload' }, { kind: 'ricIn', ric: R.id, sgD: sg[0], n: it.start });
       return { legs, after: () => {} };
     }
-    function cen2In(a, m) {
-      const it = ITS[CEN2_IN], e = spliceWay(a.pid, m.sgD, it.ways[0]); if (!e) { a.legs.unshift({ kind: 'stopped' }); return false; }
-      const np = makePath(e), s138 = cen2Sig(np), L = e[e.length - 1][3];
-      // (the rear 5 m past #A138; never past the end of the drawn tunnel)
-      const end = Math.min(L - half - 5, s138 != null ? s138 + half + 5 : L - half - 5);
-      a.pid = np; a.status = 'empty'; RT.authorize(S.rt, 'id:' + CEN2_IN); if (RT.isPcSignal(m.n)) RT.authorize(S.rt, 'n:' + m.n);
-      a.legs = [{ pid: np, status: 'empty', stops: [], start: a.d, end, pcf: { n: m.n, id: CEN2_IN } }, { kind: 'cen2Park' }];
+    function ricIn(a, m) {
+      const R = RIC[m.ric], it = R && ITS[R.IN], e = it && spliceWay(a.pid, m.sgD, it.ways[0]); if (!e) { a.legs.unshift({ kind: 'stopped' }); return false; }
+      const np = makePath(e), L_ = e[e.length - 1][3]; let end = L_ - half - 5;
+      if (R.beyond) { const so = ricOutSig(R, np); if (so != null) end = Math.min(end, so + half + 5); }      // (the rear 5 m past it; never past the end of the track)
+      else { const sm = it.end != null ? (o.sigall[np] || []).find(x => x[1] === it.end && x[0] > m.sgD + 5) : null; if (sm) end = sm[0] - half - 3; }
+      a.pid = np; a.status = 'empty'; RT.authorize(S.rt, 'id:' + R.IN); if (RT.isPcSignal(m.n)) RT.authorize(S.rt, 'n:' + m.n);      // (the DCT's order)
+      a.legs = [{ pid: np, status: 'empty', stops: [], start: a.d, end, pcf: { n: m.n, id: R.IN } }, { kind: 'ricPark', ric: R.id }];
       return true;
     }
-    function cen2Out(a) {
-      const it = ITS[CEN2_OUT]; if (!it || REPX < 0) return null;
-      const e = wayAlone(it.ways[0]); if (!e) return null;
+    function ricOut(a, R) {
+      const it = ITS[R.OUT], e = wayAlone(it.ways[0]); if (!e) return null;
       const np = makePath(e), d0 = mapTo(a.pid, a.d, np); if (d0 == null) return null;
       const sm = (o.sigall[np] || []).find(x => x[1] === it.end && x[0] > d0); if (!sm) return null;
-      RT.authorize(S.rt, 'id:' + CEN2_OUT); if (RT.isPcSignal(it.start)) RT.authorize(S.rt, 'n:' + it.start);
-      return [{ pid: np, status: 'empty', stops: [], start: d0, end: sm[0] - half - 3, rev: true, pcf: { n: it.start, id: CEN2_OUT } }, { kind: 'join', st: REPX, dir: 'N' }];
+      RT.authorize(S.rt, 'id:' + R.OUT); if (RT.isPcSignal(it.start)) RT.authorize(S.rt, 'n:' + it.start);
+      const legs = [{ pid: np, status: 'empty', stops: [], start: d0, end: sm[0] - half - 3, rev: true, pcf: { n: it.start, id: R.OUT } }];
+      if (R.join && R.back >= 0) legs.push({ kind: 'join', st: R.back, dir: R.dir });
+      return legs;
     }
     // past the end signal of an itinerary there is only plain line (no switch: no itinerary starts there, as #A322 at
     // Centrale FS on binario 2 the wrong way): the train goes on along its track, its signals open for it (the illegal
@@ -1743,9 +1716,8 @@
       if (dir === 'S' && I.end != null) out.push({ key: 'dep', label: 'Avanti fino a San Donato e in deposito' });
       // (Giovanni 20 Nov 2026: "può ordinare ad un treno di andare nel tronchetto di Brenta fino a riapertura ... deve far
       // scendere tutti a Lodi TIBB"; at the reopening it waits for the order to go on towards San Donato)
-      if (dir === 'S' && brentaPlan(a)) out.push({ key: 'BRE', label: 'Scende tutti a Lodi T.I.B.B. e va nel tronchetto di Brenta fino alla riapertura' });
       if (dir === 'N' && I.stops[I.stops.length - 1].st === last && !out.some(x => !x.back && x.open)) out.push({ key: 'tail', label: 'Avanti fino a Comasina e in tronchetto' });
-      if (dir === 'N' && cen2Plan(a)) out.push({ key: 'CEN2', label: 'Scende tutti a Repubblica e va nel Bin rimessa Centrale 2 fino al richiamo' });
+      for (const R of Object.values(RIC)) if (dir === R.dir && ricPlan(a, R)) out.push({ key: R.id, label: R.label });
       // the trains in the way now (the train would wait behind them, or face them)
       for (const x of out) { const p = instrPlan(a, x.key), l = p && p.legs[0]; x.blocked = l ? trainsOn(l.pid, l.start, l.end, k) : []; }
       return out;
@@ -1773,8 +1745,7 @@
       }
       if (key === 'dep') { const d0 = onto(I.pid); if (d0 == null) return null;
         return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: I.end, start: d0, rev: a.pid !== I.pid }, { kind: 'depot' }], after: () => {} }; }
-      if (key === 'BRE') return brentaPlan(a);
-      if (key === 'CEN2') return cen2Plan(a);
+      if (RIC[key]) return ricPlan(a, RIC[key]);
       if (key === 'tail') { const d0 = onto(I.pid), Y = I.stops[I.stops.length - 1]; if (d0 == null) return null;
         return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: Y.d, start: d0, rev: a.pid !== I.pid }, { kind: 'tailpark' }], after: () => {} }; }
       return null;
