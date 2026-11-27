@@ -64,8 +64,8 @@ for r in rows('Tempi'):
         tempi[r['Voce']] = [r.get('Minimo (s)'), r.get('Massimo (s)'), r.get('Da dove viene')]
 
 semafori = {}
-for r in rows('Semafori'):
-    n = num(r.get('Semaforo'))
+for r in rows('Semafori' if 'Semafori' in wb.sheetnames else 'Segnali'):      # (the M2's sheet: "Segnali", Giovanni 22/11/2026)
+    n = num(r.get('Semaforo') or r.get('Segnale'))
     if n is None: continue
     semafori[str(n)] = {'legale': r.get('Lato') == 'legale', 'aspetto': r.get('Aspetto normale'), 'via_libera': r.get('Via libera quando'),
                         'comando': r.get('Chi lo comanda'), 'note': r.get('Note')}

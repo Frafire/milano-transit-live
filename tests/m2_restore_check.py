@@ -13,10 +13,16 @@ R = json.load(open(os.path.join(ROOT, 'data', 'rules_m2.json')))['signals']
 txt = open(os.path.join(F, 'm2_export_2026-11-06.txt')).read()
 EXP = json.loads(txt[txt.index('{'):])['signals']
 OLD = json.load(open(os.path.join(F, 'm2_signals_42.json')))
-CHANGED = {}          # id -> the fields Giovanni changed afterwards in the first 42 (none yet)
+# id -> the fields Giovanni changed afterwards in the first 42: the names of Assago Forum - Assago Nord from the
+# colleague's list (21 and 22 Nov)
+CHANGED = {'M2-s006': {'name_from': 'Giovanni 21/11/2026, elenco del collega: partenza da Assago Forum (pari) (era B01a)', 'name': 'S60a'}, 'M2-s007': {'name_from': 'Giovanni 21/11/2026, elenco del collega: partenza illegale da Assago Forum (pari) (era B02b)', 'name': 'S60b'}, 'M2-s008': {'name_from': 'Giovanni 21/11/2026, elenco del collega: protezione di Assago Forum (dispari) (era B03a)', 'name': 'S51'}, 'M2-s009': {'name_from': 'Giovanni 21/11/2026, elenco del collega (era B04a)', 'name': 'S62'}, 'M2-s010': {'name_from': 'Giovanni 21/11/2026, elenco del collega (era B05a)', 'name': 'S53'}, 'M2-s011': {'name_from': 'Giovanni 21/11/2026, elenco del collega (era B06a)', 'name': 'S64'}, 'M2-s012': {'name_from': 'Giovanni 21/11/2026, elenco del collega (era B07a)', 'name': 'S55'}, 'M2-s013': {'name_from': 'Giovanni 21/11/2026, elenco del collega: protezione di Assago Nord (pari) (era POSTO 126a)', 'name': 'S66'}, 'M2-s014': {'name_from': 'Giovanni 21/11/2026, elenco del collega: partenza da Assago Nord (dispari) (era B08a)', 'name': 'S57'}, 'M2-s015': {'name_from': 'Giovanni 21/11/2026, elenco del collega: partenza da Assago Nord verso Famagosta (pari) (era S57a)', 'name': 'S68'}, 'M2-s017': {'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B10a)', 'name': 'S70'}, 'M2-s018': {'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B11a)', 'name': 'S72'}, 'M2-s020': {'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B13a)', 'name': 'S74'}, 'M2-s022': {'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B15a)', 'name': 'S76'}, 'M2-s024': {'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B17a)', 'name': 'S78'}, 'M2-s026': {'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B19a)', 'name': 'S80'}, 'M2-s028': {'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B21a)', 'name': 'S82'}, 'M2-s030': {'name': 'S84', 'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B23a)'}, 'M2-s033': {'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B26a)', 'name': 'S86'}, 'M2-s035': {'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B28a)', 'name': 'S88'}, 'M2-s036': {'name_from': 'Giovanni 22/11/2026, elenco del collega: pari da Assago Nord a Famagosta (era B29a)', 'name': 'S90'}, 'M2-s038': {'name_from': 'la tavola con il 45, senza numero: contata come S92 (Giovanni 22/11/2026, elenco del collega)', 'name': 'S92'}, 'M2-s041': {'name_from': 'nome provvisorio (B = da cambiare), Giovanni 5/11/2026; non è S100: è sulla linea da Abbiategrasso a Famagosta (Giovanni 22/11/2026)'}}
 DELETED = {'M2-s040': 'B32a, Giovanni 6 Nov: drifted far from its track, deleted'}   # of the first 42
 # signals of the export Giovanni changed afterwards (not compared): id -> what he asked
 CHANGED_EXPORT = {'M2-mw46zpmvnp': 'a marmotta (photo of 6 Nov), same place, track and way'}
+# signals of the export Giovanni corrected on 22 Nov (where they were): turned or made illegale (S74a, S36b, the one at the
+# depot of Gorgonzola); and the names, all from the colleague's list since then: not compared
+FIXED_22NOV = {(45.542247, 9.424317): 'M2-mw479inkd', (45.521077, 9.332752): 'M2-mw41erak52', (45.540798, 9.418153): 'M2-mw472nm527'}
+NOT_COMPARED = ('name', 'name_from')
 bad = 0
 def check(ok, what):
     global bad
@@ -28,10 +34,13 @@ for e in EXP:
         s = [x for x in R if x.get('id') == e['id']]
         if not (len(s) == 1 and all(s[0].get(k) == e.get(k) for k in ('w', 'lat', 'lon', 'on_track', 'heading', 'dir'))): miss.append(e)
         continue
+    if (e['lat'], e['lon']) in FIXED_22NOV:
+        if not any(x.get('id') == FIXED_22NOV[(e['lat'], e['lon'])] for x in R): miss.append(e)
+        continue
     got = [s for s in R if (e.get('id') and s.get('id') == e['id']) or (not e.get('id') and same_place(s, e))]
     if len(got) != 1: miss.append(e); continue
-    s = got[0]; want = {k: v for k, v in e.items() if k != 'moved'}
-    have = {k: v for k, v in s.items() if not (k == 'id' and not e.get('id'))}
+    s = got[0]; want = {k: v for k, v in e.items() if k not in ('moved',) + NOT_COMPARED}
+    have = {k: v for k, v in s.items() if not (k == 'id' and not e.get('id')) and k not in NOT_COMPARED}
     if have != want: diff.append((e.get('id') or (e['lat'], e['lon']), sorted(set(have.items()) ^ set(want.items()), key=str) if all(not isinstance(v, (list, dict)) for v in list(have.values()) + list(want.values())) else 'fields differ'))
 check(not miss, 'export of 6 Nov: %d of %d signals in the file' % (len(EXP) - len(miss), len(EXP)))
 check(not diff, 'export of 6 Nov: every field identical (%d differ%s)' % (len(diff), ': ' + str(diff[:3]) if diff else ''))

@@ -1,5 +1,5 @@
 {
- "_nota": "Correzioni di Giovanni alle banchine M2 (applicate da tools/build_trips.py con PLATFORM_EDITS). unisci: banchine OSM (id) che sono una sola, unite nel loro contorno. allunga: per una stazione con le banchine disegnate dalla build (110 m), il punto [lat, lon] fino a cui arrivano. disegna: banchine disegnate a mano (contorno [lat, lon]) che prendono il posto di quelle disegnate dalla build o da OSM per quella stazione.",
+ "_nota": "Correzioni di Giovanni alle banchine M2 (applicate da tools/build_trips.py con PLATFORM_EDITS). unisci: banchine OSM (id) che sono una sola, unite nel loro contorno. allunga: per una stazione con le banchine disegnate dalla build (110 m), il punto [lat, lon] fino a cui arrivano. allinea: per una stazione con le banchine disegnate dalla build, il punto [lat, lon] a cui arriva il capo più vicino (più lunga o più corta); con {\"punto\", \"lunghezza\"} l'altro capo è a quei metri dietro. disegna: banchine disegnate a mano (contorno [lat, lon]) che prendono il posto di quelle disegnate dalla build o da OSM per quella stazione.",
  "unisci": [
   [
    971662712,
@@ -14,6 +14,12 @@
  },
  "allunga_note": {
   "ASSAGO MILANOFIORI FORUM": "verso nord fino all'altezza dei segnali (Giovanni 5/11/2026)"
+ },
+ "allinea": {
+  "ABBIATEGRASSO": {"punto": [45.430054, 9.176819], "lunghezza": 107}
+ },
+ "allinea_note": {
+  "ABBIATEGRASSO": "le due banchine finiscono al segnale di partenza verso Famagosta (M2-mw4tzct0yh) e dietro sono lunghe quanto serve al treno più lungo, il Leonardo (106,94 m): 107 m, Giovanni 21/11/2026"
  },
  "disegna": [
   {
