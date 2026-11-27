@@ -30,7 +30,12 @@
     const washRole = s => s && typeof s[6] === 'string' && s[6].startsWith('wash:') ? s[6].slice(5) : null;
     const name = q => { const i = (F.engine.net.depot || []).findIndex(d => String(d.node) === String(q)); return i >= 0 ? (F.engine.net.depot[i].name || '').replace('Deposito binario ', 'D') : 'posto ' + q; };
     const low = q => LOW.includes(name(q));
-    const taken = () => new Set([...Object.values(F.depot.at), ...Object.values(F.depot.target)].filter(Boolean));
+    // (a place is taken also while the train that left it still stands on its track: held at a signal a few metres out of
+    // it, its place was given to the next train in, which drove into it; Giovanni 27 Nov 2026, a day with an investimento)
+    const taken = () => new Set([...Object.values(F.depot.at), ...Object.values(F.depot.target), ...Object.values(F.depot.leaving || {})].filter(Boolean));
+    function clearOf(a, q) { const P = F.depotPaths[q], o = P && Object.values(P.out)[0]; if (!o || !a || a.hidden) return true;
+      const d = F.ag.mapTo(a.pid, a.d, o.pid); return d == null || Math.abs(d - o.start) > 2 * F.engine.half + 5; }
+    const leaves = (k, q) => { if (q != null) (F.depot.leaving = F.depot.leaving || {})[k] = String(q); delete F.depot.at[k]; };
     const restamp = tr => { tr.starts = tr.segs.map(x => x[3][0]); };
 
     // ---------- where trains stand ----------
@@ -91,7 +96,9 @@
     function leavingSoon(q, t) {
       for (const [k2, at] of Object.entries(F.depot.at)) { if (String(at) !== String(q)) continue;
         const tr = F.trains[k2], a = F.ag.agents()[k2], j = a ? nextOut(tr, Math.min(a.si, tr.segs.length - 1)) : -1;
-        if (j >= 0 && tr.segs[j][3][0] - t < 900 && !isBack(tr.segs[j], q)) return true; }
+        if (j >= 0 && tr.segs[j][3][0] - t < 900 && !isBack(tr.segs[j], q)) return true;
+        // (off its plan: on its way out after a reopening, kept in by the closure when it was due out, due out again)
+        if (a && (a.depotHold != null || (a.backAt != null && a.backAt - t < 900) || (a.mode !== 'plan' && a.mode !== 'static' && (a.legs || []).some(l => !l.kind && l.status === 'from_depot' && !isBack([l.pid], q))))) return true; }
       return false;
     }
     const isBack = (s, q) => { const B = (F.depotPaths[q] || {}).outBack; return !!B && Object.values(B).some(o => o.pid === s[0]); };
@@ -118,13 +125,15 @@
       if (!F.depotPaths || !F.ag) return;
       if (!F.depot) init();
       F.ag.agents().forEach((a, k) => {
-        // (out of its place in a mode of its own, called back or back to work after a strike: the place is free again)
-        if (!a.hidden && a.mode !== 'plan' && a.mode !== 'static' && a.depotQ == null && a.officina == null && F.depot.at[k] != null && a.v > 0.5) { delete F.depot.at[k]; return; }
+        // (the place it left: free when the whole train is off its track)
+        if (F.depot.leaving && F.depot.leaving[k] != null && (F.depot.at[k] != null || clearOf(a, F.depot.leaving[k]))) delete F.depot.leaving[k];
+        // (out of its place in a mode of its own, called back or back to work after a strike)
+        if (!a.hidden && a.mode !== 'plan' && a.mode !== 'static' && a.depotQ == null && a.officina == null && F.depot.at[k] != null && a.v > 0.5) { leaves(k, F.depot.at[k]); return; }
         const tr = F.trains[k], si = Math.min(a.si, tr.segs.length - 1), s = tr.segs[si]; if (!s || a.hidden || a.mode !== 'plan' && a.mode !== 'static') return;
         if (a.officina != null) { F.depot.at[k] = String(a.officina); delete F.depot.target[k]; return; }      // in the officina for a fault
         if (a.depotQ != null && a.mode === 'static') { F.depot.at[k] = String(a.depotQ); delete F.depot.target[k]; return; }   // sent in off its plan: its place
         let at = F.depot.at[k];
-        if (at != null && !(placeOf(s) === at && standsAt(a, s, tr, si))) { delete F.depot.at[k]; at = null; }     // it has left its place
+        if (at != null && !(placeOf(s) === at && standsAt(a, s, tr, si))) { leaves(k, at); at = null; }     // it has left its place
         if (at == null && F.depot.target[k] == null && standsAt(a, s, tr, si) && !taken().has(placeOf(s))) { at = F.depot.at[k] = placeOf(s); }
         // on the way in: a place, given once (on platform 1, #A40)
         const inRun = placeOf(s) && !isOut(tr, si) && s[3][0] < RESERVE_T && !loopRole(s) && !washRole(s);

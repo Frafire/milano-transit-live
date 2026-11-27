@@ -49,6 +49,7 @@ node "$ROOT/tests/pc_check.js"
 node "$ROOT/tests/pcf_check.js"
 node "$ROOT/tests/ricoveri_check.js"         # (the tail of Brenta and Bin rimessa Centrale 2 in a closure, the Excel's sheet Ricoveri)
 node "$ROOT/tests/instr_check.js"
+node "$ROOT/tests/giornate_check.js"         # (two whole days with a DCT who goes along: an investimento with San Donato closed, a strike with the whole line closed)
 node "$ROOT/tests/illegal_sd_check.js"
 node "$ROOT/tests/sheds_check.js"
 node "$ROOT/tests/faults_check.js"

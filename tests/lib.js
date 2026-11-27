@@ -33,7 +33,8 @@ function stations(M, D) {
 }
 function envs(M, D) {
   if (!M.dwell) return null;
-  const st = stations(M, D), pos = posOf(M);
+  // (a path the engine made during the day, a ricovero or an instruction: no geometry here, no station for the dwell)
+  const st = stations(M, D), pos0 = posOf(M), pos = (pid, d) => M.paths[pid] ? pos0(pid, d) : [1e9, 1e9];
   const platforms = E.platformZones(M.degraded);
   return M.trains.map((_, k) => ({ dwell: E.makeDwell(M.dwell, st, pos, 'T' + k), platforms }));
 }

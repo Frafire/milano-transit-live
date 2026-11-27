@@ -551,7 +551,7 @@
     // tracks the page gives (o.depotPark: { q, pid, d }), when it gets to the depot; null: into the depot as before
     function parkOff(a) {
       const r = o.depotPark ? o.depotPark(a.k) : null; if (!r) return false;
-      a.hidden = false; a.mode = 'static'; a.status = 'parked'; a.pid = r.pid; a.d = r.d; a.v = 0; a.legs = []; a.stopAt = null; a.vlim = null;
+      a.hidden = false; a.mode = 'static'; a.status = 'parked'; a.pid = r.pid; a.d = r.d; a.v = 0; a.legs = []; a.stopAt = null; a.vlim = null; a.red = null; a.why = null;
       a.attached = null; a.illMove = false; a.pcf = null; delete S.rt.routes[a.k];
       if (r.plain) { a.depotQ = r.q; return true; }            // (a place of the rimessa: not broken)
       a.broken = true; a.officina = r.q; return true;
@@ -616,12 +616,22 @@
       }
       return legs;
     }
+    const strikeOn = () => !!(S.faults && S.faults.list && S.faults.list.some(f => f.kind === 'sciopero' && !f.done));
     const DEPOT_END = G ? Math.max(0, G.names.findIndex(n => /SAN DONATO/i.test(n))) : 0;
     let lastDep_ = null;
     function lastDeparture() {
       if (lastDep_ == null) { lastDep_ = 0; for (let m = 0; m < nTrains(); m++) for (const z of planOf(m)) if (z[1] === 'service') lastDep_ = Math.max(lastDep_, z[3][0]); }
       return lastDep_;
     }
+    // by its own tabella, now: 'out' (it has runs to do), the time it is due out of the depot again (it would be in the
+    // depot till then, for longer than `gap` seconds), or null (its service is over for today)
+    function planNow(k, t, gap) {
+      const plan = planOf(k), j = plan.findIndex(z => z[1] === 'service' && z[3][0] > t - 120);
+      if (j < 0) return null;
+      for (let i = j - 1; i >= 0 && plan[i][3][1] > t; i--) if (plan[i][1] === 'from_depot') return plan[i][3][0] > t + gap ? plan[i][3][0] : 'out';
+      return 'out';
+    }
+    const planLeft = (k, t) => { let x = -1e9; for (const z of planOf(k)) if (z[1] === 'service') x = Math.max(x, z[3][0]); return x - t; };
     // a run from station X the way o2 to the end T of the part; towards a B turn at T: over its crossover at the end
     function runTo(X, o2, T, pid, off, firstD) {
       const tn = !(T === 0 || T === last) && turnAt(T, o2), stops = [];
@@ -665,13 +675,19 @@
         out.push({ pid: outP.pid, status: 'turnback', stops: [], end: stopP(outP, o2, X), start: outP.tail[0], rev: true });
         const r = runTo(X, o2, T, outP.pid, 0, stopP(outP, o2, X));
         if (outP.pid !== (o2 === 'N' ? G.N.pid : G.S.pid)) { r.stops.forEach(z => { z.d = stopP(outP, o2, z.st); }); r.end = r.stops[r.stops.length - 1].d; }
-        if (S.reopened) withTimetable(r, X, o2, false, a);
-        // after reopening, once the timetable has no more runs for it (end of the service): empty to San Donato and
-        // into the depot, where it is switched off
-        if (S.reopened && !r.timed && S.t > lastDeparture() - 600) {
+        // after reopening every train out takes the free runs of the timetable; one whose own tabella is over by now, or
+        // has it in the depot for a while, goes home (and comes out again when its tabella does: a.backAt)
+        const strike = strikeOn(), pn = S.reopened && !strike ? planNow(a.k, S.t, X === DEPOT_END ? 1200 : 3000) : 'out', home = pn !== 'out';
+        if (S.reopened) a.backAt = home && pn != null ? pn : null;
+        if (S.reopened && !home) withTimetable(r, X, o2, false, a);
+        // once the timetable has no more runs for it (end of the service) too: empty to San Donato and into the depot,
+        // where it is switched off
+        // (in a strike too, where the trains take the runs as after a reopening: they ran all night, 27 Nov 2026)
+        if (!S.reopened && strike) withTimetable(r, X, o2, true);
+        if ((S.reopened && home) || ((S.reopened || strike) && !r.timed && S.t > lastDeparture() - 600)) {
           if (X === DEPOT_END) { out.length = 0; out.push({ kind: 'depot' }); return out; }
           r.status = 'empty'; r.stops = [r.stops[0], r.stops[r.stops.length - 1]];
-        } else if (!S.reopened) withTimetable(r, X, o2, true);
+        } else if (!S.reopened && !strike) withTimetable(r, X, o2, true);
         return pushRun(out, r);
       }
       const tn = turnAt(X, dir), main = o2 === 'N' ? G.N : G.S;
@@ -820,7 +836,12 @@
         if (j >= plan.length) continue;                          // the end of its day: it goes on as planned
         const P = partOf(stopsOf(plan[j])[0].st);
         if (P) { a.mode = 'shuttle'; a.part = P; a.legs = legsFromPlan(a.k, p_si, P, waiting ? null : a.d); continue; }
-        // its next run starts on the closed side: what is moving finishes, then it waits there
+        // its next run starts on the closed side. Still in its place in the depot, not yet due out: it stays there, switched
+        // off, and comes out at the reopening for the first run it can take (it came out at its time all the same and stood
+        // on a platform of San Donato: three of them out during an investimento, the platforms full, and after the
+        // reopening San Donato and the depot waited for each other until the night; Giovanni 27 Nov 2026, a day played)
+        if (waiting && s[1] === 'from_depot') { a.mode = 'static'; a.status = 'parked'; a.v = 0; a.legs = []; a.depotHold = p_si; continue; }
+        // what is moving finishes, then it waits there
         a.legs = [legOfSeg(s, waiting ? null : a.d), { kind: s[1] === 'to_depot' || s[1] === 'from_depot' ? 'park' : 'held' }]; a.mode = 'held';
       }
       // the navetta: of the trains caught on its track in its stretch, the one nearest the closed stretch (so that the
@@ -979,7 +1000,9 @@
         // behind it, the strike's 18:00, Giovanni 21 Nov 2026)
         const free = cands.find(p => tailFree(a, p.N));
         if (!free && !m.noTurn && !S.cl) { a.legs.unshift({ kind: 'turnempty', noTail: true }); return true; }
-        const Pp = free || cands[0]; if (!Pp) { a.status = 'stopped'; return false; }
+        // (in a closure with no tail free: it stays at the platform and waits for orders, not for ever at the signal of a
+        // tail with a train switched off in it)
+        const Pp = free || (S.cl ? null : cands[0]); if (!Pp) { a.status = 'stopped'; a.stoppedSince = S.t; delete S.rt.routes[a.k]; return false; }
         a.legs.unshift({ pid: Pp.N.pid, status: 'turnback', stops: [], end: Pp.N.tail[1], start: mapTo(a.pid, a.d, Pp.N.pid), tailOf: Pp.N.pid }, { kind: 'park' });
         return true;
       }
@@ -995,9 +1018,24 @@
       SLOW = CLOSED ? { set: new Set(CLOSED), until: t + 1200, kmh: 40 } : null;
       NAVHOLD = CLOSED && CLOSED0 && CLOSED !== CLOSED0 && S.agents.some(x => x.mode === 'navetta' || x.navBack) ? new Set([...CLOSED].filter(e => !CLOSED0.has(e))) : null;
       CLOSED = null; CLOSED0 = null; usedRuns.clear();
+      // kept in the depot by the closure when they were due out: out now, in the order of their tabelle, one every 4
+      // minutes, and into the service. One whose tabella is over by now (or has it in the depot) stays, unless it stands
+      // on the way out of one that goes: then it goes out first, as in the timetable, and comes back in from San Donato
+      const held = S.agents.filter(a => a.depotHold != null && a.mode === 'static' && a.status === 'parked' && !a.hidden && !a.strike && !a.broken)
+        .map(a => ({ a, sg: planOf(a.k)[a.depotHold] })).filter(x => x.sg && x.sg[1] === 'from_depot').sort((x, y) => x.sg[3][0] - y.sg[3][0]);
+      const goes = new Set(held.filter(x => planNow(x.a.k, t, 1200) === 'out' && planLeft(x.a.k, t) >= 2700));
+      for (let more = true; more;) { more = false;
+        for (const x of held) if (!goes.has(x) && [...goes].some(y => { const d = mapTo(x.a.pid, x.a.d, y.sg[0]); return d != null && d > y.sg[4][0] + 1; })) { goes.add(x); more = true; } }
+      held.forEach((x, i) => { const a = x.a; a.depotHold = null; if (!goes.has(x)) { resumeDay(a, t); return; }
+        a.mode = 'shuttle'; a.status = 'empty'; a.part = [0, last]; a.wait = t + 60 + 240 * [...goes].filter(y => held.indexOf(y) < i).length; a.at = null; a.kept = false; a.legs = [legOfSeg(x.sg, null), { kind: 'assign' }]; a.outNow = true; });
       for (const a of S.agents) {
+        if (a.outNow) { a.outNow = false; continue; }
+        if (a.depotHold != null) a.depotHold = null;
         if (a.status === 'parked' && !a.hidden && a.mode === 'static' && !a.strike && !a.broken) { resumeDay(a, t); continue; }
         if (a.hidden || a.status === 'parked') continue;
+        // (on its way into a tail, a ricovero or the depot by an order of the DCT: it finishes; it was given a run from
+        // the station it had left, with the stops of that run off the end of its path)
+        if (a.mode === 'inside' && a.legs.some(l => l.kind === 'ricIn' || l.kind === 'ricPark' || l.kind === 'tailpark' || l.kind === 'park' || l.kind === 'depot')) continue;
         a.part = [0, last];
         // the navetta, and a train going back on its track, on a track the wrong way: to the next station, change of cab,
         // back on that track the right way, then on in service (meanwhile no train goes into the stretch: NAVHOLD)
@@ -1032,7 +1070,10 @@
           }
           a.mode = 'shuttle';
         } else if (a.status === 'stopped' || a.mode === 'inside' || a.status === 'held' || a.mode === 'held' || a.mode === 'navetta') {
-          a.status = a.status === 'stopped' ? 'service' : a.status; a.legs = [{ kind: 'assign' }]; a.mode = 'shuttle';
+          // (on its way out of the depot when the stretch closed, standing at a signal of the depot since: it goes on to San
+          // Donato; with no move left it stood there for ever, and the trains due out after it behind it)
+          const out0 = a.legs[0] && !a.legs[0].kind && a.legs[0].status === 'from_depot' ? a.legs[0] : null;
+          a.status = a.status === 'stopped' ? 'service' : a.status; a.legs = out0 ? [out0, { kind: 'assign' }] : [{ kind: 'assign' }]; a.mode = 'shuttle';
         }
       }
     }
@@ -1065,8 +1106,11 @@
       a.mode = 'shuttle'; a.status = 'empty'; a.part = [0, last]; a.v = 0; a.wait = S.t + 60; a.legs = [{ kind: 'assign' }]; a.inside = null; return true;
     }
     // after reopening, a train switched off in the depot: its next run out of the depot (the ones missed are gone)
+    // (only a train in the depot: one switched off in a tail of Comasina or in a ricovero by an order waits there for its
+    // recall; it was given its next run out of the depot and started it from the tail, across the whole line)
+    const onLine = a => [{ N: G.N, S: G.S }].concat(G.pairs || []).some(P => mapTo(a.pid, a.d, P.N.pid) != null || mapTo(a.pid, a.d, P.S.pid) != null);
     function resumeDay(a, t) {
-      const plan = planOf(a.k); if (a.seg0 == null) return;
+      const plan = planOf(a.k); if (a.seg0 == null || a.inTail != null || onLine(a)) return;
       for (let j = Math.max(0, a.seg0); j < plan.length; j++) {
         const s = plan[j]; if (s[3][0] < t - 60) continue;
         if (s[1] !== 'from_depot' && !(s[1] === 'empty' && s.length > 5 && s[5] != null) && !(s[3][0] >= 29 * 3600)) continue;
@@ -1082,7 +1126,9 @@
       // (a path of its own with no platforms on it, as the way out of the depot to San Donato: the platform of a main path
       // through the same point; else a train called back from the depot stood at San Donato with nothing to do, holding its
       // routes, and the depot jammed behind it: the strike's 15:00, Giovanni 21 Nov 2026)
-      if (!z.length && o.zones) for (const P of (G.pairs && G.pairs.length ? G.pairs : [{ N: G.N, S: G.S }])) for (const dir of ['N', 'S']) {
+      // (also on a path with platforms further on but none here: the run out of the depot goes on as a run of the line, and
+      // San Donato is not among its platforms; a train out of the depot after a reopening stood there for ever, 27 Nov 2026)
+      if (o.zones) for (const P of (G.pairs && G.pairs.length ? G.pairs : [{ N: G.N, S: G.S }])) for (const dir of ['N', 'S']) {
         const mp = P[dir].pid, x = mapTo(a.pid, a.d, mp); if (x == null) continue;
         const y = (o.zones[mp] || []).find(q => x >= q[0] - 3 && x <= q[1] + 3);
         if (y) return { st: y[3], dir: y[3] === 0 ? 'N' : y[3] === last ? 'S' : null };
@@ -1283,6 +1329,9 @@
         S.t += DT; S.rt.t = S.t; refresh(); atoTick(); if (FX) FX.tick(); if (ZONES.length) zoneTick();
         for (const a of S.agents) {
           const p0 = a.pid, n0 = a.d + half;
+          // (sent home after a reopening while its tabella had it in the depot: out again when the tabella is)
+          if (a.backAt != null && S.t >= a.backAt && !S.cl && a.mode === 'static' && (a.hidden || a.status === 'parked') && !a.strike && !a.broken) {
+            a.backAt = planNow(a.k, S.t, 0) !== 'out' || wake(a) ? null : S.t + 30; }
           stepAgent(a);
           if (a.v > 0.5 && S.rt.wants && S.rt.wants[a.k]) delete S.rt.wants[a.k];     // it moves: it no longer waits
           if (IL) IL.release(S.il, a.k, a.pid, a.d + half, a.hidden || a.status === 'parked', a.pid === p0 ? n0 : null, a.v);
@@ -1597,8 +1646,11 @@
       const it = ITS[R.OUT], eo = wayAlone(it.ways[0]); if (!eo) return null;
       const po = makePath(eo), s = (o.sigall[po] || []).find(x => x[1] === it.start); return s ? mapTo(po, s[0], np) : null;
     }
+    // (one train in a ricovero: not a second one while a train stands there or is on its way in; two were sent to Brenta in
+    // a total closure, the second stood on the line behind the first and at the reopening the line jammed behind it)
+    const ricTaken = (R, a) => S.agents.some(b => b !== a && !b.hidden && (b.inTail === R.id || b.legs.some(l => (l.kind === 'ricIn' || l.kind === 'ricPark') && l.ric === R.id)));
     function ricPlan(a, R) {
-      const I = a.inside, it = ITS[R.IN]; if (!I || I.dir !== R.dir || R.X < 0) return null;
+      const I = a.inside, it = ITS[R.IN]; if (!I || I.dir !== R.dir || R.X < 0 || ricTaken(R, a)) return null;
       const q = I.stops.findIndex(z => z.st === R.X); if (q < 0 || q < I.q) return null;
       const d0 = I.pid === a.pid ? a.d : mapTo(a.pid, a.d, I.pid); if (d0 == null) return null;
       const sg = (o.sigall[I.pid] || []).find(x => x[1] === it.start && x[0] > I.stops[q].d); if (!sg) return null;
@@ -1706,6 +1758,7 @@
       const out0 = instrOptions0(a, k);
       return ill.some(x => x.key === 'ill:dep') ? out0.filter(x => x.key !== 'dep').concat(ill) : out0.concat(ill);
     }
+    const tailsLeft = a => (G.pairs && G.pairs.length ? G.pairs : [{ N: G.N, S: G.S }]).filter(p => tailFree(a, p.N)).length - S.agents.filter(b => b !== a && !b.hidden && b.legs.some(l => l.kind === 'tailpark')).length;
     function instrOptions0(a, k) {
       const I = a.inside, dir = I.dir, out = [], rev = REVP[dir];
       for (let i = I.q + 1; i < I.stops.length; i++) { const Y = I.stops[i], P = partOf(Y.st);
@@ -1716,7 +1769,8 @@
       if (dir === 'S' && I.end != null) out.push({ key: 'dep', label: 'Avanti fino a San Donato e in deposito' });
       // (Giovanni 20 Nov 2026: "può ordinare ad un treno di andare nel tronchetto di Brenta fino a riapertura ... deve far
       // scendere tutti a Lodi TIBB"; at the reopening it waits for the order to go on towards San Donato)
-      if (dir === 'N' && I.stops[I.stops.length - 1].st === last && !out.some(x => !x.back && x.open)) out.push({ key: 'tail', label: 'Avanti fino a Comasina e in tronchetto' });
+      // (only with a tail free for it: not the ones taken, nor the ones other trains have been sent to)
+      if (dir === 'N' && I.stops[I.stops.length - 1].st === last && !out.some(x => !x.back && x.open) && tailsLeft(a) > 0) out.push({ key: 'tail', label: 'Avanti fino a Comasina e in tronchetto' });
       for (const R of Object.values(RIC)) if (dir === R.dir && ricPlan(a, R)) out.push({ key: R.id, label: R.label });
       // the trains in the way now (the train would wait behind them, or face them)
       for (const x of out) { const p = instrPlan(a, x.key), l = p && p.legs[0]; x.blocked = l ? trainsOn(l.pid, l.start, l.end, k) : []; }
@@ -1747,7 +1801,7 @@
         return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: I.end, start: d0, rev: a.pid !== I.pid }, { kind: 'depot' }], after: () => {} }; }
       if (RIC[key]) return ricPlan(a, RIC[key]);
       if (key === 'tail') { const d0 = onto(I.pid), Y = I.stops[I.stops.length - 1]; if (d0 == null) return null;
-        return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: Y.d, start: d0, rev: a.pid !== I.pid }, { kind: 'tailpark' }], after: () => {} }; }
+        return { legs: [{ pid: I.pid, status: 'empty', stops: [], end: Y.d, start: d0, rev: a.pid !== I.pid }, { kind: 'tailpark' }], after: () => { I.q = I.stops.length - 1; } }; }
       return null;
     }
     // the trains standing (or running) on a stretch of a path now: the PC sees them on the panel before sending a train

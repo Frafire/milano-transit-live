@@ -5379,7 +5379,7 @@ window.MTL_CAPS = __CAPS__;
     let legs = [];
     if (I.from === 'deposito') { const o = Object.values(F.depotPaths[I.q].out)[0]; legs = [{ pid: o.pid, status: 'from_depot', stops: [], start: o.start, end: o.plat }]; }
     if (!F.ag.event({ kind: 'regola', what: 'recall', k, legs })) return false;
-    if (I.from === 'deposito') { delete F.depot.at[k]; }
+    if (I.from === 'deposito') { (F.depot.leaving = F.depot.leaving || {})[k] = String(F.depot.at[k]); delete F.depot.at[k]; }      // (its place: taken until it is off its track, web/DepotM3.js)
     say('DCT', tx('dct.regola.richiama_subito', { treno: no.n }), 'pc'); say('T' + no.n, tx('regola.ricevuto_richiamo'), 'dr'); return true;
   }
   function regoBox(F, tr) {
