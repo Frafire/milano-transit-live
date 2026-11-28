@@ -1,31 +1,71 @@
 # Milano Transit Live
 
-A free, open-source simulation of Milan's public transport on a satellite map, growing into a game where you run the network: faults, held trains, closed sections, signals and junctions.
+A free, open-source simulation of Milan's public transport that is growing into a game. You are the **Posto Centrale** (the DCT) of metro line M3: trains run by themselves from the real ATM timetable, and you deal with what goes wrong: faults, closed stretches, signals, the depot, the radio.
 
 **Unofficial fan project, not affiliated with ATM.** No ads, nothing to buy. Code under GPL-3.0; data credits in [CREDITS.md](CREDITS.md).
 
 ## Play
 
-Open `docs/index.html` in Chrome or Firefox: the menu (Gioca! → Metro → line) opens the game, `docs/gioca.html?linee=M3`. Today only M3 can be played; the other lines are shown grey, "In arrivo". Once GitHub Pages is switched on (Settings → Pages → branch `main`, folder `/docs`), the game is online at the repository's Pages link.
+Online: <https://frafire.github.io/milano-transit-live/> (GitHub Pages, branch `main`, folder `/docs`). Or open `docs/index.html` in Chrome or Firefox.
 
-## What works today
+The menu (Gioca! → Metro → line) opens the game, `docs/gioca.html?linee=M3`. What can be opened is in [`data/linee.json`](data/linee.json):
 
-- Every metro, tram and bus vehicle in Milan moving from the published weekday timetable (service day 03:00–02:59).
-- **M3 in depth:** real tracks and junctions, San Donato and Comasina terminal rules, depot with parking places and the test loop (anello di prova), the real 24-train fleet, station boards in Italian.
-- **M4:** tracks, San Cristoforo depot, real fleet 4401–4447. **M1:** trains on real tracks.
-- **Buses 130 and 64:** 18 m articulated vs 12 m buses; line 64 stops show an ATM-style waiting-time display and the stop timetable.
-- **Admin / Player modes:** the player gets the M3 control panel and can order a train from Rogoredo onto platform 2 to reverse there.
-- **Track editor:** mark track use and direction, place signals, draw missing tracks, export the result.
+- **M3**: playable, with today's timetable and two historical ones (Expo 2015 and Milano Cortina 2026, `gioca.html?linee=M3&orario=expo2015`).
+- **M2**: "in test", trains on the real tracks from the timetable, no signals or depots in the running yet (see below).
+- Everything else (M1, M4, M5, tram, bus): grey, "In arrivo".
 
-The plan is in [`docs/planning/milano-transit-live-roadmap.xlsx`](docs/planning/milano-transit-live-roadmap.xlsx). Next up: a live engine in the browser with block sections from the placed signals, and the first scenario (fault San Donato–Rogoredo).
+The game is in Italian.
+
+## What the M3 does today
+
+- **Live engine in the browser.** Every train is an agent with acceleration, braking and ATO-style driving, moved second by second (`web/agents.js`, `web/engine.js`). The timetable says what should happen, the engine what happens.
+- **Timetable and days.** Weekday, Saturday and Sunday from the ATM GTFS. At 3:00 the next day starts without reloading the page, and trains start again from where they ended (Comasina tails, San Donato, their place in the depot). Each tabella keeps one train for the whole day; the real fleet, with a panel (Turni del giorno) to change which train takes which tabella.
+- **Signals and interlocking.** Every signal of the line, the itineraries worked out from the track at build time (`data/itineraries_m3.json`), switches, timings and priorities. A train moves only on a route the interlocking has set.
+- **Synoptic boards.** One for the line and one for the Rogoredo depot (ROD), drawn like the real ACEI board, with its buttons: start signal, then arrival, then the way is cleared.
+- **Rogoredo depot.** Parking places in the sheds, workshop, wash, the test loop (anello di prova), the Badoni locomotive that goes out to rescue a failed train.
+- **Closures.** A stretch closed with trains turning back at its ends, single-track running, shuttles, trains put away in a tail or in a siding (ricovero) on the DCT's order, the whole line closed, Rosso totale, and the reopening: trains take the free runs of the timetable until the service is regular again.
+- **Faults.** Train failures and re-arming, rescue, signal and switch failures, people on the tracks, orders of the Prefettura, strikes with the guaranteed bands (`web/faults.js`). They can be started by hand or come at random.
+- **Radio.** To the trains and to the station agents (`web/radio.js`). Every phrase is in the Radio sheet of the rules Excel, not in the code.
+- **Regolatore panel.** The timetable as departures to cover: take a train out of service, call a reserve from the depot.
+- **Admin mode.** Track editor (track use and direction, signals, missing tracks, export), speed limits, time slider. Player mode is the game.
+
+## How it is built: three levels
+
+1. **Itineraries**: what is possible. Worked out from the track by `tools/itineraries.py`.
+2. **Regolatore**: what to choose. The programme of each tabella, and the player.
+3. **Interlocking**: whether it is safe. `web/routes.js` on the line, `web/interlocking.js` in the depot.
+
+**The operating rules are in an Excel file, not in the code**: [`data/Regole_interlocking_M3.xlsx`](data/Regole_interlocking_M3.xlsx) (sheets Tempi, Semafori, Itinerari, Precedenze, Chiusure, Ricoveri, Tratte parallele, Pannello PC, Guasti, Radio, Schema chiamate, Situazioni). `python3 tools/rules_from_excel.py` (needs `openpyxl`) writes `data/regole_m3.json` and `data/radio_m3.json`, which the build reads. Rows marked PROPOSTA are proposals still to be confirmed by someone who knows the line.
+
+Other data you can change:
+
+- [`data/operations_m3.json`](data/operations_m3.json): speeds (line 80 km/h, diverging side of a switch 15, depot and tails 15, sheds 5, wrong way 30), braking, times at the terminus.
+- `data/dwell_m3.json`: how long trains stop at each station, longer in the rush hours.
+- `data/rules_m3.json`: track use, signals, speed limits and cuts from the track editor (Admin → Track editor → **Copy all**, then paste the `MTL-EDIT {...}` text into the file or into an issue).
+- `data/schema_deposito_m3.json`, `data/sinottico_linea_m3.json`: the two boards.
+
+After any change run `./build.sh`: the whole day is planned again and the checks say if a rule is broken.
 
 ## Build it yourself
 
-Needs Python 3.10+ (no extra packages), Node.js (for the engine test) and bash.
+Needs Python 3.10+, Node.js and bash. Optional: Playwright (the checks of the page in a headless browser; skipped without it), ESLint (the lint check; skipped without it), `openpyxl` (only to read the Excel files again).
 
-1. Run `./build.sh`. It uses `data/gtfs_m3/`, an M3-only extract of the ATM/AMAT GTFS kept in the project (about 2.6 MB; feed version and dates in its README), so the build is the same for everyone. Add a service day as a second argument (`./build.sh data/gtfs_m3 YYYYMMDD`) if needed.
-2. The menu is written to `docs/index.html`, the game to `docs/gioca.html`, and its data to `docs/dati/` (one file per line and kind of day: `m3_1.js` weekday, `m3_6.js` Saturday, `m3_7.js` Sunday; the game loads only the line chosen in the menu). The build also runs the checks in `tests/`: tails and depot tracks never hold two trains, block sections, the normal day driven by the agents, one line closure with reopening, timetable and spacing.
-3. For a newer timetable: download the full GTFS zip from the Comune di Milano open data portal (dataset "Orari del trasporto pubblico locale nel Comune di Milano in formato GTFS", about 470 MB unzipped), unzip it into `gtfs/` (ignored by git), then run `python3 tools/extract_gtfs.py gtfs data/gtfs_m3` and `./build.sh`. For all lines (M1, M4, buses): `ALL_LINES=1 ./build.sh gtfs`.
+1. Run `./build.sh`. It uses `data/gtfs_m3/`, an M3-only extract of the ATM/AMAT GTFS kept in the project (feed version and dates in its README), so the build is the same for everyone. A service day can be given as second argument: `./build.sh data/gtfs_m3 YYYYMMDD`.
+2. It takes 40–50 minutes with the page checks: the weekday, Saturday, Sunday, the two historical timetables and the M2, each with its day driven by the agents and its checks.
+3. Output: the menu in `docs/index.html`, the game in `docs/gioca.html`, the data in `docs/dati/` (one file per line and kind of day: `m3_1.js` weekday, `m3_6.js` Saturday, `m3_7.js` Sunday; the game loads only the line chosen in the menu).
+4. For a newer timetable: download the full GTFS zip from the Comune di Milano open data portal (dataset "Orari del trasporto pubblico locale nel Comune di Milano in formato GTFS", about 470 MB unzipped), unzip it into `gtfs/` (ignored by git), then `python3 tools/extract_gtfs.py gtfs data/gtfs_m3` and `./build.sh`. `ALL_LINES=1 ./build.sh gtfs` also builds M4, M1 and bus lines 130 and 64, which are not in the menu yet.
+
+### Checks
+
+The build stops if a check fails. In `tests/`:
+
+- the plan: tails and depot tracks never hold two trains, the timetable can be kept with the speed limits and stop times;
+- the engine: a normal day driven by the agents with no train late, no signal passed without a route, itineraries and rules as in the Excel;
+- the game on the engine: closures and reopenings, orders to trains in a closed stretch, sidings, faults, two whole days played by a DCT who goes along (an investimento with San Donato closed, a strike with the whole line closed);
+- the page in a headless browser: about 40 scenarios (`tests/page_check.js`), the menu, the boards;
+- the texts: no radio phrase left in the code, the radio files up to date with the Excel.
+
+Two checks only warn: `lavaggio` (page) and the changes of cab beyond their signal (`tests/cambio_banco_check.js`). The historical timetables only warn too.
 
 ## M2 (in test, tappa 1)
 
@@ -63,69 +103,16 @@ Everything M2 is in its own files, so the M3 build does not change:
 
 | Folder | What is in it |
 |---|---|
-| `web/` | The menu (`home.html`), the game page (`template.html`) and Leaflet |
-| `tools/` | Python build steps: timetable → compact JSON, track router, M3/M4 operations (`build_line.py`), M1 (`build_trips.py`), buses (`build_bus.py`), real fleets, page assembly |
-| `data/` | Metro tracks from OpenStreetMap and the track rules and signals from the editor |
+| `web/` | The menu (`home.html`), the game page (`template.html`), the engine (`agents.js`, `engine.js`), the interlockings (`routes.js`, `interlocking.js`), faults, depot, radio |
+| `tools/` | Build steps: timetable → compact JSON (`build_data.py`), the M3 plan (`build_line.py`), itineraries, the boards (`sinottico.py`, `schema_deposito.py`), rules from the Excel, the day driven by the agents (`precompute_live.js`), page assembly (`assemble.py`), the M2 tools |
+| `data/` | Tracks from OpenStreetMap, the rules Excel and the files made from it, operating numbers, fleets, the GTFS extracts, the historical timetables (`storico/`) |
 | `tests/` | Checks run by the build |
-| `docs/` | The built game (served by GitHub Pages) and planning files |
+| `docs/` | The built game (served by GitHub Pages), notes on the M3 signalling ([`m3-signalling.md`](docs/m3-signalling.md), [`m3-turnback-points.md`](docs/m3-turnback-points.md)) and the roadmap |
 
-## The menu
+## Roadmap
 
-`web/home.html`, built into `docs/index.html`: Gioca!, then Metro / Tram / Bus / Tutta la rete, then the metro line (M1, M2, M3, M4 + M5, M1 + M2 + M3 together, all lines). What can be played is in [`data/linee.json`](data/linee.json): `"giocabile"` or `"in arrivo"` (grey, not clickable). The build stops if a line is `giocabile` without its data. `tests/home_check.js` checks the menu and that choosing M3 loads only M3's data.
+[`docs/planning/roadmap.md`](docs/planning/roadmap.md) and the Excel next to it, both made by `python3 tools/roadmap.py`. In short: finish the M3 game (DCT panel, score), then the M2 with its depots and signals, then the other metro lines, buses, drivers' shifts and trams.
 
-## Live engine (M3)
+## Real data
 
-`web/engine.js` drives every M3 train second by second with acceleration, braking and speed limits, following the plan built in Python. The plan is "what should happen", the engine is "what happens"; `tests/engine_test.js` checks that with nothing going wrong no train is more than 30 s behind the plan and no run starts late. The track network the engine uses (track pieces, junctions, speed limits, signals) is exported into `m3.json` as `net`. Signalling notes for the next steps are in [`docs/m3-signalling.md`](docs/m3-signalling.md).
-
-## Closing San Donato – Rogoredo (Player mode)
-
-In the M3 control panel, under "Chiusura tratte", **Chiudi la tratta**: trains inside the section stop where they are, trains at San Donato stay there (depot moves are free), every other train unloads at Rogoredo, reverses beyond the crossover and starts its next run to Comasina from Rogoredo. Only one train at a time in the reversing stub. `tests/section_test.js` checks closures at several times of day.
-
-Signals and ZUB (station-to-station running) are on hold until the signals can be placed and controlled. The pixel-art M3 signal icons stay in the project: `tools/signal_icons.py` and `web/assets/signals/` (red = stop, red + white = proceed, white = M1).
-
-## Speed limits (M3)
-
-Admin mode → Track editor → **Speed limits**. Pick a speed and click the M3 track pieces (from one junction to the next); trains use the new limit straight away. Fixed limits: 15 km/h over crossovers and on the diverging side of every junction (also when turning back), 15 km/h in the depot, 12.5 km/h in the tail tracks. Pieces not set yet use `line_max_kmh` (80). To limit only part of a piece, press **✂ Cut a piece** and click where the limit changes (click a cut mark again to remove it). **Copy all** exports the limits and cuts with the other edits; they go into `data/rules_m3.json` under `speeds` and `cuts`.
-
-With speed limits the live engine drives like the ATO: as fast as allowed, then waits at the next stop. `tests/engine_test.js` reports how much time trains have in hand at stops, and warns when the limits make the timetable impossible.
-
-## Train card
-
-Click a metro train: the card shows its speed as the simulation calculates it, whether the doors are open or closed, and a short timetable (last stop, next two, destination). **Orario completo** shows every stop.
-
-## Station stop times and the timetable check
-
-`data/dwell_m3.json` sets how long trains stop: Duomo and Centrale 30–60 s, the busier stations (Rogoredo, Corvetto, Brenta, Lodi, Porta Romana, Crocetta, Missori, Montenapoleone, Turati, Repubblica, Zara, Maciachini) 15–25 s, the others 10–15 s; rush hours (7–9, 16–19) use the upper half of the range, a late train stops for the minimum. At intermediate stations the live engine leaves when the stop is over, not when the timetable says.
-
-`tests/timetable_check.js` (run by the build) drives the whole day with these stop times and the speed limits, and says whether the ATM timetable can be respected. `tools/fit_center_speeds.js` filled the unset limits between Porta Romana and Repubblica from measured run times.
-
-## Radio terra-treno (M3)
-
-On an M3 train card, **📻 Radio al treno** opens a pixel-style radio. You are the Posto Centrale; everything is in Italian. Orders: a longer stop at the next station (30 s, 1 min, 1:30, 2 min, with a reason), the departure platform at San Donato, and platform 2 with reversal there coming from Rogoredo (refused if platform 2 is not free). The driver answers, then reports when he stops and when he leaves.
-
-The phrases are in the Radio sheet of the rules Excel, one file per line: column **Linea** (M3, M2 or comune),
-`python3 tools/rules_from_excel.py` writes `data/radio_m3.json`, `python3 tools/rules_from_excel.py data/Regole_M2.xlsx`
-only `data/radio_m2.json` (with the "comune" rows of both Excels). The column **PROPOSTA** holds Claude's texts, never
-read by the game until Giovanni copies them into Testo; **Chiamata** and **Parte** say which exchange and which part of
-the call a phrase is (sheet *Schema chiamate*: the DCT calls the train, "Pronto! 36", "36 a Duomo pari", the order,
-"Va bene, ciao!", "Ciao!"). `tests/radio_excel_check.py` checks the files are up to date with the Excels.
-How often each phrase is said: `node tools/radio_conteggio.js` plays a weekday in the page with random failures on and
-nobody at the controls (about 5 minutes) and writes `data/radio_uso_m3.json`; `tests/radio_varieta_check.js` notes the
-most used phrases with only one text. Column **Stile** (calmo, deciso, aggressivo, one per text): `t(code, { stile })`
-in `web/frasi.js` keeps only the texts of that style.
-
-## Terminal junctions (San Donato, Comasina)
-
-Between the platforms and the tail tracks only one train at a time may use the junction (incrocio); at San Donato the depot access to platform 1 is part of it, and platform 1 itself is one train at a time. A train waits on its platform, in the tail, or at the depot exit signal until the train in front has cleared the junction. When a train is leaving a tail and another is about to go into one within a minute, the one leaving goes first. The depot exit signal is a white/red dot (Admin → Segnali) you can drag to its real place; it is saved with the other edits.
-
-## Station signals (placeholders)
-
-Admin → M3 trains → **Segnali** (zoom 17+): M3 is *banalizzata*, so every station has a departure signal at both ends of both tracks. For now they only show an aspect and do not control trains: red + white when the line to the next station is free in the usual direction, otherwise red; signals for running the wrong way stay red.
-
-## Changing how M3 runs
-
-The M3 operating rules live in [`data/operations_m3.json`](data/operations_m3.json): stop time at stations, unloading time at the terminus, platform wait, minimum turnaround, tail and depot speeds. Change a number (you can do it on github.com with the pencil icon), run `./build.sh` again and the whole day is re-planned. The build stops with an error if a change breaks a rule (two trains in a tail or on a depot track).
-
-## Adding track rules and signals
-
-In the game, Admin mode → Track editor. Mark tracks and place signals, then **Export** and paste the `MTL-EDIT {...}` text into an issue or into `data/rules_m3.json`, and rebuild.
+Tracks come from OpenStreetMap and the timetable from the ATM/AMAT feed. Signals, depot places, operating rules and procedures come from people who worked on the line; nothing of that kind is made up, and what is still a guess is marked as a proposal (PROPOSTA) in the Excel. Corrections are welcome: open an issue.
